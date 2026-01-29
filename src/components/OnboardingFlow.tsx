@@ -71,7 +71,7 @@ const fileToBase64 = (file: File): Promise<string> => new Promise((res, rej) => 
 });
 
 // --- RECAPTCHA COMPONENT ---
-const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (verified: boolean) => void; sitekey: string; }) => {
+const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (token: string | null) => void; sitekey: string; }) => {
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
 
@@ -82,8 +82,8 @@ const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (verified: boolean) => voi
             try {
                 a.grecaptcha.render(recaptchaRef.current, {
                     sitekey: sitekey,
-                    callback: () => onVerify(true),
-                    'expired-callback': () => onVerify(false),
+                    callback: (token: string) => onVerify(token),
+                    'expired-callback': () => onVerify(null),
                 });
                 renderedRef.current = true;
             } catch(e) {
@@ -323,7 +323,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
   const [sent, setSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [codeError, setCodeError] = useState('');
-  const [captchaChecked, setCaptchaChecked] = useState(!recaptchaSiteKey);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(!recaptchaSiteKey ? 'bypass' : null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
@@ -331,7 +331,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
   const emailRegex = /^\S+@\S+\.\S+$/;
   const passwordStrength = useMemo(() => evaluatePasswordStrength(data.password || ''), [data.password]);
 
-  const canContinue = data.emailVerified && passwordStrength.score === 1 && data.password === data.verifyPassword && captchaChecked;
+  const canContinue = data.emailVerified && passwordStrength.score === 1 && data.password === data.verifyPassword && !!captchaToken;
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
@@ -353,7 +353,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
         onChange('emailVerified', true);
         setIsValidEmail(true);
         setSent(true);
-        setCaptchaChecked(true); 
+        setCaptchaToken('google-oauth-bypass');
         setTimeout(() => onContinue(), 200);
     } catch (e) {
         console.error("Google Sign-up failed", e);
@@ -363,9 +363,13 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 
   const handleSendVerification = async () => {
     if (!isValidEmail || verifying || data.emailVerified) return;
+    if (recaptchaSiteKey && !captchaToken) {
+        alert("Please complete the reCAPTCHA verification first.");
+        return;
+    }
     setVerifying(true);
     try {
-        await apiService.post('/auth/send-verification', { email: data.email });
+        await apiService.post('/auth/send-verification', { email: data.email, captchaToken });
         setSent(true);
     } catch (err) {
         alert((err as Error).message || "Failed to send verification code. Please try again.");
@@ -421,7 +425,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
                         <Check size={16} /> Verified
                      </div>
                   ) : (
-                     <button onClick={handleSendVerification} disabled={!isValidEmail || verifying || sent} className="py-4 px-6 rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50 bg-zinc-200 text-zinc-600 hover:bg-zinc-300 w-32">
+                     <button onClick={handleSendVerification} disabled={!isValidEmail || verifying || sent || (recaptchaSiteKey && !captchaToken)} className="py-4 px-6 rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50 bg-zinc-200 text-zinc-600 hover:bg-zinc-300 w-32">
                         {verifying ? <Loader2 className="animate-spin" size={16}/> : sent ? 'Sent' : 'Verify'}
                      </button>
                   )}
@@ -436,6 +440,12 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
                     {codeError && <div className="flex items-center gap-2 text-rose-500 text-xs font-bold mt-1"><AlertCircle size={12}/>{codeError}</div>}
                   </div>
                 }
+                {recaptchaSiteKey && !sent && !data.emailVerified && isValidEmail && (
+                  <div className="mt-4">
+                    <p className="text-xs text-zinc-500 mb-2">Complete reCAPTCHA to verify your email:</p>
+                    <ReCAPTCHA sitekey={recaptchaSiteKey} onVerify={setCaptchaToken} />
+                  </div>
+                )}
                 {errors.email && <p className="text-rose-500 text-xs font-bold mt-2">{errors.email}</p>}
             </div>
 
@@ -462,19 +472,6 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
              )}
              {data.password && data.password !== data.verifyPassword && data.verifyPassword && <p className="text-rose-500 text-xs font-bold">Passwords do not match.</p>}
         </div>
-
-        {recaptchaSiteKey && (
-          <div className="flex items-center gap-3 pt-4">
-            <input
-              type="checkbox"
-              id="captcha-check"
-              checked={captchaChecked}
-              onChange={e => setCaptchaChecked(e.target.checked)}
-              className="w-5 h-5 rounded border-zinc-300"
-            />
-            <label htmlFor="captcha-check" className="text-sm text-zinc-600">I'm not a robot</label>
-          </div>
-        )}
 
         <div className="pt-6">
           <button
