@@ -9,7 +9,6 @@ import helmet from 'helmet';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import process from 'process';
 import * as dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
 import fs from 'fs';
 
 // --- CONFIGURATION ---
@@ -36,33 +35,14 @@ const auth = admin.auth();
 const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FIREBASE_WEB_API_KEY } = process.env;
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
 
-// --- EMAIL TRANSPORTER ---
-const createTransporter = () => {
-  if (process.env.SENDGRID_API_KEY) {
-    console.log("Configuring email with SendGrid transport");
-    return nodemailer.createTransport({
-      service: 'SendGrid',
-      auth: {
-        user: 'apikey',
-        pass: process.env.SENDGRID_API_KEY,
-      },
-    });
-  } else if (process.env.SMTP_HOST) {
-    console.log("Configuring email with Standard SMTP");
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-  return null;
-};
+// --- GOOGLE APPS SCRIPT EMAIL SERVICE ---
+const EMAIL_SERVICE_URL = process.env.EMAIL_SERVICE_URL;
 
-const transporter = createTransporter();
+if (EMAIL_SERVICE_URL) {
+  console.log("✅ Email configured via Google Apps Script");
+} else {
+  console.warn("⚠️ EMAIL_SERVICE_URL not set - emails will be disabled");
+}
 
 // --- GEMINI API ---
 let ai: GoogleGenerativeAI | null = null;
@@ -106,7 +86,7 @@ app.get('/health', (req: Request, res: Response) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     services: {
-      emailConfigured: transporter !== null,
+      emailConfigured: !!EMAIL_SERVICE_URL,
       smsConfigured: twilioClient !== null && !!TWILIO_PHONE_NUMBER,
       aiConfigured: ai !== null,
       firebaseConfigured: true // If we got here, Firebase is working
@@ -171,37 +151,6 @@ const canSendEmail = async (userId: string, type: 'alerts' | 'opportunities' | '
     }
   } catch {
     return false;
-  }
-};
-
-const sendEmailWithOptIn = async (
-  userId: string | null,
-  type: 'alerts' | 'opportunities' | 'training' | 'events' | 'verification',
-  mailOptions: { to: string; subject: string; text?: string; html?: string }
-): Promise<{ sent: boolean; reason?: string }> => {
-  // Verification emails bypass opt-in (user may not exist yet)
-  if (type !== 'verification' && userId) {
-    const allowed = await canSendEmail(userId, type as 'alerts' | 'opportunities' | 'training' | 'events');
-    if (!allowed) {
-      console.log(`[EMAIL] Skipped - user ${userId} has opted out of ${type} emails`);
-      return { sent: false, reason: 'opted_out' };
-    }
-  }
-
-  if (!transporter) {
-    console.error('[EMAIL] Transporter not configured');
-    return { sent: false, reason: 'not_configured' };
-  }
-
-  try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"HMC Portal" <noreply@healthmatters.clinic>',
-      ...mailOptions
-    });
-    return { sent: true };
-  } catch (error) {
-    console.error('[EMAIL] Send failed:', error);
-    return { sent: false, reason: 'send_failed' };
   }
 };
 
@@ -568,20 +517,12 @@ const EmailTemplates = {
   }),
 };
 
-// Email Service Class
+// Email Service Class - Uses Google Apps Script
 class EmailService {
   static async send(
     templateName: keyof typeof EmailTemplates,
     data: EmailTemplateData
   ): Promise<{ sent: boolean; reason?: string }> {
-    const template = EmailTemplates[templateName];
-    if (!template) {
-      console.error(`[EMAIL] Unknown template: ${templateName}`);
-      return { sent: false, reason: 'unknown_template' };
-    }
-
-    const { subject, html, text } = template(data);
-
     // Check opt-in for non-transactional emails
     const transactionalTypes = ['email_verification', 'password_reset', 'login_confirmation'];
     if (!transactionalTypes.includes(templateName) && data.userId) {
@@ -592,23 +533,33 @@ class EmailService {
       }
     }
 
-    if (!transporter) {
-      console.warn('[EMAIL] Transporter not configured');
+    if (!EMAIL_SERVICE_URL) {
+      console.warn('[EMAIL] EMAIL_SERVICE_URL not configured');
       return { sent: false, reason: 'not_configured' };
     }
 
     try {
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"${EMAIL_CONFIG.FROM_NAME}" <noreply@healthmatters.clinic>`,
-        to: data.toEmail,
-        subject,
-        text,
-        html
+      // Send to Google Apps Script
+      const response = await fetch(EMAIL_SERVICE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: templateName,
+          ...data
+        })
       });
-      console.log(`[EMAIL] Sent ${templateName} to ${data.toEmail}`);
-      return { sent: true };
+
+      const result = await response.json() as { success?: boolean; error?: string };
+
+      if (result.success) {
+        console.log(`[EMAIL] ✅ Sent ${templateName} to ${data.toEmail}`);
+        return { sent: true };
+      } else {
+        console.error(`[EMAIL] ❌ Apps Script error: ${result.error}`);
+        return { sent: false, reason: result.error || 'apps_script_error' };
+      }
     } catch (error) {
-      console.error(`[EMAIL] Failed to send ${templateName}:`, error);
+      console.error(`[EMAIL] ❌ Failed to send ${templateName}:`, error);
       return { sent: false, reason: 'send_failed' };
     }
   }
@@ -1620,13 +1571,19 @@ app.post('/api/referral/send-email', verifyToken, async (req: Request, res: Resp
       .replace(/\[HOURS\]/g, String(volData?.hoursContributed || 0))
       .replace(/\[PEOPLE_HELPED\]/g, String((volData?.hoursContributed || 0) * 5));
 
-    // Send via nodemailer
-    if (transporter) {
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Health Matters Clinic" <noreply@healthmatters.clinic>',
-        to: recipientEmail,
-        subject: template.subject,
-        text: body,
+    // Send via Google Apps Script
+    if (EMAIL_SERVICE_URL) {
+      await fetch(EMAIL_SERVICE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'referral_invitation',
+          toEmail: recipientEmail,
+          subject: template.subject,
+          body: body,
+          volunteerName: volData?.firstName,
+          referralLink: `${portalUrl}/join?ref=${profile.referralCode}`,
+        })
       });
     }
 
