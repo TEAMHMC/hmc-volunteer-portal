@@ -134,6 +134,48 @@ const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
+// --- GOOGLE OAUTH TOKEN VERIFICATION ---
+interface GoogleTokenPayload {
+  email: string;
+  email_verified: boolean;
+  name: string;
+  picture?: string;
+  sub: string; // Google user ID
+  aud: string; // Client ID
+  iss: string;
+  exp: number;
+}
+
+const verifyGoogleToken = async (credential: string): Promise<GoogleTokenPayload | null> => {
+  try {
+    // Verify with Google's tokeninfo endpoint
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    if (!response.ok) {
+      console.error('[GOOGLE AUTH] Token verification failed:', response.status);
+      return null;
+    }
+    const payload = await response.json() as GoogleTokenPayload;
+
+    // Verify the token is for our app (check audience matches our client ID)
+    const expectedClientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+    if (expectedClientId && payload.aud !== expectedClientId) {
+      console.error('[GOOGLE AUTH] Token audience mismatch');
+      return null;
+    }
+
+    // Check token hasn't expired
+    if (payload.exp * 1000 < Date.now()) {
+      console.error('[GOOGLE AUTH] Token expired');
+      return null;
+    }
+
+    return payload;
+  } catch (error) {
+    console.error('[GOOGLE AUTH] Token verification error:', error);
+    return null;
+  }
+};
+
 // --- EMAIL OPT-IN HELPERS ---
 const canSendEmail = async (userId: string, type: 'alerts' | 'opportunities' | 'training' | 'events'): Promise<boolean> => {
   try {
@@ -1082,22 +1124,26 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
     const { credential, isAdmin, referralCode } = req.body;
     if (!credential) return res.status(400).json({ error: "Google credential is required." });
     try {
-        const decodedToken = await auth.verifyIdToken(credential);
-
-        // Enforce Google provider - reject tokens from other providers
-        if (decodedToken.firebase?.sign_in_provider !== 'google.com') {
-            return res.status(403).json({ error: 'Invalid auth provider. Google login required.' });
+        // Verify Google OAuth token
+        const googleUser = await verifyGoogleToken(credential);
+        if (!googleUser) {
+            return res.status(401).json({ error: "Invalid Google token." });
         }
 
-        const userDoc = await db.collection('volunteers').doc(decodedToken.uid).get();
+        // Use Google's sub (subject) as user ID, prefixed to avoid conflicts
+        const userId = `google_${googleUser.sub}`;
+
+        const userDoc = await db.collection('volunteers').doc(userId).get();
         const isNewUser = !userDoc.exists;
 
         if (isNewUser) {
-             await db.collection('volunteers').doc(decodedToken.uid).set({
-                 id: decodedToken.uid,
-                 email: decodedToken.email,
-                 name: decodedToken.name || 'Volunteer',
-                 firstName: decodedToken.name?.split(' ')[0] || 'Volunteer',
+             await db.collection('volunteers').doc(userId).set({
+                 id: userId,
+                 email: googleUser.email,
+                 name: googleUser.name || 'Volunteer',
+                 firstName: googleUser.name?.split(' ')[0] || 'Volunteer',
+                 profilePhoto: googleUser.picture || null,
+                 authProvider: 'google',
                  role: 'HMC Champion',
                  status: 'onboarding',
                  isNewUser: true,
@@ -1119,22 +1165,22 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
              });
 
              // Initialize gamification profile
-             await GamificationService.getProfile(decodedToken.uid);
+             await GamificationService.getProfile(userId);
 
              // Send welcome email
              await EmailService.send('welcome_volunteer', {
-               toEmail: decodedToken.email,
-               volunteerName: decodedToken.name || 'Volunteer',
+               toEmail: googleUser.email,
+               volunteerName: googleUser.name || 'Volunteer',
                appliedRole: 'HMC Champion',
              });
 
              // Process referral if provided
              if (referralCode) {
-               await GamificationService.convertReferral(referralCode, decodedToken.uid);
+               await GamificationService.convertReferral(referralCode, userId);
              }
         }
 
-        await createSession(decodedToken.uid, isAdmin, res);
+        await createSession(userId, isAdmin, res);
     } catch (error) {
         console.error("Google Login error:", error);
         res.status(500).json({ error: "Google login verification failed." });
@@ -1150,9 +1196,15 @@ app.post('/auth/logout', async (req: Request, res: Response) => {
 app.post('/auth/decode-google-token', async (req: Request, res: Response) => {
     const { credential } = req.body;
     try {
-        const decodedToken = await auth.verifyIdToken(credential);
-        res.json({ email: decodedToken.email, name: decodedToken.name });
-    } catch(e) { res.status(400).json({error: "Invalid token"}); }
+        const payload = await verifyGoogleToken(credential);
+        if (!payload) {
+            return res.status(400).json({ error: "Invalid Google token" });
+        }
+        res.json({ email: payload.email, name: payload.name });
+    } catch(e) {
+        console.error('[DECODE TOKEN] Error:', e);
+        res.status(400).json({ error: "Invalid token" });
+    }
 });
 
 app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
