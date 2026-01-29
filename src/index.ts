@@ -1137,6 +1137,15 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
         const isNewUser = !userDoc.exists;
 
         if (isNewUser) {
+             // Check if this email is in the admin bootstrap list
+             let shouldBeAdmin = false;
+             const bootstrapDoc = await db.collection('admin_bootstrap').doc('pending').get();
+             if (bootstrapDoc.exists && bootstrapDoc.data()?.email === googleUser.email.toLowerCase()) {
+                 shouldBeAdmin = true;
+                 await db.collection('admin_bootstrap').doc('pending').delete();
+                 console.log(`[BOOTSTRAP] Auto-promoted Google signup ${googleUser.email} to admin`);
+             }
+
              await db.collection('volunteers').doc(userId).set({
                  id: userId,
                  email: googleUser.email,
@@ -1151,7 +1160,7 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
                  onboardingProgress: 0,
                  hoursContributed: 0,
                  points: 0,
-                 isAdmin: false,
+                 isAdmin: shouldBeAdmin,
                  compliance: {
                     application: { id: 'c-app', label: 'Application', status: 'verified' },
                     backgroundCheck: { id: 'c-bg', label: 'Background Check', status: 'pending' },
