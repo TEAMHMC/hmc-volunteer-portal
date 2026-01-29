@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--__ENV_CONFIG__-->
+    <title>HMC Volunteer Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <style>
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .leaflet-container { border-radius: 48px; }
+
+      /* Fix for browser autofill styles */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px white inset !important;
+          box-shadow: 0 0 0 30px white inset !important;
+          -webkit-text-fill-color: #18181b !important;
+      }
+    </style>
+  </head>
+  <body class="bg-[#FDFEFE] text-zinc-900">
+    <div id="root"></div>
+    <script type="module" src="./src/index.tsx"></script>
+  </body>
+</html>

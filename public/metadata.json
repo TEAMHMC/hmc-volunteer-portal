@@ -1,0 +1,7 @@
+{
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "name": "HMC OPS",
+  "description": ""
+}
