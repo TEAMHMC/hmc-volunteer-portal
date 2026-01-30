@@ -132,8 +132,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     const errors: any = {};
     if (step === 'account') {
         if (!formData.emailVerified) errors.email = "Please verify your email address to continue.";
-        if (evaluatePasswordStrength(formData.password || '').score < 1) errors.password = "Your password does not meet all strength requirements.";
-        if (formData.password !== formData.verifyPassword) errors.verifyPassword = "Passwords do not match.";
+        // Skip password validation for Google OAuth users
+        if (!formData.passwordBypassed) {
+            if (evaluatePasswordStrength(formData.password || '').score < 1) errors.password = "Your password does not meet all strength requirements.";
+            if (formData.password !== formData.verifyPassword) errors.verifyPassword = "Passwords do not match.";
+        }
     }
     if (step === 'personal') {
         if (!formData.legalFirstName || !formData.legalLastName) errors.legalName = "Legal first and last name are required.";
@@ -251,7 +254,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         roleAssessment: formData.roleAssessment,
       };
       
-      const response = await apiService.post('/auth/signup', { user: v, password: formData.password }, 90000);
+      // Google OAuth users use their credential, email users use password
+      const authPayload = formData.authProvider === 'google'
+        ? { user: v, googleCredential: formData.googleCredential }
+        : { user: v, password: formData.password };
+      const response = await apiService.post('/auth/signup', authPayload, 90000);
       
       if (response && response.token && onSuccess) {
           onSuccess();
@@ -331,7 +338,8 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
   const emailRegex = /^\S+@\S+\.\S+$/;
   const passwordStrength = useMemo(() => evaluatePasswordStrength(data.password || ''), [data.password]);
 
-  const canContinue = data.emailVerified && passwordStrength.score === 1 && data.password === data.verifyPassword && !!captchaToken;
+  // Google OAuth users bypass password requirements
+  const canContinue = data.emailVerified && (data.passwordBypassed || (passwordStrength.score === 1 && data.password === data.verifyPassword)) && !!captchaToken;
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
@@ -348,9 +356,11 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
     try {
         const tempUser = await apiService.post('/auth/decode-google-token', { credential: credentialResponse.credential });
         onChange('email', tempUser.email);
-        onChange('password', `SocialLogin!P@ssword${Date.now()}`);
-        onChange('verifyPassword', `SocialLogin!P@ssword${Date.now()}`);
+        onChange('authProvider', 'google');
+        onChange('googleCredential', credentialResponse.credential);
         onChange('emailVerified', true);
+        // Google OAuth users don't need passwords - mark as bypassed
+        onChange('passwordBypassed', true);
         setIsValidEmail(true);
         setSent(true);
         setCaptchaToken('google-oauth-bypass');
@@ -484,6 +494,470 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
         </div>
       </div>
     );
+};
+
+// --- PERSONAL STEP ---
+const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Personal Information</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Legal First Name *</label>
+          <input type="text" value={data.legalFirstName || ''} onChange={e => onChange('legalFirstName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="John" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Legal Last Name *</label>
+          <input type="text" value={data.legalLastName || ''} onChange={e => onChange('legalLastName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Doe" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Middle Name</label>
+          <input type="text" value={data.middleName || ''} onChange={e => onChange('middleName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Optional" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Preferred First Name</label>
+          <input type="text" value={data.preferredFirstName || ''} onChange={e => onChange('preferredFirstName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Optional" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Date of Birth *</label>
+          <input type="date" value={data.dob || ''} onChange={e => onChange('dob', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Gender</label>
+          <select value={data.gender || ''} onChange={e => onChange('gender', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="">Select...</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Phone Number *</label>
+          <input type="tel" value={data.phone || ''} onChange={e => onChange('phone', formatPhoneNumber(e.target.value))} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="(555) 123-4567" />
+        </div>
+      </div>
+      {errors.legalName && <p className="text-rose-500 text-sm font-bold">{errors.legalName}</p>}
+      {errors.dob && <p className="text-rose-500 text-sm font-bold">{errors.dob}</p>}
+      {errors.phone && <p className="text-rose-500 text-sm font-bold">{errors.phone}</p>}
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Address</h3>
+      <div className="grid grid-cols-1 gap-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Street Address *</label>
+          <input type="text" value={data.address || ''} onChange={e => onChange('address', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="123 Main St" />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">City *</label>
+            <input type="text" value={data.city || ''} onChange={e => onChange('city', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Los Angeles" />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">State *</label>
+            <input type="text" value={data.state || ''} onChange={e => onChange('state', e.target.value.toUpperCase().slice(0,2))} maxLength={2} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="CA" />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Zip Code *</label>
+            <input type="text" value={data.zipCode || ''} onChange={e => onChange('zipCode', e.target.value.replace(/\D/g, '').slice(0,5))} maxLength={5} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="90001" />
+          </div>
+        </div>
+      </div>
+      {errors.address && <p className="text-rose-500 text-sm font-bold">{errors.address}</p>}
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Emergency Contact</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Contact Name *</label>
+          <input type="text" value={data.eContactName || ''} onChange={e => onChange('eContactName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Jane Doe" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Relationship *</label>
+          <input type="text" value={data.eContactRelationship || ''} onChange={e => onChange('eContactRelationship', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Spouse, Parent, etc." />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Phone Number *</label>
+          <input type="tel" value={data.eContactCellPhone || ''} onChange={e => onChange('eContactCellPhone', formatPhoneNumber(e.target.value))} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="(555) 123-4567" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Email (Optional)</label>
+          <input type="email" value={data.eContactEmail || ''} onChange={e => onChange('eContactEmail', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="jane@example.com" />
+        </div>
+      </div>
+      {errors.eContact && <p className="text-rose-500 text-sm font-bold">{errors.eContact}</p>}
+      {errors.eContactEmail && <p className="text-rose-500 text-sm font-bold">{errors.eContactEmail}</p>}
+    </div>
+  );
+};
+
+// --- BACKGROUND STEP ---
+const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Background & Education</h2>
+      <p className="text-zinc-500">Tell us a bit about your background. This helps us match you with the right volunteer opportunities.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Are you currently a student?</label>
+          <select value={data.isStudent ? 'yes' : 'no'} onChange={e => onChange('isStudent', e.target.value === 'yes')} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Are you currently employed?</label>
+          <select value={data.isEmployed ? 'yes' : 'no'} onChange={e => onChange('isEmployed', e.target.value === 'yes')} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        {data.isStudent && (
+          <>
+            <div>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">School/University</label>
+              <input type="text" value={data.school || ''} onChange={e => onChange('school', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="UCLA, USC, etc." />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">Degree/Program</label>
+              <input type="text" value={data.degree || ''} onChange={e => onChange('degree', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="BS Nursing, MPH, etc." />
+            </div>
+          </>
+        )}
+      </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">How did you hear about Health Matters Clinic?</label>
+        <select value={data.howDidYouHear || ''} onChange={e => onChange('howDidYouHear', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+          <option value="">Select...</option>
+          <option value="Social Media">Social Media</option>
+          <option value="Friend/Family">Friend/Family</option>
+          <option value="School/University">School/University</option>
+          <option value="Community Event">Community Event</option>
+          <option value="Web Search">Web Search</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">What do you hope to gain from this volunteer experience?</label>
+        <textarea value={data.gainFromExperience || ''} onChange={e => onChange('gainFromExperience', e.target.value)} rows={4} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="Share your goals and motivations..." />
+      </div>
+    </div>
+  );
+};
+
+// --- AVAILABILITY STEP ---
+const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const times = ['Morning (8am-12pm)', 'Afternoon (12pm-5pm)', 'Evening (5pm-9pm)', 'Flexible'];
+  const toggleDay = (day: string) => {
+    const current = data.availDays || [];
+    onChange('availDays', current.includes(day) ? current.filter((d: string) => d !== day) : [...current, day]);
+  };
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Availability</h2>
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Which days are you typically available? *</label>
+        <div className="flex flex-wrap gap-3">
+          {days.map(day => (
+            <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.availDays || []).includes(day) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+              {day}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time of day? *</label>
+        <div className="flex flex-wrap gap-3">
+          {times.map(time => (
+            <button key={time} type="button" onClick={() => onChange('preferredTime', time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${data.preferredTime === time ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+              {time}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">When can you start? *</label>
+          <input type="date" value={data.startDate || ''} onChange={e => onChange('startDate', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Hours per week you can commit</label>
+          <select value={data.hoursPerWeek || ''} onChange={e => onChange('hoursPerWeek', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="">Select...</option>
+            <option value="1-4">1-4 hours</option>
+            <option value="5-10">5-10 hours</option>
+            <option value="11-20">11-20 hours</option>
+            <option value="20+">20+ hours</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">Any scheduling limitations we should know about?</label>
+        <textarea value={data.schedulingLimitations || ''} onChange={e => onChange('schedulingLimitations', e.target.value)} rows={3} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="e.g., unavailable on certain dates, etc." />
+      </div>
+    </div>
+  );
+};
+
+// --- ROLE STEP (with Resume Upload and AI) ---
+const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsStepLoading }) => {
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
+  const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    onChange('resumeFile', { name: file.name, type: file.type });
+    setIsStepLoading(true);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const result = await geminiService.analyzeResume(base64, file.type);
+      if (result?.recommendations) {
+        setAiRecommendations(result.recommendations);
+        setExtractedSkills(result.extractedSkills || []);
+        if (result.recommendations[0]) {
+          onChange('selectedRole', result.recommendations[0].roleName);
+        }
+      }
+    } catch (err) {
+      console.error('Resume analysis failed:', err);
+      alert('Resume analysis failed. Please select a role manually.');
+    } finally {
+      setIsStepLoading(false);
+    }
+  };
+
+  const availableRoles = APP_CONFIG.HMC_ROLES.filter(r => r.category !== 'admin').map(r => r.label);
+
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Role Selection</h2>
+
+      <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8">
+        <div className="flex items-center gap-4 mb-4">
+          <UploadCloud size={32} className="text-[#233DFF]" />
+          <div>
+            <h3 className="font-bold text-zinc-900">Upload Your Resume</h3>
+            <p className="text-sm text-zinc-500">Our AI will analyze your skills and recommend the best roles</p>
+          </div>
+        </div>
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFileUpload} />
+        <button onClick={() => fileInputRef.current?.click()} disabled={isStepLoading} className="w-full py-4 border-2 border-dashed border-zinc-300 rounded-xl hover:border-[#233DFF] transition-colors flex items-center justify-center gap-3 text-zinc-600 font-bold">
+          {isStepLoading ? <Loader2 className="animate-spin" /> : data.resumeFile ? <><CheckCircle className="text-emerald-500" /> {data.resumeFile.name}</> : 'Click to upload PDF or DOC'}
+        </button>
+      </div>
+      {errors.resume && <p className="text-rose-500 text-sm font-bold">{errors.resume}</p>}
+
+      {aiRecommendations.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="font-bold text-zinc-900">AI Recommended Roles</h3>
+          {aiRecommendations.map((rec, i) => (
+            <button key={i} onClick={() => onChange('selectedRole', rec.roleName)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${data.selectedRole === rec.roleName ? 'border-[#233DFF] bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'}`}>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-zinc-900">{rec.roleName}</span>
+                <span className="text-sm font-bold text-[#233DFF]">{rec.matchPercentage}% Match</span>
+              </div>
+              <p className="text-sm text-zinc-500 mt-2">{rec.reasoning}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {extractedSkills.length > 0 && (
+        <div>
+          <h4 className="font-bold text-zinc-700 mb-3">Detected Skills</h4>
+          <div className="flex flex-wrap gap-2">
+            {extractedSkills.map((skill, i) => (
+              <span key={i} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">{skill}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h3 className="font-bold text-zinc-900 mb-4">{aiRecommendations.length > 0 ? 'Or select a different role:' : 'Select your preferred role:'}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {availableRoles.map(role => (
+            <button key={role} onClick={() => onChange('selectedRole', role)} className={`p-4 rounded-xl border-2 text-left font-bold transition-all ${data.selectedRole === role ? 'border-[#233DFF] bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'}`}>
+              {role}
+            </button>
+          ))}
+        </div>
+      </div>
+      {errors.selectedRole && <p className="text-rose-500 text-sm font-bold">{errors.selectedRole}</p>}
+    </div>
+  );
+};
+
+// --- DETAILS STEP ---
+const DetailsStep: React.FC<any> = ({ data, onChange, errors }) => {
+  const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === data.selectedRole);
+  const questions = roleConfig?.applicationQuestions || [
+    "Why are you interested in volunteering with Health Matters Clinic?",
+    "What relevant experience do you have?",
+    "How do you handle challenging situations?"
+  ];
+
+  useEffect(() => {
+    if (!data.roleAssessment || data.roleAssessment.length !== questions.length) {
+      onChange('roleAssessment', questions.map((q, i) => ({ question: q, answer: data.roleAssessment?.[i]?.answer || '' })));
+    }
+  }, [data.selectedRole]);
+
+  const handleAnswerChange = (index: number, answer: string) => {
+    const updated = [...(data.roleAssessment || [])];
+    updated[index] = { ...updated[index], answer };
+    onChange('roleAssessment', updated);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Role-Specific Questions</h2>
+      <p className="text-zinc-500">Please answer the following questions for the <strong>{data.selectedRole}</strong> role.</p>
+      <div className="space-y-6">
+        {(data.roleAssessment || []).map((item: any, index: number) => (
+          <div key={index}>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">{item.question}</label>
+            <textarea value={item.answer || ''} onChange={e => handleAnswerChange(index, e.target.value)} rows={4} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="Your answer..." />
+          </div>
+        ))}
+      </div>
+      {errors.details && <p className="text-rose-500 text-sm font-bold">{errors.details}</p>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">T-Shirt Size</label>
+          <select value={data.tshirtSize || ''} onChange={e => onChange('tshirtSize', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="">Select...</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="2XL">2XL</option>
+            <option value="3XL">3XL</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Expected Time Commitment</label>
+          <select value={data.timeCommitment || ''} onChange={e => onChange('timeCommitment', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="">Select...</option>
+            <option value="One-time event">One-time event</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Bi-weekly">Bi-weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="As needed">As needed</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPLIANCE STEP ---
+const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
+  const isMedicalRole = data.selectedRole?.includes('Medical') || data.selectedRole?.includes('Licensed');
+
+  const ConsentCheckbox = ({ field, label, required = true }: { field: string; label: string; required?: boolean }) => (
+    <button type="button" onClick={() => onChange(field, !data[field])} className="flex items-start gap-4 p-4 bg-zinc-50 rounded-xl border border-zinc-200 hover:border-zinc-300 transition-all text-left w-full">
+      <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${data[field] ? 'bg-[#233DFF] border-[#233DFF]' : 'border-zinc-300'}`}>
+        {data[field] && <Check size={16} className="text-white" />}
+      </div>
+      <span className="text-sm text-zinc-700">{label} {required && <span className="text-rose-500">*</span>}</span>
+    </button>
+  );
+
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Compliance & Consent</h2>
+      <p className="text-zinc-500">Please review and agree to the following requirements.</p>
+
+      <div className="space-y-4">
+        <ConsentCheckbox field="ageVerified" label="I confirm that I am at least 18 years of age." />
+        <ConsentCheckbox field="backgroundCheckConsent" label="I consent to a background check as part of the volunteer application process." />
+        <ConsentCheckbox field="ssnAuthorizationConsent" label="I authorize Health Matters Clinic to verify my identity using my provided information." />
+        {isMedicalRole && (
+          <ConsentCheckbox field="hipaaAcknowledgment" label="I acknowledge that I will be required to complete HIPAA training and maintain patient confidentiality." />
+        )}
+        <ConsentCheckbox field="termsAgreed" label="I agree to the Health Matters Clinic Volunteer Terms of Service and Code of Conduct." />
+      </div>
+      {errors.compliance && <p className="text-rose-500 text-sm font-bold">{errors.compliance}</p>}
+
+      <div className="pt-4">
+        <label className="text-sm font-bold text-zinc-600 block mb-2">Electronic Signature *</label>
+        <p className="text-xs text-zinc-500 mb-3">Please type your full legal name exactly as it appears above to serve as your electronic signature.</p>
+        <input type="text" value={data.signature || ''} onChange={e => onChange('signature', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder={`${data.legalFirstName || 'First'} ${data.legalLastName || 'Last'}`} />
+        {data.signature && data.signature.trim().toLowerCase() === `${data.legalFirstName} ${data.legalLastName}`.trim().toLowerCase() && (
+          <p className="text-emerald-600 text-xs font-bold mt-2 flex items-center gap-2"><Check size={14} /> Signature verified</p>
+        )}
+      </div>
+      {errors.signature && <p className="text-rose-500 text-sm font-bold">{errors.signature}</p>}
+    </div>
+  );
+};
+
+// --- ORIENTATION STEP ---
+const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError }) => {
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
+      <p className="text-zinc-500">Complete the following orientation modules to finalize your application.</p>
+
+      <div className="space-y-4">
+        <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-zinc-900">HMC Introduction Video</h3>
+            <span className="text-xs font-bold text-zinc-500">~5 min</span>
+          </div>
+          <div className="aspect-video bg-zinc-200 rounded-xl mb-4 flex items-center justify-center">
+            <iframe
+              className="w-full h-full rounded-xl"
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              title="HMC Introduction"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <button onClick={() => onChange('watchedIntro', !data.watchedIntro)} className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${data.watchedIntro ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
+            {data.watchedIntro ? <><CheckCircle size={18} /> Completed</> : 'Mark as Watched'}
+          </button>
+        </div>
+
+        <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-zinc-900">HMC Champion Orientation</h3>
+            <span className="text-xs font-bold text-zinc-500">~10 min</span>
+          </div>
+          <div className="aspect-video bg-zinc-200 rounded-xl mb-4 flex items-center justify-center">
+            <iframe
+              className="w-full h-full rounded-xl"
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              title="Champion Orientation"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <button onClick={() => onChange('watchedChampion', !data.watchedChampion)} className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${data.watchedChampion ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
+            {data.watchedChampion ? <><CheckCircle size={18} /> Completed</> : 'Mark as Watched'}
+          </button>
+        </div>
+      </div>
+      {errors.orientation && <p className="text-rose-500 text-sm font-bold">{errors.orientation}</p>}
+
+      {submitError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
+          <AlertTriangle className="text-rose-500 flex-shrink-0" />
+          <p className="text-rose-700 text-sm font-medium">{submitError}</p>
+        </div>
+      )}
+
+      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-5 bg-emerald-500 text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-600 transition-colors">
+        {isLoading ? <Loader2 className="animate-spin" /> : 'Submit Application'}
+      </button>
+    </div>
+  );
 };
 
 export { AccountStep };

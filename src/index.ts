@@ -1063,17 +1063,37 @@ app.post('/auth/verify-code', async (req: Request, res: Response) => {
 });
 
 app.post('/auth/signup', rateLimit(5, 60000), verifyCaptcha, async (req: Request, res: Response) => {
-    const { user, password, referralCode } = req.body;
-    if (!password) return res.status(400).json({ error: 'Password is required.' });
+    const { user, password, googleCredential, referralCode } = req.body;
+
+    // Either password or googleCredential is required
+    if (!password && !googleCredential) {
+        return res.status(400).json({ error: 'Authentication method required.' });
+    }
+
     try {
         user.role = user.appliedRole || 'HMC Champion';
         user.status = 'active';
         user.applicationStatus = 'pendingReview';
 
-        const userRecord = await auth.createUser({ email: user.email, password, displayName: user.name });
+        let finalUserId: string;
+
+        if (googleCredential) {
+            // Google OAuth signup - verify token and use Google's sub as ID
+            const googleUser = await verifyGoogleToken(googleCredential);
+            if (!googleUser) {
+                return res.status(401).json({ error: 'Invalid Google credential.' });
+            }
+            finalUserId = `google_${googleUser.sub}`;
+            user.authProvider = 'google';
+        } else {
+            // Email/password signup - create Firebase Auth user
+            const userRecord = await auth.createUser({ email: user.email, password, displayName: user.name });
+            finalUserId = userRecord.uid;
+            user.authProvider = 'email';
+        }
 
         const { resume, ...userDataToSave } = user;
-        userDataToSave.id = userRecord.uid;
+        userDataToSave.id = finalUserId;
 
         // Check if this email is in the admin bootstrap list
         const bootstrapDoc = await db.collection('admin_bootstrap').doc('pending').get();
@@ -1083,10 +1103,10 @@ app.post('/auth/signup', rateLimit(5, 60000), verifyCaptcha, async (req: Request
             console.log(`[BOOTSTRAP] Auto-promoted new signup ${user.email} to admin`);
         }
 
-        await db.collection('volunteers').doc(userRecord.uid).set(userDataToSave);
+        await db.collection('volunteers').doc(finalUserId).set(userDataToSave);
 
         // Initialize gamification profile
-        await GamificationService.getProfile(userRecord.uid);
+        await GamificationService.getProfile(finalUserId);
 
         // Send welcome email
         await EmailService.send('welcome_volunteer', {
@@ -1100,15 +1120,15 @@ app.post('/auth/signup', rateLimit(5, 60000), verifyCaptcha, async (req: Request
           toEmail: user.email,
           volunteerName: user.name || user.firstName || 'Volunteer',
           appliedRole: user.appliedRole || 'HMC Champion',
-          applicationId: userRecord.uid.substring(0, 12).toUpperCase(),
+          applicationId: finalUserId.substring(0, 12).toUpperCase(),
         });
 
         // Process referral if provided
         if (referralCode) {
-          await GamificationService.convertReferral(referralCode, userRecord.uid);
+          await GamificationService.convertReferral(referralCode, finalUserId);
         }
 
-        await createSession(userRecord.uid, false, res);
+        await createSession(finalUserId, false, res);
     } catch (error) {
         console.error("Signup error:", error);
         res.status(400).json({ error: (error as Error).message });
