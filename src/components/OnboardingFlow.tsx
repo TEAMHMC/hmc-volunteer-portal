@@ -909,57 +909,51 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 
 // --- ORIENTATION STEP ---
 const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError }) => {
-  // TODO: Replace with actual video URLs when available
-  const INTRO_VIDEO_URL = "https://www.youtube.com/embed/YOUR_INTRO_VIDEO_ID";
-  const CHAMPION_VIDEO_URL = "https://www.youtube.com/embed/YOUR_CHAMPION_VIDEO_ID";
-
   return (
     <div className="space-y-8 animate-in fade-in">
       <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
-      <p className="text-zinc-500">Review the following orientation materials to finalize your application.</p>
+      <p className="text-zinc-500">Complete the following orientation modules to finalize your application.</p>
 
       <div className="space-y-4">
         <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-zinc-900">Get to Know Health Matters Clinic</h3>
-            <span className="text-xs font-bold text-zinc-500">~5 min</span>
+            <span className="text-xs font-bold text-zinc-500">~12 min</span>
           </div>
-          <div className="aspect-video bg-gradient-to-br from-zinc-100 to-zinc-200 rounded-xl mb-4 flex items-center justify-center">
-            <div className="text-center p-8">
-              <div className="w-16 h-16 bg-[#233DFF] rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText size={32} className="text-white" />
-              </div>
-              <p className="text-zinc-600 font-medium">Learn about our mission, values, and the communities we serve.</p>
-              <a href="https://healthmatters.clinic/about" target="_blank" rel="noopener noreferrer" className="inline-block mt-4 text-[#233DFF] font-bold text-sm hover:underline">
-                Visit Our Website →
-              </a>
-            </div>
+          <p className="text-sm text-zinc-500 mb-4">Who we are, who we serve in Los Angeles, and how our programs work together.</p>
+          <div className="aspect-video bg-zinc-900 rounded-xl mb-4 overflow-hidden">
+            <iframe
+              className="w-full h-full"
+              src="https://hmc.screencasthost.com/player/cTQ6cDnowch?width=100%&height=100%&ff=1&title=0"
+              title="Get to Know Health Matters Clinic"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              style={{ border: 'none' }}
+            />
           </div>
           <button onClick={() => onChange('watchedIntro', !data.watchedIntro)} className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${data.watchedIntro ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
-            {data.watchedIntro ? <><CheckCircle size={18} /> I've reviewed this material</> : 'Mark as Reviewed'}
+            {data.watchedIntro ? <><CheckCircle size={18} /> Completed</> : 'Mark as Watched'}
           </button>
         </div>
 
         <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-zinc-900">HMC Champion Expectations</h3>
-            <span className="text-xs font-bold text-zinc-500">~5 min</span>
+            <h3 className="font-bold text-zinc-900">Because You're a Champion</h3>
+            <span className="text-xs font-bold text-zinc-500">~6 min</span>
           </div>
-          <div className="aspect-video bg-gradient-to-br from-zinc-100 to-zinc-200 rounded-xl mb-4 flex items-center justify-center">
-            <div className="text-center p-8">
-              <div className="w-16 h-16 bg-[#233DFF] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield size={32} className="text-white" />
-              </div>
-              <p className="text-zinc-600 font-medium mb-4">As an HMC Champion, you'll represent our clinic in the community.</p>
-              <ul className="text-left text-sm text-zinc-500 space-y-2 max-w-md mx-auto">
-                <li className="flex items-center gap-2"><Check size={16} className="text-emerald-500" /> Maintain confidentiality at all times</li>
-                <li className="flex items-center gap-2"><Check size={16} className="text-emerald-500" /> Treat all clients with dignity and respect</li>
-                <li className="flex items-center gap-2"><Check size={16} className="text-emerald-500" /> Follow safety protocols during events</li>
-              </ul>
-            </div>
+          <p className="text-sm text-zinc-500 mb-4">Our values, expectations, and what it means to show up for community with HMC.</p>
+          <div className="aspect-video bg-zinc-900 rounded-xl mb-4 overflow-hidden">
+            <iframe
+              className="w-full h-full"
+              src="https://hmc.screencasthost.com/player/cTQQcxnoth6?width=100%&height=100%&ff=1&title=0"
+              title="Because You're a Champion"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              style={{ border: 'none' }}
+            />
           </div>
           <button onClick={() => onChange('watchedChampion', !data.watchedChampion)} className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${data.watchedChampion ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
-            {data.watchedChampion ? <><CheckCircle size={18} /> I understand and agree</> : 'I Understand & Agree'}
+            {data.watchedChampion ? <><CheckCircle size={18} /> Completed</> : 'Mark as Watched'}
           </button>
         </div>
       </div>
