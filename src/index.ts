@@ -1066,7 +1066,8 @@ app.post('/auth/verify-code', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/auth/signup', rateLimit(5, 60000), verifyCaptcha, async (req: Request, res: Response) => {
+// Note: CAPTCHA already verified during email verification step, not needed here
+app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response) => {
     const { user, password, googleCredential, referralCode } = req.body;
 
     // Either password or googleCredential is required
