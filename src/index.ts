@@ -1012,6 +1012,9 @@ app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Res
     });
 
     // Send verification email using template
+    console.log(`[SERVER] Attempting to send verification email to ${email}...`);
+    console.log(`[SERVER] EMAIL_SERVICE_URL configured: ${!!EMAIL_SERVICE_URL}`);
+
     const emailResult = await EmailService.send('email_verification', {
       toEmail: email,
       volunteerName: email.split('@')[0], // Use email prefix as name
@@ -1022,9 +1025,9 @@ app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Res
     if (!emailResult.sent) {
       console.error("[SERVER] Email send failed:", emailResult.reason);
       if (emailResult.reason === 'not_configured') {
-        throw new Error("Email service is not configured on the server.");
+        return res.status(500).json({ error: "Email service is not configured. Please set EMAIL_SERVICE_URL." });
       }
-      throw new Error("Failed to send verification email.");
+      return res.status(500).json({ error: `Email send failed: ${emailResult.reason}` });
     }
 
     console.log(`[SERVER] Verification email sent successfully to ${email}.`);
@@ -1032,7 +1035,8 @@ app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Res
 
   } catch (error) {
     console.error("[SERVER] Email send error:", error);
-    res.status(500).json({ error: "Failed to send verification email. Please check server logs for configuration issues." });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: `Email error: ${errMsg}` });
   }
 });
 
