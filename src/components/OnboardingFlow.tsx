@@ -334,12 +334,21 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 
   const [showPassword, setShowPassword] = useState(false);
   const [showVerifyPassword, setShowVerifyPassword] = useState(false);
+  const [googleProcessed, setGoogleProcessed] = useState(false);
 
   const emailRegex = /^\S+@\S+\.\S+$/;
   const passwordStrength = useMemo(() => evaluatePasswordStrength(data.password || ''), [data.password]);
 
   // Google OAuth users bypass password requirements
   const canContinue = data.emailVerified && (data.passwordBypassed || (passwordStrength.score === 1 && data.password === data.verifyPassword)) && !!captchaToken;
+
+  // Auto-proceed for Google OAuth users once state is updated
+  useEffect(() => {
+    if (data.authProvider === 'google' && data.emailVerified && data.passwordBypassed && !googleProcessed) {
+      setGoogleProcessed(true);
+      onContinue();
+    }
+  }, [data.authProvider, data.emailVerified, data.passwordBypassed, googleProcessed, onContinue]);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
@@ -364,7 +373,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
         setIsValidEmail(true);
         setSent(true);
         setCaptchaToken('google-oauth-bypass');
-        setTimeout(() => onContinue(), 200);
+        // useEffect will auto-proceed once state updates
     } catch (e) {
         console.error("Google Sign-up failed", e);
         alert("Could not process Google sign-up. Please sign up manually.");
