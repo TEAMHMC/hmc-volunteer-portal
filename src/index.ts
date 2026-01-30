@@ -74,9 +74,14 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(helmet({
-  contentSecurityPolicy: false, 
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  crossOriginEmbedderPolicy: false,
 }));
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 // FIX: Replace deprecated body-parser with express.json
 app.use(express.json({ limit: '50mb' }));
 
