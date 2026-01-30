@@ -248,8 +248,12 @@ const sendSMS = async (
 const EMAIL_CONFIG = {
   BRAND_COLOR: '#233DFF',
   FROM_NAME: 'Health Matters Clinic',
-  WEBSITE_URL: process.env.PORTAL_URL || 'https://hmc-volunteer-portal.run.app',
+  WEBSITE_URL: process.env.PORTAL_URL || '',
 };
+
+if (!EMAIL_CONFIG.WEBSITE_URL) {
+  console.warn('⚠️ PORTAL_URL not set - email links will be broken');
+}
 
 const emailHeader = (title: string) => `
 <!DOCTYPE html>
@@ -931,15 +935,25 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
             await db.collection('sessions').doc(sessionToken).delete();
             return res.status(403).json({ error: 'Unauthorized: Session expired.' });
         }
-        
-        // PRODUCTION SECURITY: Must verify user exists in Auth
-        const userRecord = await auth.getUser(session.uid);
+
         const userDoc = await db.collection('volunteers').doc(session.uid).get();
-        
-        // If no profile, allow basic auth user data (rare edge case in prod)
-        const profile = userDoc.exists ? userDoc.data() : { id: session.uid, role: 'Volunteer', status: 'onboarding' };
-        
-        (req as any).user = { ...userRecord, profile };
+        if (!userDoc.exists) {
+            return res.status(403).json({ error: 'Unauthorized: User profile not found.' });
+        }
+
+        // Google OAuth users have IDs like 'google_<sub>' - they don't exist in Firebase Auth
+        // Email/password users exist in Firebase Auth and can be verified there
+        let userRecord = null;
+        if (!session.uid.startsWith('google_')) {
+            try {
+                userRecord = await auth.getUser(session.uid);
+            } catch (authError) {
+                console.warn(`Firebase Auth user not found for ${session.uid}, using Firestore profile only`);
+            }
+        }
+
+        const profile = userDoc.data();
+        (req as any).user = userRecord ? { ...userRecord, profile } : { uid: session.uid, profile };
         next();
     } catch (error) {
         console.error("Token verification failed:", error);
