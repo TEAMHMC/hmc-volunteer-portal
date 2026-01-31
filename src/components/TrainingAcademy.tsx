@@ -70,17 +70,48 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     }
   };
 
+  // Module IDs that unlock operational clearances
+  const TRAINING_FLAG_MODULES = {
+    surveySOPComplete: ['hmc_survey_training'],
+    clientPortalOrientationComplete: ['cmhw_part1', 'cmhw_part2'], // Need both
+    screeningCompetencyVerified: ['hipaa_staff_2025', 'hmc_get_to_know_us'], // HIPAA + HMC orientation
+  };
+
   const handleCompleteModule = (moduleId: string, title: string) => {
     if (!completedModuleIds.includes(moduleId)) {
       analyticsService.logEvent('training_module_completed', { moduleId, title, userRole: user.role });
-      onUpdate({ 
-        ...user, 
+
+      // Calculate new completed training IDs
+      const newCompletedIds = [...completedModuleIds, moduleId];
+
+      // Check if this completion unlocks any training flags
+      const currentFlags = user.trainingFlags || {};
+      const newFlags = { ...currentFlags };
+
+      // Survey SOP - requires survey training module
+      if (TRAINING_FLAG_MODULES.surveySOPComplete.every(id => newCompletedIds.includes(id))) {
+        newFlags.surveySOPComplete = true;
+      }
+
+      // Client Portal - requires both CMHW parts
+      if (TRAINING_FLAG_MODULES.clientPortalOrientationComplete.every(id => newCompletedIds.includes(id))) {
+        newFlags.clientPortalOrientationComplete = true;
+      }
+
+      // Screening Competency - requires HIPAA and HMC orientation
+      if (TRAINING_FLAG_MODULES.screeningCompetencyVerified.every(id => newCompletedIds.includes(id))) {
+        newFlags.screeningCompetencyVerified = true;
+      }
+
+      onUpdate({
+        ...user,
         points: user.points + 100,
-        completedTrainingIds: [...completedModuleIds, moduleId],
+        completedTrainingIds: newCompletedIds,
+        trainingFlags: newFlags,
         achievements: [
           ...user.achievements,
-          { 
-            id: `mod-${moduleId}`, 
+          {
+            id: `mod-${moduleId}`,
             title: `Mastery: ${title}`, 
             icon: 'CheckCircle', 
             dateEarned: new Date().toISOString() 
