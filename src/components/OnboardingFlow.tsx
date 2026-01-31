@@ -232,20 +232,39 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         dob: formData.dob, gender: formData.gender || 'Prefer not to say', name: `${formData.preferredFirstName || formData.legalFirstName} ${formData.preferredLastName || formData.legalLastName}`,
         phone: formData.phone, address: formData.address, city: formData.city, state: formData.state, zipCode: formData.zipCode, mailingAddressSame: true,
         emergencyContact: { name: formData.eContactName, relationship: formData.eContactRelationship, email: formData.eContactEmail || '', cellPhone: formData.eContactCellPhone },
-        school: formData.school, degree: formData.degree, hmcAffiliation: [], volunteerStatus: 'new', gainFromExperience: formData.gainFromExperience || '', 
-        interestedIn: '', howDidYouHear: formData.howDidYouHear, timeCommitment: formData.timeCommitment, isEmployed: formData.isEmployed || false, 
-        isStudent: formData.isStudent || false, tshirtSize: formData.tshirtSize, 
-        role: 'HMC Champion', 
+        school: formData.school, degree: formData.degree, hmcAffiliation: [], gainFromExperience: formData.gainFromExperience || '',
+        interestedIn: '', howDidYouHear: formData.howDidYouHear, timeCommitment: formData.timeCommitment, isEmployed: formData.isEmployed || false,
+        isStudent: formData.isStudent || false, tshirtSize: formData.tshirtSize,
+
+        // Identity fields (required by v4.0)
+        identityLabel: 'HMC Champion',
+        volunteerRole: (formData.selectedRole as Volunteer['volunteerRole']) || 'Core Volunteer',
+        role: formData.selectedRole || 'Core Volunteer',
         appliedRole: formData.selectedRole,
+
+        // Core Volunteer Training status (starts false until training complete)
+        coreVolunteerStatus: false,
+
+        // Event eligibility (all false until training complete)
+        eventEligibility: {
+          canDeployCore: false,
+          streetMedicineGate: false,
+          clinicGate: false,
+          healthFairGate: false,
+          naloxoneDistribution: false,
+          oraQuickDistribution: false,
+          qualifiedEventTypes: []
+        },
+
         skills: [],
-        trainingPlan, 
+        trainingPlan,
         status: 'active',
-        applicationStatus: 'pendingReview', 
-        joinedDate: new Date().toISOString().split('T')[0], 
+        applicationStatus: 'pendingReview',
+        joinedDate: new Date().toISOString().split('T')[0],
         onboardingProgress: 100,
-        isAdmin: false, 
-        points: 100, 
-        hoursContributed: 0, 
+        isAdmin: false,
+        points: 100,
+        hoursContributed: 0,
         isNewUser: false,
         compliance: compliance as Volunteer['compliance'],
         availability: { days: formData.availDays || [], preferredTime: formData.preferredTime, startDate: formData.startDate, notes: formData.schedulingLimitations || '', servicePreference: formData.servicePreference, timezone: formData.timezone, hoursPerWeek: formData.hoursPerWeek },

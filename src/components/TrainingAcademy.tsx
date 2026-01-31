@@ -108,10 +108,21 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         ]
       };
 
-      // Set coreVolunteerStatus when all 5 modules are complete
+      // Set coreVolunteerStatus and eventEligibility when all 5 modules are complete
       if (nowCompletedCore && wasNotCompletedBefore) {
         updatedUser.coreVolunteerStatus = true;
         updatedUser.coreVolunteerApprovedDate = new Date().toISOString();
+        // Enable core event deployment
+        updatedUser.eventEligibility = {
+          ...(user.eventEligibility || {}),
+          canDeployCore: true,
+          streetMedicineGate: false,
+          clinicGate: false,
+          healthFairGate: true, // Health fairs are open to core volunteers
+          naloxoneDistribution: false,
+          oraQuickDistribution: false,
+          qualifiedEventTypes: ['Health Fair', 'Community Outreach', 'Wellness Meetup']
+        };
         analyticsService.logEvent('core_volunteer_training_complete', { userId: user.id, userRole: user.role });
         setShowCompletionMessage(true);
       }
