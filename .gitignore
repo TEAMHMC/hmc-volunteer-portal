@@ -60,6 +60,16 @@ temp/
 .firebase/
 .firebaserc
 
+# HIPAA/Security - Never commit these
+*.pem
+*.key
+*-service-account.json
+*service-account*.json
+firebase-adminsdk*.json
+credentials*.json
+secrets/
+.secrets/
+
 # Python
 *.pyc
 __pycache__/
