@@ -1447,13 +1447,25 @@ Return ONLY valid JSON in this exact format:
 });
 
 app.post('/api/gemini/generate-plan', async (req: Request, res: Response) => {
-    try {
-        const { role, experience } = req.body;
+    const { role, experience } = req.body;
 
-        // Return null if AI is not configured - frontend handles this
+    // Helper to create default training plan
+    const createDefaultPlan = (roleName: string) => ({
+        role: roleName,
+        orientationModules: [
+            { id: 'default-1', title: 'Welcome to HMC', objective: 'Understand our mission and values.', estimatedMinutes: 10 },
+            { id: 'default-2', title: `${roleName} Fundamentals`, objective: `Learn the core responsibilities of a ${roleName}.`, estimatedMinutes: 15 },
+            { id: 'default-3', title: 'HIPAA & Privacy', objective: 'Understand patient privacy and data protection.', estimatedMinutes: 20 },
+        ],
+        completionGoal: 'Complete orientation to begin volunteering with HMC.',
+        coachSummary: `Welcome to your ${roleName} journey at Health Matters Clinic!`
+    });
+
+    try {
+        // Return default if AI is not configured
         if (!ai) {
-            console.warn('[GEMINI] AI not configured for training plan generation');
-            return res.json(null);
+            console.warn('[GEMINI] AI not configured for training plan generation - using default');
+            return res.json(createDefaultPlan(role || 'Volunteer'));
         }
 
         const prompt = `You are creating a training plan for a new ${role} volunteer at Health Matters Clinic, a community health nonprofit serving underserved populations in Los Angeles.
@@ -1486,15 +1498,13 @@ Return ONLY valid JSON in this exact format:
             parsed = JSON.parse(text);
         } catch (parseError) {
             console.error('[GEMINI] Failed to parse training plan:', text.substring(0, 200));
-            return res.json(null);
+            return res.json(createDefaultPlan(role || 'Volunteer'));
         }
 
         // Ensure required fields exist
         if (!parsed.role) parsed.role = role;
-        if (!parsed.orientationModules || !Array.isArray(parsed.orientationModules)) {
-            parsed.orientationModules = [
-                { id: 'default-1', title: 'Welcome to HMC', objective: 'Understand our mission and values.', estimatedMinutes: 10 }
-            ];
+        if (!parsed.orientationModules || !Array.isArray(parsed.orientationModules) || parsed.orientationModules.length === 0) {
+            parsed.orientationModules = createDefaultPlan(role).orientationModules;
         }
         if (!parsed.completionGoal) parsed.completionGoal = 'Complete orientation to begin volunteering.';
         if (!parsed.coachSummary) parsed.coachSummary = `Welcome to your ${role} journey at HMC!`;
@@ -1503,19 +1513,62 @@ Return ONLY valid JSON in this exact format:
         res.json(parsed);
     } catch(e: any) {
         console.error('[GEMINI] Training plan generation error:', e.message || e);
-        res.json(null);
+        res.json(createDefaultPlan(role || 'Volunteer'));
     }
 });
 
 app.post('/api/gemini/generate-quiz', async (req: Request, res: Response) => {
+    const { moduleTitle, role } = req.body;
+
+    // Default quiz content
+    const createDefaultQuiz = () => ({
+        question: `What is the most important takeaway from "${moduleTitle}" for your role as a ${role}?`,
+        learningObjective: `Understand the key concepts covered in ${moduleTitle}.`,
+        keyConcepts: [
+            { concept: 'Core Knowledge', description: 'The fundamental principles covered in this training module.' },
+            { concept: 'Practical Application', description: 'How to apply what you learned in real volunteer situations.' },
+            { concept: 'HMC Values', description: "Aligning your work with Health Matters Clinic's mission." }
+        ]
+    });
+
     try {
-        if (!ai) return res.json({ question: "Default Question?" });
-        const { moduleTitle, role } = req.body;
+        if (!ai) {
+            console.warn('[GEMINI] AI not configured for quiz generation - using default');
+            return res.json(createDefaultQuiz());
+        }
+
         const text = await generateAIContent('gemini-1.5-flash',
-            `Generate a multiple choice quiz question for the module "${moduleTitle}" for a ${role}. JSON Schema: { question, learningObjective, keyConcepts: [{concept, description}] }`,
+            `Generate a reflective quiz question for the training module "${moduleTitle}" for a ${role} at Health Matters Clinic.
+
+Return ONLY valid JSON in this format:
+{
+  "question": "A thoughtful open-ended question about the module content",
+  "learningObjective": "What the volunteer should understand after this module",
+  "keyConcepts": [
+    {"concept": "Concept Name", "description": "Brief explanation of the concept"},
+    {"concept": "Concept Name", "description": "Brief explanation of the concept"},
+    {"concept": "Concept Name", "description": "Brief explanation of the concept"}
+  ]
+}`,
             true);
-        res.send(text);
-    } catch(e) { res.status(500).json({error: "AI failed"}); }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+            // Validate structure
+            if (!parsed.question || !parsed.learningObjective || !parsed.keyConcepts) {
+                throw new Error('Invalid quiz structure');
+            }
+        } catch (parseError) {
+            console.error('[GEMINI] Failed to parse quiz:', text.substring(0, 200));
+            return res.json(createDefaultQuiz());
+        }
+
+        res.json(parsed);
+    } catch(e: any) {
+        console.error('[GEMINI] Quiz generation error:', e.message || e);
+        res.json(createDefaultQuiz());
+    }
 });
 
 app.post('/api/gemini/validate-answer', async (req: Request, res: Response) => {

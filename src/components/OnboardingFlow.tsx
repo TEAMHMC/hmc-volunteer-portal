@@ -249,9 +249,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         isNewUser: false,
         compliance: compliance as Volunteer['compliance'],
         availability: { days: formData.availDays || [], preferredTime: formData.preferredTime, startDate: formData.startDate, notes: formData.schedulingLimitations || '', servicePreference: formData.servicePreference, timezone: formData.timezone, hoursPerWeek: formData.hoursPerWeek },
-        tasks: [], 
-        achievements: [{ id: 'a-wel', title: 'Welcome to the Team!', icon: 'Heart', dateEarned: new Date().toISOString() }], 
+        tasks: [],
+        achievements: [{ id: 'a-wel', title: 'Welcome to the Team!', icon: 'Heart', dateEarned: new Date().toISOString() }],
         roleAssessment: formData.roleAssessment,
+        // Mark orientation videos as completed if watched during onboarding
+        completedTrainingIds: [
+          ...(formData.watchedIntro ? ['hmc_get_to_know_us'] : []),
+          ...(formData.watchedChampion ? ['hmc_because_champion'] : []),
+        ],
       };
       
       // Google OAuth users use their credential, email users use password

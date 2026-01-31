@@ -22,7 +22,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [quizData, setQuizData] = useState<any>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
   const [quizResponse, setQuizResponse] = useState('');
-  const [quizStage, setQuizStage] = useState<'concepts' | 'question'>('concepts');
+  const [quizStage, setQuizStage] = useState<'video' | 'concepts' | 'question'>('video');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   
@@ -40,15 +40,31 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const startQuiz = async (module: any) => {
     setActiveSession(module);
     setQuizMode(true);
-    setQuizStage('concepts');
+    // Start with video if module has one, otherwise go to concepts
+    setQuizStage(module.embed ? 'video' : 'concepts');
     setSubmitError('');
     setQuizResponse('');
+    setQuizData(null);
+  };
+
+  const loadQuizContent = async () => {
+    if (loadingQuiz || quizData) return;
     setLoadingQuiz(true);
     try {
-      const aiQuiz = await geminiService.generateModuleQuiz(module.title, user.role);
+      const aiQuiz = await geminiService.generateModuleQuiz(activeSession.title, user.role);
       setQuizData(aiQuiz);
     } catch (e) {
       console.error("Quiz generation failed", e);
+      // Provide fallback quiz data
+      setQuizData({
+        question: `What is the most important takeaway from "${activeSession.title}" for your role as a ${user.role}?`,
+        learningObjective: `Understand the key concepts covered in ${activeSession.title}.`,
+        keyConcepts: [
+          { concept: 'Core Knowledge', description: 'The fundamental principles covered in this training module.' },
+          { concept: 'Practical Application', description: 'How to apply what you learned in real volunteer situations.' },
+          { concept: 'HMC Values', description: 'Aligning your work with Health Matters Clinic\'s mission.' }
+        ]
+      });
     } finally {
       setLoadingQuiz(false);
     }
@@ -168,7 +184,27 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                  <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
                  <button onClick={() => setQuizMode(false)} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-300 hover:text-zinc-900"><X size={24} /></button>
               </div>
-              {loadingQuiz ? (
+              {quizStage === 'video' && activeSession?.embed ? (
+                <div className="space-y-8 animate-in fade-in">
+                  <div className="aspect-video bg-zinc-900 rounded-[32px] overflow-hidden shadow-2xl">
+                    <iframe
+                      className="w-full h-full"
+                      src={activeSession.embed}
+                      title={activeSession.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      style={{ border: 'none' }}
+                    />
+                  </div>
+                  <p className="text-zinc-500 font-medium text-center">Watch the video above, then proceed to the assessment.</p>
+                  <button
+                    onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
+                    className="w-full py-6 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3"
+                  >
+                    I've Watched This - Continue to Assessment <ArrowRight size={18} />
+                  </button>
+                </div>
+              ) : loadingQuiz ? (
                 <div className="py-20 flex flex-col items-center gap-6">
                    <Loader2 size={48} className="text-[#233DFF] animate-spin" />
                    <p className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">Generating Assessment...</p>
@@ -179,7 +215,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   <p className="text-zinc-600 font-medium italic">"{quizData?.learningObjective}"</p>
                   <h5 className="text-lg font-black text-zinc-900 pt-4 border-t">Key Concepts to Review:</h5>
                   <div className="space-y-4">
-                    {quizData?.keyConcepts.map((item: { concept: string, description: string }, i: number) => (
+                    {quizData?.keyConcepts?.map((item: { concept: string, description: string }, i: number) => (
                       <div key={i} className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
                         <p className="font-black text-zinc-800 text-sm">{item.concept}</p>
                         <p className="text-sm text-zinc-500 mt-1">{item.description}</p>

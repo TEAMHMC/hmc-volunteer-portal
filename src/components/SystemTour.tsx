@@ -53,11 +53,8 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
             <div className="bg-white max-w-xl w-full rounded-[40px] shadow-2xl p-12 relative" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors"><X size={20}/></button>
                 
-                <div className="flex items-center gap-6 mb-6">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border-4 border-blue-100 shadow-sm">
-                        <currentStep.icon size={32} />
-                    </div>
-                     <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-12 h-12" />
+                <div className="flex items-center gap-4 mb-6">
+                    <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-14 h-14" />
                 </div>
                 
                 <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{currentStep.title}</h2>
@@ -66,10 +63,10 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
                 <div className="flex items-center justify-between mt-10">
                     <div className="flex items-center gap-2">
                         {tourSteps.map((_, i) => (
-                            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-blue-600 scale-125' : 'bg-zinc-200'}`} />
+                            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-[#233DFF] scale-125' : 'bg-zinc-200'}`} />
                         ))}
                     </div>
-                    <button onClick={handleNext} className="px-8 py-4 bg-blue-600 text-white rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-3 group">
+                    <button onClick={handleNext} className="px-8 py-4 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-3 group shadow-xl">
                         {isLastStep ? "Let's Get Started" : "Next"}
                         <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </button>
