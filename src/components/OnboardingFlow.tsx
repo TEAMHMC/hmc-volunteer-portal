@@ -787,13 +787,17 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
 
       <div>
         <h3 className="font-bold text-zinc-900 mb-4">{aiRecommendations.length > 0 ? 'Or select a different role:' : 'Select your preferred role:'}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <select
+          value={data.selectedRole || ''}
+          onChange={(e) => onChange('selectedRole', e.target.value)}
+          className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-bold text-lg focus:border-[#233DFF] focus:ring-2 focus:ring-[#233DFF]/20 outline-none transition-all appearance-none cursor-pointer"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
+        >
+          <option value="" disabled>Choose a volunteer role...</option>
           {availableRoles.map(role => (
-            <button key={role} onClick={() => onChange('selectedRole', role)} className={`p-4 rounded-xl border-2 text-left font-bold transition-all ${data.selectedRole === role ? 'border-[#233DFF] bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'}`}>
-              {role}
-            </button>
+            <option key={role} value={role}>{role}</option>
           ))}
-        </div>
+        </select>
       </div>
       {errors.selectedRole && <p className="text-rose-500 text-sm font-bold">{errors.selectedRole}</p>}
     </div>

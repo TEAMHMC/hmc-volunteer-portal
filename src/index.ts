@@ -1318,15 +1318,10 @@ app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
         // Check if AI is configured
         if (!ai) {
             console.warn('[GEMINI] AI not configured - API_KEY environment variable not set');
-            // Return a helpful fallback when AI is not available
             return res.json({
-                recommendations: [
-                    { roleName: 'Core Volunteer', matchPercentage: 80, reasoning: 'General volunteer work is a great starting point for new volunteers.' },
-                    { roleName: 'Outreach Volunteer', matchPercentage: 70, reasoning: 'Community outreach helps connect with people in need.' },
-                    { roleName: 'Events Coordinator', matchPercentage: 60, reasoning: 'Event coordination utilizes organizational skills.' }
-                ],
-                extractedSkills: ['Communication', 'Teamwork', 'Organization'],
-                note: 'AI analysis unavailable - showing default recommendations. Please select the role that best matches your experience.'
+                recommendations: [],
+                extractedSkills: [],
+                error: 'AI service not configured. Please select a role manually.'
             });
         }
 
@@ -1345,22 +1340,18 @@ app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
 
         const text = await generateAIContent('gemini-1.5-pro', [
             { inlineData: { mimeType, data: base64Data } },
-            "Analyze this resume. Extract skills. Recommend the top 3 roles from: Core Volunteer, Outreach Volunteer, Licensed Medical Professional, Events Coordinator, Volunteer Lead. Return JSON: { recommendations: [{roleName, matchPercentage, reasoning}], extractedSkills: [] }"
+            "Analyze this resume carefully. Extract all relevant professional skills. Recommend the top 3 most suitable roles from ONLY these options: Core Volunteer, Outreach Volunteer, Licensed Medical Professional, Events Coordinator, Volunteer Lead. Base recommendations on the candidate's experience, skills, and qualifications. Return valid JSON: { recommendations: [{roleName: string, matchPercentage: number, reasoning: string}], extractedSkills: string[] }"
         ], true);
 
         console.log('[GEMINI] Resume analysis successful');
         res.send(text);
     } catch (e: any) {
         console.error('[GEMINI] Resume analysis error:', e.message || e);
-        // Return a fallback response instead of error to allow manual role selection
+        // Return empty arrays to trigger manual role selection
         res.json({
-            recommendations: [
-                { roleName: 'Core Volunteer', matchPercentage: 80, reasoning: 'General volunteer work is a great starting point.' },
-                { roleName: 'Outreach Volunteer', matchPercentage: 70, reasoning: 'Community outreach helps connect with people.' },
-                { roleName: 'Events Coordinator', matchPercentage: 60, reasoning: 'Event coordination utilizes organizational skills.' }
-            ],
+            recommendations: [],
             extractedSkills: [],
-            note: 'AI analysis encountered an issue - showing default recommendations. Please select the role that best matches your experience.'
+            error: 'Resume analysis failed. Please select a role manually.'
         });
     }
 });
@@ -1369,41 +1360,19 @@ app.post('/api/gemini/generate-plan', async (req: Request, res: Response) => {
     try {
         const { role } = req.body;
 
-        // Return a default plan if AI is not configured
+        // Return null if AI is not configured - frontend handles this
         if (!ai) {
             console.warn('[GEMINI] AI not configured for training plan generation');
-            return res.json({
-                role: role || 'Volunteer',
-                orientationModules: [
-                    { id: '1', title: 'Welcome & Overview', objective: 'Understand HMC mission and values', estimatedMinutes: 15 },
-                    { id: '2', title: 'HIPAA Training', objective: 'Learn patient privacy requirements', estimatedMinutes: 30 },
-                    { id: '3', title: 'Safety Protocols', objective: 'Understand safety procedures', estimatedMinutes: 20 },
-                    { id: '4', title: 'Role-Specific Training', objective: `Learn ${role || 'volunteer'} responsibilities`, estimatedMinutes: 25 }
-                ],
-                completionGoal: 'Complete all modules within 7 days of onboarding',
-                coachSummary: `Welcome to Health Matters Clinic! As a ${role || 'Volunteer'}, you will play an important role in serving our community.`
-            });
+            return res.json(null);
         }
 
         const text = await generateAIContent('gemini-1.5-flash',
-            `Generate a short onboarding training plan JSON for a ${role} at a health clinic. Schema: { role, orientationModules: [{id, title, objective, estimatedMinutes}], completionGoal, coachSummary }`,
+            `Generate a personalized onboarding training plan for a ${role} at Health Matters Clinic. Include role-specific modules. Return valid JSON: { role: string, orientationModules: [{id: string, title: string, objective: string, estimatedMinutes: number}], completionGoal: string, coachSummary: string }`,
             true);
         res.send(text);
     } catch(e: any) {
         console.error('[GEMINI] Training plan generation error:', e.message || e);
-        // Return default plan on error
-        const role = req.body?.role || 'Volunteer';
-        res.json({
-            role,
-            orientationModules: [
-                { id: '1', title: 'Welcome & Overview', objective: 'Understand HMC mission and values', estimatedMinutes: 15 },
-                { id: '2', title: 'HIPAA Training', objective: 'Learn patient privacy requirements', estimatedMinutes: 30 },
-                { id: '3', title: 'Safety Protocols', objective: 'Understand safety procedures', estimatedMinutes: 20 },
-                { id: '4', title: 'Role-Specific Training', objective: `Learn ${role} responsibilities`, estimatedMinutes: 25 }
-            ],
-            completionGoal: 'Complete all modules within 7 days of onboarding',
-            coachSummary: `Welcome to Health Matters Clinic! As a ${role}, you will play an important role in serving our community.`
-        });
+        res.json(null);
     }
 });
 
