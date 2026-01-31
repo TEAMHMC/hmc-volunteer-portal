@@ -713,26 +713,35 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
   const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     onChange('resumeFile', { name: file.name, type: file.type });
     setIsStepLoading(true);
+    setAnalysisError(null);
 
     try {
       const base64 = await fileToBase64(file);
       const result = await geminiService.analyzeResume(base64, file.type);
-      if (result?.recommendations) {
+
+      // Check if AI returned recommendations
+      if (result?.recommendations && result.recommendations.length > 0) {
         setAiRecommendations(result.recommendations);
         setExtractedSkills(result.extractedSkills || []);
-        if (result.recommendations[0]) {
-          onChange('selectedRole', result.recommendations[0].roleName);
-        }
+        // Auto-select the top recommendation
+        onChange('selectedRole', result.recommendations[0].roleName);
+      } else {
+        // AI returned empty recommendations - show message and let user select manually
+        const errorMsg = result?.error || 'Unable to analyze resume. Please select a role manually.';
+        setAnalysisError(errorMsg);
+        console.warn('[Resume Analysis]', errorMsg);
       }
     } catch (err) {
       console.error('Resume analysis failed:', err);
-      alert('Resume analysis failed. Please select a role manually.');
+      setAnalysisError('Resume analysis failed. Please select a role manually.');
     } finally {
       setIsStepLoading(false);
     }
@@ -758,6 +767,16 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         </button>
       </div>
       {errors.resume && <p className="text-rose-500 text-sm font-bold">{errors.resume}</p>}
+
+      {analysisError && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+          <AlertTriangle className="text-amber-500 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="text-amber-800 text-sm font-medium">{analysisError}</p>
+            <p className="text-amber-600 text-xs mt-1">You can still select a role from the dropdown below.</p>
+          </div>
+        </div>
+      )}
 
       {aiRecommendations.length > 0 && (
         <div className="space-y-4">

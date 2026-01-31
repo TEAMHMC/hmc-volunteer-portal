@@ -1314,6 +1314,27 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
 // --- AI & DATA ROUTES ---
 
 app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
+    // Define available volunteer roles (excluding admin roles)
+    const VOLUNTEER_ROLES = [
+        'Core Volunteer',
+        'Board Member',
+        'Community Advisory Board',
+        'Licensed Medical Professional',
+        'Medical Admin',
+        'Tech Team',
+        'Data Analyst',
+        'Development Coordinator',
+        'Grant Writer',
+        'Fundraising Volunteer',
+        'Content Writer',
+        'Social Media Team',
+        'Events Coordinator',
+        'Program Coordinator',
+        'Operations Coordinator',
+        'Volunteer Lead',
+        'Student Intern'
+    ];
+
     try {
         // Check if AI is configured
         if (!ai) {
@@ -1338,13 +1359,82 @@ app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
 
         console.log(`[GEMINI] Analyzing resume (mimeType: ${mimeType}, size: ${base64Data.length} chars)`);
 
+        const rolesList = VOLUNTEER_ROLES.join(', ');
+        const prompt = `You are an expert volunteer coordinator for Health Matters Clinic, a community health nonprofit.
+
+Analyze this resume carefully and match the candidate to volunteer roles.
+
+AVAILABLE ROLES (use EXACT names):
+${rolesList}
+
+ROLE DESCRIPTIONS:
+- Core Volunteer: Community health event support, client interaction, general assistance
+- Licensed Medical Professional: For doctors, nurses, NPs, PAs with active medical licenses
+- Medical Admin: Medical records, patient intake, healthcare administration
+- Tech Team: Software development, IT support, data engineering
+- Data Analyst: Data analysis, visualization, SQL/Python skills
+- Events Coordinator: Event planning and day-of coordination
+- Volunteer Lead: Team leadership and volunteer management
+- Content Writer: Newsletter, blog, impact storytelling
+- Social Media Team: Content creation and social media management
+- Grant Writer: Grant proposal writing and research
+- Development Coordinator: Fundraising and donor relations
+- Fundraising Volunteer: Peer-to-peer and community fundraising
+- Board Member: Governance, strategic planning (executive experience)
+- Community Advisory Board: Community voice and advocacy
+- Program Coordinator: Program management and delivery
+- Operations Coordinator: Logistics and operational planning
+- Student Intern: Academic internship (currently enrolled students)
+
+INSTRUCTIONS:
+1. Extract all professional skills from the resume
+2. Recommend the TOP 3 most suitable roles based on experience and qualifications
+3. Calculate a realistic match percentage (50-95%) based on how well they fit
+4. Provide brief reasoning for each recommendation
+
+Return ONLY valid JSON in this exact format:
+{
+  "recommendations": [
+    {"roleName": "EXACT_ROLE_NAME", "matchPercentage": 85, "reasoning": "Brief explanation"},
+    {"roleName": "EXACT_ROLE_NAME", "matchPercentage": 75, "reasoning": "Brief explanation"},
+    {"roleName": "EXACT_ROLE_NAME", "matchPercentage": 65, "reasoning": "Brief explanation"}
+  ],
+  "extractedSkills": ["skill1", "skill2", "skill3"]
+}`;
+
         const text = await generateAIContent('gemini-1.5-pro', [
             { inlineData: { mimeType, data: base64Data } },
-            "Analyze this resume carefully. Extract all relevant professional skills. Recommend the top 3 most suitable roles from ONLY these options: Core Volunteer, Outreach Volunteer, Licensed Medical Professional, Events Coordinator, Volunteer Lead. Base recommendations on the candidate's experience, skills, and qualifications. Return valid JSON: { recommendations: [{roleName: string, matchPercentage: number, reasoning: string}], extractedSkills: string[] }"
+            prompt
         ], true);
 
-        console.log('[GEMINI] Resume analysis successful');
-        res.send(text);
+        // Parse and validate the response
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseError) {
+            console.error('[GEMINI] Failed to parse AI response:', text.substring(0, 200));
+            return res.json({
+                recommendations: [],
+                extractedSkills: [],
+                error: 'AI returned invalid response. Please select a role manually.'
+            });
+        }
+
+        // Validate structure
+        if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
+            parsed.recommendations = [];
+        }
+        if (!parsed.extractedSkills || !Array.isArray(parsed.extractedSkills)) {
+            parsed.extractedSkills = [];
+        }
+
+        // Validate role names - only keep valid ones
+        parsed.recommendations = parsed.recommendations.filter((rec: any) =>
+            rec.roleName && VOLUNTEER_ROLES.includes(rec.roleName)
+        ).slice(0, 3);
+
+        console.log(`[GEMINI] Resume analysis successful - ${parsed.recommendations.length} recommendations, ${parsed.extractedSkills.length} skills`);
+        res.json(parsed);
     } catch (e: any) {
         console.error('[GEMINI] Resume analysis error:', e.message || e);
         // Return empty arrays to trigger manual role selection
@@ -1358,7 +1448,7 @@ app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
 
 app.post('/api/gemini/generate-plan', async (req: Request, res: Response) => {
     try {
-        const { role } = req.body;
+        const { role, experience } = req.body;
 
         // Return null if AI is not configured - frontend handles this
         if (!ai) {
@@ -1366,10 +1456,51 @@ app.post('/api/gemini/generate-plan', async (req: Request, res: Response) => {
             return res.json(null);
         }
 
-        const text = await generateAIContent('gemini-1.5-flash',
-            `Generate a personalized onboarding training plan for a ${role} at Health Matters Clinic. Include role-specific modules. Return valid JSON: { role: string, orientationModules: [{id: string, title: string, objective: string, estimatedMinutes: number}], completionGoal: string, coachSummary: string }`,
-            true);
-        res.send(text);
+        const prompt = `You are creating a training plan for a new ${role} volunteer at Health Matters Clinic, a community health nonprofit serving underserved populations in Los Angeles.
+
+CONTEXT:
+- Health Matters Clinic provides free healthcare services at community events
+- All volunteers must complete HIPAA training
+- Training should be practical and role-specific
+
+VOLUNTEER BACKGROUND: ${experience || 'General interest in community health'}
+
+Generate a personalized onboarding training plan with 3-5 modules specific to the ${role} role.
+
+Return ONLY valid JSON in this exact format:
+{
+  "role": "${role}",
+  "orientationModules": [
+    {"id": "mod-1", "title": "Module Title", "objective": "What they will learn", "estimatedMinutes": 15},
+    {"id": "mod-2", "title": "Module Title", "objective": "What they will learn", "estimatedMinutes": 20}
+  ],
+  "completionGoal": "What completing this training enables them to do",
+  "coachSummary": "A brief personalized message about their training path"
+}`;
+
+        const text = await generateAIContent('gemini-1.5-flash', prompt, true);
+
+        // Parse and validate
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseError) {
+            console.error('[GEMINI] Failed to parse training plan:', text.substring(0, 200));
+            return res.json(null);
+        }
+
+        // Ensure required fields exist
+        if (!parsed.role) parsed.role = role;
+        if (!parsed.orientationModules || !Array.isArray(parsed.orientationModules)) {
+            parsed.orientationModules = [
+                { id: 'default-1', title: 'Welcome to HMC', objective: 'Understand our mission and values.', estimatedMinutes: 10 }
+            ];
+        }
+        if (!parsed.completionGoal) parsed.completionGoal = 'Complete orientation to begin volunteering.';
+        if (!parsed.coachSummary) parsed.coachSummary = `Welcome to your ${role} journey at HMC!`;
+
+        console.log(`[GEMINI] Training plan generated for ${role} with ${parsed.orientationModules.length} modules`);
+        res.json(parsed);
     } catch(e: any) {
         console.error('[GEMINI] Training plan generation error:', e.message || e);
         res.json(null);
