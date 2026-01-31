@@ -4,10 +4,10 @@ import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
 import { ADVANCED_MODULES, ROLE_MODULES, HMC_MODULES } from '../constants';
 import { APP_CONFIG } from '../config';
-import { 
-  CheckCircle2, Play, X, ShieldCheck, 
+import {
+  CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
-  Check, ListChecks, PlayCircle
+  Check, ListChecks, PlayCircle, Award, Calendar
 } from 'lucide-react';
 
 const getRoleSlug = (roleLabel: string): string => {
@@ -70,12 +70,17 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     }
   };
 
-  // Module IDs that unlock operational clearances
-  const TRAINING_FLAG_MODULES = {
-    surveySOPComplete: ['hmc_survey_training'],
-    clientPortalOrientationComplete: ['cmhw_part1', 'cmhw_part2'], // Need both
-    screeningCompetencyVerified: ['hipaa_staff_2025', 'hmc_get_to_know_us'], // HIPAA + HMC orientation
-  };
+  // Core Volunteer Training - ALL 5 modules required for operational access
+  const CORE_TRAINING_MODULES = [
+    'hmc_get_to_know_us',
+    'hipaa_staff_2025',
+    'cmhw_part1',
+    'cmhw_part2',
+    'hmc_survey_training'
+  ];
+
+  const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => completedModuleIds.includes(id));
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
 
   const handleCompleteModule = (moduleId: string, title: string) => {
     if (!completedModuleIds.includes(moduleId)) {
@@ -84,40 +89,34 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       // Calculate new completed training IDs
       const newCompletedIds = [...completedModuleIds, moduleId];
 
-      // Check if this completion unlocks any training flags
-      const currentFlags = user.trainingFlags || {};
-      const newFlags = { ...currentFlags };
+      // Check if this completion completes Core Volunteer Training
+      const nowCompletedCore = CORE_TRAINING_MODULES.every(id => newCompletedIds.includes(id));
+      const wasNotCompletedBefore = !CORE_TRAINING_MODULES.every(id => completedModuleIds.includes(id));
 
-      // Survey SOP - requires survey training module
-      if (TRAINING_FLAG_MODULES.surveySOPComplete.every(id => newCompletedIds.includes(id))) {
-        newFlags.surveySOPComplete = true;
-      }
-
-      // Client Portal - requires both CMHW parts
-      if (TRAINING_FLAG_MODULES.clientPortalOrientationComplete.every(id => newCompletedIds.includes(id))) {
-        newFlags.clientPortalOrientationComplete = true;
-      }
-
-      // Screening Competency - requires HIPAA and HMC orientation
-      if (TRAINING_FLAG_MODULES.screeningCompetencyVerified.every(id => newCompletedIds.includes(id))) {
-        newFlags.screeningCompetencyVerified = true;
-      }
-
-      onUpdate({
+      const updatedUser: Partial<Volunteer> = {
         ...user,
         points: user.points + 100,
         completedTrainingIds: newCompletedIds,
-        trainingFlags: newFlags,
         achievements: [
           ...user.achievements,
           {
             id: `mod-${moduleId}`,
-            title: `Mastery: ${title}`, 
-            icon: 'CheckCircle', 
-            dateEarned: new Date().toISOString() 
+            title: `Mastery: ${title}`,
+            icon: 'CheckCircle',
+            dateEarned: new Date().toISOString()
           }
         ]
-      });
+      };
+
+      // Set coreVolunteerStatus when all 5 modules are complete
+      if (nowCompletedCore && wasNotCompletedBefore) {
+        updatedUser.coreVolunteerStatus = true;
+        updatedUser.coreVolunteerApprovedDate = new Date().toISOString();
+        analyticsService.logEvent('core_volunteer_training_complete', { userId: user.id, userRole: user.role });
+        setShowCompletionMessage(true);
+      }
+
+      onUpdate(updatedUser as Volunteer);
     }
     setQuizMode(false);
     setActiveSession(null);
@@ -169,6 +168,19 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
+      {/* Core Training Complete Banner */}
+      {hasCompletedCoreTraining && (
+        <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-[32px] flex items-center gap-6">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shrink-0">
+            <Award size={28} />
+          </div>
+          <div>
+            <h4 className="text-lg font-black text-emerald-900">Core Volunteer Training Complete</h4>
+            <p className="text-emerald-700 font-medium">You're eligible to sign up for community-based events. Visit My Missions to find opportunities.</p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-zinc-100 p-12 rounded-[56px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
           <div className="inline-flex items-center gap-3 px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-10">
@@ -269,6 +281,31 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 </div>
               )}
            </div>
+        </div>
+      )}
+
+      {/* Core Volunteer Training Completion Modal */}
+      {showCompletionMessage && (
+        <div className="fixed inset-0 bg-zinc-900/95 backdrop-blur-2xl z-[1000] flex items-center justify-center p-8 animate-in fade-in">
+          <div className="bg-white p-12 rounded-[56px] max-w-2xl w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95">
+            <div className="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-8 shadow-xl">
+              <Award size={48} />
+            </div>
+            <h3 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">Core Volunteer Training Complete</h3>
+            <p className="text-xl text-zinc-600 font-medium leading-relaxed mb-8">
+              You've completed Core Volunteer Training. You're now eligible to sign up for community-based events.
+            </p>
+            <div className="flex items-center justify-center gap-3 text-emerald-600 font-bold text-sm mb-8">
+              <Calendar size={18} />
+              <span>Completed on {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </div>
+            <button
+              onClick={() => setShowCompletionMessage(false)}
+              className="px-12 py-5 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
+            >
+              Continue to Dashboard
+            </button>
+          </div>
         </div>
       )}
     </div>

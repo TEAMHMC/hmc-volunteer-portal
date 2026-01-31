@@ -96,22 +96,42 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     handleUpdateUser({ ...user, hasCompletedSystemTour: true });
   };
 
+  // Core Volunteer Training - ALL 5 modules required for operational access
+  const CORE_TRAINING_MODULES = [
+    'hmc_get_to_know_us',
+    'hipaa_staff_2025',
+    'cmhw_part1',
+    'cmhw_part2',
+    'hmc_survey_training'
+  ];
+
+  const completedTrainingIds = displayUser.completedTrainingIds || [];
+  const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => completedTrainingIds.includes(id));
+
+  // Access to operational tools requires: Core Training complete (admins bypass this)
+  const canAccessOperationalTools = displayUser.isAdmin || hasCompletedCoreTraining;
+
   const navItems = useMemo(() => {
     let items = [
       { id: 'overview', label: 'Overview', icon: Activity },
-      { id: 'missions', label: 'My Missions', icon: Calendar },
-      { id: 'impact', label: 'Impact Hub', icon: DollarSign },
       { id: 'academy', label: 'Training Academy', icon: GraduationCap },
-      { id: 'briefing', label: 'Briefing Hub', icon: MessageSquare },
-      { id: 'docs', label: 'Doc Hub', icon: BookOpen },
     ];
-    
-    if (['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
-      items = items.filter(item => item.id !== 'missions');
+
+    // Only show operational tabs (missions) if core training is complete OR user is admin
+    if (canAccessOperationalTools) {
+      // Insert missions after overview for users with access
+      if (!['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
+        items.splice(1, 0, { id: 'missions', label: 'My Missions', icon: Calendar });
+      }
     }
 
-    if (displayUser.role === 'Volunteer Lead') {
-      items.splice(1, 0, { id: 'my-team', label: 'My Team', icon: Users });
+    // Always show these tabs
+    items.push({ id: 'impact', label: 'Impact Hub', icon: DollarSign });
+    items.push({ id: 'briefing', label: 'Briefing Hub', icon: MessageSquare });
+    items.push({ id: 'docs', label: 'Doc Hub', icon: BookOpen });
+
+    if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
+      items.splice(2, 0, { id: 'my-team', label: 'My Team', icon: Users });
     }
 
     if(displayUser.isAdmin) {
@@ -125,7 +145,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         items.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
     }
     return items;
-  }, [displayUser.role, displayUser.isAdmin]);
+  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools]);
 
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
 
@@ -216,16 +236,16 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   </div>
                 </div>
             </header>
-            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} onNavigate={setActiveTab} />}
+            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} />}
             <div className="pt-8 border-t border-zinc-100">
-               <EventExplorer user={displayUser} opportunities={opportunities} onUpdate={handleUpdateUser} />
+               <EventExplorer user={displayUser} opportunities={opportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} />
             </div>
            </>
          )}
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
-         {activeTab === 'missions' && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
-         {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
+         {activeTab === 'missions' && canAccessOperationalTools && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
+         {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
@@ -288,13 +308,77 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     </div>
 )};
 
-const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void }> = ({ user, shifts, onNavigate }) => {
+const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean }> = ({ user, shifts, onNavigate, hasCompletedCoreTraining }) => {
   const upcomingShifts = shifts
     .filter(s => user.assignedShiftIds?.includes(s.id) && new Date(s.startTime) > new Date())
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  
+
   const nextShift = upcomingShifts[0];
   const pendingTasks = user.tasks?.filter(t => t.status === 'pending') || [];
+
+  // If core training not complete, show training required message
+  if (!hasCompletedCoreTraining) {
+    return (
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+        <div className="xl:col-span-2 space-y-10">
+          <div className="bg-amber-50 rounded-[56px] p-12 border-2 border-amber-200 shadow-sm">
+            <div className="flex items-start gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-400 text-white flex items-center justify-center shadow-lg shrink-0">
+                <GraduationCap size={32} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-amber-900 tracking-tight mb-4">Complete Core Volunteer Training</h3>
+                <p className="text-amber-800 font-medium leading-relaxed mb-6">
+                  Before you can sign up for community-based events, you must complete all required Core Volunteer Training modules. This ensures you have the knowledge and skills to serve our community safely and effectively.
+                </p>
+                <div className="bg-white/50 rounded-2xl p-6 border border-amber-200 mb-6">
+                  <p className="text-sm font-bold text-amber-900 mb-3">Required Training Modules:</p>
+                  <ul className="text-sm text-amber-800 space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className={user.completedTrainingIds?.includes('hmc_get_to_know_us') ? 'text-emerald-500' : 'text-amber-300'} />
+                      HMC Orientation (Get to Know Us)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className={user.completedTrainingIds?.includes('hipaa_staff_2025') ? 'text-emerald-500' : 'text-amber-300'} />
+                      HIPAA Training
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className={user.completedTrainingIds?.includes('cmhw_part1') ? 'text-emerald-500' : 'text-amber-300'} />
+                      Community Health Worker Training (Part 1)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className={user.completedTrainingIds?.includes('cmhw_part2') ? 'text-emerald-500' : 'text-amber-300'} />
+                      Community Health Worker Training (Part 2)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle size={14} className={user.completedTrainingIds?.includes('hmc_survey_training') ? 'text-emerald-500' : 'text-amber-300'} />
+                      Survey Administration Training
+                    </li>
+                  </ul>
+                </div>
+                <button onClick={() => onNavigate('academy')} className="px-10 py-5 bg-amber-500 text-white rounded-full font-black text-sm uppercase tracking-widest shadow-lg hover:bg-amber-600 transition-colors flex items-center gap-3">
+                  <GraduationCap size={18} /> Go to Training Academy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-10">
+          <div className="bg-zinc-50 p-12 rounded-[56px] border border-zinc-100 shadow-inner space-y-10">
+            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Quick Actions</h4>
+            <div className="space-y-4">
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-black text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              </button>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-black text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">

@@ -60,7 +60,7 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
     };
 }
 
-const EventExplorer: React.FC<{ user: Volunteer; opportunities: Opportunity[]; onUpdate: (u: Volunteer) => void }> = ({ user, opportunities, onUpdate }) => {
+const EventExplorer: React.FC<{ user: Volunteer; opportunities: Opportunity[]; onUpdate: (u: Volunteer) => void; canSignUp?: boolean }> = ({ user, opportunities, onUpdate, canSignUp = true }) => {
   const [lang, setLang] = useState<Language>('en');
   const [selectedEvent, setSelectedEvent] = useState<ClinicEvent | null>(null);
   const [search, setSearch] = useState('');
@@ -182,20 +182,27 @@ const EventExplorer: React.FC<{ user: Volunteer; opportunities: Opportunity[]; o
               </div>
 
               <div className="space-y-4">
-                <button 
-                  onClick={() => handleSignUp(selectedEvent.id)}
-                  className={`w-full py-6 rounded-3xl font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 ${
-                    user.rsvpedEventIds?.includes(selectedEvent.id) 
-                      ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100' 
-                      : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
-                  }`}
-                >
-                  {user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                    <><CheckCircle2 size={24} /> Signed Up</>
-                  ) : (
-                    <>{t.submit_btn}</>
-                  )}
-                </button>
+                {canSignUp ? (
+                  <button
+                    onClick={() => handleSignUp(selectedEvent.id)}
+                    className={`w-full py-6 rounded-3xl font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 ${
+                      user.rsvpedEventIds?.includes(selectedEvent.id)
+                        ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100'
+                        : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
+                    }`}
+                  >
+                    {user.rsvpedEventIds?.includes(selectedEvent.id) ? (
+                      <><CheckCircle2 size={24} /> Signed Up</>
+                    ) : (
+                      <>{t.submit_btn}</>
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-full py-6 px-4 rounded-3xl bg-amber-50 border border-amber-200 text-center">
+                    <p className="font-bold text-amber-800 text-sm">Complete Core Volunteer Training to sign up</p>
+                    <p className="text-amber-600 text-xs mt-1">Visit Training Academy to complete required modules</p>
+                  </div>
+                )}
                 <p className="text-center text-[10px] text-slate-400 font-medium">Earn impact points for participating in community events.</p>
               </div>
             </div>
