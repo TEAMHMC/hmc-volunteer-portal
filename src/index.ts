@@ -17,19 +17,42 @@ dotenv.config();
 // --- FIREBASE ADMIN SDK ---
 let firebaseConfigured = false;
 try {
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
+  // Method 1: Service account JSON file path
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+    const serviceAccount = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8'));
     admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
+      credential: admin.credential.cert(serviceAccount)
     });
     firebaseConfigured = true;
-    console.log("Firebase Admin SDK initialized successfully with credentials.");
-  } else {
-    console.warn("⚠️ Firebase credentials missing (GOOGLE_APPLICATION_CREDENTIALS or FIREBASE_CONFIG).");
-    console.warn("⚠️ Auth operations will fail. Set credentials for production use.");
+    console.log("✅ Firebase Admin SDK initialized with service account file.");
+  }
+  // Method 2: Service account JSON as environment variable (for cloud platforms)
+  else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    firebaseConfigured = true;
+    console.log("✅ Firebase Admin SDK initialized with service account from env.");
+  }
+  // Method 3: Application default credentials (GCP environments)
+  else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+    firebaseConfigured = true;
+    console.log("✅ Firebase Admin SDK initialized with application default credentials.");
+  }
+  // No credentials - initialize without auth capabilities
+  else {
+    console.warn("⚠️ Firebase credentials not found. Set one of:");
+    console.warn("   - FIREBASE_SERVICE_ACCOUNT_PATH (path to serviceAccountKey.json)");
+    console.warn("   - FIREBASE_SERVICE_ACCOUNT (JSON string of service account)");
+    console.warn("   - GOOGLE_APPLICATION_CREDENTIALS (path for ADC)");
     admin.initializeApp();
   }
 } catch (e) {
-  console.error("Firebase Admin SDK initialization failed.", e);
+  console.error("❌ Firebase Admin SDK initialization failed:", e);
 }
 const db = admin.firestore();
 const auth = admin.auth();
