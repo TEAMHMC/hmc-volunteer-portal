@@ -15,14 +15,17 @@ import fs from 'fs';
 dotenv.config();
 
 // --- FIREBASE ADMIN SDK ---
+let firebaseConfigured = false;
 try {
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
     admin.initializeApp({
         credential: admin.credential.applicationDefault(),
     });
-    console.log("Firebase Admin SDK initialized successfully.");
+    firebaseConfigured = true;
+    console.log("Firebase Admin SDK initialized successfully with credentials.");
   } else {
-    console.warn("Firebase credentials missing. DB features will fail in production.");
+    console.warn("⚠️ Firebase credentials missing (GOOGLE_APPLICATION_CREDENTIALS or FIREBASE_CONFIG).");
+    console.warn("⚠️ Auth operations will fail. Set credentials for production use.");
     admin.initializeApp();
   }
 } catch (e) {
@@ -94,7 +97,8 @@ app.get('/health', (req: Request, res: Response) => {
       emailConfigured: !!EMAIL_SERVICE_URL,
       smsConfigured: twilioClient !== null && !!TWILIO_PHONE_NUMBER,
       aiConfigured: ai !== null,
-      firebaseConfigured: true // If we got here, Firebase is working
+      firebaseAuthConfigured: firebaseConfigured,
+      firebaseWebApiKey: !!FIREBASE_WEB_API_KEY
     }
   });
 });
@@ -1099,6 +1103,15 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
         return res.status(400).json({ error: 'Authentication method required.' });
     }
 
+    // Check Firebase is configured for email/password signup
+    if (password && !firebaseConfigured) {
+        console.error('[SIGNUP] Firebase Auth not configured - cannot create email/password users');
+        return res.status(503).json({
+            error: 'Email signup is temporarily unavailable. Please use Google Sign-In or contact support.',
+            details: 'Firebase credentials not configured on server.'
+        });
+    }
+
     try {
         user.role = user.appliedRole || 'HMC Champion';
         user.status = 'active';
@@ -1116,9 +1129,20 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
             user.authProvider = 'google';
         } else {
             // Email/password signup - create Firebase Auth user
-            const userRecord = await auth.createUser({ email: user.email, password, displayName: user.name });
-            finalUserId = userRecord.uid;
-            user.authProvider = 'email';
+            try {
+                const userRecord = await auth.createUser({ email: user.email, password, displayName: user.name });
+                finalUserId = userRecord.uid;
+                user.authProvider = 'email';
+            } catch (authError: any) {
+                console.error('[SIGNUP] Firebase Auth createUser failed:', authError.message);
+                if (authError.message?.includes('no configuration') || authError.code === 'auth/configuration-not-found') {
+                    return res.status(503).json({
+                        error: 'Email signup is temporarily unavailable. Please use Google Sign-In.',
+                        details: 'Firebase Auth configuration issue.'
+                    });
+                }
+                throw authError;
+            }
         }
 
         const { resume, ...userDataToSave } = user;
