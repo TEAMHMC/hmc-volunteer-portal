@@ -323,7 +323,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
           <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-[40px] p-10 md:p-12 text-white shadow-2xl shadow-blue-500/20 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[280px]">
                 <div>
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-widest mb-8">
@@ -451,7 +451,6 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], onNaviga
                 Continue Training
                 <ArrowRight size={18} />
               </button>
-              </div>
             </div>
           </div>
         </div>
