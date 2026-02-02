@@ -81,6 +81,12 @@ export interface Opportunity {
   serviceOfferingIds?: string[];
   flyerUrl?: string;
   flyerBase64?: string;
+  // Approval workflow - events need admin approval before being visible to all volunteers
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  createdBy?: string;
+  createdAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }
 
 export interface Shift {
@@ -234,6 +240,7 @@ export interface Volunteer {
     unavailableDates?: string[]; // Dates they cannot volunteer
     notes?: string;
     hoursPerWeek?: string; // Expected hours per week
+    lastUpdated?: string; // For weekly reminder tracking
   };
 
   // ============================================================
@@ -280,11 +287,17 @@ export interface Volunteer {
     clientPortalOrientationComplete?: boolean;
     screeningCompetencyVerified?: boolean;
   };
-  
+
+  // Social Media Points (earned by following HMC on social platforms)
+  claimedSocialPoints?: string[];
+
   // Metadata
   createdAt?: string;
   updatedAt?: string;
   lastActiveAt?: string;
+
+  // Online status for messaging
+  isOnline?: boolean;
 }
 
 // ============================================================

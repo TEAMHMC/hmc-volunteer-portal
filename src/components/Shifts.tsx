@@ -383,11 +383,76 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                   <Upload size={16} /> Bulk Import Events
               </button>
            </div>
+
+           {/* Pending Approval Section */}
+           {opportunities.filter(o => o.approvalStatus === 'pending').length > 0 && (
+             <div className="mb-8">
+               <h3 className="text-sm font-black text-amber-600 uppercase tracking-widest mb-4 px-2 flex items-center gap-2">
+                 <Clock size={14} /> Pending Approval ({opportunities.filter(o => o.approvalStatus === 'pending').length})
+               </h3>
+               <div className="space-y-4">
+                 {opportunities.filter(o => o.approvalStatus === 'pending').map(opp => (
+                   <div key={opp.id} className="bg-amber-50 p-6 rounded-2xl border-2 border-amber-200">
+                     <div className="flex items-start justify-between gap-4">
+                       <div>
+                         <h3 className="font-bold text-zinc-900">{opp.title}</h3>
+                         <p className="text-xs text-zinc-500">{opp.date} • {opp.serviceLocation}</p>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <button
+                           onClick={async () => {
+                             try {
+                               await apiService.put(`/api/opportunities/${opp.id}`, { approvalStatus: 'approved', approvedBy: user.id, approvedAt: new Date().toISOString() });
+                               setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, approvalStatus: 'approved' } : o));
+                               setToastMsg('Event approved and now visible to all volunteers!');
+                               setShowToast(true);
+                               setTimeout(() => setShowToast(false), 3000);
+                             } catch (e) { console.error('Failed to approve', e); }
+                           }}
+                           className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-emerald-600"
+                         >
+                           <Check size={14} /> Approve
+                         </button>
+                         <button
+                           onClick={async () => {
+                             try {
+                               await apiService.put(`/api/opportunities/${opp.id}`, { approvalStatus: 'rejected' });
+                               setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, approvalStatus: 'rejected' } : o));
+                               setToastMsg('Event rejected.');
+                               setShowToast(true);
+                               setTimeout(() => setShowToast(false), 3000);
+                             } catch (e) { console.error('Failed to reject', e); }
+                           }}
+                           className="px-4 py-2 bg-rose-100 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-rose-200"
+                         >
+                           <XCircle size={14} /> Reject
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           )}
+
+           {/* All Events */}
+           <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4 px-2">All Events</h3>
             <div className="space-y-4">
-              {opportunities.map(opp => (
-                 <div key={opp.id} className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
-                    <h3 className="font-bold">{opp.title}</h3>
-                    <p className="text-xs text-zinc-400">{opp.date} • {opp.serviceLocation}</p>
+              {opportunities.filter(o => o.approvalStatus !== 'pending').map(opp => (
+                 <div key={opp.id} className={`bg-white p-6 rounded-2xl border shadow-sm ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold">{opp.title}</h3>
+                        <p className="text-xs text-zinc-400">{opp.date} • {opp.serviceLocation}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        opp.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                        opp.approvalStatus === 'rejected' ? 'bg-rose-100 text-rose-600' :
+                        'bg-zinc-100 text-zinc-500'
+                      }`}>
+                        {opp.approvalStatus || 'Published'}
+                      </span>
+                    </div>
                     <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
                       {opp.staffingQuotas.map(q => (
                         <div key={q.role} className="flex justify-between items-center text-sm">

@@ -119,6 +119,9 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                 urgency: 'medium', // Default
                 requiredSkills: [], // Default
                 tenantId: APP_CONFIG.TENANT_ID,
+                // New events require admin approval before being visible to all volunteers
+                approvalStatus: 'pending',
+                createdAt: new Date().toISOString(),
             };
             await onSave(finalEventData as Omit<Opportunity, 'id'>);
             setIsSuccess(true);

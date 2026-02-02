@@ -2,9 +2,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { I18N } from '../constants';
-import { ClinicEvent, Language, Volunteer, Opportunity } from '../types';
-import { MapPin, Search, Calendar, Clock, Share2, CheckCircle2, Navigation } from 'lucide-react';
+import { ClinicEvent, Volunteer, Opportunity, Shift } from '../types';
+import { MapPin, Search, Calendar, Clock, Share2, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 const PROGRAM_COLORS: { [key: string]: string } = {
   'Unstoppable Workshop': '#4f46e5',
@@ -60,41 +60,147 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
     };
 }
 
-const EventExplorer: React.FC<{ user: Volunteer; opportunities: Opportunity[]; onUpdate: (u: Volunteer) => void; canSignUp?: boolean }> = ({ user, opportunities, onUpdate, canSignUp = true }) => {
-  const [lang, setLang] = useState<Language>('en');
+interface EventExplorerProps {
+  user: Volunteer;
+  opportunities: Opportunity[];
+  setOpportunities?: React.Dispatch<React.SetStateAction<Opportunity[]>>;
+  onUpdate: (u: Volunteer) => void;
+  canSignUp?: boolean;
+  shifts?: Shift[];
+  setShifts?: React.Dispatch<React.SetStateAction<Shift[]>>;
+}
+
+const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setOpportunities, onUpdate, canSignUp = true, shifts = [], setShifts }) => {
   const [selectedEvent, setSelectedEvent] = useState<ClinicEvent | null>(null);
   const [search, setSearch] = useState('');
-  const t = I18N[lang];
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
-  // Convert live opportunities to map events
-  const events = useMemo(() => opportunities.map(mapOpportunityToEvent), [opportunities]);
+  // Convert live opportunities to map events (only show approved events to volunteers)
+  const approvedOpportunities = useMemo(() =>
+    opportunities.filter(o => o.approvalStatus === 'approved' || !o.approvalStatus), // Show approved or legacy events without status
+    [opportunities]
+  );
+  const events = useMemo(() => approvedOpportunities.map(mapOpportunityToEvent), [approvedOpportunities]);
 
   const filtered = useMemo(() => {
-    return events.filter(e => 
+    return events.filter(e =>
       e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.address.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, events]);
 
-  const handleSignUp = (eventId: string) => {
+  const handleSignUp = async (eventId: string) => {
     const alreadySignedUp = user.rsvpedEventIds?.includes(eventId);
-    const updatedIds = alreadySignedUp 
-      ? user.rsvpedEventIds?.filter(id => id !== eventId)
-      : [...(user.rsvpedEventIds || []), eventId];
-    
-    onUpdate({ ...user, rsvpedEventIds: updatedIds });
+    setIsSigningUp(true);
+
+    try {
+      if (alreadySignedUp) {
+        // Unregister from event and all associated shifts
+        const eventShifts = shifts.filter(s => s.opportunityId === eventId);
+        const shiftIdsToRemove = eventShifts.map(s => s.id);
+
+        const updatedRsvpIds = user.rsvpedEventIds?.filter(id => id !== eventId) || [];
+        const updatedShiftIds = (user.assignedShiftIds || []).filter(id => !shiftIdsToRemove.includes(id));
+
+        const updatedUser = {
+          ...user,
+          rsvpedEventIds: updatedRsvpIds,
+          assignedShiftIds: updatedShiftIds
+        };
+
+        await apiService.put('/api/volunteer', updatedUser);
+        onUpdate(updatedUser);
+
+        setToastMessage('You have been unregistered from this event.');
+      } else {
+        // Register for event and auto-assign to first available shift
+        const eventShifts = shifts.filter(s => s.opportunityId === eventId && s.slotsFilled < s.slotsTotal);
+        const opportunity = opportunities.find(o => o.id === eventId);
+
+        // Find a shift that matches Core Volunteer or any available
+        let shiftToAssign = eventShifts.find(s => s.roleType === 'Core Volunteer') || eventShifts[0];
+
+        const updatedRsvpIds = [...(user.rsvpedEventIds || []), eventId];
+        const updatedShiftIds = shiftToAssign
+          ? [...(user.assignedShiftIds || []), shiftToAssign.id]
+          : (user.assignedShiftIds || []);
+
+        const updatedUser = {
+          ...user,
+          rsvpedEventIds: updatedRsvpIds,
+          assignedShiftIds: updatedShiftIds
+        };
+
+        // Call API to register and send confirmation email
+        await apiService.post('/api/events/register', {
+          volunteerId: user.id,
+          eventId: eventId,
+          shiftId: shiftToAssign?.id,
+          eventTitle: opportunity?.title,
+          eventDate: opportunity?.date,
+          eventLocation: opportunity?.serviceLocation,
+          volunteerEmail: user.email,
+          volunteerName: user.name
+        });
+
+        onUpdate(updatedUser);
+
+        // Update shift slot count locally if setShifts is available
+        if (setShifts && shiftToAssign) {
+          setShifts(prev => prev.map(s =>
+            s.id === shiftToAssign!.id
+              ? { ...s, slotsFilled: s.slotsFilled + 1, assignedVolunteerIds: [...s.assignedVolunteerIds, user.id] }
+              : s
+          ));
+        }
+
+        // Update opportunity staffing quotas locally
+        if (setOpportunities && shiftToAssign) {
+          setOpportunities(prev => prev.map(opp => {
+            if (opp.id === eventId) {
+              const updatedQuotas = opp.staffingQuotas.map(q => {
+                if (q.role === shiftToAssign!.roleType) {
+                  return { ...q, filled: (q.filled || 0) + 1 };
+                }
+                return q;
+              });
+              return { ...opp, staffingQuotas: updatedQuotas, slotsFilled: (opp.slotsFilled || 0) + 1 };
+            }
+            return opp;
+          }));
+        }
+
+        setToastMessage('You are registered! Check your email for confirmation.');
+      }
+
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+    } catch (error) {
+      console.error('Failed to register for event:', error);
+      setToastMessage('Registration failed. Please try again.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+    } finally {
+      setIsSigningUp(false);
+    }
   };
 
   return (
-    <div className="h-full flex flex-col gap-8 animate-in fade-in duration-500">
+    <div className="h-full flex flex-col gap-8 animate-in fade-in duration-500 relative">
+      {/* Toast notification */}
+      {showToast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-8 py-5 rounded-full shadow-2xl flex items-center gap-3 z-[5000] animate-in slide-in-from-bottom-10">
+          <CheckCircle2 size={18} className="text-emerald-400" />
+          <span className="text-sm font-bold">{toastMessage}</span>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Community Events</h2>
-          <p className="text-slate-500 text-lg font-light">Find and sign up for upcoming volunteer opportunities.</p>
-        </div>
-        <div className="flex bg-white border border-slate-200 rounded-2xl overflow-hidden h-12 shadow-sm">
-          <button onClick={() => setLang('en')} className={`px-5 py-2 text-[10px] font-black tracking-widest transition-all ${lang === 'en' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>EN</button>
-          <button onClick={() => setLang('es')} className={`px-5 py-2 text-[10px] font-black tracking-widest transition-all ${lang === 'es' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>ES</button>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Volunteer Opportunities</h2>
+          <p className="text-slate-500 text-lg font-light">Find and sign up for upcoming community health events.</p>
         </div>
       </div>
 
@@ -185,16 +291,19 @@ const EventExplorer: React.FC<{ user: Volunteer; opportunities: Opportunity[]; o
                 {canSignUp ? (
                   <button
                     onClick={() => handleSignUp(selectedEvent.id)}
-                    className={`w-full py-6 rounded-3xl font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 ${
+                    disabled={isSigningUp}
+                    className={`w-full py-6 rounded-3xl font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-60 ${
                       user.rsvpedEventIds?.includes(selectedEvent.id)
                         ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100'
                         : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
                     }`}
                   >
-                    {user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                      <><CheckCircle2 size={24} /> Signed Up</>
+                    {isSigningUp ? (
+                      <><Loader2 size={24} className="animate-spin" /> Processing...</>
+                    ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
+                      <><CheckCircle2 size={24} /> Signed Up - Click to Cancel</>
                     ) : (
-                      <>{t.submit_btn}</>
+                      <>Sign Up</>
                     )}
                   </button>
                 ) : (

@@ -2051,6 +2051,39 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
     }
 });
 
+// Update opportunity (for approval workflow, etc.)
+app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        // Security: Only allow certain fields to be updated
+        const allowedFields = ['approvalStatus', 'approvedBy', 'approvedAt', 'isPublic', 'isPublicFacing', 'urgency', 'description', 'title'];
+        const sanitizedUpdates: any = {};
+        for (const field of allowedFields) {
+            if (updates[field] !== undefined) {
+                sanitizedUpdates[field] = updates[field];
+            }
+        }
+
+        if (Object.keys(sanitizedUpdates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        await db.collection('opportunities').doc(id).update(sanitizedUpdates);
+
+        // Fetch and return the updated document
+        const updatedDoc = await db.collection('opportunities').doc(id).get();
+        const updatedData = { id: updatedDoc.id, ...updatedDoc.data() };
+
+        console.log(`[EVENTS] Updated opportunity ${id} with:`, sanitizedUpdates);
+        res.json(updatedData);
+    } catch (error) {
+        console.error('[EVENTS] Failed to update opportunity:', error);
+        res.status(500).json({ error: 'Failed to update event' });
+    }
+});
+
 // Bulk import events from CSV
 app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Response) => {
     try {
