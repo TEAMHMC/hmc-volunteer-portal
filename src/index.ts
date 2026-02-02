@@ -1620,11 +1620,35 @@ app.post('/api/gemini/validate-answer', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ isCorrect: true });
         const { question, answer } = req.body;
-        const text = await generateAIContent('gemini-1.5-flash',
-            `Question: "${question}". User Answer: "${answer}". Is this essentially correct? JSON: { isCorrect: boolean }`,
-            true);
-        res.send(text);
-    } catch(e) { res.status(500).json({error: "AI failed"}); }
+
+        // Be very lenient - if answer is at least 10 chars and shows effort, accept it
+        if (answer && answer.trim().length >= 10) {
+            const text = await generateAIContent('gemini-1.5-flash',
+                `You are an EXTREMELY lenient volunteer training evaluator. Your job is to ENCOURAGE learners.
+
+Question: "${question}"
+User's Answer: "${answer}"
+
+IMPORTANT RULES - Be VERY generous:
+1. Accept ANY answer that shows the person watched/engaged with the content
+2. Accept partial answers, paraphrased answers, or answers that capture the general spirit
+3. Accept answers that mention ANY relevant concept from the training
+4. If the answer is at least a few words and shows ANY effort or understanding, mark it CORRECT
+5. Only mark as incorrect if the answer is completely unrelated, gibberish, or clearly shows no effort
+
+Remember: This is volunteer training to help the community. We want to encourage participation, not gatekeep.
+
+Respond with JSON only: { "isCorrect": true } or { "isCorrect": false }`,
+                true);
+            res.send(text);
+        } else {
+            // Very short answers (under 10 chars) are likely not real attempts
+            res.json({ isCorrect: false });
+        }
+    } catch(e) {
+        // On error, be lenient and pass them
+        res.json({ isCorrect: true });
+    }
 });
 
 app.post('/api/gemini/find-referral-match', async (req: Request, res: Response) => {

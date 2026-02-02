@@ -37,10 +37,14 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const completedRequiredCount = requiredModules.filter(m => completedModuleIds.includes(m.id)).length;
   const progress = requiredModules.length > 0 ? Math.round((completedRequiredCount / requiredModules.length) * 100) : 100;
 
+  // Check if module is a ScreenPal video (has built-in quiz, no external assessment needed)
+  const isScreenPalVideo = (embed: string) => embed?.includes('screencasthost.com') || embed?.includes('screenpal.com');
+
   const startQuiz = async (module: any) => {
     setActiveSession(module);
     setQuizMode(true);
-    // Start with video if module has one, otherwise go to concepts
+    // ScreenPal videos have built-in quizzes - just watch and complete
+    // YouTube/other videos need our assessment
     setQuizStage(module.embed ? 'video' : 'concepts');
     setSubmitError('');
     setQuizResponse('');
@@ -250,13 +254,27 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       style={{ border: 'none' }}
                     />
                   </div>
-                  <p className="text-zinc-500 font-medium text-center">Watch the video above, then proceed to the assessment.</p>
-                  <button
-                    onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
-                    className="w-full py-6 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3"
-                  >
-                    I've Watched This - Continue to Assessment <ArrowRight size={18} />
-                  </button>
+                  {isScreenPalVideo(activeSession.embed) ? (
+                    <>
+                      <p className="text-zinc-500 font-medium text-center">Complete the built-in quiz in the video, then mark as complete below.</p>
+                      <button
+                        onClick={() => handleCompleteModule(activeSession.id, activeSession.title)}
+                        className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3"
+                      >
+                        <Check size={18} /> I've Completed This Training
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-zinc-500 font-medium text-center">Watch the video above, then proceed to the assessment.</p>
+                      <button
+                        onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
+                        className="w-full py-6 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3"
+                      >
+                        I've Watched This - Continue to Assessment <ArrowRight size={18} />
+                      </button>
+                    </>
+                  )}
                 </div>
               ) : loadingQuiz ? (
                 <div className="py-20 flex flex-col items-center gap-6">
@@ -276,7 +294,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl">Proceed to Question</button>
+                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                    Proceed to Question
+                  </button>
                 </div>
               ) : (
                 <div className="animate-in fade-in">
@@ -285,8 +306,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   </div>
                   <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border border-zinc-100 rounded-[32px] p-6 font-medium outline-none mt-6" placeholder="Your response..." />
                   {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-bold">{submitError}</p>}
-                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl disabled:opacity-30 mt-6 flex items-center justify-center gap-3">
-                     {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                     {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <div className="w-2 h-2 rounded-full bg-white" />}
                      Submit & Complete Module
                   </button>
                 </div>
@@ -312,8 +333,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
             <button
               onClick={() => setShowCompletionMessage(false)}
-              className="px-12 py-5 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest shadow-xl hover:scale-105 transition-all"
+              className="px-12 py-5 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 mx-auto"
             >
+              <div className="w-2 h-2 rounded-full bg-white" />
               Continue to Dashboard
             </button>
           </div>

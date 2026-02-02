@@ -70,10 +70,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
           <span className="text-xs md:text-sm font-black text-zinc-900 uppercase tracking-widest">HMC VMS</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleAdminLoginClick} className="text-zinc-900 px-4 md:px-6 py-2 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest border border-zinc-100 hover:bg-zinc-50 transition-all">
+          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest flex items-center gap-2 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-sm">
+            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
             Admin Portal
           </button>
-          <button onClick={handleVolunteerLoginClick} className="bg-[#233DFF] text-white px-4 md:px-6 py-2 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest hover:scale-105 transition-all">
+          <button onClick={handleVolunteerLoginClick} className="bg-[#233DFF] border border-black text-white px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 md:gap-3">
+            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
             Volunteer Login
           </button>
         </div>
@@ -143,14 +145,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                           <Zap size={14} /> {error}
                         </div>
                     )}
-                    <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
-                      {isLoading ? <Loader2 size={18} className="animate-spin" /> : <>Secure Login <ArrowRight size={16} /></>}
+                    <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
+                      {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Secure Login <ArrowRight size={16} /></>}
                     </button>
                 </form>
                 {!isAdmin && (
                     <div className="text-center pt-2">
                         <p className="text-xs font-medium text-zinc-400">Don't have an account yet?</p>
-                        <button onClick={handleSignUpClick} className="mt-2 text-xs font-black text-zinc-900 uppercase tracking-widest border-b border-zinc-900 hover:text-[#233DFF] hover:border-[#233DFF] transition-colors">
+                        <button onClick={handleSignUpClick} className="mt-3 bg-white border border-black text-zinc-900 px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm mx-auto">
+                            <div className="w-1.5 h-1.5 rounded-full bg-black" />
                             Apply to Volunteer
                         </button>
                     </div>
@@ -174,10 +177,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
              </div>
 
              <div className="pt-8 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
-                <button 
+                <button
                   onClick={onStartOnboarding}
-                  className="bg-zinc-900 text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-black text-base md:text-lg hover:bg-zinc-800 shadow-2xl transition-all flex items-center gap-4 group"
+                  className="bg-[#233DFF] border border-black text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-black text-sm md:text-base uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
                 >
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
                 </button>
                 <div className="flex items-center gap-4 p-3 bg-white border border-zinc-100 rounded-[28px] shadow-sm">
