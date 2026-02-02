@@ -2241,6 +2241,45 @@ app.get('*', (req: Request, res: Response) => {
     });
 });
 
+// --- ADMIN SETUP ENDPOINT (One-time setup) ---
+app.post('/api/admin/setup', async (req: Request, res: Response) => {
+  const { email, setupKey } = req.body;
+
+  // Verify setup key matches environment variable
+  const validSetupKey = process.env.ADMIN_SETUP_KEY || 'hmc-admin-setup-2024';
+  if (setupKey !== validSetupKey) {
+    return res.status(403).json({ error: 'Invalid setup key.' });
+  }
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+
+  try {
+    // Find user by email
+    const snapshot = await db.collection('volunteers')
+      .where('email', '==', email.toLowerCase())
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({ error: 'User not found. Please sign up first.' });
+    }
+
+    const doc = snapshot.docs[0];
+    if (doc.data().isAdmin) {
+      return res.json({ message: 'User is already an admin.', userId: doc.id });
+    }
+
+    await doc.ref.update({ isAdmin: true });
+    console.log(`[ADMIN SETUP] Promoted ${email} to admin via API`);
+    res.json({ message: 'Successfully promoted to admin!', userId: doc.id });
+  } catch (error) {
+    console.error('[ADMIN SETUP] Failed:', error);
+    res.status(500).json({ error: 'Failed to promote user.' });
+  }
+});
+
 // --- ADMIN BOOTSTRAP ---
 const bootstrapAdmin = async () => {
   const adminEmail = process.env.INITIAL_ADMIN_EMAIL;
