@@ -292,21 +292,43 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     return <EventOpsMode shift={selectedShift} opportunity={opportunity} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} />;
   }
 
+  // For "my-schedule", include both assigned shifts AND rsvped events (opportunities)
   const shiftsToDisplay = activeTab === 'available'
     ? shifts.filter(s => !user.assignedShiftIds?.includes(s.id))
     : shifts.filter(s => user.assignedShiftIds?.includes(s.id));
+
+  // Get rsvped opportunities that may not have corresponding assigned shifts
+  const rsvpedOppIds = user.rsvpedEventIds || [];
+  const assignedOppIds = shiftsToDisplay.map(s => s.opportunityId);
+  const rsvpedOppsWithoutShifts = activeTab === 'my-schedule'
+    ? opportunities.filter(o => rsvpedOppIds.includes(o.id) && !assignedOppIds.includes(o.id))
+    : [];
 
   const filteredShifts = shiftsToDisplay.filter(s => {
     const opp = getOpp(s.opportunityId);
     return opp && (opp.title.toLowerCase().includes(searchQuery.toLowerCase()) || opp.serviceLocation.toLowerCase().includes(searchQuery.toLowerCase()));
   });
+
+  // Filter rsvped opportunities by search query
+  const filteredRsvpedOpps = rsvpedOppsWithoutShifts.filter(o =>
+    o.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    o.serviceLocation.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
+  // Group shifts by date
   const groupedByDate = filteredShifts.reduce((acc, shift) => {
     const date = new Date(shift.startTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(shift);
+    if (!acc[date]) acc[date] = { shifts: [], opportunities: [] };
+    acc[date].shifts.push(shift);
     return acc;
-  }, {} as Record<string, Shift[]>);
+  }, {} as Record<string, { shifts: Shift[], opportunities: Opportunity[] }>);
+
+  // Add rsvped opportunities without shifts to the grouped data
+  filteredRsvpedOpps.forEach(opp => {
+    const date = new Date(opp.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (!groupedByDate[date]) groupedByDate[date] = { shifts: [], opportunities: [] };
+    groupedByDate[date].opportunities.push(opp);
+  });
 
   const tabs = [
     ...(userMode === 'admin' ? [{ id: 'manage', label: 'Manage Events' }] : []),
@@ -385,20 +407,21 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
       { (activeTab === 'available' || activeTab === 'my-schedule') && (
         <div className="space-y-10">
-            {Object.keys(groupedByDate).length === 0 && (
+            {(Object.keys(groupedByDate).length === 0 || Object.values(groupedByDate).every(d => d.shifts.length === 0 && d.opportunities.length === 0)) && (
                 <div className="py-32 text-center bg-zinc-50 rounded-[56px] border border-dashed border-zinc-200">
                     <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
                     <p className="text-lg font-bold text-zinc-400 italic">
-                      {activeTab === 'my-schedule' ? "You have no upcoming shifts." : "No available missions found."}
+                      {activeTab === 'my-schedule' ? "You have no upcoming missions." : "No available missions found."}
                     </p>
                     <p className="text-sm text-zinc-300 mt-2">{activeTab === 'available' ? "Check back later for new opportunities." : "Browse available missions to get started."}</p>
                 </div>
             )}
-            {Object.entries(groupedByDate).map(([date, shiftsOnDate]: [string, Shift[]]) => (
+            {Object.entries(groupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
                 <div key={date}>
                     <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-4">{date}</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-                        {shiftsOnDate.map(shift => {
+                        {/* Render shifts */}
+                        {dateData.shifts.map(shift => {
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;
                             const isRegistered = user.assignedShiftIds?.includes(shift.id);
@@ -452,6 +475,57 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                             <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest bg-zinc-900 text-white flex items-center gap-2 shadow-lg active:scale-95">
                                                Ops Mode <ChevronRight size={14}/>
                                             </button>
+                                          )}
+                                       </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* Render rsvped opportunities without shifts (from EventExplorer signups) */}
+                        {dateData.opportunities.map(opp => {
+                            const isRsvped = user.rsvpedEventIds?.includes(opp.id);
+                            const slotsLeft = opp.slotsTotal - (opp.slotsFilled || 0);
+
+                            return (
+                                <div key={`opp-${opp.id}`} className={`bg-white rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                    {isRsvped && (
+                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                          <Check size={14} /> Confirmed
+                                       </div>
+                                    )}
+                                    <div className="p-10 flex-1">
+                                      <div className="flex justify-between items-start mb-6">
+                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                                            opp.urgency === 'high' ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+                                          }`}>{opp.urgency || 'medium'} Urgency
+                                        </span>
+                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                            {slotsLeft === 0 ? 'Full' : `${slotsLeft} Spots Left`}
+                                         </div>
+                                      </div>
+
+                                      <p className="text-xs font-bold text-[#233DFF] mb-2">{opp.category}</p>
+                                      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3">{opp.title}</h3>
+                                      <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
+                                        <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
+                                      </div>
+                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description?.substring(0, 120)}...</p>
+                                    </div>
+
+                                    <div className="bg-zinc-50/70 p-8 rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
+                                       <div className="flex items-center justify-between gap-4">
+                                          <div className="min-w-0">
+                                            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Event Date</p>
+                                            <p className="text-sm font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                                              <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                              {new Date(opp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                          </div>
+                                          {userMode === 'volunteer' && isRsvped && (
+                                            <span className="px-6 py-4 rounded-full bg-emerald-50 text-emerald-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                              <Check size={14} /> Registered
+                                            </span>
                                           )}
                                        </div>
                                     </div>

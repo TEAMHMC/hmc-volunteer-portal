@@ -169,7 +169,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
     // Always show these tabs
     items.push({ id: 'impact', label: 'Impact Hub', icon: DollarSign });
-    items.push({ id: 'briefing', label: 'Briefing Hub', icon: MessageSquare });
+    items.push({ id: 'briefing', label: 'Communication Hub', icon: MessageSquare });
     items.push({ id: 'docs', label: 'Doc Hub', icon: BookOpen });
 
     if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
@@ -327,7 +327,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   )}
                 </div>
             </header>
-            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} />}
+            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} />}
             <div className="pt-8 border-t border-zinc-100">
                <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} shifts={shifts} setShifts={setShifts} />
             </div>
@@ -340,7 +340,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
-         {activeTab === 'docs' && <DocumentationHub />}
+         {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}
          {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}
          {activeTab === 'referrals' && user.isAdmin && <ReferralsDashboard user={user} allVolunteers={allVolunteers} />}
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
@@ -427,12 +427,23 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     </div>
 )};
 
-const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean }> = ({ user, shifts, onNavigate, hasCompletedCoreTraining }) => {
+const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining }) => {
+  // Get upcoming shifts the user is assigned to
   const upcomingShifts = shifts
     .filter(s => user.assignedShiftIds?.includes(s.id) && new Date(s.startTime) > new Date())
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
+  // Also get events from rsvpedEventIds that may not have corresponding shifts
+  const rsvpedOpportunities = opportunities
+    .filter(o => user.rsvpedEventIds?.includes(o.id) && new Date(o.date) > new Date())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Combine: prefer shifts if available, otherwise use opportunity data
   const nextShift = upcomingShifts[0];
+  const nextRsvpedEvent = rsvpedOpportunities[0];
+
+  // Determine what to show - prioritize shifts, fallback to rsvped events
+  const hasUpcomingMission = nextShift || nextRsvpedEvent;
   const pendingTasks = user.tasks?.filter(t => t.status === 'pending') || [];
 
   // If core training not complete, show training required message
@@ -526,14 +537,26 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], onNaviga
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
       <div className="xl:col-span-2 bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm space-y-10">
         <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Mission Command</h3>
-        {nextShift ? (
+        {hasUpcomingMission ? (
           <div className="bg-zinc-50 p-10 rounded-[40px] border border-zinc-100">
             <p className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Next Mission</p>
-            <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextShift.roleType}</h4>
-            <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium">
-              <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextShift.startTime).toLocaleDateString()}</span>
-              <span className="flex items-center gap-2"><Clock size={16}/> {new Date(nextShift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            </div>
+            {nextShift ? (
+              <>
+                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextShift.roleType}</h4>
+                <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium">
+                  <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextShift.startTime).toLocaleDateString()}</span>
+                  <span className="flex items-center gap-2"><Clock size={16}/> {new Date(nextShift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+              </>
+            ) : nextRsvpedEvent && (
+              <>
+                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextRsvpedEvent.title}</h4>
+                <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
+                  <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextRsvpedEvent.date).toLocaleDateString()}</span>
+                  <span className="flex items-center gap-2"><MapPin size={16}/> {nextRsvpedEvent.serviceLocation}</span>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 text-center">

@@ -17,7 +17,9 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     const [showNewArticleModal, setShowNewArticleModal] = useState(false);
     const [editingArticle, setEditingArticle] = useState<KnowledgeBaseArticle | null>(null);
 
-    const isAdmin = currentUser?.isAdmin || false;
+    // Allow admins and coordinator roles to edit documents
+    const coordinatorRoles = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Volunteer Lead', 'Development Coordinator'];
+    const canEdit = currentUser?.canEdit || coordinatorRoles.includes(currentUser?.role || '');
 
     const filteredArticles = useMemo(() => {
         if (!searchQuery) return articles;
@@ -73,7 +75,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Documentation Hub</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
-                {isAdmin && (
+                {canEdit && (
                     <button
                         onClick={() => setShowNewArticleModal(true)}
                         className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
@@ -121,7 +123,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 <ArticleModal
                     article={selectedArticle}
                     onClose={() => setSelectedArticle(null)}
-                    isAdmin={isAdmin}
+                    canEdit={canEdit}
                     onEdit={handleEditArticle}
                     onDelete={handleDeleteArticle}
                 />
@@ -142,10 +144,10 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
 const ArticleModal: React.FC<{
     article: KnowledgeBaseArticle;
     onClose: () => void;
-    isAdmin: boolean;
+    canEdit: boolean;
     onEdit: (article: KnowledgeBaseArticle) => void;
     onDelete: (articleId: string) => void;
-}> = ({ article, onClose, isAdmin, onEdit, onDelete }) => {
+}> = ({ article, onClose, canEdit, onEdit, onDelete }) => {
     // A simple markdown-to-html renderer
     const renderContent = (content: string) => {
         return content
@@ -163,7 +165,7 @@ const ArticleModal: React.FC<{
                         <h2 className="text-2xl font-bold text-zinc-900">{article.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">
-                        {isAdmin && (
+                        {canEdit && (
                             <>
                                 <button onClick={() => onEdit(article)} className="p-2 text-zinc-400 hover:text-[#233DFF] transition-colors">
                                     <Edit3 size={20}/>

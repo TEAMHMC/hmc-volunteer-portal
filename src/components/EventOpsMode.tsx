@@ -286,7 +286,6 @@ const ChecklistsView: React.FC<{template: ChecklistTemplate, completedItems: str
 );
 
 const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer}> = ({ surveyKit, user }) => {
-    const [lang, setLang] = useState<'en'|'es'>('en');
     const [submission, setSubmission] = useState<{ [key: string]: any }>({});
     const [isSubmitted, setIsSubmitted] = useState(false);
     if (!user.trainingFlags?.surveySOPComplete && !user.isAdmin) return <AccessGate requiredTraining="Survey SOP" />;
@@ -305,9 +304,8 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer}> = ({ 
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#233DFF]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#233DFF]/10 transition-all" />
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Smartphone size={14}/> Approved Script</h3>
-                    <div className="flex bg-white p-1 rounded-xl shadow-sm border border-zinc-100"><button onClick={() => setLang('en')} className={`px-4 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${lang==='en' ? 'bg-zinc-900 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600'}`}>EN</button><button onClick={() => setLang('es')} className={`px-4 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${lang==='es' ? 'bg-zinc-900 text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600'}`}>ES</button></div>
                 </div>
-                <p className="text-lg font-medium text-zinc-700 leading-relaxed italic">{surveyKit.volunteerScript[lang]}</p>
+                <p className="text-lg font-medium text-zinc-700 leading-relaxed italic">{surveyKit.volunteerScript.en}</p>
             </div>
             <form onSubmit={(e)=>{ e.preventDefault(); setIsSubmitted(true); }} className="space-y-8">
                 {surveyKit.formStructure.map(field => (
