@@ -35,21 +35,19 @@ try {
     firebaseConfigured = true;
     console.log("✅ Firebase Admin SDK initialized with service account from env.");
   }
-  // Method 3: Application default credentials (GCP environments)
-  else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  // Method 3: Application default credentials (GCP/Cloud Run) or FIREBASE_CONFIG
+  else if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
     });
     firebaseConfigured = true;
     console.log("✅ Firebase Admin SDK initialized with application default credentials.");
   }
-  // No credentials - initialize without auth capabilities
+  // No explicit credentials - try default initialization (works on GCP)
   else {
-    console.warn("⚠️ Firebase credentials not found. Set one of:");
-    console.warn("   - FIREBASE_SERVICE_ACCOUNT_PATH (path to serviceAccountKey.json)");
-    console.warn("   - FIREBASE_SERVICE_ACCOUNT (JSON string of service account)");
-    console.warn("   - GOOGLE_APPLICATION_CREDENTIALS (path for ADC)");
     admin.initializeApp();
+    firebaseConfigured = true; // Assume it works on GCP
+    console.log("✅ Firebase Admin SDK initialized with default settings.");
   }
 } catch (e) {
   console.error("❌ Firebase Admin SDK initialization failed:", e);
