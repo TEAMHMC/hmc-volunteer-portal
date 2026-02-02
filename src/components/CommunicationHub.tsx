@@ -293,7 +293,7 @@ const SupportView: React.FC<{
     };
 
     try {
-      await apiService.post('/api/support-tickets', ticket);
+      await apiService.post('/api/support_tickets', ticket);
       setSupportTickets(prev => [ticket, ...prev]);
       setShowNewTicket(false);
       setNewTicketSubject('');

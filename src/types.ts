@@ -79,6 +79,8 @@ export interface Opportunity {
   estimatedAttendees?: number;
   supplyList?: string;
   serviceOfferingIds?: string[];
+  flyerUrl?: string;
+  flyerBase64?: string;
 }
 
 export interface Shift {

@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Opportunity, ServiceOffering } from '../types';
 import { SERVICE_OFFERINGS } from '../constants';
 import { geminiService } from '../services/geminiService';
 import { APP_CONFIG } from '../config';
-import { X, Calendar, MapPin, Users, Plus, Trash2, Save, Loader2, CheckCircle, Package, Sparkles, Copy, Check } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Plus, Trash2, Save, Loader2, CheckCircle, Package, Sparkles, Copy, Check, Image, Upload } from 'lucide-react';
 
 interface EventBuilderProps {
     onClose: () => void;
@@ -24,11 +24,52 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
         isPublicFacing: true,
         estimatedAttendees: 100,
         supplyList: '',
+        flyerBase64: '',
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isGeneratingSupplies, setIsGeneratingSupplies] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
+    const [flyerPreview, setFlyerPreview] = useState<string | null>(null);
+    const [flyerFileName, setFlyerFileName] = useState<string>('');
+    const flyerInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFlyerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file (PNG, JPG, etc.)');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            return;
+        }
+
+        setFlyerFileName(file.name);
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result as string;
+            setFlyerPreview(base64);
+            // Store just the base64 data without the data URL prefix for storage
+            setEventData(prev => ({ ...prev, flyerBase64: base64 }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const removeFlyerPreview = () => {
+        setFlyerPreview(null);
+        setFlyerFileName('');
+        setEventData(prev => ({ ...prev, flyerBase64: '' }));
+        if (flyerInputRef.current) {
+            flyerInputRef.current.value = '';
+        }
+    };
 
     useEffect(() => {
         const calculateQuotas = () => {
@@ -142,6 +183,63 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                         <div className="grid grid-cols-2 gap-4">
                             <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
                             <input type="text" placeholder="Location (e.g., East LA Library)" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                        </div>
+
+                        {/* Event Flyer Upload */}
+                        <div className="mt-4">
+                            <label className="block text-sm font-bold text-zinc-700 mb-2">Event Flyer</label>
+                            <input
+                                ref={flyerInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFlyerUpload}
+                                className="hidden"
+                                id="flyer-upload"
+                            />
+                            {flyerPreview ? (
+                                <div className="relative border-2 border-dashed border-zinc-300 rounded-xl p-4 bg-zinc-50">
+                                    <div className="flex items-start gap-4">
+                                        <img
+                                            src={flyerPreview}
+                                            alt="Event Flyer Preview"
+                                            className="w-32 h-32 object-cover rounded-lg shadow-md"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-bold text-zinc-900">{flyerFileName}</p>
+                                            <p className="text-xs text-zinc-500 mt-1">Flyer will be displayed on the event page</p>
+                                            <div className="flex gap-2 mt-3">
+                                                <label
+                                                    htmlFor="flyer-upload"
+                                                    className="px-4 py-2 bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold cursor-pointer hover:bg-zinc-300 transition-colors"
+                                                >
+                                                    Replace
+                                                </label>
+                                                <button
+                                                    onClick={removeFlyerPreview}
+                                                    className="px-4 py-2 bg-rose-100 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-200 transition-colors flex items-center gap-1"
+                                                >
+                                                    <Trash2 size={12} /> Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <label
+                                    htmlFor="flyer-upload"
+                                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-zinc-300 rounded-xl cursor-pointer bg-zinc-50 hover:bg-zinc-100 hover:border-[#233DFF]/50 transition-all group"
+                                >
+                                    <div className="flex flex-col items-center justify-center py-6">
+                                        <div className="w-12 h-12 rounded-xl bg-zinc-200 group-hover:bg-[#233DFF]/10 flex items-center justify-center mb-3 transition-colors">
+                                            <Upload size={24} className="text-zinc-400 group-hover:text-[#233DFF]" />
+                                        </div>
+                                        <p className="mb-1 text-sm font-bold text-zinc-600">
+                                            <span className="text-[#233DFF]">Click to upload</span> event flyer
+                                        </p>
+                                        <p className="text-xs text-zinc-400">PNG, JPG up to 5MB</p>
+                                    </div>
+                                </label>
+                            )}
                         </div>
                     </div>
                 </section>
