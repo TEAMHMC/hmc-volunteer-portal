@@ -116,9 +116,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
        {showToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 text-sm font-bold animate-in fade-in slide-in-from-bottom-4">
-            <Check size={16} className="text-emerald-400" />
-            {toastMsg}
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-2xl flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
+           <div className="p-2 bg-emerald-500 rounded-lg"><Mail size={16} /></div>
+           <span className="text-sm font-black uppercase tracking-widest">{toastMsg}</span>
         </div>
       )}
        {showEventBuilder && <EventBuilder onClose={() => setShowEventBuilder(false)} onSave={handleSaveEvent} />}
@@ -166,44 +166,76 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       )}
 
       { (activeTab === 'available' || activeTab === 'my-schedule') && (
-        <div className="space-y-8">
+        <div className="space-y-10">
             {Object.keys(groupedByDate).length === 0 && (
-                <div className="text-center py-20 text-zinc-400">
-                    <Calendar size={48} className="mx-auto opacity-50 mb-4"/>
-                    <p className="font-bold">No shifts found.</p>
-                    <p className="text-sm">{activeTab === 'available' ? "Check back later for new opportunities." : "You are not scheduled for any upcoming missions."}</p>
+                <div className="py-32 text-center bg-zinc-50 rounded-[56px] border border-dashed border-zinc-200">
+                    <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
+                    <p className="text-lg font-bold text-zinc-400 italic">
+                      {activeTab === 'my-schedule' ? "You have no upcoming shifts." : "No available missions found."}
+                    </p>
+                    <p className="text-sm text-zinc-300 mt-2">{activeTab === 'available' ? "Check back later for new opportunities." : "Browse available missions to get started."}</p>
                 </div>
             )}
             {Object.entries(groupedByDate).map(([date, shiftsOnDate]: [string, Shift[]]) => (
                 <div key={date}>
-                    <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest pb-2 mb-4 border-b border-zinc-100">{date}</h3>
-                    <div className="space-y-4">
+                    <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-4">{date}</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                         {shiftsOnDate.map(shift => {
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;
                             const isRegistered = user.assignedShiftIds?.includes(shift.id);
+                            const slotsLeft = shift.slotsTotal - shift.slotsFilled;
+
                             return (
-                                <div key={shift.id} className="bg-white p-6 rounded-3xl border border-zinc-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 group">
-                                    <div className="flex-1">
-                                        <p className="text-xs font-bold text-blue-600">{opp.category}</p>
-                                        <h4 className="font-black text-xl text-zinc-800 group-hover:text-blue-600 transition-colors">{opp.title}</h4>
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 mt-2">
-                                            <span className="flex items-center gap-1.5"><MapPin size={14}/> {opp.serviceLocation}</span>
-                                            <span className="flex items-center gap-1.5"><Clock size={14}/> {new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({calculateDuration(shift.startTime, shift.endTime)})</span>
-                                            <span className="flex items-center gap-1.5"><Users size={14}/> {shift.roleType} ({shift.slotsFilled}/{shift.slotsTotal})</span>
-                                        </div>
+                                <div key={shift.id} className={`bg-white rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                    {isRegistered && (
+                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                          <Check size={14} /> Confirmed
+                                       </div>
+                                    )}
+                                    <div className="p-10 flex-1">
+                                      <div className="flex justify-between items-start mb-6">
+                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                                            opp.urgency === 'high' ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+                                          }`}>{opp.urgency || 'medium'} Urgency
+                                        </span>
+                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                            {slotsLeft === 0 ? 'Full' : `${slotsLeft} Spots Left`}
+                                         </div>
+                                      </div>
+
+                                      <p className="text-xs font-bold text-[#233DFF] mb-2">{opp.category}</p>
+                                      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3">{opp.title}</h3>
+                                      <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
+                                        <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
+                                      </div>
+                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description?.substring(0, 120)}...</p>
                                     </div>
-                                    <div className="shrink-0">
-                                        {userMode === 'volunteer' && (
-                                            <button onClick={() => handleToggleRegistration(shift.id)} className={`px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all ${isRegistered ? 'bg-zinc-100 text-zinc-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-zinc-900 text-white hover:bg-blue-600'}`}>
-                                                {isRegistered ? <><XCircle size={14}/> Unregister</> : <><UserPlus size={14}/> Sign Up</>}
+
+                                    <div className="bg-zinc-50/70 p-8 rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
+                                       <div className="flex items-center justify-between gap-4">
+                                          <div className="min-w-0">
+                                            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Time</p>
+                                            <p className="text-sm font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                                              <Clock size={14} className="text-[#233DFF] shrink-0" />
+                                              {new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                          </div>
+                                          {userMode === 'volunteer' && (
+                                            <button
+                                              onClick={() => handleToggleRegistration(shift.id)}
+                                              disabled={slotsLeft === 0 && !isRegistered}
+                                              className={`px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'}`}
+                                            >
+                                              {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Sign Up</>}
                                             </button>
-                                        )}
-                                         {userMode === 'admin' && activeTab === 'my-schedule' && (
-                                            <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest bg-blue-600 text-white flex items-center gap-2">
-                                               Launch Ops Mode <ChevronRight size={14}/>
+                                          )}
+                                          {userMode === 'admin' && (
+                                            <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest bg-zinc-900 text-white flex items-center gap-2 shadow-lg active:scale-95">
+                                               Ops Mode <ChevronRight size={14}/>
                                             </button>
-                                        )}
+                                          )}
+                                       </div>
                                     </div>
                                 </div>
                             );
