@@ -533,13 +533,31 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               disabled={slotsLeft === 0 && !isRegistered}
                                               className={`px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'}`}
                                             >
-                                              {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Sign Up</>}
+                                              {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Register</>}
                                             </button>
                                           )}
                                           {userMode === 'admin' && (
-                                            <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest bg-zinc-900 text-white flex items-center gap-2 shadow-lg active:scale-95">
-                                               Ops Mode <ChevronRight size={14}/>
-                                            </button>
+                                            (() => {
+                                              const eventDate = new Date(opp.date);
+                                              const today = new Date();
+                                              const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                              const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
+                                              const isRegistered = user.assignedShiftIds?.includes(shift.id);
+
+                                              return isWithinWeek ? (
+                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest bg-zinc-900 text-white flex items-center gap-2 shadow-lg active:scale-95">
+                                                   Ops Mode <ChevronRight size={14}/>
+                                                </button>
+                                              ) : (
+                                                <button
+                                                  onClick={() => handleToggleRegistration(shift.id)}
+                                                  disabled={slotsLeft === 0 && !isRegistered}
+                                                  className={`px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'}`}
+                                                >
+                                                  {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Register</>}
+                                                </button>
+                                              );
+                                            })()
                                           )}
                                        </div>
                                     </div>

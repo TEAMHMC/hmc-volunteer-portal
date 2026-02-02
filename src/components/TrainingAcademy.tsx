@@ -2,13 +2,12 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Volunteer } from '../types';
 import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
-import { ADVANCED_MODULES, ROLE_MODULES, HMC_MODULES, BOARD_GOVERNANCE_DOCS } from '../constants';
+import { ADVANCED_MODULES, ROLE_MODULES, HMC_MODULES } from '../constants';
 import { APP_CONFIG } from '../config';
 import {
   CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
-  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video,
-  FileSignature, Briefcase, ExternalLink, Clock, Users, CalendarDays
+  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video
 } from 'lucide-react';
 
 const getRoleSlug = (roleLabel: string): string => {
@@ -354,124 +353,6 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       )}
 
-      {/* Board Member Governance Section */}
-      {(user.role === 'Board Member' || user.role === 'Community Advisory Board') && (
-        <div className="space-y-10 pt-8 border-t border-zinc-100">
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-12 rounded-[56px] text-white">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
-                <Briefcase size={28} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black tracking-tight">Board Governance Center</h3>
-                <p className="text-zinc-400 text-sm">Required forms, policies, and governance documents for board service.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Meeting Schedule */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#233DFF]/5 p-8 rounded-[32px] border border-[#233DFF]/10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-[#233DFF]/10 flex items-center justify-center">
-                  <CalendarDays size={24} className="text-[#233DFF]" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-black text-zinc-900">
-                    {user.role === 'Board Member' ? 'Board Meetings' : 'CAB Meetings'}
-                  </h4>
-                  <p className="text-xs text-zinc-500">{BOARD_GOVERNANCE_DOCS.meetingSchedule[user.role === 'Board Member' ? 'boardMeetings' : 'cabMeetings'].frequency}</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Calendar size={16} className="text-[#233DFF] mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900">Schedule</p>
-                    <p className="text-sm text-zinc-600">{BOARD_GOVERNANCE_DOCS.meetingSchedule[user.role === 'Board Member' ? 'boardMeetings' : 'cabMeetings'].schedule}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Clock size={16} className="text-[#233DFF] mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900">Time</p>
-                    <p className="text-sm text-zinc-600">{BOARD_GOVERNANCE_DOCS.meetingSchedule[user.role === 'Board Member' ? 'boardMeetings' : 'cabMeetings'].time}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Users size={16} className="text-[#233DFF] mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900">Attendance Target</p>
-                    <p className="text-sm text-zinc-600">{BOARD_GOVERNANCE_DOCS.meetingSchedule.attendanceExpectation}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-zinc-50 p-8 rounded-[32px] border border-zinc-100">
-              <h4 className="text-lg font-black text-zinc-900 mb-4">Standard Meeting Agenda</h4>
-              <ol className="space-y-2">
-                {BOARD_GOVERNANCE_DOCS.meetingSchedule.standardAgenda.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-600 text-xs font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
-                    <span className="text-sm text-zinc-700">{item}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-
-          {/* Required Forms */}
-          <div>
-            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase mb-6 flex items-center gap-3">
-              <FileSignature size={24} className="text-rose-500" /> Required Forms
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {BOARD_GOVERNANCE_DOCS.requiredForms.map(form => (
-                <div key={form.id} className={`p-8 rounded-[32px] border-2 ${form.required ? 'border-rose-200 bg-rose-50/30' : 'border-zinc-100 bg-white'}`}>
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${form.required ? 'bg-rose-100 text-rose-600' : 'bg-zinc-100 text-zinc-500'}`}>
-                        <FileSignature size={20} />
-                      </div>
-                      {form.required && (
-                        <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-[9px] font-black uppercase tracking-widest">Required</span>
-                      )}
-                    </div>
-                  </div>
-                  <h5 className="text-lg font-black text-zinc-900">{form.title}</h5>
-                  <p className="text-sm text-zinc-500 mt-2">{form.description}</p>
-                  <p className="text-xs font-bold text-zinc-400 mt-3">{form.dueDate}</p>
-                  <button className="mt-6 w-full py-3 bg-zinc-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
-                    <Download size={14} /> Download Form
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Governance Documents */}
-          <div>
-            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase mb-6 flex items-center gap-3">
-              <FileText size={24} className="text-[#233DFF]" /> Governance Documents
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {BOARD_GOVERNANCE_DOCS.governanceDocs.map(doc => (
-                <div key={doc.id} className="p-6 rounded-[28px] border border-zinc-100 bg-white hover:shadow-lg hover:border-zinc-200 transition-all group">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-[#233DFF]/10 group-hover:text-[#233DFF] transition-colors">
-                    <FileText size={24} />
-                  </div>
-                  <h5 className="text-base font-black text-zinc-900">{doc.title}</h5>
-                  <p className="text-xs text-zinc-500 mt-2 line-clamp-2">{doc.description}</p>
-                  <button className="mt-4 text-xs font-bold text-[#233DFF] flex items-center gap-1 hover:underline">
-                    View Document <ExternalLink size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
       
       {quizMode && activeSession && (
         <div className="fixed inset-0 bg-zinc-900/95 backdrop-blur-2xl z-[1000] flex items-center justify-center p-8 animate-in fade-in">

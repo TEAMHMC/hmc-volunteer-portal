@@ -1,11 +1,11 @@
 
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  ArrowRight, Activity, Calendar, Clock, MapPin, 
+import {
+  ArrowRight, Activity, Calendar, Clock, MapPin,
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
-  GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert
+  GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { APP_CONFIG } from '../config';
@@ -26,6 +26,7 @@ import DocumentationHub from './DocumentationHub';
 import EventExplorer from './EventExplorer';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
+import BoardGovernance from './BoardGovernance';
 
 interface DashboardProps {
   user: Volunteer;
@@ -90,7 +91,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
@@ -188,6 +189,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     // Client Intake & Referrals - for client-facing roles
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
       items.push({ id: 'intake', label: 'Client Portal', icon: Send });
+    }
+
+    // Add governance tab for Board Members and CAB
+    if (['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
+        items.push({ id: 'governance', label: 'Governance', icon: Briefcase });
     }
 
     if(displayUser.isAdmin) {
@@ -360,6 +366,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
              shift={{ id: 'dashboard-session', opportunityId: '', startTime: new Date().toISOString(), endTime: '', roleType: 'Clinical', slotsTotal: 1, slotsFilled: 0, assignedVolunteerIds: [] }}
              onLog={() => {}}
            />
+         )}
+         {activeTab === 'governance' && ['Board Member', 'Community Advisory Board'].includes(displayUser.role) && (
+           <BoardGovernance user={displayUser} />
          )}
 
       </main>
