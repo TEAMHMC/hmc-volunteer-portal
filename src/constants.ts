@@ -152,25 +152,43 @@ export const HMC_MODULES = {
   volMgmtTop5: { id: 'vol_mgmt_top5', title: 'Top 5 Volunteer Management Strategies Every Nonprofit Needs', desc: 'High-level approaches to building a strong volunteer culture.', dur: 12, embed: 'https://www.youtube.com/embed/eBGINprwFM0', req: false },
 };
 
+// Core Training Modules - Required for ALL volunteers to unlock operational features
+// These 5 modules must be completed for event eligibility
+const CORE_TRAINING = [
+  HMC_MODULES.hmcIntro,        // hmc_get_to_know_us
+  HMC_MODULES.hipaa2025,       // hipaa_staff_2025
+  HMC_MODULES.cmhwPart1,       // cmhw_part1
+  HMC_MODULES.cmhwPart2,       // cmhw_part2
+  HMC_MODULES.surveyTraining,  // hmc_survey_training
+];
+
+// Helper to merge core training with role-specific modules (avoids duplicates)
+const withCoreTraining = (roleModules: any[]) => {
+  const coreIds = CORE_TRAINING.map(m => m.id);
+  const additionalModules = roleModules.filter(m => !coreIds.includes(m.id));
+  return [...CORE_TRAINING, ...additionalModules];
+};
+
 export const ROLE_MODULES: { [key: string]: any[] } = {
-  general_volunteer: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.sdohShort, HMC_MODULES.cmhwPart1, HMC_MODULES.cmhwPart2 ],
-  core_volunteer: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.hipaa2025, HMC_MODULES.surveyTraining, HMC_MODULES.hivOraquick, HMC_MODULES.chwRole, HMC_MODULES.sdohShort, HMC_MODULES.cmhwPart1, HMC_MODULES.cmhwPart2 ],
-  licensed_medical: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.hipaa2025, HMC_MODULES.hipaaCyber2024, HMC_MODULES.hivOraquick, HMC_MODULES.surveyTraining, HMC_MODULES.streetMedIntro ],
-  tech_team: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.hipaa2025, HMC_MODULES.hipaaCyber2024 ],
-  board_member: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.board101, HMC_MODULES.boardChange2025 ],
-  community_advisory_board: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.cabRoles, HMC_MODULES.boardChange2025 ],
-  content_writer: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.npStorytelling, HMC_MODULES.sdohShort ],
-  data_analyst: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.hipaa2025, HMC_MODULES.hipaaCyber2024, HMC_MODULES.surveyTraining ],
-  development_coordinator: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.fundraisingBasics ],
-  events_coordinator: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.npEvents, HMC_MODULES.cmhwPart1, HMC_MODULES.cmhwPart2 ],
-  fundraising_volunteer: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.p2pFundraising ],
-  grant_writer: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.grantTipsMillions ],
-  medical_admin: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.hipaa2025, HMC_MODULES.surveyTraining ],
-  operations_coordinator: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.npOps, HMC_MODULES.streetMedIntro ],
-  outreach_volunteer: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.surveyTraining, HMC_MODULES.sdohShort, HMC_MODULES.streetMedIntro, HMC_MODULES.cmhwPart1, HMC_MODULES.cmhwPart2 ],
-  program_coordinator: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.npProgramMgmt, HMC_MODULES.sdohShort ],
-  social_media_team: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.smHowUse2024, HMC_MODULES.smStrategy1, HMC_MODULES.smPlan2024 ],
-  volunteer_lead: [ HMC_MODULES.hmcIntro, HMC_MODULES.champion, HMC_MODULES.recruitManageVols, HMC_MODULES.volMgmtTop5 ],
+  // All roles now include the 5 core training modules + their role-specific modules
+  general_volunteer: withCoreTraining([ HMC_MODULES.sdohShort ]),
+  core_volunteer: withCoreTraining([ HMC_MODULES.hivOraquick, HMC_MODULES.chwRole, HMC_MODULES.sdohShort ]),
+  licensed_medical: withCoreTraining([ HMC_MODULES.hipaaCyber2024, HMC_MODULES.hivOraquick, HMC_MODULES.streetMedIntro ]),
+  tech_team: withCoreTraining([ HMC_MODULES.hipaaCyber2024 ]),
+  board_member: withCoreTraining([ HMC_MODULES.board101, HMC_MODULES.boardChange2025 ]),
+  community_advisory_board: withCoreTraining([ HMC_MODULES.cabRoles, HMC_MODULES.boardChange2025 ]),
+  content_writer: withCoreTraining([ HMC_MODULES.npStorytelling, HMC_MODULES.sdohShort ]),
+  data_analyst: withCoreTraining([ HMC_MODULES.hipaaCyber2024 ]),
+  development_coordinator: withCoreTraining([ HMC_MODULES.fundraisingBasics ]),
+  events_coordinator: withCoreTraining([ HMC_MODULES.npEvents ]),
+  fundraising_volunteer: withCoreTraining([ HMC_MODULES.p2pFundraising ]),
+  grant_writer: withCoreTraining([ HMC_MODULES.grantTipsMillions ]),
+  medical_admin: withCoreTraining([]),
+  operations_coordinator: withCoreTraining([ HMC_MODULES.npOps, HMC_MODULES.streetMedIntro ]),
+  outreach_volunteer: withCoreTraining([ HMC_MODULES.sdohShort, HMC_MODULES.streetMedIntro ]),
+  program_coordinator: withCoreTraining([ HMC_MODULES.npProgramMgmt, HMC_MODULES.sdohShort ]),
+  social_media_team: withCoreTraining([ HMC_MODULES.smHowUse2024, HMC_MODULES.smStrategy1, HMC_MODULES.smPlan2024 ]),
+  volunteer_lead: withCoreTraining([ HMC_MODULES.recruitManageVols, HMC_MODULES.volMgmtTop5 ]),
 };
 
 export const ADVANCED_MODULES = [

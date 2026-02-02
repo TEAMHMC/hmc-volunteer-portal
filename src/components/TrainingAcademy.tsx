@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Volunteer } from '../types';
 import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
@@ -7,13 +7,78 @@ import { APP_CONFIG } from '../config';
 import {
   CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
-  Check, ListChecks, PlayCircle, Award, Calendar
+  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video
 } from 'lucide-react';
 
 const getRoleSlug = (roleLabel: string): string => {
   if (!roleLabel) return 'general_volunteer';
   const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === roleLabel);
   return roleConfig ? roleConfig.id : 'general_volunteer';
+};
+
+// Static fallback quizzes for core training modules (no AI required)
+const STATIC_QUIZZES: Record<string, { question: string; learningObjective: string; keyConcepts: { concept: string; description: string }[]; acceptableKeywords: string[] }> = {
+  'hmc_get_to_know_us': {
+    question: 'What is the primary mission of Health Matters Clinic, and how does volunteer work support this mission in the Los Angeles community?',
+    learningObjective: 'Understand HMC\'s mission, values, and the role volunteers play in community health.',
+    keyConcepts: [
+      { concept: 'Community Health', description: 'Serving underserved populations with accessible healthcare.' },
+      { concept: 'Volunteer Impact', description: 'How volunteers extend HMC\'s reach and effectiveness.' },
+      { concept: 'Mission Alignment', description: 'Connecting personal values with organizational goals.' }
+    ],
+    acceptableKeywords: ['community', 'health', 'volunteer', 'service', 'care', 'support', 'help', 'mission']
+  },
+  'hipaa_staff_2025': {
+    question: 'Explain how HIPAA protects patient privacy and give an example of what you would do if you accidentally saw protected health information.',
+    learningObjective: 'Demonstrate understanding of HIPAA privacy rules and appropriate responses to breaches.',
+    keyConcepts: [
+      { concept: 'Protected Health Information (PHI)', description: 'Any health data that can identify a patient.' },
+      { concept: 'Minimum Necessary Rule', description: 'Only access the information needed for your role.' },
+      { concept: 'Breach Response', description: 'Report incidents immediately to supervisors.' }
+    ],
+    acceptableKeywords: ['privacy', 'confidential', 'report', 'protect', 'security', 'patient', 'phi', 'hipaa']
+  },
+  'cmhw_part1': {
+    question: 'What does it mean to provide trauma-informed care, and why is it important when working with vulnerable populations?',
+    learningObjective: 'Understand trauma-informed principles and their application in community health work.',
+    keyConcepts: [
+      { concept: 'Trauma-Informed Care', description: 'Recognizing trauma\'s impact on behavior and health.' },
+      { concept: 'Safety & Trust', description: 'Creating environments where people feel secure.' },
+      { concept: 'Empowerment', description: 'Supporting autonomy and choice in care decisions.' }
+    ],
+    acceptableKeywords: ['trauma', 'safe', 'trust', 'respect', 'care', 'support', 'understand', 'listen', 'empower']
+  },
+  'cmhw_part2': {
+    question: 'Describe a de-escalation technique you learned and explain when you might use it in community health work.',
+    learningObjective: 'Apply de-escalation and communication skills in community health settings.',
+    keyConcepts: [
+      { concept: 'De-escalation', description: 'Techniques to reduce tension and conflict safely.' },
+      { concept: 'Active Listening', description: 'Fully engaging to understand someone\'s concerns.' },
+      { concept: 'Cultural Humility', description: 'Respecting diverse backgrounds and experiences.' }
+    ],
+    acceptableKeywords: ['calm', 'listen', 'respect', 'safe', 'space', 'voice', 'tone', 'empathy', 'understand']
+  },
+  'hmc_survey_training': {
+    question: 'What are the key principles for collecting survey data while maintaining participant privacy and dignity?',
+    learningObjective: 'Apply ethical data collection practices that respect community members.',
+    keyConcepts: [
+      { concept: 'Informed Consent', description: 'Ensuring participants understand how data is used.' },
+      { concept: 'Data Privacy', description: 'Protecting collected information from unauthorized access.' },
+      { concept: 'Respectful Engagement', description: 'Treating every participant with dignity.' }
+    ],
+    acceptableKeywords: ['privacy', 'consent', 'confidential', 'respect', 'data', 'protect', 'anonymous', 'dignity']
+  }
+};
+
+// Validate quiz response using keyword matching (fallback when AI unavailable)
+const validateResponseLocally = (question: string, response: string, moduleId: string): boolean => {
+  const quiz = STATIC_QUIZZES[moduleId];
+  if (!quiz) return response.trim().length > 20; // Basic length check for unknown modules
+
+  const responseLower = response.toLowerCase();
+  const matchCount = quiz.acceptableKeywords.filter(kw => responseLower.includes(kw)).length;
+  // Require at least 2 relevant keywords and minimum 30 characters
+  return matchCount >= 2 && response.trim().length >= 30;
 };
 
 const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void }> = ({ user, onUpdate }) => {
@@ -25,6 +90,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [quizStage, setQuizStage] = useState<'video' | 'concepts' | 'question'>('video');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [videoError, setVideoError] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
   
   const roleSlug = getRoleSlug(user.role);
   const roleModules = useMemo(() => ROLE_MODULES[roleSlug] || ROLE_MODULES['general_volunteer'], [roleSlug]);
@@ -49,20 +116,60 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     setSubmitError('');
     setQuizResponse('');
     setQuizData(null);
+    setVideoError(false);
+    setVideoLoading(true);
   };
 
-  const loadQuizContent = async () => {
+  // Get proper embed URL for different video sources
+  const getEmbedUrl = (embedUrl: string): string => {
+    if (!embedUrl) return '';
+
+    // YouTube URLs - ensure proper embed format
+    if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+      // Extract video ID and construct proper embed URL
+      let videoId = '';
+      if (embedUrl.includes('youtube.com/embed/')) {
+        videoId = embedUrl.split('youtube.com/embed/')[1]?.split('?')[0];
+      } else if (embedUrl.includes('youtube.com/watch?v=')) {
+        videoId = embedUrl.split('v=')[1]?.split('&')[0];
+      } else if (embedUrl.includes('youtu.be/')) {
+        videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
+      }
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
+      }
+    }
+
+    // ScreenPal/ScreenCastHost URLs - return as-is
+    if (embedUrl.includes('screencasthost.com') || embedUrl.includes('screenpal.com')) {
+      return embedUrl;
+    }
+
+    return embedUrl;
+  };
+
+  const loadQuizContent = useCallback(async () => {
     if (loadingQuiz || quizData) return;
     setLoadingQuiz(true);
+
+    // First check for static quiz (preferred - no API dependency)
+    const staticQuiz = STATIC_QUIZZES[activeSession?.id];
+    if (staticQuiz) {
+      setQuizData(staticQuiz);
+      setLoadingQuiz(false);
+      return;
+    }
+
+    // Fallback to AI-generated quiz if static not available
     try {
       const aiQuiz = await geminiService.generateModuleQuiz(activeSession.title, user.role);
       setQuizData(aiQuiz);
     } catch (e) {
-      console.error("Quiz generation failed", e);
-      // Provide fallback quiz data
+      console.error("Quiz generation failed, using generic fallback", e);
+      // Provide generic fallback quiz data
       setQuizData({
-        question: `What is the most important takeaway from "${activeSession.title}" for your role as a ${user.role}?`,
-        learningObjective: `Understand the key concepts covered in ${activeSession.title}.`,
+        question: `Reflect on "${activeSession.title}" and explain how you would apply the key concepts from this training in your volunteer work with Health Matters Clinic.`,
+        learningObjective: `Demonstrate understanding of the key concepts covered in ${activeSession.title}.`,
         keyConcepts: [
           { concept: 'Core Knowledge', description: 'The fundamental principles covered in this training module.' },
           { concept: 'Practical Application', description: 'How to apply what you learned in real volunteer situations.' },
@@ -72,7 +179,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     } finally {
       setLoadingQuiz(false);
     }
-  };
+  }, [activeSession, loadingQuiz, quizData, user.role]);
 
   // Core Volunteer Training - ALL 5 modules required for operational access
   const CORE_TRAINING_MODULES = [
@@ -143,11 +250,22 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     if (quizResponse.trim() === '' || !quizData?.question || !activeSession) return;
     setIsSubmitting(true);
     setSubmitError('');
-    const isCorrect = await geminiService.validateQuizAnswer(quizData.question, quizResponse);
+
+    let isCorrect = false;
+
+    // Try AI validation first, fall back to local validation if it fails
+    try {
+      isCorrect = await geminiService.validateQuizAnswer(quizData.question, quizResponse);
+    } catch (e) {
+      console.log("AI validation failed, using local validation");
+      // Use local keyword-based validation as fallback
+      isCorrect = validateResponseLocally(quizData.question, quizResponse, activeSession.id);
+    }
+
     if (isCorrect) {
       handleCompleteModule(activeSession.id, activeSession.title);
     } else {
-      setSubmitError("That doesn't seem quite right. Please review the concepts and try again.");
+      setSubmitError("Your response needs a bit more detail. Please review the key concepts above and provide a more complete answer (at least 2-3 sentences).");
     }
     setIsSubmitting(false);
   };
@@ -244,22 +362,56 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               </div>
               {quizStage === 'video' && activeSession?.embed ? (
                 <div className="space-y-8 animate-in fade-in">
-                  <div className="aspect-video bg-zinc-900 rounded-[32px] overflow-hidden shadow-2xl">
-                    <iframe
-                      className="w-full h-full"
-                      src={activeSession.embed}
-                      title={activeSession.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                      allowFullScreen
-                      style={{ border: 'none' }}
-                    />
+                  <div className="aspect-video bg-zinc-900 rounded-[32px] overflow-hidden shadow-2xl relative">
+                    {videoLoading && !videoError && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-10">
+                        <Loader2 size={48} className="text-white animate-spin mb-4" />
+                        <p className="text-zinc-400 text-sm font-medium">Loading video...</p>
+                      </div>
+                    )}
+                    {videoError ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
+                        <AlertCircle size={48} className="text-amber-400 mb-4" />
+                        <p className="text-lg font-bold mb-2">Video couldn't load</p>
+                        <p className="text-zinc-400 text-sm mb-6 max-w-md text-center">
+                          The video player encountered an error. You can try refreshing or proceed directly to the assessment.
+                        </p>
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => { setVideoError(false); setVideoLoading(true); }}
+                            className="px-6 py-3 bg-zinc-800 text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-zinc-700"
+                          >
+                            <RefreshCw size={16} /> Try Again
+                          </button>
+                          <a
+                            href={activeSession.embed.includes('youtube') ? activeSession.embed.replace('/embed/', '/watch?v=') : activeSession.embed}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-6 py-3 bg-white text-zinc-900 rounded-full font-bold text-sm flex items-center gap-2"
+                          >
+                            <Video size={16} /> Open in New Tab
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <iframe
+                        className="w-full h-full"
+                        src={getEmbedUrl(activeSession.embed)}
+                        title={activeSession.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        style={{ border: 'none' }}
+                        onLoad={() => setVideoLoading(false)}
+                        onError={() => { setVideoError(true); setVideoLoading(false); }}
+                      />
+                    )}
                   </div>
                   {isScreenPalVideo(activeSession.embed) ? (
                     <>
                       <p className="text-zinc-500 font-medium text-center">Complete the built-in quiz in the video, then mark as complete below.</p>
                       <button
                         onClick={() => handleCompleteModule(activeSession.id, activeSession.title)}
-                        className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3"
+                        className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         <Check size={18} /> I've Completed This Training
                       </button>
@@ -269,8 +421,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-medium text-center">Watch the video above, then proceed to the assessment.</p>
                       <button
                         onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
-                        className="w-full py-6 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3"
+                        className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
+                        <div className="w-2 h-2 rounded-full bg-white" />
                         I've Watched This - Continue to Assessment <ArrowRight size={18} />
                       </button>
                     </>
