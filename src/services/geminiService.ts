@@ -107,5 +107,36 @@ export const geminiService = {
       console.error("Supply list generation failed", error);
       return "Could not generate a supply list at this time. Please try again.";
     }
+  },
+
+  async draftAnnouncement(topic: string, tenantId: string): Promise<string> {
+    try {
+      const { content } = await apiService.post('/api/gemini/draft-announcement', { topic, tenantId });
+      return content;
+    } catch (error) {
+      console.error("Announcement draft failed", error);
+      // Return a helpful template as fallback
+      return `Dear Team,\n\nThis is an important update regarding ${topic}.\n\n[Add your key message here]\n\nThank you for your continued dedication to our mission.\n\n- Health Matters Clinic Leadership`;
+    }
+  },
+
+  async generateDocument(prompt: string, title: string): Promise<string> {
+    try {
+      const { content } = await apiService.post('/api/gemini/generate-document', { prompt, title }, 60000);
+      return content;
+    } catch (error) {
+      console.error("Document generation failed", error);
+      return '';
+    }
+  },
+
+  async improveDocument(content: string, instructions: string): Promise<string> {
+    try {
+      const { improved } = await apiService.post('/api/gemini/improve-document', { content, instructions }, 60000);
+      return improved;
+    } catch (error) {
+      console.error("Document improvement failed", error);
+      return content; // Return original if improvement fails
+    }
   }
 };

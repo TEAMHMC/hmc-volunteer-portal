@@ -275,6 +275,154 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
   },
 ];
 
+// Board Member Governance Documents & Required Forms
+export const BOARD_GOVERNANCE_DOCS = {
+  meetingSchedule: {
+    boardMeetings: {
+      frequency: 'Quarterly',
+      schedule: 'First Monday of January, April, July, and October',
+      time: '5:30 PM - 7:30 PM PT',
+      location: 'HMC Conference Room / Hybrid (Zoom)',
+      noticeRequired: '7 days advance notice with agenda and materials'
+    },
+    cabMeetings: {
+      frequency: 'Quarterly',
+      schedule: 'Third Monday of March, June, September, and December',
+      time: '6:00 PM - 7:30 PM PT',
+      location: 'Community Room / Hybrid (Zoom)',
+      noticeRequired: '7 days advance notice with agenda'
+    },
+    committeeMeetings: {
+      frequency: 'Monthly or as needed',
+      committees: [
+        'Executive Committee',
+        'Governance & Nominations',
+        'Finance, Audit & Risk',
+        'Programs, Quality & Clinical Oversight',
+        'Workforce Development & Education',
+        'Development & Community Partnerships',
+        'Community Engagement & Advocacy'
+      ]
+    },
+    attendanceExpectation: '75% of scheduled meetings',
+    standardAgenda: [
+      'Call to Order; Quorum',
+      'Approval of Agenda & Prior Minutes',
+      'Executive & Program Reports',
+      'Financial Report & Audit/Compliance Updates',
+      'Governance & Nominations',
+      'Strategic Items / New Business',
+      'Public Comment (as applicable)',
+      'Adjournment'
+    ]
+  },
+  requiredForms: [
+    {
+      id: 'coi-disclosure',
+      title: 'Conflict of Interest Disclosure Form',
+      description: 'Annual disclosure of potential conflicts of interest as required by nonprofit governance standards.',
+      dueDate: 'Annual - Due by January 31st',
+      type: 'form',
+      downloadUrl: '#',
+      required: true
+    },
+    {
+      id: 'confidentiality-agreement',
+      title: 'Board Confidentiality Agreement',
+      description: 'Agreement to maintain confidentiality of board discussions, strategic plans, and organizational information.',
+      dueDate: 'Upon appointment',
+      type: 'form',
+      downloadUrl: '#',
+      required: true
+    },
+    {
+      id: 'code-of-conduct',
+      title: 'Board Member Code of Conduct',
+      description: 'Acknowledgment of ethical standards and expectations for board service.',
+      dueDate: 'Upon appointment',
+      type: 'form',
+      downloadUrl: '#',
+      required: true
+    },
+    {
+      id: 'commitment-agreement',
+      title: 'Board Service Commitment Agreement',
+      description: 'Commitment to attendance, participation, and annual giving/fundraising expectations.',
+      dueDate: 'Upon appointment',
+      type: 'form',
+      downloadUrl: '#',
+      required: true
+    },
+    {
+      id: 'media-authorization',
+      title: 'Media & Public Relations Authorization',
+      description: 'Authorization for HMC to use your name, photo, and bio for organizational purposes.',
+      dueDate: 'Upon appointment',
+      type: 'form',
+      downloadUrl: '#',
+      required: false
+    }
+  ],
+  governanceDocs: [
+    {
+      id: 'bylaws',
+      title: 'HMC Bylaws',
+      description: 'The governing document of Health Matters Clinic outlining organizational structure and procedures.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'strategic-plan',
+      title: 'Strategic Plan 2024-2027',
+      description: 'HMC\'s three-year strategic goals, objectives, and key performance indicators.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'board-handbook',
+      title: 'Board Member Handbook',
+      description: 'Comprehensive guide to board roles, responsibilities, committees, and processes.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'financial-policies',
+      title: 'Financial Policies & Procedures',
+      description: 'Financial management policies including approval thresholds, audit procedures, and fiscal controls.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'whistleblower-policy',
+      title: 'Whistleblower Policy',
+      description: 'Procedures for reporting suspected fraud, waste, or misconduct.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'board-calendar',
+      title: 'Board Meeting Calendar',
+      description: 'Annual schedule of board meetings, committee meetings, and key events.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'committee-charters',
+      title: 'Committee Charters',
+      description: 'Scope and responsibilities for Executive, Finance, Governance, and Program committees.',
+      type: 'document',
+      downloadUrl: '#'
+    },
+    {
+      id: 'd-o-insurance',
+      title: 'D&O Insurance Summary',
+      description: 'Overview of Directors and Officers liability insurance coverage.',
+      type: 'document',
+      downloadUrl: '#'
+    }
+  ]
+};
+
 export const SCRIPTS: Script[] = [
     {
         id: 'survey-script-en',

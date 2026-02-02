@@ -1,12 +1,207 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
-import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users } from 'lucide-react';
+import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users, Upload, X, FileText, Loader2, Download } from 'lucide-react';
 import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
 import { apiService } from '../services/apiService';
+
+// Bulk Upload Modal for Events
+const BulkUploadEventsModal: React.FC<{
+  onClose: () => void;
+  onComplete: (events: Opportunity[], shifts: Shift[]) => void;
+}> = ({ onClose, onComplete }) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ importedCount: number; shiftsCreated: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith('.csv')) {
+        setError('Please upload a CSV file');
+        return;
+      }
+      setFile(selectedFile);
+      setError(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const csvContent = e.target?.result as string;
+          const base64 = btoa(unescape(encodeURIComponent(csvContent)));
+
+          const response = await apiService.post('/api/events/bulk-import', { csvData: base64 });
+
+          setResult({
+            importedCount: response.importedCount,
+            shiftsCreated: response.shiftsCreated
+          });
+
+          // Pass the new events and shifts back to parent
+          if (response.events && response.shifts) {
+            onComplete(response.events, response.shifts);
+          }
+        } catch (err: any) {
+          setError(err.message || 'Failed to import events');
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      reader.readAsText(file);
+    } catch (err: any) {
+      setError(err.message || 'Failed to read file');
+      setIsUploading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = `title,date,location,category,description,slotsTotal,estimatedAttendees,staffingQuotas,urgency
+"Spring Health Fair",2026-03-15,"East LA Community Center","Health Fair","Annual community health screening and wellness event",15,200,"Core Volunteer:10;Licensed Medical Professional:3;Medical Admin:2",high
+"Wellness Workshop",2026-03-22,"Downtown Library","Wellness Education","Educational workshop on nutrition and exercise",5,50,"Core Volunteer:5",medium
+"Street Medicine Outreach",2026-04-01,"Skid Row","Street Medicine","Mobile health services for underserved communities",8,30,"Core Volunteer:4;Licensed Medical Professional:2;Outreach Specialist:2",high`;
+
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'events_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl">
+        <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-zinc-900">Bulk Import Events</h2>
+            <p className="text-sm text-zinc-500 mt-1">Upload a CSV file to create multiple events at once</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+            <X size={20} className="text-zinc-400" />
+          </button>
+        </div>
+
+        <div className="p-8 space-y-6">
+          {result ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check size={32} className="text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 mb-2">Import Complete!</h3>
+              <p className="text-zinc-500">
+                Successfully imported <span className="font-bold text-emerald-600">{result.importedCount}</span> events
+                with <span className="font-bold text-blue-600">{result.shiftsCreated}</span> volunteer shifts.
+              </p>
+              <button
+                onClick={onClose}
+                className="mt-6 px-8 py-3 bg-zinc-900 text-white rounded-full font-bold text-sm"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={downloadTemplate}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors"
+              >
+                <Download size={18} />
+                <span className="font-bold text-sm">Download CSV Template</span>
+              </button>
+
+              <div
+                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
+                  file ? 'border-emerald-300 bg-emerald-50' : 'border-zinc-200 hover:border-zinc-400'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {file ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <FileText size={24} className="text-emerald-600" />
+                    <span className="font-bold text-zinc-900">{file.name}</span>
+                    <button
+                      onClick={() => setFile(null)}
+                      className="p-1 hover:bg-zinc-200 rounded-full"
+                    >
+                      <X size={16} className="text-zinc-400" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload size={40} className="mx-auto text-zinc-300 mb-4" />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="font-bold text-[#233DFF] hover:underline"
+                    >
+                      Click to upload
+                    </button>
+                    <span className="text-zinc-400"> or drag and drop</span>
+                    <p className="text-xs text-zinc-400 mt-2">CSV files only</p>
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="bg-zinc-50 p-4 rounded-xl">
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">CSV Format</p>
+                <p className="text-xs text-zinc-500">
+                  Required columns: <span className="font-mono">title, date, location</span><br />
+                  Optional: <span className="font-mono">category, description, slotsTotal, estimatedAttendees, staffingQuotas, urgency</span><br />
+                  Staffing format: <span className="font-mono">"Role:Count;Role:Count"</span>
+                </p>
+              </div>
+
+              <button
+                onClick={handleUpload}
+                disabled={!file || isUploading}
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Importing Events...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={18} />
+                    Import Events
+                  </>
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface ShiftsProps {
   userMode: 'volunteer' | 'admin';
@@ -26,6 +221,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [toastMsg, setToastMsg] = useState('');
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [showEventBuilder, setShowEventBuilder] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string } | null>(null);
   
   const getOpp = (id: string) => opportunities.find(o => o.id === id);
@@ -69,9 +265,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   };
   
   const handleSaveEvent = async (newEventData: Omit<Opportunity, 'id'>) => {
-      // API call creates the opportunity and returns the full object with ID
-      const newOpp = await apiService.post('/api/opportunities', { opportunity: newEventData });
-      setOpportunities(prev => [...prev, newOpp]);
+      // API call creates the opportunity and associated shifts
+      const result = await apiService.post('/api/opportunities', { opportunity: newEventData });
+      setOpportunities(prev => [...prev, { id: result.id, ...newEventData }]);
+
+      // Also add the created shifts to state so volunteers can see them immediately
+      if (result.shifts && result.shifts.length > 0) {
+        setShifts(prev => [...prev, ...result.shifts]);
+      }
   };
 
   const handleAssignVolunteer = async (volunteerId: string) => {
@@ -122,6 +323,18 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
         </div>
       )}
        {showEventBuilder && <EventBuilder onClose={() => setShowEventBuilder(false)} onSave={handleSaveEvent} />}
+       {showBulkUploadModal && (
+         <BulkUploadEventsModal
+           onClose={() => setShowBulkUploadModal(false)}
+           onComplete={(newEvents, newShifts) => {
+             setOpportunities(prev => [...prev, ...newEvents]);
+             setShifts(prev => [...prev, ...newShifts]);
+             setToastMsg(`Successfully imported ${newEvents.length} events!`);
+             setShowToast(true);
+             setTimeout(() => setShowToast(false), 3000);
+           }}
+         />
+       )}
        {showStaffingModal && <StaffingSuggestions {...showStaffingModal} allVolunteers={allVolunteers} assignedVolunteerIds={[]} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
@@ -140,9 +353,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       
       {activeTab === 'manage' && userMode === 'admin' && (
         <div>
-           <button onClick={() => setShowEventBuilder(true)} className="w-full flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:bg-zinc-800 transition-colors mb-8">
-                <Plus size={16} /> Create New Event
-            </button>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:bg-zinc-800 transition-colors">
+                  <Plus size={16} /> Create New Event
+              </button>
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:opacity-90 transition-opacity">
+                  <Upload size={16} /> Bulk Import Events
+              </button>
+           </div>
             <div className="space-y-4">
               {opportunities.map(opp => (
                  <div key={opp.id} className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">

@@ -24,6 +24,8 @@ import CoordinatorView from './CoordinatorView';
 import SystemTour from './SystemTour';
 import DocumentationHub from './DocumentationHub';
 import EventExplorer from './EventExplorer';
+import HealthScreeningsView from './HealthScreeningsView';
+import IntakeReferralsView from './IntakeReferralsView';
 
 interface DashboardProps {
   user: Volunteer;
@@ -88,7 +90,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
@@ -103,6 +105,27 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   useEffect(() => {
     setActiveTab(getDefaultTab(displayUser.role));
   }, [displayUser.role]);
+
+  // Presence tracking - ping server every 2 minutes to show online status
+  useEffect(() => {
+    const updatePresence = async () => {
+      try {
+        await fetch('/api/volunteer/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.warn('Failed to update presence:', error);
+      }
+    };
+
+    // Update presence immediately and then every 2 minutes
+    updatePresence();
+    const intervalId = setInterval(updatePresence, 2 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [user.id]);
 
   const handleUpdateUser = (updatedUser: Volunteer) => {
     const mergedUser = { ...user, ...updatedUser, id: user.id };
@@ -151,6 +174,20 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
     if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
       items.splice(2, 0, { id: 'my-team', label: 'My Team', icon: Users });
+    }
+
+    // Role-specific clinical/operational views
+    const medicalRoles = ['Licensed Medical Professional', 'Medical Admin'];
+    const clientFacingRoles = ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'];
+
+    // Health Screenings - for medical professionals
+    if (canAccessOperationalTools && medicalRoles.includes(displayUser.role)) {
+      items.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
+    }
+
+    // Client Intake & Referrals - for client-facing roles
+    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
+      items.push({ id: 'intake', label: 'Client Portal', icon: Send });
     }
 
     if(displayUser.isAdmin) {
@@ -292,7 +329,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </header>
             {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} />}
             <div className="pt-8 border-t border-zinc-100">
-               <EventExplorer user={displayUser} opportunities={opportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} />
+               <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} shifts={shifts} setShifts={setShifts} />
             </div>
            </>
          )}
@@ -310,6 +347,20 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} />}
          {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
          {activeTab === 'forms' && user.isAdmin && <FormBuilder />}
+         {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (
+           <HealthScreeningsView
+             user={displayUser}
+             shift={{ id: 'dashboard-session', opportunityId: '', startTime: new Date().toISOString(), endTime: '', roleType: 'Clinical', slotsTotal: 1, slotsFilled: 0, assignedVolunteerIds: [] }}
+             onLog={() => {}}
+           />
+         )}
+         {activeTab === 'intake' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
+           <IntakeReferralsView
+             user={displayUser}
+             shift={{ id: 'dashboard-session', opportunityId: '', startTime: new Date().toISOString(), endTime: '', roleType: 'Clinical', slotsTotal: 1, slotsFilled: 0, assignedVolunteerIds: [] }}
+             onLog={() => {}}
+           />
+         )}
 
       </main>
     </div>

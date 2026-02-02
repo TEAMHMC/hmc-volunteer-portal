@@ -65,10 +65,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
     <div className="min-h-screen bg-[#FDFEFE] flex flex-col font-['Inter'] overflow-x-hidden">
       
       <nav className="max-w-[1400px] mx-auto w-full px-6 md:px-12 py-10 flex justify-between items-center z-50">
-        <div className="flex items-center gap-4 cursor-pointer group">
-          <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-10 h-10 md:w-12 md:h-12 object-contain group-hover:scale-110 transition-transform" />
-          <span className="text-xs md:text-sm font-black text-zinc-900 uppercase tracking-widest">HMC VMS</span>
-        </div>
+        <a
+          href="https://www.healthmatters.clinic"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-4 cursor-pointer group"
+        >
+          <img
+            src={APP_CONFIG.BRAND.logoUrl}
+            alt="HMC"
+            className="w-10 h-10 md:w-12 md:h-12 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:drop-shadow-lg"
+          />
+          <span className="text-xs font-black text-zinc-900 uppercase tracking-widest md:hidden">HMC VMS</span>
+          <span className="hidden md:block text-sm font-black text-zinc-900 uppercase tracking-widest group-hover:text-[#233DFF] transition-colors">HMC VOLUNTEER PLATFORM</span>
+        </a>
         <div className="flex items-center gap-2">
           <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest flex items-center gap-2 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-sm">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />

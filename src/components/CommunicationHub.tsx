@@ -151,8 +151,18 @@ const MessagesView: React.FC<{
                 onClick={() => setSelectedConversation(conv.recipientId)}
                 className={`w-full p-4 flex items-center gap-3 border-b border-zinc-50 transition-colors ${selectedConversation === conv.recipientId ? 'bg-blue-50' : 'hover:bg-zinc-50'}`}
               >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold">
-                  {conv.recipientName.charAt(0)}
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold">
+                    {conv.recipientName.charAt(0)}
+                  </div>
+                  {/* Online Status Indicator */}
+                  {(() => {
+                    const recipient = allVolunteers.find(v => v.id === conv.recipientId);
+                    const isOnline = recipient?.isOnline || (recipient?.lastActiveAt && (Date.now() - new Date(recipient.lastActiveAt).getTime()) < 5 * 60 * 1000);
+                    return isOnline ? (
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white" />
+                    ) : null;
+                  })()}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center justify-between">
@@ -280,26 +290,38 @@ const SupportView: React.FC<{
     if (!newTicketSubject.trim() || !newTicketBody.trim()) return;
     setIsSubmitting(true);
 
-    const ticket: SupportTicket = {
-      id: `ticket-${Date.now()}`,
+    const ticket = {
       subject: newTicketSubject,
       description: newTicketBody,
-      status: 'open',
-      priority: 'medium',
+      message: newTicketBody,
+      category: 'General',
+      priority: 'Normal',
       submittedBy: user.id,
       submitterName: user.name,
-      createdAt: new Date().toISOString(),
-      responses: []
+      submitterEmail: user.email,
     };
 
     try {
-      await apiService.post('/api/support_tickets', ticket);
-      setSupportTickets(prev => [ticket, ...prev]);
+      const response = await apiService.post('/api/support_tickets', { ticket });
+      const savedTicket: SupportTicket = {
+        id: response.id,
+        subject: newTicketSubject,
+        description: newTicketBody,
+        status: 'open',
+        priority: 'medium',
+        submittedBy: user.id,
+        submitterName: user.name,
+        createdAt: new Date().toISOString(),
+        responses: []
+      };
+      setSupportTickets(prev => [savedTicket, ...prev]);
       setShowNewTicket(false);
       setNewTicketSubject('');
       setNewTicketBody('');
+      alert('Support ticket submitted successfully! Tech support has been notified.');
     } catch (error) {
       console.error('Failed to submit ticket:', error);
+      alert('Failed to submit ticket. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -500,16 +522,16 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
     }
   };
   
-  const availableTabs = userMode === 'admin' 
-    ? [ { id: 'announcements', label: 'Broadcasts', icon: Megaphone }, { id: 'messages', label: 'Briefing', icon: MessageSquare }, { id: 'support', label: 'Ops Support', icon: LifeBuoy } ]
-    : [ { id: 'messages', label: 'Briefing', icon: MessageSquare }, { id: 'support', label: 'Ops Support', icon: LifeBuoy } ];
+  const availableTabs = userMode === 'admin'
+    ? [ { id: 'announcements', label: 'Announcements', icon: Megaphone }, { id: 'messages', label: 'Messages', icon: MessageSquare }, { id: 'support', label: 'Support', icon: LifeBuoy } ]
+    : [ { id: 'messages', label: 'Messages', icon: MessageSquare }, { id: 'support', label: 'Support', icon: LifeBuoy } ];
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500 h-full flex flex-col">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div>
-          <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Briefing Hub</h2>
-          <p className="text-[15px] text-zinc-500 font-medium mt-1">Direct synchronization with clinical and community leadership.</p>
+          <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Communication Hub</h2>
+          <p className="text-[15px] text-zinc-500 font-medium mt-1">Stay connected with your team and leadership.</p>
         </div>
         <div className="flex bg-white border border-zinc-200/50 p-1.5 rounded-[24px] shadow-sm">
           {availableTabs.map(tab => (

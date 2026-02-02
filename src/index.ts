@@ -615,6 +615,72 @@ const EmailTemplates = {
     ${emailFooter()}`,
     text: `Hi ${data.volunteerName}, ${data.referredName} joined via your referral! +${data.referralBonus} XP.`
   }),
+
+  // Event Registration Confirmation
+  event_registration_confirmation: (data: EmailTemplateData) => ({
+    subject: `✓ You're Signed Up: ${data.eventTitle}`,
+    html: `${emailHeader('Event Registration Confirmed! 📅')}
+      <p>Hi ${data.volunteerName},</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <span style="font-size: 48px;">📅</span>
+      </div>
+      <p>You're registered for the following event:</p>
+      <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <h3 style="margin: 0 0 12px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventTitle}</h3>
+        <p style="margin: 0 0 8px 0;"><strong>📅 Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0;"><strong>📍 Location:</strong> ${data.eventLocation}</p>
+      </div>
+      <p><strong>What to bring:</strong></p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">Your HMC volunteer badge (if you have one)</li>
+        <li style="margin: 8px 0;">Comfortable closed-toe shoes</li>
+        <li style="margin: 8px 0;">Water bottle</li>
+        <li style="margin: 8px 0;">A positive attitude!</li>
+      </ul>
+      <p style="color: #6b7280;">If you can no longer attend, please update your registration in the portal so another volunteer can take your spot.</p>
+      ${actionButton('View My Schedule', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, You're registered for ${data.eventTitle} on ${data.eventDate} at ${data.eventLocation}. See you there!`
+  }),
+
+  // Coordinator Registration Alert
+  coordinator_registration_alert: (data: EmailTemplateData) => ({
+    subject: `📋 New Volunteer Signup: ${data.eventTitle}`,
+    html: `${emailHeader('New Event Registration 📋')}
+      <p>Hi ${data.coordinatorName},</p>
+      <p>A volunteer has signed up for an upcoming event:</p>
+      <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #10b981;">
+        <p style="margin: 0 0 8px 0;"><strong>👤 Volunteer:</strong> ${data.volunteerName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>📅 Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0;"><strong>🗓️ Date:</strong> ${data.eventDate}</p>
+      </div>
+      <p>You can view all registrations and manage staffing in the admin portal.</p>
+      ${actionButton('View Event Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.coordinatorName}, ${data.volunteerName} signed up for ${data.eventTitle} on ${data.eventDate}.`
+  }),
+
+  // Support Ticket Notification
+  support_ticket_notification: (data: EmailTemplateData) => ({
+    subject: `🎫 New Support Ticket: ${data.subject}`,
+    html: `${emailHeader('New Support Ticket Received 🎫')}
+      <p>A new support ticket has been submitted:</p>
+      <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0 0 8px 0;"><strong>📝 Subject:</strong> ${data.subject}</p>
+        <p style="margin: 0 0 8px 0;"><strong>👤 From:</strong> ${data.submitterName} (${data.submitterEmail})</p>
+        <p style="margin: 0 0 8px 0;"><strong>📂 Category:</strong> ${data.category}</p>
+        <p style="margin: 0 0 8px 0;"><strong>⚡ Priority:</strong> ${data.priority}</p>
+        <p style="margin: 0 0 8px 0;"><strong>🆔 Ticket ID:</strong> ${data.ticketId}</p>
+      </div>
+      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0; color: #374151;"><strong>Description:</strong></p>
+        <p style="margin: 8px 0 0 0; color: #6b7280;">${data.description}</p>
+      </div>
+      <p>Please respond to this ticket at your earliest convenience.</p>
+      ${actionButton('View Ticket', `${EMAIL_CONFIG.WEBSITE_URL}/admin/support`)}
+    ${emailFooter()}`,
+    text: `New support ticket from ${data.submitterName}: ${data.subject}. Description: ${data.description}. Ticket ID: ${data.ticketId}`
+  }),
 };
 
 // Email Service Class - Uses Google Apps Script
@@ -754,6 +820,7 @@ class GamificationService {
         shift_completed: profile.volunteerType === 'weekly_committed' ? XP_CONFIG.SHIFT_COMPLETED : XP_CONFIG.SHIFT_COMPLETED_FLEXIBLE,
         training_completed: XP_CONFIG.TRAINING_COMPLETED,
         signup_completed: XP_CONFIG.SIGNUP_COMPLETED,
+        event_signup: 25, // XP for signing up for events
         referral_joined: XP_CONFIG.REFERRAL_SIGNED_UP,
         shared: XP_CONFIG.SOCIAL_SHARE,
         donated: XP_CONFIG.DONATION_MADE,
@@ -1712,6 +1779,71 @@ app.post('/api/gemini/summarize-feedback', async (req: Request, res: Response) =
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
 });
 
+app.post('/api/gemini/generate-document', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: "AI not configured" });
+        const { prompt, title } = req.body;
+        const text = await generateAIContent('gemini-1.5-flash',
+            `You are a professional technical writer for Health Matters Clinic, a community health nonprofit.
+            Create a well-structured document based on this request: "${prompt}"
+            ${title ? `The document is titled: "${title}"` : ''}
+
+            Guidelines:
+            - Use clear, professional language appropriate for healthcare/nonprofit context
+            - Use markdown formatting with ## for main headings and ### for subheadings
+            - Include practical, actionable information
+            - Be thorough but concise
+            - Do not mention AI or that this was generated
+
+            Generate the document content now:`);
+        res.json({ content: text });
+    } catch(e) {
+        console.error('[AI] Document generation failed:', e);
+        res.status(500).json({ error: "Document generation failed" });
+    }
+});
+
+app.post('/api/gemini/improve-document', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: "AI not configured" });
+        const { content, instructions } = req.body;
+        const text = await generateAIContent('gemini-1.5-flash',
+            `You are a professional editor for Health Matters Clinic documents.
+
+            Improve the following document according to these instructions: "${instructions || 'Make it more professional and comprehensive'}"
+
+            Original content:
+            ${content}
+
+            Guidelines:
+            - Maintain the original structure and intent
+            - Improve clarity, professionalism, and completeness
+            - Use markdown formatting
+            - Keep healthcare/nonprofit context appropriate
+            - Do not mention AI or that this was edited
+
+            Provide the improved document:`);
+        res.json({ improved: text });
+    } catch(e) {
+        console.error('[AI] Document improvement failed:', e);
+        res.status(500).json({ error: "Document improvement failed" });
+    }
+});
+
+app.post('/api/gemini/draft-announcement', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: "AI not configured" });
+        const { topic, tenantId } = req.body;
+        const text = await generateAIContent('gemini-1.5-flash',
+            `Draft a professional announcement for Health Matters Clinic volunteers about: "${topic}".
+            Keep it warm, professional, and under 150 words. Do not mention AI.`);
+        res.json({ content: text });
+    } catch(e) {
+        console.error('[AI] Announcement draft failed:', e);
+        res.status(500).json({ error: "Announcement draft failed" });
+    }
+});
+
 // --- DATA & OPS ROUTES ---
 app.get('/api/resources', async (req: Request, res: Response) => {
     const snap = await db.collection('referral_resources').get();
@@ -1721,6 +1853,58 @@ app.post('/api/resources/create', verifyToken, async (req: Request, res: Respons
     const ref = await db.collection('referral_resources').add(req.body.resource);
     res.json({ success: true, id: ref.id });
 });
+
+// Bulk import resources from CSV
+app.post('/api/resources/bulk-import', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { csvData } = req.body;
+        const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+        const importedResources: any[] = [];
+        const batch = db.batch();
+
+        for (let i = 1; i < lines.length; i++) {
+            // Parse CSV line handling quoted values
+            const values: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            for (const char of lines[i]) {
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    values.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim());
+
+            const resource: any = { 'Active / Inactive': 'checked' };
+            headers.forEach((header, idx) => {
+                if (values[idx]) {
+                    resource[header] = values[idx];
+                }
+            });
+
+            if (resource['Resource Name']) {
+                const docRef = db.collection('referral_resources').doc();
+                batch.set(docRef, resource);
+                importedResources.push({ id: docRef.id, ...resource });
+            }
+        }
+
+        await batch.commit();
+        console.log(`[RESOURCES] Bulk imported ${importedResources.length} resources`);
+        res.json({ success: true, importedCount: importedResources.length });
+    } catch (error: any) {
+        console.error('[RESOURCES] Bulk import failed:', error);
+        res.status(500).json({ error: error.message || 'Failed to import resources' });
+    }
+});
+
 app.get('/api/referrals', verifyToken, async (req: Request, res: Response) => {
     const snap = await db.collection('referrals').orderBy('createdAt', 'desc').get();
     res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -1770,14 +1954,333 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
     await db.collection('volunteers').doc(updatedUser.id).set(updatedUser, { merge: true });
     res.json(updatedUser);
 });
-app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) => {
-    const { opportunity } = req.body;
-    if (!opportunity.locationCoordinates) {
-        opportunity.locationCoordinates = { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 };
+
+// User presence tracking - update last active time
+app.post('/api/volunteer/presence', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.profile?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        await db.collection('volunteers').doc(userId).update({
+            lastActiveAt: new Date().toISOString(),
+            isOnline: true
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[PRESENCE] Failed to update presence:', error);
+        res.status(500).json({ error: 'Failed to update presence' });
     }
-    const docRef = await db.collection('opportunities').add(opportunity);
-    res.json({ id: docRef.id, ...opportunity });
 });
+
+// Get online users for chat
+app.get('/api/volunteers/online', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const snapshot = await db.collection('volunteers')
+            .where('lastActiveAt', '>=', fiveMinutesAgo)
+            .get();
+
+        const onlineUsers = snapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name,
+            role: doc.data().role,
+            lastActiveAt: doc.data().lastActiveAt
+        }));
+
+        res.json(onlineUsers);
+    } catch (error) {
+        console.error('[PRESENCE] Failed to get online users:', error);
+        res.status(500).json({ error: 'Failed to get online users' });
+    }
+});
+
+app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { opportunity } = req.body;
+        if (!opportunity.locationCoordinates) {
+            opportunity.locationCoordinates = { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 };
+        }
+        const docRef = await db.collection('opportunities').add(opportunity);
+        const opportunityId = docRef.id;
+
+        // Create shifts for each staffing quota
+        const createdShifts: any[] = [];
+        const eventDate = opportunity.date || new Date().toISOString().split('T')[0];
+        const defaultStartTime = `${eventDate}T09:00:00`;
+        const defaultEndTime = `${eventDate}T14:00:00`;
+
+        if (opportunity.staffingQuotas && opportunity.staffingQuotas.length > 0) {
+            for (const quota of opportunity.staffingQuotas) {
+                const shift = {
+                    tenantId: opportunity.tenantId || 'hmc-health',
+                    opportunityId: opportunityId,
+                    roleType: quota.role,
+                    slotsTotal: quota.count,
+                    slotsFilled: 0,
+                    assignedVolunteerIds: [],
+                    startTime: defaultStartTime,
+                    endTime: defaultEndTime,
+                };
+                const shiftRef = await db.collection('shifts').add(shift);
+                createdShifts.push({ id: shiftRef.id, ...shift });
+            }
+        } else {
+            // Create a default general shift if no quotas specified
+            const defaultShift = {
+                tenantId: opportunity.tenantId || 'hmc-health',
+                opportunityId: opportunityId,
+                roleType: 'Core Volunteer',
+                slotsTotal: opportunity.slotsTotal || 10,
+                slotsFilled: 0,
+                assignedVolunteerIds: [],
+                startTime: defaultStartTime,
+                endTime: defaultEndTime,
+            };
+            const shiftRef = await db.collection('shifts').add(defaultShift);
+            createdShifts.push({ id: shiftRef.id, ...defaultShift });
+        }
+
+        console.log(`[EVENTS] Created opportunity ${opportunityId} with ${createdShifts.length} shift(s)`);
+        res.json({ id: opportunityId, ...opportunity, shifts: createdShifts });
+    } catch (error) {
+        console.error('[EVENTS] Failed to create opportunity:', error);
+        res.status(500).json({ error: 'Failed to create event' });
+    }
+});
+
+// Bulk import events from CSV
+app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { csvData } = req.body;
+        const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+        const importedEvents: any[] = [];
+        const createdShifts: any[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            // Parse CSV line handling quoted values
+            const values: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            for (const char of lines[i]) {
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    values.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim());
+
+            const row: any = {};
+            headers.forEach((header, idx) => {
+                if (values[idx]) {
+                    row[header] = values[idx];
+                }
+            });
+
+            // Skip if no title
+            if (!row.title && !row.Title && !row['Event Title']) continue;
+
+            const eventTitle = row.title || row.Title || row['Event Title'] || 'Untitled Event';
+            const eventDate = row.date || row.Date || row['Event Date'] || new Date().toISOString().split('T')[0];
+            const eventLocation = row.location || row.Location || row.serviceLocation || row['Service Location'] || 'TBD';
+            const category = row.category || row.Category || 'Health Fair';
+            const description = row.description || row.Description || `Community health event: ${eventTitle}`;
+            const slotsTotal = parseInt(row.slotsTotal || row['Slots Total'] || row.volunteers || '10') || 10;
+            const estimatedAttendees = parseInt(row.estimatedAttendees || row['Estimated Attendees'] || '100') || 100;
+
+            // Parse staffing quotas if provided (format: "Core Volunteer:5;Medical Professional:2")
+            let staffingQuotas: { role: string; count: number; filled: number }[] = [];
+            if (row.staffingQuotas || row['Staffing Quotas']) {
+                const quotaStr = row.staffingQuotas || row['Staffing Quotas'];
+                const quotaPairs = quotaStr.split(';');
+                staffingQuotas = quotaPairs.map((pair: string) => {
+                    const [role, count] = pair.split(':');
+                    return { role: role.trim(), count: parseInt(count) || 1, filled: 0 };
+                }).filter((q: any) => q.role);
+            } else {
+                // Default staffing quota
+                staffingQuotas = [{ role: 'Core Volunteer', count: slotsTotal, filled: 0 }];
+            }
+
+            const opportunity = {
+                title: eventTitle,
+                description,
+                category,
+                serviceLocation: eventLocation,
+                date: eventDate,
+                staffingQuotas,
+                slotsTotal: staffingQuotas.reduce((sum, q) => sum + q.count, 0),
+                slotsFilled: 0,
+                isPublic: true,
+                isPublicFacing: true,
+                estimatedAttendees,
+                tenantId: 'hmc-health',
+                urgency: row.urgency || 'medium',
+                locationCoordinates: { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 },
+            };
+
+            const docRef = await db.collection('opportunities').add(opportunity);
+            const opportunityId = docRef.id;
+            importedEvents.push({ id: opportunityId, ...opportunity });
+
+            // Create shifts for each staffing quota
+            const defaultStartTime = `${eventDate}T09:00:00`;
+            const defaultEndTime = `${eventDate}T14:00:00`;
+
+            for (const quota of staffingQuotas) {
+                const shift = {
+                    tenantId: 'hmc-health',
+                    opportunityId: opportunityId,
+                    roleType: quota.role,
+                    slotsTotal: quota.count,
+                    slotsFilled: 0,
+                    assignedVolunteerIds: [],
+                    startTime: defaultStartTime,
+                    endTime: defaultEndTime,
+                };
+                const shiftRef = await db.collection('shifts').add(shift);
+                createdShifts.push({ id: shiftRef.id, ...shift });
+            }
+        }
+
+        console.log(`[EVENTS] Bulk imported ${importedEvents.length} events with ${createdShifts.length} shifts`);
+        res.json({
+            success: true,
+            importedCount: importedEvents.length,
+            shiftsCreated: createdShifts.length,
+            events: importedEvents,
+            shifts: createdShifts
+        });
+    } catch (error: any) {
+        console.error('[EVENTS] Bulk import failed:', error);
+        res.status(500).json({ error: error.message || 'Failed to import events' });
+    }
+});
+
+// Event registration endpoint - registers volunteer for event and sends confirmation email
+app.post('/api/events/register', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { volunteerId, eventId, shiftId, eventTitle, eventDate, eventLocation, volunteerEmail, volunteerName } = req.body;
+
+    // Update volunteer's RSVPs and assigned shifts
+    const volunteerRef = db.collection('volunteers').doc(volunteerId);
+    const volunteerDoc = await volunteerRef.get();
+    const volunteerData = volunteerDoc.data() as any;
+
+    const updatedRsvpIds = [...new Set([...(volunteerData.rsvpedEventIds || []), eventId])];
+    const updatedShiftIds = shiftId
+      ? [...new Set([...(volunteerData.assignedShiftIds || []), shiftId])]
+      : (volunteerData.assignedShiftIds || []);
+
+    await volunteerRef.update({
+      rsvpedEventIds: updatedRsvpIds,
+      assignedShiftIds: updatedShiftIds
+    });
+
+    // Update shift slot count if a shift was assigned
+    if (shiftId) {
+      const shiftRef = db.collection('shifts').doc(shiftId);
+      const shiftDoc = await shiftRef.get();
+      if (shiftDoc.exists) {
+        const shiftData = shiftDoc.data() as any;
+        await shiftRef.update({
+          slotsFilled: (shiftData.slotsFilled || 0) + 1,
+          assignedVolunteerIds: [...(shiftData.assignedVolunteerIds || []), volunteerId]
+        });
+
+        // Also update the opportunity's staffing quotas
+        const opportunityRef = db.collection('opportunities').doc(eventId);
+        const oppDoc = await opportunityRef.get();
+        if (oppDoc.exists) {
+          const oppData = oppDoc.data() as any;
+          const roleType = shiftData.roleType || 'Core Volunteer';
+          const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) => {
+            if (q.role === roleType) {
+              return { ...q, filled: (q.filled || 0) + 1 };
+            }
+            return q;
+          });
+          await opportunityRef.update({
+            staffingQuotas: updatedQuotas,
+            slotsFilled: (oppData.slotsFilled || 0) + 1
+          });
+        }
+      }
+    }
+
+    // Send confirmation email
+    if (volunteerEmail) {
+      try {
+        await EmailService.send('event_registration_confirmation', {
+          toEmail: volunteerEmail,
+          volunteerName: volunteerName || 'Volunteer',
+          eventTitle: eventTitle || 'Community Event',
+          eventDate: eventDate || 'TBD',
+          eventLocation: eventLocation || 'TBD'
+        });
+        console.log(`[EVENTS] Sent registration confirmation to ${volunteerEmail} for ${eventTitle}`);
+      } catch (emailError) {
+        console.error('[EVENTS] Failed to send confirmation email:', emailError);
+        // Don't fail the registration if email fails
+      }
+    }
+
+    // Award XP for signing up
+    try {
+      await GamificationService.addXP(volunteerId, 'event_signup');
+    } catch (xpError) {
+      console.error('[EVENTS] Failed to award XP:', xpError);
+    }
+
+    // Notify Event Coordinators about the new registration
+    try {
+      const coordinatorsSnap = await db.collection('volunteers')
+        .where('role', 'in', ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator'])
+        .where('status', '==', 'active')
+        .get();
+
+      const coordinatorNotifications = coordinatorsSnap.docs.map(async (doc) => {
+        const coordinator = doc.data();
+        if (coordinator.email) {
+          // Send email notification to coordinator
+          await EmailService.send('coordinator_registration_alert', {
+            toEmail: coordinator.email,
+            coordinatorName: coordinator.name || coordinator.firstName || 'Coordinator',
+            volunteerName: volunteerName || 'A volunteer',
+            eventTitle: eventTitle || 'an event',
+            eventDate: eventDate || 'upcoming',
+          });
+        }
+      });
+
+      await Promise.allSettled(coordinatorNotifications);
+      console.log(`[EVENTS] Notified ${coordinatorsSnap.size} coordinator(s) about registration`);
+    } catch (coordError) {
+      console.error('[EVENTS] Failed to notify coordinators:', coordError);
+      // Non-blocking - don't fail registration if coordinator notification fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Successfully registered for event',
+      rsvpedEventIds: updatedRsvpIds,
+      assignedShiftIds: updatedShiftIds
+    });
+  } catch (error: any) {
+    console.error('[EVENTS] Failed to register for event:', error);
+    res.status(500).json({ error: error.message || 'Failed to register for event' });
+  }
+});
+
 app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response) => {
     const { title, content, category = 'General' } = req.body;
     const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved' };
@@ -1785,12 +2288,149 @@ app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response
     res.json({ id: docRef.id, ...announcement });
 });
 app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response) => {
-    const { ticket } = req.body;
-    const docRef = await db.collection('support_tickets').add(ticket);
-    res.json({ id: docRef.id, ...ticket });
+    try {
+        const { ticket } = req.body;
+        const ticketWithTimestamp = {
+            ...ticket,
+            createdAt: new Date().toISOString(),
+            status: 'open'
+        };
+        const docRef = await db.collection('support_tickets').add(ticketWithTimestamp);
+
+        // Send email notification to tech support
+        try {
+            await EmailService.send('support_ticket_notification', {
+                toEmail: 'tech@healthmatters.clinic',
+                ticketId: docRef.id,
+                subject: ticket.subject || 'New Support Ticket',
+                description: ticket.description || ticket.message || 'No description provided',
+                category: ticket.category || 'General',
+                priority: ticket.priority || 'Normal',
+                submitterName: ticket.submitterName || 'Unknown',
+                submitterEmail: ticket.submitterEmail || 'Unknown',
+            });
+            console.log(`[SUPPORT] Ticket ${docRef.id} created and notification sent to tech@healthmatters.clinic`);
+        } catch (emailError) {
+            console.error('[SUPPORT] Failed to send ticket notification email:', emailError);
+            // Don't fail the ticket creation if email fails
+        }
+
+        res.json({ id: docRef.id, ...ticketWithTimestamp, success: true });
+    } catch (error: any) {
+        console.error('[SUPPORT] Failed to create support ticket:', error);
+        res.status(500).json({ error: error.message || 'Failed to create support ticket' });
+    }
 });
 app.post('/api/admin/bulk-import', verifyToken, async (req: Request, res: Response) => {
-    res.json({ importedCount: 0, newVolunteers: [] });
+    try {
+        const { csvData } = req.body;
+        // Decode base64 CSV data
+        const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',').map(h => h.trim());
+
+        const newVolunteers: any[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            const row: any = {};
+            headers.forEach((header, idx) => {
+                row[header] = values[idx] || '';
+            });
+
+            // Create volunteer object
+            const volunteer = {
+                legalFirstName: row.legalFirstName || row.firstName || '',
+                legalLastName: row.legalLastName || row.lastName || '',
+                name: `${row.legalFirstName || row.firstName || ''} ${row.legalLastName || row.lastName || ''}`.trim(),
+                email: row.email,
+                phone: row.phone || '',
+                role: row.role || row.volunteerRole || 'Core Volunteer',
+                tenantId: 'hmc-health',
+                status: 'active',
+                identityLabel: 'HMC Champion',
+                volunteerRole: row.role || row.volunteerRole || 'Core Volunteer',
+                joinedDate: row.joinedDate || new Date().toISOString(),
+                onboardingProgress: 0,
+                hoursContributed: parseInt(row.hoursContributed) || 0,
+                points: 0,
+                isAdmin: false,
+                coreVolunteerStatus: false,
+                compliance: {
+                    application: { id: 'application', label: 'Application', status: 'completed' },
+                    backgroundCheck: { id: 'backgroundCheck', label: 'Background Check', status: 'pending' },
+                    hipaaTraining: { id: 'hipaaTraining', label: 'HIPAA Training', status: 'pending' },
+                    training: { id: 'training', label: 'Core Training', status: 'pending' },
+                    orientation: { id: 'orientation', label: 'Orientation', status: 'pending' },
+                },
+                skills: [],
+                tasks: [],
+                achievements: [],
+                availability: {
+                    days: row.availability_days ? row.availability_days.split(';') : [],
+                    preferredTime: row.availability_preferredTime || 'Any',
+                    startDate: row.availability_startDate || new Date().toISOString().split('T')[0]
+                },
+                eventEligibility: {
+                    canDeployCore: false,
+                    streetMedicineGate: false,
+                    clinicGate: false,
+                    healthFairGate: false,
+                    naloxoneDistribution: false,
+                    oraQuickDistribution: false,
+                    qualifiedEventTypes: []
+                }
+            };
+
+            if (volunteer.email) {
+                const docRef = await db.collection('volunteers').add(volunteer);
+                newVolunteers.push({ id: docRef.id, ...volunteer });
+
+                // Send welcome email
+                try {
+                    await EmailService.send('welcome_volunteer', {
+                        toEmail: volunteer.email,
+                        volunteerName: volunteer.name || volunteer.legalFirstName || 'Volunteer',
+                        appliedRole: volunteer.role,
+                    });
+                } catch (emailErr) {
+                    console.error(`Failed to send welcome email to ${volunteer.email}:`, emailErr);
+                }
+            }
+        }
+
+        console.log(`[BULK IMPORT] Successfully imported ${newVolunteers.length} volunteers`);
+        res.json({ importedCount: newVolunteers.length, newVolunteers });
+    } catch (error: any) {
+        console.error('[BULK IMPORT] Failed:', error);
+        res.status(500).json({ error: error.message || 'Failed to import volunteers' });
+    }
+});
+
+// Add single volunteer manually
+app.post('/api/admin/add-volunteer', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { volunteer } = req.body;
+        const docRef = await db.collection('volunteers').add(volunteer);
+
+        // Send welcome email
+        if (volunteer.email) {
+            try {
+                await EmailService.send('welcome_volunteer', {
+                    toEmail: volunteer.email,
+                    volunteerName: volunteer.name || volunteer.legalFirstName || 'Volunteer',
+                    appliedRole: volunteer.role || 'HMC Champion',
+                });
+            } catch (emailErr) {
+                console.error(`Failed to send welcome email to ${volunteer.email}:`, emailErr);
+            }
+        }
+
+        res.json({ id: docRef.id, ...volunteer });
+    } catch (error: any) {
+        console.error('[ADD VOLUNTEER] Failed:', error);
+        res.status(500).json({ error: error.message || 'Failed to add volunteer' });
+    }
 });
 app.post('/api/admin/update-volunteer-profile', verifyToken, async (req: Request, res: Response) => {
     const { volunteer } = req.body;
@@ -1798,33 +2438,51 @@ app.post('/api/admin/update-volunteer-profile', verifyToken, async (req: Request
     res.json({ success: true });
 });
 app.post('/api/admin/review-application', verifyToken, async (req: Request, res: Response) => {
+  try {
     const { volunteerId, action, notes } = req.body;
-    const updates: any = { applicationStatus: action === 'approve' ? 'approved' : 'rejected' };
-    if (action === 'approve') { updates.status = 'active'; }
+    const updates: any = {
+      applicationStatus: action === 'approve' ? 'approved' : 'rejected',
+      reviewedAt: new Date().toISOString(),
+      reviewNotes: notes || ''
+    };
+    if (action === 'approve') {
+      updates.status = 'active';
+      updates.role = (await db.collection('volunteers').doc(volunteerId).get()).data()?.appliedRole || 'Core Volunteer';
+    }
     await db.collection('volunteers').doc(volunteerId).update(updates);
     const updatedDoc = await db.collection('volunteers').doc(volunteerId).get();
-    const volData = updatedDoc.data();
+    const docData = updatedDoc.data() as any;
+    const volData = { id: volunteerId, ...docData };
 
-    // Send application decision email
-    if (volData?.email) {
-      if (action === 'approve') {
-        await EmailService.send('application_approved', {
-          toEmail: volData.email,
-          volunteerName: volData.name || volData.firstName || 'Volunteer',
-          approvedRole: volData.role || volData.appliedRole || 'Volunteer',
-        });
-        // Award XP for approval
-        await GamificationService.addXP(volunteerId, 'signup_completed');
-      } else {
-        await EmailService.send('application_rejected', {
-          toEmail: volData.email,
-          volunteerName: volData.name || volData.firstName || 'Volunteer',
-          reason: notes || 'Unfortunately, we are unable to move forward at this time.',
-        });
+    // Send application decision email (non-blocking - don't fail if email fails)
+    if (docData?.email) {
+      try {
+        if (action === 'approve') {
+          await EmailService.send('application_approved', {
+            toEmail: docData.email,
+            volunteerName: docData.name || docData.firstName || 'Volunteer',
+            approvedRole: docData.role || docData.appliedRole || 'Volunteer',
+          });
+          // Award XP for approval
+          await GamificationService.addXP(volunteerId, 'signup_completed');
+        } else {
+          await EmailService.send('application_rejected', {
+            toEmail: docData.email,
+            volunteerName: docData.name || docData.firstName || 'Volunteer',
+            reason: notes || 'Unfortunately, we are unable to move forward at this time.',
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send application decision email:', emailError);
+        // Continue - email failure shouldn't block the review
       }
     }
 
     res.json({ volunteer: volData });
+  } catch (error: any) {
+    console.error('Failed to review application:', error);
+    res.status(500).json({ error: error.message || 'Failed to review application' });
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════
