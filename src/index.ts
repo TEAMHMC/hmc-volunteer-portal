@@ -2282,36 +2282,45 @@ app.post('/api/admin/setup', async (req: Request, res: Response) => {
 
 // --- ADMIN BOOTSTRAP ---
 const bootstrapAdmin = async () => {
-  const adminEmail = process.env.INITIAL_ADMIN_EMAIL;
-  if (!adminEmail) return;
+  // Support multiple admin emails (comma-separated or single)
+  const adminEmailsEnv = process.env.INITIAL_ADMIN_EMAIL || '';
+  const adminEmails = adminEmailsEnv.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
-  console.log(`[BOOTSTRAP] Checking admin bootstrap for: ${adminEmail}`);
+  // Always include these core admins
+  const coreAdmins = ['admin@healthmatters.clinic', 'erica@healthmatters.clinic'];
+  const allAdminEmails = [...new Set([...adminEmails, ...coreAdmins])];
 
-  try {
-    // Find user by email in volunteers collection
-    const snapshot = await db.collection('volunteers')
-      .where('email', '==', adminEmail.toLowerCase())
-      .limit(1)
-      .get();
+  if (allAdminEmails.length === 0) return;
 
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      if (!doc.data().isAdmin) {
-        await doc.ref.update({ isAdmin: true });
-        console.log(`[BOOTSTRAP] Promoted ${adminEmail} to admin`);
+  console.log(`[BOOTSTRAP] Checking admin bootstrap for: ${allAdminEmails.join(', ')}`);
+
+  for (const adminEmail of allAdminEmails) {
+    try {
+      // Find user by email in volunteers collection
+      const snapshot = await db.collection('volunteers')
+        .where('email', '==', adminEmail.toLowerCase())
+        .limit(1)
+        .get();
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        if (!doc.data().isAdmin) {
+          await doc.ref.update({ isAdmin: true });
+          console.log(`[BOOTSTRAP] Promoted ${adminEmail} to admin`);
+        } else {
+          console.log(`[BOOTSTRAP] ${adminEmail} is already admin`);
+        }
       } else {
-        console.log(`[BOOTSTRAP] ${adminEmail} is already admin`);
+        // Create placeholder for future signup
+        console.log(`[BOOTSTRAP] Admin user ${adminEmail} not found. Will be promoted on signup.`);
+        await db.collection('admin_bootstrap').doc(adminEmail.replace(/[^a-zA-Z0-9]/g, '_')).set({
+          email: adminEmail.toLowerCase(),
+          createdAt: new Date().toISOString()
+        });
       }
-    } else {
-      // Create placeholder for future signup
-      console.log(`[BOOTSTRAP] Admin user not found. Will be promoted on signup.`);
-      await db.collection('admin_bootstrap').doc('pending').set({
-        email: adminEmail.toLowerCase(),
-        createdAt: new Date().toISOString()
-      });
+    } catch (error) {
+      console.error(`[BOOTSTRAP] Admin bootstrap failed for ${adminEmail}:`, error);
     }
-  } catch (error) {
-    console.error('[BOOTSTRAP] Admin bootstrap failed:', error);
   }
 };
 
