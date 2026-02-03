@@ -2055,6 +2055,82 @@ app.get('/api/volunteers/online', verifyToken, async (req: Request, res: Respons
     }
 });
 
+// --- MESSAGING ENDPOINTS ---
+app.get('/api/messages', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.profile?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        // Get messages where user is sender or recipient, plus general channel
+        const [sentSnapshot, receivedSnapshot, generalSnapshot] = await Promise.all([
+            db.collection('messages').where('senderId', '==', userId).orderBy('timestamp', 'desc').limit(200).get(),
+            db.collection('messages').where('recipientId', '==', userId).orderBy('timestamp', 'desc').limit(200).get(),
+            db.collection('messages').where('recipientId', '==', 'general').orderBy('timestamp', 'desc').limit(100).get()
+        ]);
+
+        const messagesMap = new Map();
+        [...sentSnapshot.docs, ...receivedSnapshot.docs, ...generalSnapshot.docs].forEach(doc => {
+            messagesMap.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+
+        const messages = Array.from(messagesMap.values()).sort((a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        res.json(messages);
+    } catch (error) {
+        console.error('[MESSAGES] Failed to get messages:', error);
+        res.status(500).json({ error: 'Failed to get messages' });
+    }
+});
+
+app.post('/api/messages', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.profile?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        const message = req.body;
+
+        // Validate message
+        if (!message.content || !message.recipientId) {
+            return res.status(400).json({ error: 'Message content and recipientId are required' });
+        }
+
+        // Store message in Firestore
+        const messageData = {
+            senderId: userId,
+            sender: message.sender || 'Unknown',
+            recipientId: message.recipientId,
+            content: message.content,
+            timestamp: message.timestamp || new Date().toISOString(),
+            read: false
+        };
+
+        const docRef = await db.collection('messages').add(messageData);
+
+        console.log(`[MESSAGES] Message sent from ${userId} to ${message.recipientId}`);
+        res.json({ id: docRef.id, ...messageData });
+    } catch (error) {
+        console.error('[MESSAGES] Failed to send message:', error);
+        res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
+app.put('/api/messages/:messageId/read', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { messageId } = req.params;
+        await db.collection('messages').doc(messageId).update({ read: true });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[MESSAGES] Failed to mark message as read:', error);
+        res.status(500).json({ error: 'Failed to mark message as read' });
+    }
+});
+
 app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) => {
     try {
         const { opportunity } = req.body;
