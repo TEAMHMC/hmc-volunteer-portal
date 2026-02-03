@@ -2169,6 +2169,229 @@ app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Res
     }
 });
 
+// --- PUBLIC EVENT ENDPOINTS (for Event-Finder-Tool integration) ---
+
+// GET /api/public/events - Public endpoint to get approved events
+app.get('/api/public/events', async (req: Request, res: Response) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Query approved events with date >= today
+        const snapshot = await db.collection('opportunities')
+            .where('approvalStatus', '==', 'approved')
+            .where('date', '>=', today)
+            .orderBy('date', 'asc')
+            .get();
+
+        const events = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title || data.name || 'Untitled Event',
+                date: data.date,
+                dateDisplay: data.dateDisplay || data.date,
+                time: data.time || data.startTime || 'TBD',
+                location: data.location || data.serviceLocation || 'TBD',
+                city: data.city || 'Los Angeles',
+                address: data.address || data.location || '',
+                program: data.program || data.category || 'Community Health',
+                lat: data.locationCoordinates?.lat || data.lat || 34.0522,
+                lng: data.locationCoordinates?.lng || data.lng || -118.2437,
+                description: data.description || '',
+                saveTheDate: data.saveTheDate || false
+            };
+        });
+
+        console.log(`[PUBLIC EVENTS] Returned ${events.length} approved events`);
+        res.json(events);
+    } catch (error: any) {
+        console.error('[PUBLIC EVENTS] Failed to fetch events:', error);
+        res.status(500).json({ error: 'Failed to fetch public events' });
+    }
+});
+
+// POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
+app.post('/api/public/rsvp', async (req: Request, res: Response) => {
+    try {
+        const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source } = req.body;
+
+        if (!eventId || !name || !email) {
+            return res.status(400).json({ error: 'eventId, name, and email are required' });
+        }
+
+        // Generate a unique check-in token
+        const checkinToken = crypto.randomBytes(16).toString('hex');
+
+        // Store the RSVP
+        const rsvp = {
+            eventId,
+            eventTitle: eventTitle || '',
+            eventDate: eventDate || '',
+            name,
+            email,
+            phone: phone || '',
+            guests: guests || 0,
+            needs: needs || '',
+            source: source || 'event-finder-tool',
+            checkinToken,
+            checkedIn: false,
+            checkedInAt: null,
+            createdAt: new Date().toISOString()
+        };
+
+        const rsvpRef = await db.collection('public_rsvps').add(rsvp);
+
+        // Update the event's RSVP count
+        const eventRef = db.collection('opportunities').doc(eventId);
+        const eventDoc = await eventRef.get();
+        if (eventDoc.exists) {
+            const currentCount = eventDoc.data()?.rsvpCount || 0;
+            await eventRef.update({
+                rsvpCount: currentCount + 1 + (guests || 0)
+            });
+        }
+
+        console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId} (${name}, ${email})`);
+        res.json({
+            success: true,
+            rsvpId: rsvpRef.id,
+            checkinToken,
+            message: 'RSVP recorded successfully'
+        });
+    } catch (error: any) {
+        console.error('[PUBLIC RSVP] Failed to create RSVP:', error);
+        res.status(500).json({ error: 'Failed to record RSVP' });
+    }
+});
+
+// POST /api/public/checkin - Public endpoint for event check-in
+app.post('/api/public/checkin', async (req: Request, res: Response) => {
+    try {
+        const { checkinToken } = req.body;
+
+        if (!checkinToken) {
+            return res.status(400).json({ error: 'checkinToken is required' });
+        }
+
+        // Find the RSVP by check-in token
+        const rsvpSnapshot = await db.collection('public_rsvps')
+            .where('checkinToken', '==', checkinToken)
+            .limit(1)
+            .get();
+
+        if (rsvpSnapshot.empty) {
+            return res.status(404).json({ error: 'RSVP not found' });
+        }
+
+        const rsvpDoc = rsvpSnapshot.docs[0];
+        const rsvpData = rsvpDoc.data();
+
+        if (rsvpData.checkedIn) {
+            return res.status(400).json({ error: 'Already checked in', checkedInAt: rsvpData.checkedInAt });
+        }
+
+        // Mark as checked in
+        const checkedInAt = new Date().toISOString();
+        await rsvpDoc.ref.update({
+            checkedIn: true,
+            checkedInAt
+        });
+
+        // Update the event's check-in count
+        const eventRef = db.collection('opportunities').doc(rsvpData.eventId);
+        const eventDoc = await eventRef.get();
+        if (eventDoc.exists) {
+            const currentCheckinCount = eventDoc.data()?.checkinCount || 0;
+            await eventRef.update({
+                checkinCount: currentCheckinCount + 1 + (rsvpData.guests || 0)
+            });
+        }
+
+        console.log(`[PUBLIC CHECKIN] Checked in RSVP ${rsvpDoc.id} for event ${rsvpData.eventId}`);
+        res.json({
+            success: true,
+            name: rsvpData.name,
+            eventTitle: rsvpData.eventTitle,
+            checkedInAt,
+            message: 'Check-in successful'
+        });
+    } catch (error: any) {
+        console.error('[PUBLIC CHECKIN] Failed to check in:', error);
+        res.status(500).json({ error: 'Failed to check in' });
+    }
+});
+
+// GET /api/events/:id/rsvp-stats - Protected endpoint for admins to see RSVP stats
+app.get('/api/events/:id/rsvp-stats', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Get the event
+        const eventDoc = await db.collection('opportunities').doc(id).get();
+        if (!eventDoc.exists) {
+            return res.status(404).json({ error: 'Event not found' });
+        }
+
+        const eventData = eventDoc.data();
+
+        // Get all RSVPs for this event
+        const rsvpSnapshot = await db.collection('public_rsvps')
+            .where('eventId', '==', id)
+            .get();
+
+        const rsvps = rsvpSnapshot.docs.map(doc => doc.data());
+
+        // Calculate totals
+        const totalRsvps = rsvps.length;
+        const totalGuests = rsvps.reduce((sum, rsvp) => sum + (rsvp.guests || 0), 0);
+        const totalExpectedAttendees = totalRsvps + totalGuests;
+        const estimatedAttendance = Math.round(totalExpectedAttendees * 0.7); // 70% show rate
+        const checkedInCount = rsvps.filter(r => r.checkedIn).length;
+        const checkedInGuests = rsvps.filter(r => r.checkedIn).reduce((sum, rsvp) => sum + (rsvp.guests || 0), 0);
+        const totalCheckedIn = checkedInCount + checkedInGuests;
+
+        // Calculate needs breakdown
+        const needsBreakdown: Record<string, number> = {};
+        rsvps.forEach(rsvp => {
+            if (rsvp.needs) {
+                const needs = rsvp.needs.split(',').map((n: string) => n.trim()).filter(Boolean);
+                needs.forEach((need: string) => {
+                    needsBreakdown[need] = (needsBreakdown[need] || 0) + 1;
+                });
+            }
+        });
+
+        // Source breakdown
+        const sourceBreakdown: Record<string, number> = {};
+        rsvps.forEach(rsvp => {
+            const source = rsvp.source || 'unknown';
+            sourceBreakdown[source] = (sourceBreakdown[source] || 0) + 1;
+        });
+
+        const stats = {
+            eventId: id,
+            eventTitle: eventData?.title || 'Unknown Event',
+            eventDate: eventData?.date,
+            totalRsvps,
+            totalGuests,
+            totalExpectedAttendees,
+            estimatedAttendance,
+            checkedInCount: totalCheckedIn,
+            checkInRate: totalExpectedAttendees > 0 ? Math.round((totalCheckedIn / totalExpectedAttendees) * 100) : 0,
+            needsBreakdown,
+            sourceBreakdown,
+            rsvpCount: eventData?.rsvpCount || totalExpectedAttendees,
+            checkinCount: eventData?.checkinCount || totalCheckedIn
+        };
+
+        console.log(`[RSVP STATS] Retrieved stats for event ${id}: ${totalRsvps} RSVPs, ${totalCheckedIn} checked in`);
+        res.json(stats);
+    } catch (error: any) {
+        console.error('[RSVP STATS] Failed to get stats:', error);
+        res.status(500).json({ error: 'Failed to get RSVP stats' });
+    }
+});
+
 // --- FEEDBACK ENDPOINTS ---
 app.get('/api/feedback', verifyToken, async (req: Request, res: Response) => {
     try {

@@ -172,7 +172,22 @@ export interface Volunteer {
   tshirtSize: string;
   gainFromExperience: string;
   howDidYouHear: string;
-  
+
+  // ============================================================
+  // RETURNING VOLUNTEER & GROUP AFFILIATION
+  // ============================================================
+  // Track if this is a returning volunteer
+  isReturningVolunteer?: boolean;
+  previousVolunteerPeriod?: string; // e.g., "2023", "2022-2023"
+  previousVolunteerRole?: string;
+
+  // Track group volunteering (student orgs, corporate teams, etc.)
+  isGroupVolunteer?: boolean;
+  groupType?: 'Student Organization' | 'Corporate Team' | 'Faith-Based Group' | 'Community Group' | 'School Class' | 'Other';
+  groupName?: string; // e.g., "UCLA Pre-Med Society", "Google Volunteer Team"
+  groupSize?: number; // How many people in their group
+  groupContactEmail?: string; // Point of contact for the group
+
   // ============================================================
   // HMC v4.0 IDENTITY SYSTEM (CRITICAL GAP FIX #1)
   // ============================================================

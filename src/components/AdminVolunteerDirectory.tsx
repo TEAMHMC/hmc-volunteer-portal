@@ -26,6 +26,7 @@ const fileToBase64 = (file: File): Promise<string> => new Promise((res, rej) => 
 const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolunteers, currentUser, onAssignTask }) => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [groupFilter, setGroupFilter] = useState<'all' | 'group' | 'individual' | 'returning'>('all');
   const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
   const [editingTags, setEditingTags] = useState(false);
   const [tagInput, setTagInput] = useState('');
@@ -48,10 +49,17 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       if (v.applicationStatus === 'pendingReview') return false;
     }
     const searchLower = search.toLowerCase();
-    const matchesText = v.name.toLowerCase().includes(searchLower) || v.email.toLowerCase().includes(searchLower);
+    const matchesText = v.name.toLowerCase().includes(searchLower) || v.email.toLowerCase().includes(searchLower) || v.groupName?.toLowerCase().includes(searchLower);
     const matchesRole = roleFilter === 'All' || v.role === roleFilter;
-    return matchesText && matchesRole;
+    const matchesGroupFilter = groupFilter === 'all'
+      || (groupFilter === 'group' && v.isGroupVolunteer)
+      || (groupFilter === 'individual' && !v.isGroupVolunteer)
+      || (groupFilter === 'returning' && v.isReturningVolunteer);
+    return matchesText && matchesRole && matchesGroupFilter;
   });
+
+  const groupVolunteersCount = volunteers.filter(v => v.isGroupVolunteer).length;
+  const returningVolunteersCount = volunteers.filter(v => v.isReturningVolunteer).length;
 
   const roles = ["All", ...APP_CONFIG.HMC_ROLES.map(r => r.label)];
 
@@ -164,11 +172,24 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           </div>
         </div>
         
-        <div className="flex bg-white border border-zinc-100 p-1.5 rounded-full shadow-sm w-fit">
-            <button onClick={() => setViewMode('all')} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest ${viewMode === 'all' ? 'bg-[#233DFF] text-white shadow-lg' : 'text-zinc-400'}`}>Directory</button>
-            <button onClick={() => setViewMode('applicants')} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest relative ${viewMode === 'applicants' ? 'bg-[#233DFF] text-white shadow-lg' : 'text-zinc-400'}`}>
-              Applicants {applicantsCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center">{applicantsCount}</span>}
-            </button>
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex bg-white border border-zinc-100 p-1.5 rounded-full shadow-sm w-fit">
+              <button onClick={() => setViewMode('all')} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest ${viewMode === 'all' ? 'bg-[#233DFF] text-white shadow-lg' : 'text-zinc-400'}`}>Directory</button>
+              <button onClick={() => setViewMode('applicants')} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest relative ${viewMode === 'applicants' ? 'bg-[#233DFF] text-white shadow-lg' : 'text-zinc-400'}`}>
+                Applicants {applicantsCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center">{applicantsCount}</span>}
+              </button>
+          </div>
+
+          <div className="flex bg-white border border-zinc-100 p-1.5 rounded-full shadow-sm">
+              <button onClick={() => setGroupFilter('all')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${groupFilter === 'all' ? 'bg-zinc-900 text-white' : 'text-zinc-400'}`}>All</button>
+              <button onClick={() => setGroupFilter('group')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest relative ${groupFilter === 'group' ? 'bg-purple-600 text-white' : 'text-zinc-400'}`}>
+                Groups {groupVolunteersCount > 0 && <span className="ml-1 text-purple-400">({groupVolunteersCount})</span>}
+              </button>
+              <button onClick={() => setGroupFilter('returning')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest relative ${groupFilter === 'returning' ? 'bg-emerald-600 text-white' : 'text-zinc-400'}`}>
+                Returning {returningVolunteersCount > 0 && <span className="ml-1 text-emerald-400">({returningVolunteersCount})</span>}
+              </button>
+              <button onClick={() => setGroupFilter('individual')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${groupFilter === 'individual' ? 'bg-zinc-900 text-white' : 'text-zinc-400'}`}>Individual</button>
+          </div>
         </div>
 
 
@@ -187,6 +208,14 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                      <div>
                         <h3 className="text-lg font-black text-zinc-900 leading-tight group-hover:text-[#233DFF] transition-colors">{v.name}</h3>
                         <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.15em] mt-1">{v.applicationStatus === 'pendingReview' ? `Applied for: ${v.appliedRole}` : v.role}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {v.isReturningVolunteer && (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-wider rounded-full">Returning</span>
+                          )}
+                          {v.isGroupVolunteer && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[8px] font-black uppercase tracking-wider rounded-full" title={v.groupName}>{v.groupType || 'Group'}</span>
+                          )}
+                        </div>
                      </div>
                   </div>
                   <button className="p-3 bg-zinc-50 rounded-full text-zinc-200 hover:text-zinc-900 transition-colors"><MoreVertical size={20} /></button>

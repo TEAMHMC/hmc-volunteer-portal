@@ -315,6 +315,18 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
           disabilityStatus: formData.disabilityStatus === 'yes',
         },
 
+        // Returning volunteer status
+        isReturningVolunteer: formData.isReturningVolunteer || false,
+        previousVolunteerPeriod: formData.previousVolunteerPeriod,
+        previousVolunteerRole: formData.previousVolunteerRole,
+
+        // Group volunteering affiliation
+        isGroupVolunteer: formData.isGroupVolunteer || false,
+        groupType: formData.groupType,
+        groupName: formData.groupName,
+        groupSize: formData.groupSize,
+        groupContactEmail: formData.groupContactEmail,
+
         // Identity fields (required by v4.0)
         identityLabel: 'HMC Champion',
         volunteerRole: (formData.selectedRole as Volunteer['volunteerRole']) || 'Core Volunteer',
@@ -811,6 +823,133 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
       <div>
         <label className="text-sm font-bold text-zinc-600 block mb-2">What do you hope to gain from this volunteer experience?</label>
         <textarea value={data.gainFromExperience || ''} onChange={e => onChange('gainFromExperience', e.target.value)} rows={4} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="Share your goals and motivations..." />
+      </div>
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Volunteer History</h3>
+      <div className="space-y-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Have you volunteered with HMC before?</label>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => onChange('isReturningVolunteer', true)}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+            >
+              Yes, I'm a returning volunteer
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange('isReturningVolunteer', false)}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+            >
+              No, this is my first time
+            </button>
+          </div>
+        </div>
+
+        {data.isReturningVolunteer && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <div>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">When did you previously volunteer?</label>
+              <input
+                type="text"
+                value={data.previousVolunteerPeriod || ''}
+                onChange={e => onChange('previousVolunteerPeriod', e.target.value)}
+                className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-lg"
+                placeholder="e.g., 2023, Summer 2022"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">What was your previous role?</label>
+              <input
+                type="text"
+                value={data.previousVolunteerRole || ''}
+                onChange={e => onChange('previousVolunteerRole', e.target.value)}
+                className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-lg"
+                placeholder="e.g., Core Volunteer, Event Support"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Group Volunteering</h3>
+      <div className="space-y-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Are you volunteering as part of a group?</label>
+          <p className="text-xs text-zinc-500 mb-4">Student organizations, corporate teams, faith groups, etc.</p>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => onChange('isGroupVolunteer', true)}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+            >
+              Yes, I'm with a group
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange('isGroupVolunteer', false)}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+            >
+              No, I'm volunteering individually
+            </button>
+          </div>
+        </div>
+
+        {data.isGroupVolunteer && (
+          <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-4">
+            <div>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">Type of Group *</label>
+              <select
+                value={data.groupType || ''}
+                onChange={e => onChange('groupType', e.target.value)}
+                className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-lg"
+              >
+                <option value="">Select group type...</option>
+                <option value="Student Organization">Student Organization</option>
+                <option value="Corporate Team">Corporate Team</option>
+                <option value="Faith-Based Group">Faith-Based Group</option>
+                <option value="Community Group">Community Group</option>
+                <option value="School Class">School Class</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-bold text-zinc-600 block mb-2">Group/Organization Name *</label>
+                <input
+                  type="text"
+                  value={data.groupName || ''}
+                  onChange={e => onChange('groupName', e.target.value)}
+                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-lg"
+                  placeholder="e.g., UCLA Pre-Med Society"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-zinc-600 block mb-2">Estimated Group Size</label>
+                <input
+                  type="number"
+                  value={data.groupSize || ''}
+                  onChange={e => onChange('groupSize', parseInt(e.target.value) || '')}
+                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-lg"
+                  placeholder="e.g., 15"
+                  min="2"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">Group Contact Email (Optional)</label>
+              <p className="text-xs text-zinc-500 mb-2">For coordinating group volunteer opportunities</p>
+              <input
+                type="email"
+                value={data.groupContactEmail || ''}
+                onChange={e => onChange('groupContactEmail', e.target.value)}
+                className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-lg"
+                placeholder="e.g., president@studentorg.edu"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Demographics (Optional)</h3>
