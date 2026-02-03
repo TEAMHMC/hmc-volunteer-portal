@@ -111,17 +111,82 @@ const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (token: string | null) => 
 
 // --- ONBOARDING FLOW ---
 
+const STORAGE_KEY = 'hmc_onboarding_progress';
+
 const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey }) => {
-  const [step, setStep] = useState<StepId>('account');
-  const [formData, setFormData] = useState<any>({ availDays: [] });
+  // Load saved progress from localStorage
+  const loadSavedProgress = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          step: parsed.step || 'account',
+          formData: parsed.formData || { availDays: [] }
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to load saved onboarding progress');
+    }
+    return { step: 'account' as StepId, formData: { availDays: [] } };
+  };
+
+  const savedProgress = loadSavedProgress();
+  const [step, setStep] = useState<StepId>(savedProgress.step);
+  const [formData, setFormData] = useState<any>(savedProgress.formData);
   const [formErrors, setFormErrors] = useState<any>({});
-  
+
   const [isComplete, setIsComplete] = useState(false);
   const [isStepLoading, setIsStepLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  // Save progress to localStorage whenever step or formData changes
+  useEffect(() => {
+    // Don't save sensitive data like passwords or SSN
+    const safeFormData = { ...formData };
+    delete safeFormData.password;
+    delete safeFormData.verifyPassword;
+    delete safeFormData.ssn;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        step,
+        formData: safeFormData,
+        savedAt: new Date().toISOString()
+      }));
+    } catch (e) {
+      console.warn('Failed to save onboarding progress');
+    }
+  }, [step, formData]);
+
+  // Clear saved progress
+  const clearSavedProgress = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+  };
+
   const handleDataChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
+
+  // Handle return to landing - ask if they want to save progress
+  const handleBackToLanding = () => {
+    if (step !== 'account' && formData.email) {
+      const shouldClear = window.confirm('Your application progress will be saved. Click OK to continue, or Cancel to stay on this page.');
+      if (!shouldClear) return;
+    }
+    onBackToLanding();
+  };
+
+  // Handle clearing all progress (for starting fresh)
+  const handleStartOver = () => {
+    if (window.confirm('Are you sure you want to start over? All progress will be lost.')) {
+      clearSavedProgress();
+      setStep('account');
+      setFormData({ availDays: [] });
+      setFormErrors({});
+    }
+  };
 
   const STEPS: StepId[] = ['account', 'personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation'];
   const currentStepIndex = STEPS.indexOf(step);
@@ -306,6 +371,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         : { user: v, password: formData.password };
       const response = await apiService.post('/auth/signup', authPayload, 90000);
       
+      // Clear saved progress on successful submission
+      clearSavedProgress();
+
       if (response && response.token && onSuccess) {
           onSuccess();
       } else {
@@ -352,8 +420,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
-       <div className="w-full max-w-4xl my-4">
-         <button onClick={onBackToLanding} className="text-sm font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
+       <div className="w-full max-w-4xl my-4 flex items-center justify-between">
+         <button onClick={handleBackToLanding} className="text-sm font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
+         {step !== 'account' && savedProgress.step !== 'account' && (
+           <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
+         )}
        </div>
        <div className={`max-w-4xl w-full bg-white rounded-[40px] shadow-2xl border border-zinc-100 ${step === 'account' ? 'p-10 md:p-12' : 'p-10 md:p-16'} relative overflow-hidden`}>
         {renderStepContent()}

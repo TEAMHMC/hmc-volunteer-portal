@@ -1547,24 +1547,42 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
         const userProfile = (req as any).user.profile;
         const userId = userProfile.id;
 
-        // Fetch messages only for this user (sent, received, or general channel)
-        const [volunteersSnap, opportunitiesSnap, shiftsSnap, ticketsSnap, announcementsSnap, sentMsgs, receivedMsgs, generalMsgs] = await Promise.all([
+        // Fetch core data first (these should always work)
+        const [volunteersSnap, opportunitiesSnap, shiftsSnap, ticketsSnap, announcementsSnap] = await Promise.all([
             db.collection('volunteers').get(),
             db.collection('opportunities').get(),
             db.collection('shifts').get(),
             db.collection('support_tickets').get(),
-            db.collection('announcements').orderBy('date', 'desc').get(),
-            db.collection('messages').where('senderId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
-            db.collection('messages').where('recipientId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
-            db.collection('messages').where('recipientId', '==', 'general').orderBy('timestamp', 'desc').limit(50).get(),
+            db.collection('announcements').orderBy('date', 'desc').get().catch(() => ({ docs: [] })),
         ]);
 
-        // Dedupe messages
-        const messagesMap = new Map();
-        [...sentMsgs.docs, ...receivedMsgs.docs, ...generalMsgs.docs].forEach(doc => {
-            messagesMap.set(doc.id, { id: doc.id, ...doc.data() });
-        });
-        const messages = Array.from(messagesMap.values());
+        // Fetch messages separately with fallback (these queries require indexes)
+        let messages: any[] = [];
+        try {
+            const [sentMsgs, receivedMsgs, generalMsgs] = await Promise.all([
+                db.collection('messages').where('senderId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
+                db.collection('messages').where('recipientId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
+                db.collection('messages').where('recipientId', '==', 'general').orderBy('timestamp', 'desc').limit(50).get(),
+            ]);
+            // Dedupe messages
+            const messagesMap = new Map();
+            [...sentMsgs.docs, ...receivedMsgs.docs, ...generalMsgs.docs].forEach(doc => {
+                messagesMap.set(doc.id, { id: doc.id, ...doc.data() });
+            });
+            messages = Array.from(messagesMap.values());
+        } catch (msgError) {
+            console.warn('[AUTH/ME] Messages query failed (may need Firestore indexes):', msgError);
+            // Fallback: try simple query without orderBy
+            try {
+                const allMsgs = await db.collection('messages').limit(200).get();
+                messages = allMsgs.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter((m: any) => m.senderId === userId || m.recipientId === userId || m.recipientId === 'general');
+            } catch (fallbackError) {
+                console.warn('[AUTH/ME] Fallback messages query also failed:', fallbackError);
+                messages = [];
+            }
+        }
 
         // Compute online status based on lastActiveAt (within last 5 minutes = online)
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
