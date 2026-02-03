@@ -212,7 +212,41 @@ app.post('/api/analytics/log', async (req: Request, res: Response) => {
 });
 
 // --- HELPERS ---
-const rateLimit = (limit: number, timeframe: number) => (req: Request, res: Response, next: NextFunction) => next();
+
+// PII masking for logs
+const maskEmail = (email: string) => email ? email.replace(/(.{2}).*(@.*)/, '$1***$2') : '[no email]';
+const maskPhone = (phone: string) => phone ? phone.slice(-4).padStart(phone.length, '*') : '[no phone]';
+
+// In-memory rate limit store (use Redis in production for multi-instance)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+const rateLimit = (limit: number, timeframeMs: number) => (req: Request, res: Response, next: NextFunction) => {
+  const key = `${req.ip}_${req.path}`;
+  const now = Date.now();
+  const record = rateLimitStore.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + timeframeMs });
+    return next();
+  }
+
+  if (record.count >= limit) {
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  }
+
+  record.count++;
+  return next();
+};
+
+// Admin authorization middleware - MUST be used on all /api/admin/* routes
+const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  const user = (req as any).user;
+  if (!user?.profile?.isAdmin) {
+    console.warn(`[SECURITY] Non-admin attempted admin action: ${user?.profile?.email || 'unknown'} on ${req.path}`);
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
 
 // --- reCAPTCHA MIDDLEWARE ---
 const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) => {
@@ -1165,14 +1199,13 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-const createSession = async (uid: string, isAdminRequest: boolean, res: Response) => {
+const createSession = async (uid: string, res: Response) => {
     const userDoc = await db.collection('volunteers').doc(uid).get();
     const user = userDoc.data();
-    
-    if (isAdminRequest && user && !user.isAdmin) return res.status(403).json({ error: "Access denied." });
-    
+    // SECURITY: isAdmin status is ONLY read from database, never from client request
+
     const sessionToken = crypto.randomBytes(64).toString('hex');
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours (reduced from 24 for security)
     await db.collection('sessions').doc(sessionToken).set({ uid, expires });
     res.json({ token: sessionToken, user: { ...user, id: uid } });
 };
@@ -1216,7 +1249,7 @@ app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Res
     });
 
     // Send verification email using template
-    console.log(`[SERVER] Attempting to send verification email to ${email}...`);
+    console.log(`[SERVER] Attempting to send verification email to ${maskEmail(email)}...`);
     console.log(`[SERVER] EMAIL_SERVICE_URL configured: ${!!EMAIL_SERVICE_URL}`);
 
     const emailResult = await EmailService.send('email_verification', {
@@ -1234,7 +1267,7 @@ app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Res
       return res.status(500).json({ error: `Email send failed: ${emailResult.reason}` });
     }
 
-    console.log(`[SERVER] Verification email sent successfully to ${email}.`);
+    console.log(`[SERVER] Verification email sent successfully to ${maskEmail(email)}.`);
     res.json({ success: true });
 
   } catch (error) {
@@ -1370,7 +1403,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
           await GamificationService.convertReferral(referralCode, finalUserId);
         }
 
-        await createSession(finalUserId, false, res);
+        await createSession(finalUserId, res);
     } catch (error) {
         console.error("Signup error:", error);
         res.status(400).json({ error: (error as Error).message });
@@ -1378,7 +1411,8 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
 });
 
 app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response) => {
-    const { email, password, isAdmin } = req.body;
+    const { email, password } = req.body;
+    // SECURITY: isAdmin is NEVER accepted from client - always read from database
     if (!email || !password) return res.status(400).json({ error: "Email and password are required." });
     try {
         const firebaseLoginUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_WEB_API_KEY}`;
@@ -1420,7 +1454,7 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
         }
 
         const firebaseData = await firebaseRes.json() as { localId: string };
-        await createSession(firebaseData.localId, isAdmin, res);
+        await createSession(firebaseData.localId, res);
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ error: "Internal server error." });
@@ -1428,7 +1462,8 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
 });
 
 app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: Response) => {
-    const { credential, isAdmin, referralCode } = req.body;
+    const { credential, referralCode } = req.body;
+    // SECURITY: isAdmin is NEVER accepted from client - always read from database
     if (!credential) return res.status(400).json({ error: "Google credential is required." });
     try {
         // Verify Google OAuth token
@@ -1454,8 +1489,8 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
             const existingUser = existingByEmail.docs[0].data();
             if (existingUser.authProvider === 'email') {
                 // User signed up with email/password before - log them in with that account
-                console.log(`[AUTH] Google login for existing email/password user: ${googleUser.email}`);
-                await createSession(existingByEmail.docs[0].id, isAdmin, res);
+                console.log(`[AUTH] Google login for existing email/password user: ${maskEmail(googleUser.email)}`);
+                await createSession(existingByEmail.docs[0].id, res);
                 return;
             }
         }
@@ -1515,7 +1550,7 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
              }
         }
 
-        await createSession(userId, isAdmin, res);
+        await createSession(userId, res);
     } catch (error) {
         console.error("Google Login error:", error);
         res.status(500).json({ error: "Google login verification failed." });
@@ -2251,7 +2286,7 @@ app.post('/api/public/rsvp', async (req: Request, res: Response) => {
             });
         }
 
-        console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId} (${name}, ${email})`);
+        console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
         res.json({
             success: true,
             rsvpId: rsvpRef.id,
@@ -3102,10 +3137,10 @@ app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response
                             from: TWILIO_PHONE_NUMBER,
                             to: vol.phone
                         });
-                        console.log(`[BROADCAST] SMS sent to ${vol.phone}`);
+                        console.log(`[BROADCAST] SMS sent to ${maskPhone(vol.phone)}`);
                         return { success: true };
                     } catch (error: any) {
-                        console.error(`[BROADCAST] SMS failed for ${vol.phone}:`, error.message);
+                        console.error(`[BROADCAST] SMS failed for ${maskPhone(vol.phone)}:`, error.message);
                         return { success: false, error: error.message };
                     }
                 });
@@ -3196,8 +3231,9 @@ app.put('/api/support_tickets/:ticketId', verifyToken, async (req: Request, res:
     }
 });
 
-app.post('/api/admin/bulk-import', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
+        console.log(`[ADMIN] Bulk import initiated by ${(req as any).user?.profile?.email}`);
         const { csvData } = req.body;
         // Decode base64 CSV data
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
@@ -3269,7 +3305,7 @@ app.post('/api/admin/bulk-import', verifyToken, async (req: Request, res: Respon
                         appliedRole: volunteer.role,
                     });
                 } catch (emailErr) {
-                    console.error(`Failed to send welcome email to ${volunteer.email}:`, emailErr);
+                    console.error(`Failed to send welcome email to ${maskEmail(volunteer.email)}:`, emailErr);
                 }
             }
         }
@@ -3283,12 +3319,18 @@ app.post('/api/admin/bulk-import', verifyToken, async (req: Request, res: Respon
 });
 
 // Add single volunteer manually
-app.post('/api/admin/add-volunteer', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/admin/add-volunteer', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const { volunteer, password, sendPasswordReset } = req.body;
+        console.log(`[ADMIN] Add volunteer initiated by ${(req as any).user?.profile?.email}`);
 
         if (!volunteer.email) {
             return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // SECURITY: Prevent creating admin accounts via this endpoint
+        if (volunteer.isAdmin) {
+            return res.status(403).json({ error: 'Cannot create admin accounts via this endpoint' });
         }
 
         // Check if email already exists
@@ -3388,7 +3430,7 @@ app.post('/api/admin/add-volunteer', verifyToken, async (req: Request, res: Resp
             });
             console.log(`[ADD VOLUNTEER] Welcome email sent to ${volunteer.email} (with reset link: ${!!passwordResetLink})`);
         } catch (emailErr) {
-            console.error(`Failed to send welcome email to ${volunteer.email}:`, emailErr);
+            console.error(`Failed to send welcome email to ${maskEmail(volunteer.email)}:`, emailErr);
         }
 
         res.json({ id: finalUserId, ...volunteerData });
@@ -3397,14 +3439,19 @@ app.post('/api/admin/add-volunteer', verifyToken, async (req: Request, res: Resp
         res.status(500).json({ error: error.message || 'Failed to add volunteer' });
     }
 });
-app.post('/api/admin/update-volunteer-profile', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/admin/update-volunteer-profile', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     const { volunteer } = req.body;
-    await db.collection('volunteers').doc(volunteer.id).update(volunteer);
+    if (!volunteer?.id) return res.status(400).json({ error: 'Volunteer ID required' });
+    // SECURITY: Prevent escalation - cannot set isAdmin via this endpoint
+    const { isAdmin, ...safeUpdates } = volunteer;
+    await db.collection('volunteers').doc(volunteer.id).update(safeUpdates);
+    console.log(`[ADMIN] Profile updated for volunteer ${volunteer.id} by ${(req as any).user?.profile?.email}`);
     res.json({ success: true });
 });
-app.post('/api/admin/review-application', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/admin/review-application', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { volunteerId, action, notes } = req.body;
+    console.log(`[ADMIN] Application ${action} for ${volunteerId} by ${(req as any).user?.profile?.email}`);
     const updates: any = {
       applicationStatus: action === 'approve' ? 'approved' : 'rejected',
       reviewedAt: new Date().toISOString(),
@@ -3865,12 +3912,18 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 // --- ADMIN SETUP ENDPOINT (One-time setup) ---
-app.post('/api/admin/setup', async (req: Request, res: Response) => {
+app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Response) => {
   const { email, setupKey } = req.body;
 
-  // Verify setup key matches environment variable
-  const validSetupKey = process.env.ADMIN_SETUP_KEY || 'hmc-admin-setup-2024';
-  if (setupKey !== validSetupKey) {
+  // SECURITY: Setup key MUST be configured in environment - no default fallback
+  const validSetupKey = process.env.ADMIN_SETUP_KEY;
+  if (!validSetupKey) {
+    console.error('[SECURITY] ADMIN_SETUP_KEY not configured - setup endpoint disabled');
+    return res.status(503).json({ error: 'Admin setup not configured. Contact system administrator.' });
+  }
+
+  if (!setupKey || setupKey !== validSetupKey) {
+    console.warn(`[SECURITY] Invalid admin setup attempt for email: ${email ? maskEmail(email) : 'none'}`);
     return res.status(403).json({ error: 'Invalid setup key.' });
   }
 
@@ -3895,7 +3948,7 @@ app.post('/api/admin/setup', async (req: Request, res: Response) => {
     }
 
     await doc.ref.update({ isAdmin: true });
-    console.log(`[ADMIN SETUP] Promoted ${email} to admin via API`);
+    console.log(`[ADMIN SETUP] Promoted ${maskEmail(email)} to admin via API`);
     res.json({ message: 'Successfully promoted to admin!', userId: doc.id });
   } catch (error) {
     console.error('[ADMIN SETUP] Failed:', error);

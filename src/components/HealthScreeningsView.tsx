@@ -143,20 +143,214 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
     );
 };
 
+// Vitals thresholds for flagging
+const VITALS_FLAGS = {
+    bloodPressure: {
+        systolic: { normal: 120, elevated: 129, stage1: 139, stage2: 180 },
+        diastolic: { normal: 80, elevated: 80, stage1: 89, stage2: 120 }
+    },
+    glucose: { normal: 140, prediabetes: 200, diabetes: 300 },
+    heartRate: { low: 60, high: 100 },
+    temperature: { low: 97, high: 99.5 }
+};
+
+const getBloodPressureFlag = (systolic: number, diastolic: number) => {
+    if (systolic >= 180 || diastolic >= 120) return { level: 'critical', label: 'Hypertensive Crisis', color: 'rose' };
+    if (systolic >= 140 || diastolic >= 90) return { level: 'high', label: 'Stage 2 Hypertension', color: 'orange' };
+    if (systolic >= 130 || diastolic >= 80) return { level: 'medium', label: 'Stage 1 Hypertension', color: 'amber' };
+    if (systolic >= 120) return { level: 'low', label: 'Elevated', color: 'yellow' };
+    return { level: 'normal', label: 'Normal', color: 'emerald' };
+};
+
+const getGlucoseFlag = (value: number) => {
+    if (value >= 300) return { level: 'critical', label: 'Critical - Seek Care', color: 'rose' };
+    if (value >= 200) return { level: 'high', label: 'Diabetes Range', color: 'orange' };
+    if (value >= 140) return { level: 'medium', label: 'Prediabetes Range', color: 'amber' };
+    return { level: 'normal', label: 'Normal', color: 'emerald' };
+};
+
 const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shift, event?: ClinicEvent, onLog: Function, onComplete: Function}> = ({ client, user, shift, event, onLog, onComplete }) => {
-    // This would be a large state object, managed with useReducer in a real app
     const [isSaving, setIsSaving] = useState(false);
+    const [vitals, setVitals] = useState({
+        systolic: '',
+        diastolic: '',
+        heartRate: '',
+        glucose: '',
+        temperature: '',
+        weight: '',
+        height: '',
+        oxygenSat: '',
+        notes: '',
+        followUpNeeded: false,
+        followUpReason: ''
+    });
+
+    const bpFlag = vitals.systolic && vitals.diastolic
+        ? getBloodPressureFlag(Number(vitals.systolic), Number(vitals.diastolic))
+        : null;
+    const glucoseFlag = vitals.glucose ? getGlucoseFlag(Number(vitals.glucose)) : null;
+
+    const hasFlags = bpFlag?.level === 'critical' || bpFlag?.level === 'high' ||
+                     glucoseFlag?.level === 'critical' || glucoseFlag?.level === 'high';
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        try {
+            const screening = {
+                clientId: client.id,
+                volunteerId: user.id,
+                shiftId: shift?.id,
+                eventId: event?.id,
+                vitals: {
+                    bloodPressure: { systolic: Number(vitals.systolic), diastolic: Number(vitals.diastolic) },
+                    heartRate: Number(vitals.heartRate) || null,
+                    glucose: Number(vitals.glucose) || null,
+                    temperature: Number(vitals.temperature) || null,
+                    weight: Number(vitals.weight) || null,
+                    height: Number(vitals.height) || null,
+                    oxygenSat: Number(vitals.oxygenSat) || null
+                },
+                flags: {
+                    bloodPressure: bpFlag?.level !== 'normal' ? bpFlag : null,
+                    glucose: glucoseFlag?.level !== 'normal' ? glucoseFlag : null
+                },
+                notes: vitals.notes,
+                followUpNeeded: vitals.followUpNeeded || hasFlags,
+                followUpReason: vitals.followUpReason || (hasFlags ? 'Abnormal vitals flagged' : ''),
+                timestamp: new Date().toISOString()
+            };
+
+            await apiService.post('/api/screenings/create', screening);
+            onLog({
+                actionType: 'CREATE_SCREENING',
+                targetSystem: 'FIRESTORE',
+                targetId: client.id,
+                summary: `Screening completed for ${client.firstName} ${client.lastName}. ${hasFlags ? '⚠️ FLAGS PRESENT' : 'No flags.'}`
+            });
+            onComplete();
+        } catch(err) {
+            alert('Failed to save screening.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-blue-500 font-medium";
+    const labelClass = "block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2";
+
     return (
-        <div className="space-y-6 animate-in fade-in">
-            <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-100">
-                <p className="text-xs font-bold text-zinc-500">Screening for:</p>
-                <p className="text-lg font-bold">{client.firstName} {client.lastName}</p>
+        <div className="space-y-6 animate-in fade-in max-w-2xl mx-auto">
+            <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-100 flex items-center justify-between">
+                <div>
+                    <p className="text-xs font-bold text-zinc-500">Screening for:</p>
+                    <p className="text-lg font-bold">{client.firstName} {client.lastName}</p>
+                    <p className="text-sm text-zinc-500">DOB: {client.dob}</p>
+                </div>
+                <button onClick={() => onComplete()} className="p-2 hover:bg-zinc-200 rounded-lg"><X size={20} /></button>
             </div>
-            <p>Full screening form would go here, with fields for vitals, biometrics, labs, etc.</p>
-            <button onClick={() => onComplete()} className="w-full py-4 bg-emerald-600 text-white rounded-lg font-bold text-sm">Save Screening</button>
-             <button onClick={() => onComplete()} className="w-full py-2 text-zinc-500 text-sm font-bold">Cancel</button>
+
+            <form onSubmit={handleSave} className="space-y-6">
+                {/* Blood Pressure */}
+                <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-zinc-900">Blood Pressure</h4>
+                        {bpFlag && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${bpFlag.color}-100 text-${bpFlag.color}-700 flex items-center gap-1`}>
+                                {bpFlag.level !== 'normal' && <AlertTriangle size={12} />}
+                                {bpFlag.label}
+                            </span>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelClass}>Systolic (top)</label>
+                            <input type="number" placeholder="120" value={vitals.systolic} onChange={e => setVitals({...vitals, systolic: e.target.value})} className={inputClass} />
+                        </div>
+                        <div>
+                            <label className={labelClass}>Diastolic (bottom)</label>
+                            <input type="number" placeholder="80" value={vitals.diastolic} onChange={e => setVitals({...vitals, diastolic: e.target.value})} className={inputClass} />
+                        </div>
+                    </div>
+                    {bpFlag && bpFlag.level === 'critical' && (
+                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm font-medium">
+                            ⚠️ <strong>Hypertensive Crisis Detected.</strong> Client should seek immediate medical attention. Do not discharge without clinical review.
+                        </div>
+                    )}
+                </div>
+
+                {/* Glucose */}
+                <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-zinc-900">Blood Glucose</h4>
+                        {glucoseFlag && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${glucoseFlag.color}-100 text-${glucoseFlag.color}-700 flex items-center gap-1`}>
+                                {glucoseFlag.level !== 'normal' && <AlertTriangle size={12} />}
+                                {glucoseFlag.label}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <label className={labelClass}>Glucose (mg/dL)</label>
+                        <input type="number" placeholder="100" value={vitals.glucose} onChange={e => setVitals({...vitals, glucose: e.target.value})} className={inputClass} />
+                    </div>
+                    {glucoseFlag && glucoseFlag.level === 'critical' && (
+                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm font-medium">
+                            ⚠️ <strong>Critical Glucose Level.</strong> Client needs immediate evaluation. Check for diabetic emergency symptoms.
+                        </div>
+                    )}
+                </div>
+
+                {/* Other Vitals */}
+                <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
+                    <h4 className="font-bold text-zinc-900">Additional Vitals</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelClass}>Heart Rate (BPM)</label>
+                            <input type="number" placeholder="72" value={vitals.heartRate} onChange={e => setVitals({...vitals, heartRate: e.target.value})} className={inputClass} />
+                        </div>
+                        <div>
+                            <label className={labelClass}>Temperature (°F)</label>
+                            <input type="number" step="0.1" placeholder="98.6" value={vitals.temperature} onChange={e => setVitals({...vitals, temperature: e.target.value})} className={inputClass} />
+                        </div>
+                        <div>
+                            <label className={labelClass}>Oxygen Saturation (%)</label>
+                            <input type="number" placeholder="98" value={vitals.oxygenSat} onChange={e => setVitals({...vitals, oxygenSat: e.target.value})} className={inputClass} />
+                        </div>
+                        <div>
+                            <label className={labelClass}>Weight (lbs)</label>
+                            <input type="number" placeholder="150" value={vitals.weight} onChange={e => setVitals({...vitals, weight: e.target.value})} className={inputClass} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notes & Follow-up */}
+                <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
+                    <h4 className="font-bold text-zinc-900">Notes & Follow-up</h4>
+                    <div>
+                        <label className={labelClass}>Clinical Notes</label>
+                        <textarea rows={3} placeholder="Any observations, client concerns, or recommendations..." value={vitals.notes} onChange={e => setVitals({...vitals, notes: e.target.value})} className={inputClass} />
+                    </div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={vitals.followUpNeeded || hasFlags} onChange={e => setVitals({...vitals, followUpNeeded: e.target.checked})} className="w-5 h-5 rounded" />
+                        <span className="font-medium text-zinc-700">Follow-up needed</span>
+                        {hasFlags && <span className="text-xs text-amber-600 font-bold">(Auto-flagged due to abnormal vitals)</span>}
+                    </label>
+                    {(vitals.followUpNeeded || hasFlags) && (
+                        <input type="text" placeholder="Reason for follow-up..." value={vitals.followUpReason} onChange={e => setVitals({...vitals, followUpReason: e.target.value})} className={inputClass} />
+                    )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-4">
+                    <button type="button" onClick={() => onComplete()} className="flex-1 py-4 border-2 border-zinc-200 rounded-xl text-sm font-bold hover:bg-zinc-50">Cancel</button>
+                    <button type="submit" disabled={isSaving || (!vitals.systolic && !vitals.glucose)} className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                        {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : <><CheckCircle size={16} /> Save Screening</>}
+                    </button>
+                </div>
+            </form>
         </div>
-    )
+    );
 };
 
 const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }) => (

@@ -226,7 +226,10 @@ const VolunteerExperienceView = () => {
                     {isLoadingSummary ? (
                         <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-500" /></div>
                     ) : aiSummary ? (
-                        <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: aiSummary.replace(/\*/g, '•') }} />
+                        <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-medium">
+                            {/* SECURITY: Render as text, not HTML, to prevent XSS */}
+                            {aiSummary.replace(/\*/g, '•')}
+                        </div>
                     ) : (
                         <p className="text-sm text-zinc-400">AI summary will appear when feedback data is available.</p>
                     )}

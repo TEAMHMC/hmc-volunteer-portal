@@ -148,9 +148,20 @@ const ArticleModal: React.FC<{
     onEdit: (article: KnowledgeBaseArticle) => void;
     onDelete: (articleId: string) => void;
 }> = ({ article, onClose, canEdit, onEdit, onDelete }) => {
-    // A simple markdown-to-html renderer
+    // SECURITY: Escape HTML to prevent XSS, then apply safe formatting
+    const escapeHtml = (text: string) => {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
     const renderContent = (content: string) => {
-        return content
+        // First escape all HTML, then apply safe markdown-like formatting
+        const escaped = escapeHtml(content);
+        return escaped
             .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-6 mb-2">$1</h2>')
             .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
             .replace(/\n/g, '<br />');
