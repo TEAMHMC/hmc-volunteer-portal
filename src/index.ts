@@ -139,7 +139,7 @@ app.use(helmet({
 }));
 
 // SECURITY: Restrict CORS to allowed origins
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://healthmatters.clinic,https://volunteer.healthmatters.clinic,http://localhost:5173,http://localhost:8080,https://hmc-volunteer-portal-172668994130.us-west2.run.app').split(',');
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://healthmatters.clinic,https://www.healthmatters.clinic,https://volunteer.healthmatters.clinic,http://localhost:5173,http://localhost:8080,https://hmc-volunteer-portal-172668994130.us-west2.run.app').split(',');
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -148,7 +148,7 @@ app.use(cors({
       return;
     }
     // Allow same-origin requests and Cloud Run URLs
-    if (ALLOWED_ORIGINS.includes(origin) || origin.includes('.run.app') || origin.includes('localhost')) {
+    if (ALLOWED_ORIGINS.includes(origin) || origin.includes('.run.app') || origin.includes('localhost') || origin.includes('healthmatters.clinic')) {
       callback(null, true);
     } else {
       console.warn(`[SECURITY] Blocked CORS request from: ${origin}`);
