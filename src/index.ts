@@ -1387,10 +1387,36 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, returnSecureToken: true }),
         });
-        
+
         if (!firebaseRes.ok) {
-             const err = await firebaseRes.json() as { error?: { message?: string } };
-             return res.status(401).json({ error: err.error?.message || "Invalid credentials." });
+            const err = await firebaseRes.json() as { error?: { message?: string } };
+            const errorMsg = err.error?.message || "Invalid credentials.";
+
+            // Check if user exists and what auth provider they used
+            if (errorMsg.includes('PASSWORD_LOGIN_DISABLED') || errorMsg.includes('INVALID_LOGIN_CREDENTIALS')) {
+                const existingUser = await db.collection('volunteers')
+                    .where('email', '==', email.toLowerCase())
+                    .limit(1)
+                    .get();
+
+                if (!existingUser.empty) {
+                    const userData = existingUser.docs[0].data();
+                    if (userData.authProvider === 'google') {
+                        return res.status(401).json({
+                            error: "This account uses Google Sign-In. Please click 'Sign in with Google' instead.",
+                            useGoogle: true
+                        });
+                    }
+                    if (userData.authProvider === 'manual') {
+                        return res.status(401).json({
+                            error: "Your account was created by an administrator. Please use the password reset link sent to your email, or contact support.",
+                            needsPasswordReset: true
+                        });
+                    }
+                }
+            }
+
+            return res.status(401).json({ error: errorMsg === 'INVALID_LOGIN_CREDENTIALS' ? 'Invalid email or password.' : errorMsg });
         }
 
         const firebaseData = await firebaseRes.json() as { localId: string };
