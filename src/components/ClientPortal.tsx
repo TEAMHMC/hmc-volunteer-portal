@@ -14,11 +14,21 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
   const [loading, setLoading] = useState(true);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   
+  // Helper to check if event is in the past
+  const isPastEvent = (dateStr: string) => {
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
   useEffect(() => {
     const fetchPublicOpps = async () => {
       try {
         const publicOpps = await apiService.get('/public/opportunities');
-        setOpportunities(publicOpps);
+        // Filter out past events
+        const upcomingOpps = publicOpps.filter((o: Opportunity) => !isPastEvent(o.date));
+        setOpportunities(upcomingOpps);
       } catch (error) {
         console.error("Failed to load public events:", error);
       } finally {

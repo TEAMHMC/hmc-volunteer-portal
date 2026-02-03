@@ -40,6 +40,19 @@ const MapController = ({ event }: { event: ClinicEvent | null }) => {
   return null;
 };
 
+// Helper to extract city from address string
+const extractCityFromAddress = (address: string): string => {
+    // Try to extract city from common address formats like "123 Main St, Palmdale, CA 93550"
+    const parts = address.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+        // City is usually the second-to-last part (before state/zip)
+        const cityPart = parts[parts.length - 2] || parts[1];
+        // Remove any numbers (zip codes) and state abbreviations
+        return cityPart.replace(/\d+/g, '').replace(/\b[A-Z]{2}\b/g, '').trim() || 'Los Angeles';
+    }
+    return 'Los Angeles';
+};
+
 // Helper to convert Opportunity to ClinicEvent for map display
 const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
     // Default to approximate LA coordinates if missing, scattered slightly to avoid overlap
@@ -53,7 +66,7 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
         lat: opp.locationCoordinates?.lat || defaultLat,
         lng: opp.locationCoordinates?.lng || defaultLng,
         address: opp.serviceLocation,
-        city: 'Los Angeles', // Default, assumes LA based
+        city: extractCityFromAddress(opp.serviceLocation),
         dateDisplay: new Date(opp.date).toLocaleDateString(),
         time: '9:00 AM - 3:00 PM', // Default/Placeholder as Opportunity object date is just YYYY-MM-DD
         surveyKitId: opp.surveyKitId
@@ -96,9 +109,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   const events = useMemo(() => approvedOpportunities.map(mapOpportunityToEvent), [approvedOpportunities]);
 
   const filtered = useMemo(() => {
+    if (!search.trim()) return events;
+    const searchLower = search.toLowerCase().trim();
     return events.filter(e =>
-      e.title.toLowerCase().includes(search.toLowerCase()) ||
-      e.address.toLowerCase().includes(search.toLowerCase())
+      e.title.toLowerCase().includes(searchLower) ||
+      e.address.toLowerCase().includes(searchLower) ||
+      e.city.toLowerCase().includes(searchLower) ||
+      e.program.toLowerCase().includes(searchLower)
     );
   }, [search, events]);
 
