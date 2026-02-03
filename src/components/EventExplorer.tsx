@@ -77,9 +77,20 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Convert live opportunities to map events (only show approved events to volunteers)
+  // Helper to check if event is in the past
+  const isPastEvent = (dateStr: string) => {
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
+  // Convert live opportunities to map events (only show approved AND upcoming events)
   const approvedOpportunities = useMemo(() =>
-    opportunities.filter(o => o.approvalStatus === 'approved' || !o.approvalStatus), // Show approved or legacy events without status
+    opportunities.filter(o =>
+      (o.approvalStatus === 'approved' || !o.approvalStatus) && // Show approved or legacy events without status
+      !isPastEvent(o.date) // Filter out past events
+    ),
     [opportunities]
   );
   const events = useMemo(() => approvedOpportunities.map(mapOpportunityToEvent), [approvedOpportunities]);
