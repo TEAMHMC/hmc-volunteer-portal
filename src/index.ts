@@ -155,11 +155,12 @@ app.get('/api/gemini/test', async (req: Request, res: Response) => {
 
   // Try multiple model names to find one that works
   const modelsToTry = [
-    'gemini-pro',
-    'gemini-pro-vision',
-    'gemini-1.0-pro',
-    'gemini-1.0-pro-vision',
-    'gemini-2.0-flash-exp'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.5-pro',
+    'models/gemini-2.0-flash',
+    'models/gemini-1.5-flash'
   ];
 
   const results: any[] = [];
@@ -1633,8 +1634,8 @@ Return ONLY valid JSON in this exact format:
   "extractedSkills": ["skill1", "skill2", "skill3"]
 }`;
 
-        // Use gemini-pro-vision for file/image analysis
-        const text = await generateAIContent('gemini-pro-vision', [
+        // Use gemini-2.0-flash for file/image analysis
+        const text = await generateAIContent('gemini-2.0-flash', [
             { inlineData: { mimeType, data: base64Data } },
             prompt
         ], true);
@@ -1724,7 +1725,7 @@ Return ONLY valid JSON in this exact format:
   "coachSummary": "A brief personalized message about their training path"
 }`;
 
-        const text = await generateAIContent('gemini-pro', prompt, true);
+        const text = await generateAIContent('gemini-2.0-flash', prompt, true);
 
         // Parse and validate
         let parsed;
@@ -1771,7 +1772,7 @@ app.post('/api/gemini/generate-quiz', async (req: Request, res: Response) => {
             return res.json(createDefaultQuiz());
         }
 
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Generate a reflective quiz question for the training module "${moduleTitle}" for a ${role} at Health Matters Clinic.
 
 Return ONLY valid JSON in this format:
@@ -1812,7 +1813,7 @@ app.post('/api/gemini/validate-answer', async (req: Request, res: Response) => {
 
         // Be very lenient - if answer is at least 10 chars and shows effort, accept it
         if (answer && answer.trim().length >= 10) {
-            const text = await generateAIContent('gemini-pro',
+            const text = await generateAIContent('gemini-2.0-flash',
                 `You are an EXTREMELY lenient volunteer training evaluator. Your job is to ENCOURAGE learners.
 
 Question: "${question}"
@@ -1844,7 +1845,7 @@ app.post('/api/gemini/find-referral-match', async (req: Request, res: Response) 
     try {
         if (!ai) return res.json({ recommendations: [] });
         const { clientNeed } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Suggest 3 generic types of resources for: "${clientNeed}". JSON: { recommendations: [{ "Resource Name": "Example", "reasoning": "Fits need" }] }`,
             true);
         res.send(text);
@@ -1855,7 +1856,7 @@ app.post('/api/gemini/generate-supply-list', async (req: Request, res: Response)
     try {
         if (!ai) return res.json({ supplyList: "- Water\n- Pens" });
         const { serviceNames, attendeeCount } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Generate a checklist of supplies for a health fair with ${attendeeCount} attendees offering: ${serviceNames.join(', ')}. Plain text list.`);
         res.json({ supplyList: text });
     } catch(e) { res.status(500).json({error: "AI failed"}); }
@@ -1865,7 +1866,7 @@ app.post('/api/gemini/generate-summary', async (req: Request, res: Response) => 
     if (!ai) return res.json({ summary: "Thank you for your service!" });
     try {
         const { volunteerName, totalHours } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Write a 2 sentence impact summary for ${volunteerName} who contributed ${totalHours} hours.`);
         res.json({ summary: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -1875,7 +1876,7 @@ app.post('/api/gemini/draft-fundraising-email', async (req: Request, res: Respon
     if (!ai) return res.json({ emailBody: "Please support HMC!" });
     try {
         const { volunteerName, volunteerRole } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Draft a short fundraising email for ${volunteerName}, a ${volunteerRole}, asking friends to support Health Matters Clinic.`);
         res.json({ emailBody: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -1885,7 +1886,7 @@ app.post('/api/gemini/draft-social-post', async (req: Request, res: Response) =>
     if (!ai) return res.json({ postText: "#HealthMatters" });
     try {
         const { topic, platform } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Draft a ${platform} post about ${topic} for a nonprofit.`);
         res.json({ postText: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -1895,7 +1896,7 @@ app.post('/api/gemini/summarize-feedback', async (req: Request, res: Response) =
     try {
         if (!ai) return res.json({ summary: "No feedback to summarize." });
         const { feedback } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Summarize the following volunteer feedback into key themes and sentiment: ${feedback.join('\n')}`);
         res.json({ summary: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -1905,7 +1906,7 @@ app.post('/api/gemini/generate-document', async (req: Request, res: Response) =>
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { prompt, title } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `You are a professional technical writer for Health Matters Clinic, a community health nonprofit.
             Create a well-structured document based on this request: "${prompt}"
             ${title ? `The document is titled: "${title}"` : ''}
@@ -1929,7 +1930,7 @@ app.post('/api/gemini/improve-document', async (req: Request, res: Response) => 
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { content, instructions } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `You are a professional editor for Health Matters Clinic documents.
 
             Improve the following document according to these instructions: "${instructions || 'Make it more professional and comprehensive'}"
@@ -1956,7 +1957,7 @@ app.post('/api/gemini/draft-announcement', async (req: Request, res: Response) =
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { topic, tenantId } = req.body;
-        const text = await generateAIContent('gemini-pro',
+        const text = await generateAIContent('gemini-2.0-flash',
             `Draft a professional announcement for Health Matters Clinic volunteers about: "${topic}".
             Keep it warm, professional, and under 150 words. Do not mention AI.`);
         res.json({ content: text });
