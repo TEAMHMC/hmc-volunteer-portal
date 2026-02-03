@@ -152,15 +152,24 @@ export const HMC_MODULES = {
   volMgmtTop5: { id: 'vol_mgmt_top5', title: 'Top 5 Volunteer Management Strategies Every Nonprofit Needs', desc: 'High-level approaches to building a strong volunteer culture.', dur: 12, embed: 'https://www.youtube.com/embed/eBGINprwFM0', req: false },
 };
 
+// Orientation - Required for ALL volunteers (2 videos only)
+// Must be completed before accessing other training
+export const ORIENTATION_MODULES = [
+  HMC_MODULES.hmcIntro,        // hmc_get_to_know_us - "Get to Know Health Matters Clinic"
+  HMC_MODULES.champion,        // hmc_because_champion - "Because You're a Champion"
+];
+
 // Core Training Modules - Required for ALL volunteers to unlock operational features
-// These 5 modules must be completed for event eligibility
+// These modules (after orientation) must be completed for event eligibility
 const CORE_TRAINING = [
-  HMC_MODULES.hmcIntro,        // hmc_get_to_know_us
   HMC_MODULES.hipaa2025,       // hipaa_staff_2025
   HMC_MODULES.cmhwPart1,       // cmhw_part1
   HMC_MODULES.cmhwPart2,       // cmhw_part2
   HMC_MODULES.surveyTraining,  // hmc_survey_training
 ];
+
+// All required modules for HMC Champion status (Orientation + Core Training)
+export const ALL_REQUIRED_MODULES = [...ORIENTATION_MODULES, ...CORE_TRAINING];
 
 // Helper to merge core training with role-specific modules (avoids duplicates)
 const withCoreTraining = (roleModules: any[]) => {

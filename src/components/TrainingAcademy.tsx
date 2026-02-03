@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Volunteer } from '../types';
 import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
-import { ADVANCED_MODULES, ROLE_MODULES, HMC_MODULES } from '../constants';
+import { ADVANCED_MODULES, ROLE_MODULES, HMC_MODULES, ORIENTATION_MODULES, ALL_REQUIRED_MODULES } from '../constants';
 import { APP_CONFIG } from '../config';
 import {
   CheckCircle2, Play, X, ShieldCheck,
@@ -27,6 +27,16 @@ const STATIC_QUIZZES: Record<string, { question: string; learningObjective: stri
       { concept: 'Mission Alignment', description: 'Connecting personal values with organizational goals.' }
     ],
     acceptableKeywords: ['community', 'health', 'volunteer', 'service', 'care', 'support', 'help', 'mission']
+  },
+  'hmc_because_champion': {
+    question: 'What does it mean to be an HMC Champion, and how will you embody our values when serving the community?',
+    learningObjective: 'Understand what it means to represent HMC as a Champion volunteer.',
+    keyConcepts: [
+      { concept: 'HMC Values', description: 'Compassion, respect, and dignity in every interaction.' },
+      { concept: 'Champion Mindset', description: 'Showing up prepared, reliable, and committed to service.' },
+      { concept: 'Community First', description: 'Putting the needs of community members at the center of our work.' }
+    ],
+    acceptableKeywords: ['champion', 'values', 'respect', 'dignity', 'compassion', 'community', 'serve', 'committed', 'reliable', 'care']
   },
   'hipaa_staff_2025': {
     question: 'Explain how HIPAA protects patient privacy and give an example of what you would do if you accidentally saw protected health information.',
@@ -103,6 +113,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
   const completedRequiredCount = requiredModules.filter(m => completedModuleIds.includes(m.id)).length;
   const progress = requiredModules.length > 0 ? Math.round((completedRequiredCount / requiredModules.length) * 100) : 100;
+
+  // Orientation progress
+  const completedOrientationCount = ORIENTATION_MODULES.filter(m => completedModuleIds.includes(m.id)).length;
+  const orientationProgress = Math.round((completedOrientationCount / ORIENTATION_MODULES.length) * 100);
 
   // Check if module is a ScreenPal video (has built-in quiz, no external assessment needed)
   const isScreenPalVideo = (embed: string) => embed?.includes('screencasthost.com') || embed?.includes('screenpal.com');
@@ -181,16 +195,17 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     }
   }, [activeSession, loadingQuiz, quizData, user.role]);
 
-  // Core Volunteer Training - ALL 5 modules required for operational access
-  const CORE_TRAINING_MODULES = [
-    'hmc_get_to_know_us',
-    'hipaa_staff_2025',
-    'cmhw_part1',
-    'cmhw_part2',
-    'hmc_survey_training'
-  ];
+  // Orientation modules (2 videos) - must complete first
+  const ORIENTATION_IDS = ORIENTATION_MODULES.map(m => m.id);
+  const hasCompletedOrientation = ORIENTATION_IDS.every(id => completedModuleIds.includes(id));
 
-  const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => completedModuleIds.includes(id));
+  // Core Training modules (after orientation) - required for event eligibility
+  const CORE_TRAINING_IDS = ['hipaa_staff_2025', 'cmhw_part1', 'cmhw_part2', 'hmc_survey_training'];
+  const hasCompletedCoreTraining = CORE_TRAINING_IDS.every(id => completedModuleIds.includes(id));
+
+  // All required for HMC Champion status
+  const ALL_REQUIRED_IDS = [...ORIENTATION_IDS, ...CORE_TRAINING_IDS];
+  const hasCompletedAllRequired = ALL_REQUIRED_IDS.every(id => completedModuleIds.includes(id));
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
 
   const handleCompleteModule = (moduleId: string, title: string) => {
@@ -200,9 +215,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       // Calculate new completed training IDs
       const newCompletedIds = [...completedModuleIds, moduleId];
 
-      // Check if this completion completes Core Volunteer Training
-      const nowCompletedCore = CORE_TRAINING_MODULES.every(id => newCompletedIds.includes(id));
-      const wasNotCompletedBefore = !CORE_TRAINING_MODULES.every(id => completedModuleIds.includes(id));
+      // Check if this completion completes all required training (Orientation + Core)
+      const nowCompletedCore = ALL_REQUIRED_IDS.every(id => newCompletedIds.includes(id));
+      const wasNotCompletedBefore = !ALL_REQUIRED_IDS.every(id => completedModuleIds.includes(id));
 
       const updatedUser: Partial<Volunteer> = {
         ...user,
@@ -273,26 +288,34 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const renderModuleCard = (m: any, isRequired: boolean) => {
     const isCompleted = completedModuleIds.includes(m.id);
     const hasVideo = !!m.embed;
+    const isOrientationModule = ORIENTATION_IDS.includes(m.id);
+    const isLocked = !isOrientationModule && !hasCompletedOrientation;
 
     return (
-      <div key={m.id} className={`p-8 rounded-[40px] border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : 'bg-white border-zinc-100 hover:shadow-xl hover:border-zinc-200'}`}>
+      <div key={m.id} className={`p-8 rounded-[40px] border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-xl hover:border-zinc-200'}`}>
         <div>
           <div className="flex items-start justify-between mb-6">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm ${isCompleted ? 'bg-emerald-500 text-white' : `bg-white group-hover:bg-[#233DFF] text-zinc-300 group-hover:text-white`}`}>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-[#233DFF] text-zinc-300 group-hover:text-white`}`}>
               {isCompleted ? <CheckCircle2 size={28} /> : hasVideo ? <PlayCircle size={28} /> : <BookOpen size={28} />}
             </div>
-            {isRequired && !isCompleted && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
+            {isRequired && !isCompleted && !isLocked && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
             {isCompleted && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>}
+            {isLocked && <span className="px-3 py-1 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">Locked</span>}
           </div>
-          <h4 className="text-xl font-black text-zinc-900 leading-tight">{m.title}</h4>
+          <h4 className={`text-xl font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
           <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{m.dur} MIN • {m.id.startsWith('hmc') ? 'HMC CORE' : 'EXTERNAL'}</p>
-          <p className="text-sm text-zinc-500 mt-4 font-medium leading-relaxed">{m.desc}</p>
+          <p className={`text-sm mt-4 font-medium leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
         </div>
         <div className="mt-8">
-          {!isCompleted && (
+          {!isCompleted && !isLocked && (
             <button onClick={() => startQuiz(m)} className="w-full py-5 bg-zinc-900 text-white rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:scale-[1.02] shadow-xl">
               Launch Mastery Assessment
             </button>
+          )}
+          {isLocked && (
+            <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-black text-[11px] uppercase tracking-widest text-center">
+              Complete Orientation to Unlock
+            </div>
           )}
         </div>
       </div>
@@ -301,14 +324,27 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
-      {/* Core Training Complete Banner */}
-      {hasCompletedCoreTraining && (
+      {/* Orientation Complete Banner */}
+      {hasCompletedOrientation && !hasCompletedAllRequired && (
+        <div className="bg-blue-50 border border-blue-200 p-8 rounded-[32px] flex items-center gap-6">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-lg shrink-0">
+            <CheckCircle2 size={28} />
+          </div>
+          <div>
+            <h4 className="text-lg font-black text-blue-900">Orientation Complete!</h4>
+            <p className="text-blue-700 font-medium">Welcome to HMC! Continue with Core Training below to unlock event eligibility.</p>
+          </div>
+        </div>
+      )}
+
+      {/* All Training Complete Banner */}
+      {hasCompletedAllRequired && (
         <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-[32px] flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shrink-0">
             <Award size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-emerald-900">Core Volunteer Training Complete</h4>
+            <h4 className="text-lg font-black text-emerald-900">HMC Champion Training Complete</h4>
             <p className="text-emerald-700 font-medium">You're eligible to sign up for community-based events. Visit My Missions to find opportunities.</p>
           </div>
         </div>
@@ -319,34 +355,89 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           <div className="inline-flex items-center gap-3 px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-10">
              TRAINING ACADEMY
           </div>
-          <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">Role-Based Training</h2>
+          <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">HMC Champion Training</h2>
           <p className="text-zinc-500 text-lg font-medium leading-relaxed italic">
-            Your personalized training plan for the <span className="font-bold text-zinc-800">{user.role}</span> role.
+            Complete orientation and core training to become an HMC Champion.
+            {user.appliedRole && user.appliedRole !== 'HMC Champion' && (
+              <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{user.appliedRole}</span></span>
+            )}
           </p>
         </div>
 
-        <div className="w-full md:w-80 bg-zinc-50 p-10 rounded-[40px] border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner">
-          <div className="relative w-32 h-32 mb-6">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-200" />
-              <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364} strokeDashoffset={364 - (364 * progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center text-2xl font-black text-zinc-900">{progress}%</div>
+        <div className="w-full md:w-80 bg-zinc-50 p-8 rounded-[40px] border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-6">
+          {/* Orientation Progress */}
+          <div className="flex items-center gap-4 w-full">
+            <div className="relative w-16 h-16">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * orientationProgress) / 100} className="text-blue-500 transition-all duration-1000" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{orientationProgress}%</div>
+            </div>
+            <div>
+              <p className="text-xs font-black text-zinc-700">Orientation</p>
+              <p className="text-[10px] text-zinc-400">{completedOrientationCount}/{ORIENTATION_MODULES.length} videos</p>
+            </div>
           </div>
-          <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">REQUIRED COMPLETE</p>
+
+          {/* Overall Progress */}
+          <div className="flex items-center gap-4 w-full">
+            <div className="relative w-16 h-16">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{progress}%</div>
+            </div>
+            <div>
+              <p className="text-xs font-black text-zinc-700">All Required</p>
+              <p className="text-[10px] text-zinc-400">{completedRequiredCount}/{requiredModules.length} modules</p>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* ORIENTATION SECTION - 2 Videos */}
       <div>
-        <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Required Training</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {requiredModules.map(m => renderModuleCard(m, true))}
+        <div className="flex items-center gap-4 mb-8">
+          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
+          {hasCompletedOrientation && (
+            <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+          )}
+        </div>
+        <p className="text-zinc-500 font-medium mb-8 -mt-4">Start here! These two videos introduce you to Health Matters Clinic and what it means to be an HMC Champion.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {ORIENTATION_MODULES.map(m => renderModuleCard(m, true))}
         </div>
       </div>
-      
+
+      {/* CORE TRAINING SECTION */}
+      <div className={!hasCompletedOrientation ? 'opacity-60' : ''}>
+        <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
+          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Core Training</h3>
+          {hasCompletedCoreTraining && (
+            <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+          )}
+          {!hasCompletedOrientation && (
+            <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
+          )}
+        </div>
+        <p className="text-zinc-500 font-medium mb-8 -mt-4">Required training for all volunteers. Complete these to become eligible for community events.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {requiredModules.filter(m => !ORIENTATION_IDS.includes(m.id)).map(m => renderModuleCard(m, true))}
+        </div>
+      </div>
+
+      {/* ROLE-SPECIFIC TRAINING */}
       {recommendedModules.length > 0 && (
-        <div>
-          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8 pt-8 border-t border-zinc-100">Recommended Training</h3>
+        <div className={!hasCompletedOrientation ? 'opacity-60' : ''}>
+          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {user.appliedRole || user.role}</h3>
+            {!hasCompletedOrientation && (
+              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
+            )}
+          </div>
+          <p className="text-zinc-500 font-medium mb-8 -mt-4">Additional training specific to your applied role. Complete all training and await admin approval to be assigned your role.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {recommendedModules.map(m => renderModuleCard(m, false))}
           </div>

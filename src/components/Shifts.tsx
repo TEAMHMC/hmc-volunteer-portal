@@ -292,9 +292,21 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     return <EventOpsMode shift={selectedShift} opportunity={opportunity} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} />;
   }
 
+  // Helper to check if a date is in the past
+  const isPastEvent = (dateStr: string) => {
+    const eventDate = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
   // For "my-schedule", include both assigned shifts AND rsvped events (opportunities)
+  // For "available", only show upcoming events (not past)
   const shiftsToDisplay = activeTab === 'available'
-    ? shifts.filter(s => !user.assignedShiftIds?.includes(s.id))
+    ? shifts.filter(s => {
+        const opp = getOpp(s.opportunityId);
+        return !user.assignedShiftIds?.includes(s.id) && opp && !isPastEvent(opp.date);
+      })
     : shifts.filter(s => user.assignedShiftIds?.includes(s.id));
 
   // Get rsvped opportunities that may not have corresponding assigned shifts
@@ -314,9 +326,25 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     o.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     o.serviceLocation.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
+  // Separate upcoming and past for my-schedule tab
+  const upcomingShifts = filteredShifts.filter(s => {
+    const opp = getOpp(s.opportunityId);
+    return opp && !isPastEvent(opp.date);
+  });
+  const pastShifts = filteredShifts.filter(s => {
+    const opp = getOpp(s.opportunityId);
+    return opp && isPastEvent(opp.date);
+  });
+  const upcomingRsvpedOpps = filteredRsvpedOpps.filter(o => !isPastEvent(o.date));
+  const pastRsvpedOpps = filteredRsvpedOpps.filter(o => isPastEvent(o.date));
+
+  // Use upcoming for display (available tab already filters, my-schedule shows upcoming first)
+  const displayShifts = activeTab === 'available' ? filteredShifts : upcomingShifts;
+  const displayRsvpedOpps = activeTab === 'available' ? filteredRsvpedOpps : upcomingRsvpedOpps;
+
   // Group shifts by date
-  const groupedByDate = filteredShifts.reduce((acc, shift) => {
+  const groupedByDate = displayShifts.reduce((acc, shift) => {
     const date = new Date(shift.startTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     if (!acc[date]) acc[date] = { shifts: [], opportunities: [] };
     acc[date].shifts.push(shift);
@@ -324,11 +352,30 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   }, {} as Record<string, { shifts: Shift[], opportunities: Opportunity[] }>);
 
   // Add rsvped opportunities without shifts to the grouped data
-  filteredRsvpedOpps.forEach(opp => {
+  displayRsvpedOpps.forEach(opp => {
     const date = new Date(opp.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     if (!groupedByDate[date]) groupedByDate[date] = { shifts: [], opportunities: [] };
     groupedByDate[date].opportunities.push(opp);
   });
+
+  // Group past events separately for my-schedule
+  const pastGroupedByDate = activeTab === 'my-schedule' ? pastShifts.reduce((acc, shift) => {
+    const date = new Date(shift.startTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (!acc[date]) acc[date] = { shifts: [], opportunities: [] };
+    acc[date].shifts.push(shift);
+    return acc;
+  }, {} as Record<string, { shifts: Shift[], opportunities: Opportunity[] }>) : {};
+
+  // Add past rsvped opportunities
+  if (activeTab === 'my-schedule') {
+    pastRsvpedOpps.forEach(opp => {
+      const date = new Date(opp.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      if (!pastGroupedByDate[date]) pastGroupedByDate[date] = { shifts: [], opportunities: [] };
+      pastGroupedByDate[date].opportunities.push(opp);
+    });
+  }
+
+  const hasPastEvents = Object.keys(pastGroupedByDate).length > 0;
 
   const tabs = [
     ...(userMode === 'admin' ? [{ id: 'manage', label: 'Manage Events' }] : []),
@@ -618,6 +665,42 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                     </div>
                 </div>
             ))}
+
+            {/* Past Events Section - Only show on my-schedule tab */}
+            {activeTab === 'my-schedule' && hasPastEvents && (
+              <div className="mt-16 pt-8 border-t-2 border-zinc-100">
+                <h3 className="text-lg font-black text-zinc-300 uppercase tracking-widest mb-8 px-4 flex items-center gap-3">
+                  <Clock size={20} /> Past Events
+                </h3>
+                {Object.entries(pastGroupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
+                  <div key={`past-${date}`} className="mb-8">
+                    <h4 className="text-sm font-black text-zinc-300 uppercase tracking-widest mb-4 px-4">{date}</h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {dateData.shifts.map(shift => {
+                        const opp = getOpp(shift.opportunityId);
+                        if (!opp) return null;
+                        return (
+                          <div key={`past-shift-${shift.id}`} className="bg-zinc-50 rounded-[32px] border border-zinc-200 p-8 opacity-60">
+                            <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest mb-4 inline-block">Past Event</span>
+                            <p className="text-xs font-bold text-zinc-400 mb-1">{opp.category}</p>
+                            <h4 className="text-lg font-black text-zinc-600 mb-2">{opp.title}</h4>
+                            <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
+                          </div>
+                        );
+                      })}
+                      {dateData.opportunities.map(opp => (
+                        <div key={`past-opp-${opp.id}`} className="bg-zinc-50 rounded-[32px] border border-zinc-200 p-8 opacity-60">
+                          <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest mb-4 inline-block">Past Event</span>
+                          <p className="text-xs font-bold text-zinc-400 mb-1">{opp.category}</p>
+                          <h4 className="text-lg font-black text-zinc-600 mb-2">{opp.title}</h4>
+                          <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
       )}
     </div>

@@ -479,9 +479,10 @@ const OpsSupportView: React.FC<{
   const [draggedTicket, setDraggedTicket] = useState<string | null>(null);
   const [assigningTicketId, setAssigningTicketId] = useState<string | null>(null);
 
+  // Show all tickets for admins, or tickets submitted by OR assigned to the user
   const myTickets = userMode === 'admin'
     ? supportTickets
-    : supportTickets.filter(t => t.submittedBy === user.id);
+    : supportTickets.filter(t => t.submittedBy === user.id || t.assignedTo === user.id);
 
   const ticketsByStatus = useMemo(() => ({
     open: myTickets.filter(t => t.status === 'open'),
@@ -553,10 +554,20 @@ const OpsSupportView: React.FC<{
 
   const handleDrop = (e: React.DragEvent, status: 'open' | 'in_progress' | 'closed') => {
     e.preventDefault();
-    if (draggedTicket && userMode === 'admin') {
-      handleStatusChange(draggedTicket, status);
+    if (draggedTicket) {
+      // Admins can change any ticket, others can change their own or assigned tickets
+      const ticket = supportTickets.find(t => t.id === draggedTicket);
+      const canModify = userMode === 'admin' || ticket?.submittedBy === user.id || ticket?.assignedTo === user.id;
+      if (canModify) {
+        handleStatusChange(draggedTicket, status);
+      }
     }
     setDraggedTicket(null);
+  };
+
+  // Check if user can modify a ticket
+  const canModifyTicket = (ticket: SupportTicket) => {
+    return userMode === 'admin' || ticket.submittedBy === user.id || ticket.assignedTo === user.id;
   };
 
   const handleAssign = async (ticketId: string, volunteerId: string | null) => {
@@ -594,18 +605,22 @@ const OpsSupportView: React.FC<{
     }
   };
 
-  const renderTicketCard = (ticket: SupportTicket) => (
+  const renderTicketCard = (ticket: SupportTicket) => {
+    const canModify = canModifyTicket(ticket);
+    const isAssignedToMe = ticket.assignedTo === user.id;
+
+    return (
     <div
       key={ticket.id}
-      draggable={userMode === 'admin'}
+      draggable={canModify}
       onDragStart={(e) => handleDragStart(e, ticket.id)}
-      className={`p-4 bg-white rounded-xl border border-zinc-100 shadow-sm hover:shadow-md transition-all ${
-        userMode === 'admin' ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-      }`}
+      className={`p-4 bg-white rounded-xl border shadow-sm hover:shadow-md transition-all ${
+        isAssignedToMe ? 'border-[#233DFF] border-2' : 'border-zinc-100'
+      } ${canModify ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <h4 className="font-semibold text-zinc-900 text-sm leading-tight">{ticket.subject}</h4>
-        {userMode === 'admin' && (
+        {canModify && (
           <GripVertical size={14} className="text-zinc-300 shrink-0" />
         )}
       </div>
@@ -622,25 +637,30 @@ const OpsSupportView: React.FC<{
       </div>
       <p className="text-[10px] text-zinc-400 mt-2">By {ticket.submitterName}</p>
 
-      {/* Assignment Section */}
-      {userMode === 'admin' && (
-        <div className="mt-3 pt-3 border-t border-zinc-100">
-          {assigningTicketId === ticket.id ? (
-            <div className="space-y-2">
-              <select
-                className="w-full px-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium"
-                defaultValue={ticket.assignedTo || ''}
-                onChange={(e) => handleAssign(ticket.id, e.target.value || null)}
-                autoFocus
-                onBlur={() => setAssigningTicketId(null)}
-              >
-                <option value="">Unassigned</option>
-                {allVolunteers.filter(v => v.isAdmin || v.role.includes('Coordinator') || v.role.includes('Lead')).map(v => (
+      {/* Assignment Section - Available to all users */}
+      <div className="mt-3 pt-3 border-t border-zinc-100">
+        {assigningTicketId === ticket.id ? (
+          <div className="space-y-2">
+            <select
+              className="w-full px-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium"
+              defaultValue={ticket.assignedTo || ''}
+              onChange={(e) => handleAssign(ticket.id, e.target.value || null)}
+              autoFocus
+              onBlur={() => setAssigningTicketId(null)}
+            >
+              <option value="">Unassigned</option>
+              {/* Always show current user as an option to claim */}
+              <option value={user.id}>{user.name} (Me)</option>
+              {/* Show admins/coordinators/leads for admin users */}
+              {userMode === 'admin' && allVolunteers
+                .filter(v => v.id !== user.id && (v.isAdmin || v.role.includes('Coordinator') || v.role.includes('Lead')))
+                .map(v => (
                   <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-            </div>
-          ) : (
+                ))
+              }
+            </select>
+          </div>
+        ) : (
             <button
               onClick={(e) => { e.stopPropagation(); setAssigningTicketId(ticket.id); }}
               className="flex items-center gap-2 text-xs hover:bg-zinc-50 px-2 py-1.5 rounded-lg w-full transition-colors"
@@ -651,14 +671,14 @@ const OpsSupportView: React.FC<{
                 {ticket.assignedToName?.charAt(0) || <User size={10} />}
               </div>
               <span className={`font-medium ${ticket.assignedTo ? 'text-zinc-700' : 'text-zinc-400'}`}>
-                {ticket.assignedToName || 'Assign...'}
+                {ticket.assignedTo === user.id ? `${ticket.assignedToName} (Me)` : (ticket.assignedToName || 'Claim / Assign...')}
               </span>
             </button>
           )}
         </div>
-      )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
