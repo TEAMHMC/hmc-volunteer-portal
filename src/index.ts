@@ -70,11 +70,15 @@ if (EMAIL_SERVICE_URL) {
 
 // --- GEMINI API ---
 let ai: GoogleGenerativeAI | null = null;
-if (process.env.API_KEY) {
-    ai = new GoogleGenerativeAI(process.env.API_KEY);
+// Support multiple common environment variable names for Gemini API key
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.API_KEY;
+if (GEMINI_API_KEY) {
+    ai = new GoogleGenerativeAI(GEMINI_API_KEY);
     console.log("Gemini AI client initialized successfully.");
+    console.log(`[GEMINI] API Key detected (env var used: ${process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.GOOGLE_AI_API_KEY ? 'GOOGLE_AI_API_KEY' : 'API_KEY'})`);
 } else {
-    console.warn("API_KEY environment variable not set. Gemini AI features will be disabled.");
+    console.warn("No Gemini API key found. Checked: GEMINI_API_KEY, GOOGLE_AI_API_KEY, API_KEY");
+    console.warn("Gemini AI features will be disabled.");
 }
 
 // Helper for Gemini API calls
@@ -84,22 +88,31 @@ const generateAIContent = async (
   parts: GeminiPart | GeminiPart[],
   jsonMode: boolean = false
 ): Promise<string> => {
-  if (!ai) throw new Error('AI not configured');
+  if (!ai) throw new Error('AI not configured - no API key found');
   try {
+    console.log(`[GEMINI] Initializing model: ${modelName}`);
     const model = ai.getGenerativeModel({
       model: modelName,
       generationConfig: jsonMode ? { responseMimeType: 'application/json' } : undefined
     });
     const content = Array.isArray(parts) ? parts : [parts];
-    console.log(`[GEMINI] Calling model ${modelName} with ${content.length} parts`);
+    const hasInlineData = content.some(p => typeof p === 'object' && 'inlineData' in p);
+    console.log(`[GEMINI] Calling model ${modelName} with ${content.length} parts (hasFile: ${hasInlineData})`);
     const result = await model.generateContent(content);
     const text = result.response.text();
     console.log(`[GEMINI] Response received (${text.length} chars)`);
     return text;
   } catch (error: any) {
-    console.error(`[GEMINI] API Error:`, error.message || error);
-    console.error(`[GEMINI] Full error:`, JSON.stringify(error, null, 2));
-    throw error;
+    // Extract detailed error info
+    const errorDetails = {
+      message: error.message,
+      status: error.status,
+      statusText: error.statusText,
+      errorDetails: error.errorDetails,
+    };
+    console.error(`[GEMINI] API Error:`, JSON.stringify(errorDetails, null, 2));
+    // Re-throw with more info
+    throw new Error(`Gemini API error: ${error.message || 'Unknown error'}`);
   }
 };
 
@@ -127,6 +140,7 @@ app.get('/health', (req: Request, res: Response) => {
       emailConfigured: !!EMAIL_SERVICE_URL,
       smsConfigured: twilioClient !== null && !!TWILIO_PHONE_NUMBER,
       aiConfigured: ai !== null,
+      aiKeySource: process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.GOOGLE_AI_API_KEY ? 'GOOGLE_AI_API_KEY' : process.env.API_KEY ? 'API_KEY' : 'none',
       firebaseAuthConfigured: firebaseConfigured,
       firebaseWebApiKey: !!FIREBASE_WEB_API_KEY
     }
@@ -1590,12 +1604,14 @@ Return ONLY valid JSON in this exact format:
         console.log(`[GEMINI] Resume analysis successful - ${parsed.recommendations.length} recommendations, ${parsed.extractedSkills.length} skills`);
         res.json(parsed);
     } catch (e: any) {
-        console.error('[GEMINI] Resume analysis error:', e.message || e);
-        // Return empty arrays to trigger manual role selection
+        const errorMsg = e.message || String(e);
+        console.error('[GEMINI] Resume analysis error:', errorMsg);
+        console.error('[GEMINI] Full error object:', JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
+        // Return the actual error for debugging
         res.json({
             recommendations: [],
             extractedSkills: [],
-            error: 'Resume analysis failed. Please select a role manually.'
+            error: `Resume analysis failed: ${errorMsg}`
         });
     }
 });
