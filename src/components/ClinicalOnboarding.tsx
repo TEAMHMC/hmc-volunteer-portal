@@ -1,0 +1,678 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Volunteer } from '../types';
+import { apiService } from '../services/apiService';
+import {
+  FileText, CheckCircle, Lock, Upload, Pen, ChevronRight, ChevronDown,
+  AlertTriangle, Loader2, X, Award, Shield, ClipboardCheck, Stethoscope
+} from 'lucide-react';
+
+interface ClinicalOnboardingProps {
+  user: Volunteer;
+  onUpdate: (user: Volunteer) => void;
+}
+
+interface DocumentItem {
+  id: string;
+  title: string;
+  description: string;
+  type: 'pdf' | 'html';
+  url: string;
+  required: boolean;
+}
+
+const CLINICAL_DOCUMENTS: DocumentItem[] = [
+  {
+    id: 'clinicalOnboardingGuide',
+    title: 'Clinical Onboarding & Governance Guide',
+    description: 'Complete guide to HMC clinical protocols, governance structure, and volunteer expectations',
+    type: 'html',
+    url: '/documents/clinical-onboarding-guide.html',
+    required: true
+  },
+  {
+    id: 'policiesProcedures',
+    title: 'Clinical Policies & Procedures Manual',
+    description: 'Comprehensive policies and procedures for all clinical operations',
+    type: 'pdf',
+    url: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.pdf',
+    required: true
+  },
+  {
+    id: 'screeningConsent',
+    title: 'General Screening Consent Form',
+    description: 'Consent form template used for client health screenings',
+    type: 'pdf',
+    url: '/documents/HMC-General-Screening-Consent-Form.pdf',
+    required: true
+  },
+  {
+    id: 'standingOrders',
+    title: 'Standing Orders v3.0',
+    description: 'Current standing orders for clinical procedures and protocols',
+    type: 'pdf',
+    url: '/documents/HMC-Standing-Orders-v3.0.pdf',
+    required: true
+  }
+];
+
+const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate }) => {
+  const [activeSection, setActiveSection] = useState<'documents' | 'credentials'>('documents');
+  const [activeDocument, setActiveDocument] = useState<DocumentItem | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [credentials, setCredentials] = useState(user.clinicalOnboarding?.credentials || {});
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  const clinicalOnboarding = user.clinicalOnboarding || {
+    completed: false,
+    documents: {},
+    credentials: {}
+  };
+
+  const signedDocuments = Object.entries(clinicalOnboarding.documents || {})
+    .filter(([_, doc]) => doc?.signed)
+    .map(([id]) => id);
+
+  const allDocumentsSigned = CLINICAL_DOCUMENTS.every(doc =>
+    signedDocuments.includes(doc.id)
+  );
+
+  const hasRequiredCredentials = !!(
+    credentials.npi &&
+    credentials.licenseNumber &&
+    credentials.licenseState &&
+    credentials.licenseExpiration
+  );
+
+  const isComplete = allDocumentsSigned && hasRequiredCredentials;
+
+  const handleSignDocument = async (documentId: string, signatureData: string) => {
+    setIsSaving(true);
+    try {
+      const updatedDocuments = {
+        ...clinicalOnboarding.documents,
+        [documentId]: {
+          signed: true,
+          signedAt: new Date().toISOString(),
+          signatureData
+        }
+      };
+
+      const updatedOnboarding = {
+        ...clinicalOnboarding,
+        documents: updatedDocuments,
+        completed: false // Will be set to true when all complete
+      };
+
+      const updatedUser = {
+        ...user,
+        clinicalOnboarding: updatedOnboarding
+      };
+
+      await apiService.put('/api/volunteer', updatedUser);
+      onUpdate(updatedUser);
+      setActiveDocument(null);
+      setShowSignatureModal(false);
+    } catch (error) {
+      console.error('Failed to save signature:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveCredentials = async () => {
+    setIsSaving(true);
+    try {
+      const allDocsSigned = CLINICAL_DOCUMENTS.every(doc =>
+        clinicalOnboarding.documents?.[doc.id as keyof typeof clinicalOnboarding.documents]?.signed
+      );
+
+      const hasReqCreds = !!(
+        credentials.npi &&
+        credentials.licenseNumber &&
+        credentials.licenseState &&
+        credentials.licenseExpiration
+      );
+
+      const updatedOnboarding = {
+        ...clinicalOnboarding,
+        credentials,
+        completed: allDocsSigned && hasReqCreds,
+        completedAt: allDocsSigned && hasReqCreds ? new Date().toISOString() : undefined
+      };
+
+      const updatedUser = {
+        ...user,
+        clinicalOnboarding: updatedOnboarding
+      };
+
+      await apiService.put('/api/volunteer', updatedUser);
+      onUpdate(updatedUser);
+    } catch (error) {
+      console.error('Failed to save credentials:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (field: string, file: File) => {
+    setUploadingField(field);
+    try {
+      // Convert to base64 for storage
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        setCredentials(prev => ({
+          ...prev,
+          [field]: base64
+        }));
+        setUploadingField(null);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      setUploadingField(null);
+    }
+  };
+
+  const completedCount = signedDocuments.length;
+  const totalRequired = CLINICAL_DOCUMENTS.length;
+  const progressPercent = Math.round((completedCount / totalRequired) * 100);
+
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
+            <Stethoscope className="text-blue-600" />
+            Clinical Onboarding
+          </h2>
+          <p className="text-zinc-500 mt-1">Complete all required documents and credentials to begin clinical work</p>
+        </div>
+        {isComplete && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full font-bold">
+            <CheckCircle size={20} />
+            Onboarding Complete
+          </div>
+        )}
+      </div>
+
+      {/* Progress Bar */}
+      <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-bold text-zinc-600">Overall Progress</span>
+          <span className="text-sm font-black text-blue-600">{progressPercent}%</span>
+        </div>
+        <div className="h-3 bg-zinc-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-3 text-xs text-zinc-400">
+          <span>{completedCount} of {totalRequired} documents signed</span>
+          <span>{hasRequiredCredentials ? 'Credentials complete' : 'Credentials pending'}</span>
+        </div>
+      </div>
+
+      {/* Section Tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveSection('documents')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+            activeSection === 'documents'
+              ? 'bg-blue-600 text-white shadow-lg'
+              : 'bg-white text-zinc-600 border border-zinc-200 hover:border-blue-300'
+          }`}
+        >
+          <FileText size={18} />
+          Documents ({completedCount}/{totalRequired})
+        </button>
+        <button
+          onClick={() => setActiveSection('credentials')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+            activeSection === 'credentials'
+              ? 'bg-blue-600 text-white shadow-lg'
+              : 'bg-white text-zinc-600 border border-zinc-200 hover:border-blue-300'
+          }`}
+        >
+          <Award size={18} />
+          Credentials {hasRequiredCredentials && <CheckCircle size={14} className="text-emerald-400" />}
+        </button>
+      </div>
+
+      {/* Documents Section */}
+      {activeSection === 'documents' && (
+        <div className="space-y-4">
+          {CLINICAL_DOCUMENTS.map((doc) => {
+            const isSigned = signedDocuments.includes(doc.id);
+            return (
+              <div
+                key={doc.id}
+                className={`bg-white rounded-2xl p-6 border transition-all ${
+                  isSigned ? 'border-emerald-200 bg-emerald-50/30' : 'border-zinc-100 hover:border-blue-200'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-xl ${isSigned ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                      {isSigned ? <CheckCircle size={24} /> : <FileText size={24} />}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-zinc-900">{doc.title}</h3>
+                      <p className="text-sm text-zinc-500 mt-1">{doc.description}</p>
+                      {isSigned && (
+                        <p className="text-xs text-emerald-600 font-medium mt-2">
+                          Signed on {new Date(clinicalOnboarding.documents?.[doc.id as keyof typeof clinicalOnboarding.documents]?.signedAt || '').toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveDocument(doc)}
+                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${
+                      isSigned
+                        ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
+                    }`}
+                  >
+                    {isSigned ? 'View' : 'Review & Sign'}
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Credentials Section */}
+      {activeSection === 'credentials' && (
+        <div className="bg-white rounded-2xl p-8 border border-zinc-100 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
+            <Shield className="text-blue-600" size={24} />
+            <div>
+              <h3 className="font-bold text-zinc-900">Professional Credentials</h3>
+              <p className="text-sm text-zinc-500">Enter your license information and upload documentation</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* NPI Number */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                NPI Number <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={credentials.npi || ''}
+                onChange={(e) => setCredentials({ ...credentials, npi: e.target.value })}
+                placeholder="1234567890"
+                maxLength={10}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* License Number */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                License Number <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={credentials.licenseNumber || ''}
+                onChange={(e) => setCredentials({ ...credentials, licenseNumber: e.target.value })}
+                placeholder="MD12345"
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* License State */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                License State <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={credentials.licenseState || ''}
+                onChange={(e) => setCredentials({ ...credentials, licenseState: e.target.value.toUpperCase() })}
+                placeholder="CA"
+                maxLength={2}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* License Expiration */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                License Expiration <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={credentials.licenseExpiration || ''}
+                onChange={(e) => setCredentials({ ...credentials, licenseExpiration: e.target.value })}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* License Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                Upload License Copy
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="flex-1 flex items-center justify-center gap-3 px-4 py-4 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+                  <Upload size={20} className="text-zinc-400" />
+                  <span className="text-sm text-zinc-600 font-medium">
+                    {credentials.licenseFileUrl ? 'License uploaded' : 'Click to upload'}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleFileUpload('licenseFileUrl', e.target.files[0])}
+                  />
+                </label>
+                {credentials.licenseFileUrl && (
+                  <CheckCircle className="text-emerald-500" size={24} />
+                )}
+              </div>
+            </div>
+
+            {/* DEA Number (Optional) */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                DEA Number (if applicable)
+              </label>
+              <input
+                type="text"
+                value={credentials.deaNumber || ''}
+                onChange={(e) => setCredentials({ ...credentials, deaNumber: e.target.value })}
+                placeholder="AB1234567"
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* DEA Expiration */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                DEA Expiration
+              </label>
+              <input
+                type="date"
+                value={credentials.deaExpiration || ''}
+                onChange={(e) => setCredentials({ ...credentials, deaExpiration: e.target.value })}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* Board Certification */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                Board Certification
+              </label>
+              <input
+                type="text"
+                value={credentials.boardCertification || ''}
+                onChange={(e) => setCredentials({ ...credentials, boardCertification: e.target.value })}
+                placeholder="e.g., ABFM, ABIM"
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* Board Cert Expiration */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                Board Cert Expiration
+              </label>
+              <input
+                type="date"
+                value={credentials.boardCertExpiration || ''}
+                onChange={(e) => setCredentials({ ...credentials, boardCertExpiration: e.target.value })}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* Malpractice Insurance */}
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={credentials.malpracticeInsurance || false}
+                  onChange={(e) => setCredentials({ ...credentials, malpracticeInsurance: e.target.checked })}
+                  className="w-5 h-5 rounded border-zinc-300"
+                />
+                <span className="text-sm font-medium text-zinc-700">
+                  I have current malpractice insurance coverage
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-zinc-100">
+            <button
+              onClick={handleSaveCredentials}
+              disabled={isSaving}
+              className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-lg"
+            >
+              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+              Save Credentials
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Document Viewer Modal */}
+      {activeDocument && (
+        <DocumentViewerModal
+          document={activeDocument}
+          isSigned={signedDocuments.includes(activeDocument.id)}
+          onClose={() => setActiveDocument(null)}
+          onSign={(signatureData) => handleSignDocument(activeDocument.id, signatureData)}
+          isSaving={isSaving}
+        />
+      )}
+    </div>
+  );
+};
+
+// Document Viewer Modal with Signature Pad
+const DocumentViewerModal: React.FC<{
+  document: DocumentItem;
+  isSigned: boolean;
+  onClose: () => void;
+  onSign: (signatureData: string) => void;
+  isSaving: boolean;
+}> = ({ document, isSigned, onClose, onSign, isSaving }) => {
+  const [showSignature, setShowSignature] = useState(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(isSigned);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
+
+  const handleScroll = () => {
+    if (contentRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+      if (scrollTop + clientHeight >= scrollHeight - 50) {
+        setHasScrolledToBottom(true);
+      }
+    }
+  };
+
+  // Canvas drawing functions
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!canvasRef.current) return;
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    setHasSignature(true);
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignature(false);
+  };
+
+  const submitSignature = () => {
+    if (!canvasRef.current || !hasSignature) return;
+    const signatureData = canvasRef.current.toDataURL();
+    onSign(signatureData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-zinc-100">
+          <div>
+            <h3 className="font-bold text-xl text-zinc-900">{document.title}</h3>
+            <p className="text-sm text-zinc-500">{isSigned ? 'Document signed' : 'Review and sign this document'}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full">
+            <X size={24} className="text-zinc-400" />
+          </button>
+        </div>
+
+        {/* Content */}
+        {!showSignature ? (
+          <>
+            <div
+              ref={contentRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-6 bg-zinc-50"
+            >
+              {document.type === 'pdf' ? (
+                <div className="bg-white rounded-xl p-8 shadow-sm min-h-[400px] flex flex-col items-center justify-center">
+                  <FileText size={64} className="text-zinc-300 mb-4" />
+                  <p className="text-zinc-600 font-medium mb-4">PDF Document: {document.title}</p>
+                  <a
+                    href={document.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+                  >
+                    Open PDF in New Tab
+                  </a>
+                  <p className="text-xs text-zinc-400 mt-4">Please review the document, then scroll down to sign.</p>
+                </div>
+              ) : (
+                <iframe
+                  src={document.url}
+                  className="w-full min-h-[600px] bg-white rounded-xl shadow-sm"
+                  title={document.title}
+                />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-zinc-100 bg-white">
+              {isSigned ? (
+                <div className="flex items-center justify-center gap-2 text-emerald-600 font-bold">
+                  <CheckCircle size={20} />
+                  Document Already Signed
+                </div>
+              ) : !hasScrolledToBottom ? (
+                <div className="flex items-center justify-center gap-2 text-amber-600">
+                  <AlertTriangle size={18} />
+                  <span className="text-sm font-medium">Please scroll through the entire document to enable signing</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowSignature(true)}
+                  className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Pen size={18} />
+                  Proceed to Sign Document
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Signature Pad */}
+            <div className="flex-1 p-6 flex flex-col items-center justify-center bg-zinc-50">
+              <p className="text-sm font-bold text-zinc-600 mb-4 uppercase tracking-wide">Draw Your Signature Below</p>
+              <div className="bg-white rounded-xl border-2 border-zinc-200 p-2 shadow-inner">
+                <canvas
+                  ref={canvasRef}
+                  width={500}
+                  height={200}
+                  className="border border-zinc-100 rounded-lg cursor-crosshair touch-none"
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                />
+              </div>
+              <button
+                onClick={clearSignature}
+                className="mt-3 text-sm text-zinc-500 hover:text-zinc-700 font-medium"
+              >
+                Clear Signature
+              </button>
+            </div>
+
+            {/* Signature Footer */}
+            <div className="p-6 border-t border-zinc-100 bg-white flex gap-4">
+              <button
+                onClick={() => setShowSignature(false)}
+                className="flex-1 py-3 bg-zinc-100 text-zinc-700 font-bold rounded-xl hover:bg-zinc-200"
+              >
+                Back to Document
+              </button>
+              <button
+                onClick={submitSignature}
+                disabled={!hasSignature || isSaving}
+                className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                Submit Signature
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ClinicalOnboarding;

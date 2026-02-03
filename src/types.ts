@@ -288,6 +288,34 @@ export interface Volunteer {
     screeningCompetencyVerified?: boolean;
   };
 
+  // Clinical Onboarding (for Licensed Medical Professionals)
+  clinicalOnboarding?: {
+    completed: boolean;
+    completedAt?: string;
+    // Document acknowledgments with signatures
+    documents: {
+      clinicalOnboardingGuide?: { signed: boolean; signedAt?: string; signatureData?: string; };
+      policiesProcedures?: { signed: boolean; signedAt?: string; signatureData?: string; };
+      screeningConsent?: { signed: boolean; signedAt?: string; signatureData?: string; };
+      standingOrders?: { signed: boolean; signedAt?: string; signatureData?: string; };
+    };
+    // License & Credentials
+    credentials: {
+      npi?: string;
+      licenseNumber?: string;
+      licenseState?: string;
+      licenseExpiration?: string;
+      licenseFileUrl?: string;
+      deaNumber?: string;
+      deaExpiration?: string;
+      deaFileUrl?: string;
+      boardCertification?: string;
+      boardCertExpiration?: string;
+      malpracticeInsurance?: boolean;
+      malpracticeFileUrl?: string;
+    };
+  };
+
   // Social Media Points (earned by following HMC on social platforms)
   claimedSocialPoints?: string[];
 

@@ -61,9 +61,13 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         setView('referral');
     };
 
-    // Licensed Medical Professionals and Medical Admins bypass training requirement
+    // Medical roles need clinical onboarding completed, others need client portal orientation
     const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
-    if (!user.trainingFlags?.clientPortalOrientationComplete && !user.isAdmin && !isMedicalRole) {
+    if (isMedicalRole) {
+        if (!user.clinicalOnboarding?.completed && !user.isAdmin) {
+            return <AccessGate requiredTraining="Clinical Onboarding (Training Academy)" />;
+        }
+    } else if (!user.trainingFlags?.clientPortalOrientationComplete && !user.isAdmin) {
         return <AccessGate requiredTraining="Client Portal Orientation" />;
     }
 

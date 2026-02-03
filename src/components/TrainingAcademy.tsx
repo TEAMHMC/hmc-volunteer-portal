@@ -7,8 +7,9 @@ import { APP_CONFIG } from '../config';
 import {
   CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
-  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video
+  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video, Stethoscope
 } from 'lucide-react';
+import ClinicalOnboarding from './ClinicalOnboarding';
 
 const getRoleSlug = (roleLabel: string): string => {
   if (!roleLabel) return 'general_volunteer';
@@ -444,7 +445,36 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       )}
 
-      
+      {/* CLINICAL ONBOARDING - For Licensed Medical Professionals */}
+      {(user.role?.includes('Medical') || user.role?.includes('Licensed') ||
+        user.appliedRole?.includes('Medical') || user.appliedRole?.includes('Licensed')) && (
+        <div className={!hasCompletedOrientation ? 'opacity-60' : ''}>
+          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
+            <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center">
+              <Stethoscope size={20} />
+            </div>
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Clinical Onboarding</h3>
+            {user.clinicalOnboarding?.completed && (
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+            )}
+            {!hasCompletedOrientation && (
+              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
+            )}
+          </div>
+          <p className="text-zinc-500 font-medium mb-8 -mt-4">
+            Required for all Licensed Medical Professionals. Complete document review with signatures and upload your credentials before accessing clinical stations.
+          </p>
+          {!hasCompletedOrientation ? (
+            <div className="p-8 bg-zinc-50 rounded-[32px] border border-zinc-100 text-center">
+              <p className="text-zinc-400 font-medium">Complete Orientation training above to unlock Clinical Onboarding.</p>
+            </div>
+          ) : (
+            <ClinicalOnboarding user={user} onUpdate={onUpdate} />
+          )}
+        </div>
+      )}
+
+
       {quizMode && activeSession && (
         <div className="fixed inset-0 bg-zinc-900/95 backdrop-blur-2xl z-[1000] flex items-center justify-center p-8 animate-in fade-in">
            <div className="bg-white p-12 rounded-[56px] max-w-5xl w-full space-y-10 shadow-2xl border border-zinc-100">

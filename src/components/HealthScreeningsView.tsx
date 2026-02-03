@@ -51,9 +51,13 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
         setView('screening');
     };
 
-    // Licensed Medical Professionals and Medical Admins bypass training requirement
+    // Medical roles need clinical onboarding completed, others need screening competency
     const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
-    if (!user.trainingFlags?.screeningCompetencyVerified && !user.isAdmin && !isMedicalRole) {
+    if (isMedicalRole) {
+        if (!user.clinicalOnboarding?.completed && !user.isAdmin) {
+            return <AccessGate requiredTraining="Clinical Onboarding (Training Academy)" />;
+        }
+    } else if (!user.trainingFlags?.screeningCompetencyVerified && !user.isAdmin) {
         return <AccessGate requiredTraining="Screening Competency" />;
     }
 
