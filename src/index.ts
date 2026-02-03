@@ -119,17 +119,45 @@ const generateAIContent = async (
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// SECURITY: Configure helmet with CSP
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com", "https://apis.google.com", "https://www.gstatic.com", "https://www.google.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://www.googleapis.com", "https://firestore.googleapis.com", "https://generativelanguage.googleapis.com", "wss:", "https:"],
+      frameSrc: ["'self'", "https://accounts.google.com", "https://www.google.com", "https://meet.google.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    }
+  },
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   crossOriginEmbedderPolicy: false,
 }));
+
+// SECURITY: Restrict CORS to allowed origins
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://healthmatters.clinic,https://volunteer.healthmatters.clinic,http://localhost:5173,http://localhost:8080').split(',');
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.) in development
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.warn(`[SECURITY] Blocked CORS request from: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
-// FIX: Replace deprecated body-parser with express.json
-app.use(express.json({ limit: '50mb' }));
+
+// Limit request body size to prevent memory exhaustion
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // --- HEALTH CHECK ENDPOINT (no auth required) ---
 app.get('/health', (req: Request, res: Response) => {
