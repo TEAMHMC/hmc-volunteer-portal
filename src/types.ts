@@ -140,6 +140,17 @@ export interface Volunteer {
   email: string;
   phone: string;
   homePhone?: string;
+
+  // Languages (for matching with community needs)
+  languagesSpoken?: string[];
+
+  // Demographics (for grant reporting purposes)
+  demographics?: {
+    race?: string[];
+    ethnicity?: string;
+    veteranStatus?: boolean;
+    disabilityStatus?: boolean;
+  };
   
   // Address
   address: string;

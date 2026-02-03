@@ -1566,9 +1566,19 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
         });
         const messages = Array.from(messagesMap.values());
 
+        // Compute online status based on lastActiveAt (within last 5 minutes = online)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const volunteersWithOnlineStatus = volunteersSnap.docs.map(d => {
+            const data = d.data();
+            return {
+                ...data,
+                isOnline: data.lastActiveAt ? data.lastActiveAt >= fiveMinutesAgo : false
+            };
+        });
+
         res.json({
             user: userProfile,
-            volunteers: volunteersSnap.docs.map(d => d.data()),
+            volunteers: volunteersWithOnlineStatus,
             opportunities: opportunitiesSnap.docs.map(d => ({...d.data(), id: d.id })),
             shifts: shiftsSnap.docs.map(d => ({...d.data(), id: d.id })),
             supportTickets: ticketsSnap.docs.map(d => ({...d.data(), id: d.id })),

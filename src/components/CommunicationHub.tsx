@@ -325,10 +325,20 @@ const BriefingView: React.FC<{
                     onClick={() => { setActiveChannel(v.id); setShowNewConversation(false); setSearchQuery(''); }}
                     className="w-full p-2 rounded-lg hover:bg-zinc-50 flex items-center gap-2 text-left"
                   >
-                    <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-bold">
-                      {v.name.charAt(0)}
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-bold">
+                        {v.name.charAt(0)}
+                      </div>
+                      {v.isOnline && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+                      )}
                     </div>
-                    <span className="text-sm font-medium text-zinc-700 truncate">{v.name}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-zinc-700 truncate block">{v.name}</span>
+                      <span className={`text-[10px] ${v.isOnline ? 'text-emerald-600' : 'text-zinc-400'}`}>
+                        {v.isOnline ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -336,34 +346,42 @@ const BriefingView: React.FC<{
           )}
 
           <div className="space-y-1">
-            {conversations.map(conv => (
-              <button
-                key={conv.recipientId}
-                onClick={() => setActiveChannel(conv.recipientId)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                  activeChannel === conv.recipientId ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-white'
-                }`}
-              >
-                <div className="relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    activeChannel === conv.recipientId ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-600'
-                  }`}>
-                    {conv.recipientName.charAt(0)}
-                  </div>
-                  {conv.unread > 0 && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center">
-                      {conv.unread}
+            {conversations.map(conv => {
+              const recipient = allVolunteers.find(v => v.id === conv.recipientId);
+              const isOnline = recipient?.isOnline;
+              return (
+                <button
+                  key={conv.recipientId}
+                  onClick={() => setActiveChannel(conv.recipientId)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    activeChannel === conv.recipientId ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-white'
+                  }`}
+                >
+                  <div className="relative">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      activeChannel === conv.recipientId ? 'bg-white/20 text-white' : 'bg-zinc-200 text-zinc-600'
+                    }`}>
+                      {conv.recipientName.charAt(0)}
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="font-semibold text-sm truncate">{conv.recipientName}</p>
-                  <p className={`text-[11px] truncate ${activeChannel === conv.recipientId ? 'text-white/60' : 'text-zinc-400'}`}>
-                    {conv.lastMessage.content.substring(0, 30)}...
-                  </p>
-                </div>
-              </button>
-            ))}
+                    {conv.unread > 0 ? (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center">
+                        {conv.unread}
+                      </div>
+                    ) : isOnline && (
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${
+                        activeChannel === conv.recipientId ? 'bg-emerald-400 border-[#233DFF]' : 'bg-emerald-500 border-zinc-50'
+                      }`} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="font-semibold text-sm truncate">{conv.recipientName}</p>
+                    <p className={`text-[11px] truncate ${activeChannel === conv.recipientId ? 'text-white/60' : 'text-zinc-400'}`}>
+                      {conv.lastMessage.content.substring(0, 30)}...
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -384,12 +402,23 @@ const BriefingView: React.FC<{
             </>
           ) : (
             <>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold">
-                {getChannelName().charAt(0)}
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold">
+                  {getChannelName().charAt(0)}
+                </div>
+                {allVolunteers.find(v => v.id === activeChannel)?.isOnline && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white" />
+                )}
               </div>
               <div>
                 <p className="font-bold text-zinc-900">{getChannelName()}</p>
-                <p className="text-xs text-zinc-400">Direct message</p>
+                <p className="text-xs text-zinc-400">
+                  {allVolunteers.find(v => v.id === activeChannel)?.isOnline ? (
+                    <span className="text-emerald-600 font-medium">Online now</span>
+                  ) : (
+                    'Offline'
+                  )}
+                </p>
               </div>
             </>
           )}

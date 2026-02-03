@@ -236,6 +236,20 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         interestedIn: '', howDidYouHear: formData.howDidYouHear, timeCommitment: formData.timeCommitment, isEmployed: formData.isEmployed || false,
         isStudent: formData.isStudent || false, tshirtSize: formData.tshirtSize,
 
+        // Secure information (encrypted for background checks)
+        ssn: formData.ssn,
+
+        // Languages spoken (for community matching)
+        languagesSpoken: formData.languagesSpoken || [],
+
+        // Demographics (for grant reporting)
+        demographics: {
+          race: formData.demographicRace || [],
+          ethnicity: formData.demographicEthnicity,
+          veteranStatus: formData.veteranStatus === 'yes',
+          disabilityStatus: formData.disabilityStatus === 'yes',
+        },
+
         // Identity fields (required by v4.0)
         identityLabel: 'HMC Champion',
         volunteerRole: (formData.selectedRole as Volunteer['volunteerRole']) || 'Core Volunteer',
@@ -267,7 +281,15 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         hoursContributed: 0,
         isNewUser: false,
         compliance: compliance as Volunteer['compliance'],
-        availability: { days: formData.availDays || [], preferredTime: formData.preferredTime, startDate: formData.startDate, notes: formData.schedulingLimitations || '', servicePreference: formData.servicePreference, timezone: formData.timezone, hoursPerWeek: formData.hoursPerWeek },
+        availability: {
+          days: formData.availDays || [],
+          preferredTime: (formData.preferredTimes || []).join(', '), // Store as comma-separated for backwards compatibility
+          startDate: formData.startDate,
+          notes: formData.schedulingLimitations || '',
+          servicePreference: formData.servicePreference || 'in-person',
+          timezone: formData.timezone || 'America/Los_Angeles',
+          hoursPerWeek: formData.hoursPerWeek
+        },
         tasks: [],
         achievements: [{ id: 'a-wel', title: 'Welcome to the Team!', icon: 'Heart', dateEarned: new Date().toISOString() }],
         roleAssessment: formData.roleAssessment,
@@ -624,6 +646,47 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
       {errors.eContact && <p className="text-rose-500 text-sm font-bold">{errors.eContact}</p>}
       {errors.eContactEmail && <p className="text-rose-500 text-sm font-bold">{errors.eContactEmail}</p>}
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Languages Spoken</h3>
+      <p className="text-sm text-zinc-500 -mt-4">To better align you with community needs (select all that apply)</p>
+      <div className="flex flex-wrap gap-3">
+        {['English', 'Spanish', 'Mandarin', 'Cantonese', 'Korean', 'Vietnamese', 'Tagalog', 'Armenian', 'Farsi', 'Arabic', 'Russian', 'ASL', 'Other'].map(lang => (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => {
+              const current = data.languagesSpoken || [];
+              onChange('languagesSpoken', current.includes(lang) ? current.filter((l: string) => l !== lang) : [...current, lang]);
+            }}
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.languagesSpoken || []).includes(lang) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+          >
+            {lang}
+          </button>
+        ))}
+      </div>
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Secure Information</h3>
+      <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+        <div className="flex items-start gap-3">
+          <Shield size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-amber-800 text-sm font-medium">Social Security Number (SSN)</p>
+            <p className="text-amber-700 text-xs mt-1">Required for background check purposes only. This information is encrypted and stored securely in compliance with data protection regulations. It will only be used to verify your identity and conduct the required background screening.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">Social Security Number</label>
+        <input
+          type="password"
+          value={data.ssn || ''}
+          onChange={e => onChange('ssn', formatSSN(e.target.value))}
+          className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-mono"
+          placeholder="XXX-XX-XXXX"
+          autoComplete="off"
+        />
+        <p className="text-xs text-zinc-400 mt-2">Format: XXX-XX-XXXX</p>
+      </div>
     </div>
   );
 };
@@ -678,6 +741,51 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         <label className="text-sm font-bold text-zinc-600 block mb-2">What do you hope to gain from this volunteer experience?</label>
         <textarea value={data.gainFromExperience || ''} onChange={e => onChange('gainFromExperience', e.target.value)} rows={4} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="Share your goals and motivations..." />
       </div>
+
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Demographics (Optional)</h3>
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+        <p className="text-blue-800 text-sm">This information is collected for grant reporting purposes only and helps HMC demonstrate the diversity of our volunteer workforce to funders. All responses are optional and confidential.</p>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-4">Race/Ethnicity (select all that apply)</label>
+          <div className="flex flex-wrap gap-3">
+            {['American Indian/Alaska Native', 'Asian', 'Black/African American', 'Hispanic/Latino', 'Native Hawaiian/Pacific Islander', 'White', 'Two or More Races', 'Prefer not to say'].map(race => (
+              <button
+                key={race}
+                type="button"
+                onClick={() => {
+                  const current = data.demographicRace || [];
+                  onChange('demographicRace', current.includes(race) ? current.filter((r: string) => r !== race) : [...current, race]);
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.demographicRace || []).includes(race) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              >
+                {race}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Are you a veteran?</label>
+            <select value={data.veteranStatus || ''} onChange={e => onChange('veteranStatus', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+              <option value="">Prefer not to say</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Do you identify as having a disability?</label>
+            <select value={data.disabilityStatus || ''} onChange={e => onChange('disabilityStatus', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+              <option value="">Prefer not to say</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -685,14 +793,45 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
 // --- AVAILABILITY STEP ---
 const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const times = ['Morning (8am-12pm)', 'Afternoon (12pm-5pm)', 'Evening (5pm-9pm)', 'Flexible'];
+  const times = ['Morning (8am-12pm)', 'Afternoon (12pm-5pm)', 'Evening (5pm-9pm)'];
+  const serviceTypes = [
+    { value: 'in-person', label: 'In-Person', desc: 'On-site at clinics and events' },
+    { value: 'virtual', label: 'Virtual/Remote', desc: 'Work from home opportunities' },
+    { value: 'hybrid', label: 'Hybrid', desc: 'Both in-person and virtual' }
+  ];
+
   const toggleDay = (day: string) => {
     const current = data.availDays || [];
     onChange('availDays', current.includes(day) ? current.filter((d: string) => d !== day) : [...current, day]);
   };
+
+  const toggleTime = (time: string) => {
+    const current = data.preferredTimes || [];
+    onChange('preferredTimes', current.includes(time) ? current.filter((t: string) => t !== time) : [...current, time]);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in">
       <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Availability</h2>
+
+      <div>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Service Preference *</label>
+        <p className="text-xs text-zinc-500 mb-4 -mt-2">How would you prefer to volunteer?</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {serviceTypes.map(type => (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => onChange('servicePreference', type.value)}
+              className={`p-4 rounded-xl border-2 text-left transition-all ${data.servicePreference === type.value ? 'border-[#233DFF] bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'}`}
+            >
+              <span className="font-bold text-zinc-900 block">{type.label}</span>
+              <span className="text-xs text-zinc-500">{type.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div>
         <label className="text-sm font-bold text-zinc-600 block mb-4">Which days are you typically available? *</label>
         <div className="flex flex-wrap gap-3">
@@ -703,21 +842,38 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
           ))}
         </div>
       </div>
+
       <div>
-        <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time of day? *</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time(s) of day? * <span className="font-normal text-zinc-400">(select all that apply)</span></label>
         <div className="flex flex-wrap gap-3">
           {times.map(time => (
-            <button key={time} type="button" onClick={() => onChange('preferredTime', time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${data.preferredTime === time ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+            <button key={time} type="button" onClick={() => toggleTime(time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.preferredTimes || []).includes(time) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
               {time}
             </button>
           ))}
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="text-sm font-bold text-zinc-600 block mb-2">When can you start? *</label>
           <input type="date" value={data.startDate || ''} onChange={e => onChange('startDate', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
         </div>
+        <div>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Your Timezone *</label>
+          <select value={data.timezone || ''} onChange={e => onChange('timezone', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+            <option value="">Select...</option>
+            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+            <option value="America/Denver">Mountain Time (MT)</option>
+            <option value="America/Chicago">Central Time (CT)</option>
+            <option value="America/New_York">Eastern Time (ET)</option>
+            <option value="America/Anchorage">Alaska Time (AKT)</option>
+            <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="text-sm font-bold text-zinc-600 block mb-2">Hours per week you can commit</label>
           <select value={data.hoursPerWeek || ''} onChange={e => onChange('hoursPerWeek', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
@@ -729,6 +885,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
           </select>
         </div>
       </div>
+
       <div>
         <label className="text-sm font-bold text-zinc-600 block mb-2">Any scheduling limitations we should know about?</label>
         <textarea value={data.schedulingLimitations || ''} onChange={e => onChange('schedulingLimitations', e.target.value)} rows={3} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="e.g., unavailable on certain dates, etc." />
