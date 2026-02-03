@@ -2488,6 +2488,35 @@ app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response
         res.status(500).json({ error: error.message || 'Failed to create support ticket' });
     }
 });
+
+// Update support ticket (for assignment, status changes, etc.)
+app.put('/api/support_tickets/:ticketId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { ticketId } = req.params;
+        const updates = req.body;
+
+        // Validate ticket exists
+        const ticketRef = db.collection('support_tickets').doc(ticketId);
+        const ticketDoc = await ticketRef.get();
+        if (!ticketDoc.exists) {
+            return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        // Update the ticket
+        await ticketRef.update({
+            ...updates,
+            updatedAt: new Date().toISOString()
+        });
+
+        const updatedTicket = (await ticketRef.get()).data();
+        console.log(`[SUPPORT] Ticket ${ticketId} updated:`, Object.keys(updates).join(', '));
+        res.json({ id: ticketId, ...updatedTicket });
+    } catch (error: any) {
+        console.error('[SUPPORT] Failed to update support ticket:', error);
+        res.status(500).json({ error: error.message || 'Failed to update support ticket' });
+    }
+});
+
 app.post('/api/admin/bulk-import', verifyToken, async (req: Request, res: Response) => {
     try {
         const { csvData } = req.body;

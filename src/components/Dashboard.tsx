@@ -8,6 +8,7 @@ import {
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
+import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
@@ -111,12 +112,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   useEffect(() => {
     const updatePresence = async () => {
       try {
-        await fetch('/api/volunteer/presence', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
+        await apiService.post('/api/volunteer/presence', {});
       } catch (error) {
+        // Silently fail - presence is non-critical
         console.warn('Failed to update presence:', error);
       }
     };
