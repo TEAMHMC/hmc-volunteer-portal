@@ -1519,15 +1519,27 @@ app.post('/auth/decode-google-token', async (req: Request, res: Response) => {
 app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
     try {
         const userProfile = (req as any).user.profile;
-        const [volunteersSnap, opportunitiesSnap, shiftsSnap, ticketsSnap, announcementsSnap, messagesSnap] = await Promise.all([
+        const userId = userProfile.id;
+
+        // Fetch messages only for this user (sent, received, or general channel)
+        const [volunteersSnap, opportunitiesSnap, shiftsSnap, ticketsSnap, announcementsSnap, sentMsgs, receivedMsgs, generalMsgs] = await Promise.all([
             db.collection('volunteers').get(),
             db.collection('opportunities').get(),
             db.collection('shifts').get(),
             db.collection('support_tickets').get(),
             db.collection('announcements').orderBy('date', 'desc').get(),
-            db.collection('messages').orderBy('timestamp', 'desc').limit(50).get(),
+            db.collection('messages').where('senderId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
+            db.collection('messages').where('recipientId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
+            db.collection('messages').where('recipientId', '==', 'general').orderBy('timestamp', 'desc').limit(50).get(),
         ]);
-        
+
+        // Dedupe messages
+        const messagesMap = new Map();
+        [...sentMsgs.docs, ...receivedMsgs.docs, ...generalMsgs.docs].forEach(doc => {
+            messagesMap.set(doc.id, { id: doc.id, ...doc.data() });
+        });
+        const messages = Array.from(messagesMap.values());
+
         res.json({
             user: userProfile,
             volunteers: volunteersSnap.docs.map(d => d.data()),
@@ -1535,7 +1547,7 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             shifts: shiftsSnap.docs.map(d => ({...d.data(), id: d.id })),
             supportTickets: ticketsSnap.docs.map(d => ({...d.data(), id: d.id })),
             announcements: announcementsSnap.docs.map(d => ({...d.data(), id: d.id })),
-            messages: messagesSnap.docs.map(d => ({...d.data(), id: d.id })),
+            messages,
         });
     } catch (error) {
         console.error("Failed to fetch initial data:", error);
