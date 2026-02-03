@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is an admin
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/volunteers/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Helper function to check if user is staff
+    function isStaff() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/volunteers/$(request.auth.uid)).data.role in ['staff', 'admin', 'program_manager'];
+    }
+
+    // ============ FORMS COLLECTION ============
+    // Form definitions - readable by all, writable by staff/admin
+    match /forms/{formId} {
+      allow read: if true;
+      allow create: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+
+    // ============ SURVEY RESPONSES ============
+    // Survey responses - writable by authenticated users (volunteers collecting data)
+    // Readable by staff/admin for analytics
+    match /surveyResponses/{responseId} {
+      allow create: if isAuthenticated();
+      allow read: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+
+    // ============ CLIENT SURVEYS ============
+    // Client surveys collected at events - writable by volunteers, readable by staff
+    match /clientSurveys/{surveyId} {
+      allow create: if isAuthenticated();
+      allow read: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+
+    // ============ SURVEY KITS ============
+    // Pre-configured survey kits - readable by all, writable by admin only
+    match /surveyKits/{kitId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============ VOLUNTEERS ============
+    // Volunteer profiles
+    match /volunteers/{volunteerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || request.auth.uid == volunteerId;
+    }
+
+    // ============ EVENTS ============
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+  }
+}

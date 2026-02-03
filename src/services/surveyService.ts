@@ -1,0 +1,409 @@
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  getDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  Timestamp,
+  serverTimestamp
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { FormField, SurveyKit, VolunteerSurveyResponse } from '../types';
+
+// Collection names
+const COLLECTIONS = {
+  FORMS: 'forms',
+  SURVEY_RESPONSES: 'surveyResponses',
+  SURVEY_KITS: 'surveyKits',
+  CLIENT_SURVEYS: 'clientSurveys'
+};
+
+// ============ FORM DEFINITIONS ============
+
+export interface FormDefinition {
+  id?: string;
+  title: string;
+  description: string;
+  fields: FormField[];
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  isActive: boolean;
+  category: 'intake' | 'feedback' | 'screening' | 'referral' | 'custom';
+}
+
+/**
+ * Create a new form definition
+ */
+export const createForm = async (form: Omit<FormDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, COLLECTIONS.FORMS), {
+    ...form,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  return docRef.id;
+};
+
+/**
+ * Update an existing form definition
+ */
+export const updateForm = async (formId: string, updates: Partial<FormDefinition>): Promise<void> => {
+  const formRef = doc(db, COLLECTIONS.FORMS, formId);
+  await updateDoc(formRef, {
+    ...updates,
+    updatedAt: serverTimestamp()
+  });
+};
+
+/**
+ * Delete a form definition
+ */
+export const deleteForm = async (formId: string): Promise<void> => {
+  await deleteDoc(doc(db, COLLECTIONS.FORMS, formId));
+};
+
+/**
+ * Get all form definitions
+ */
+export const getForms = async (category?: FormDefinition['category']): Promise<FormDefinition[]> => {
+  let q = query(collection(db, COLLECTIONS.FORMS), orderBy('createdAt', 'desc'));
+
+  if (category) {
+    q = query(collection(db, COLLECTIONS.FORMS), where('category', '==', category), orderBy('createdAt', 'desc'));
+  }
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as FormDefinition));
+};
+
+/**
+ * Get a single form by ID
+ */
+export const getFormById = async (formId: string): Promise<FormDefinition | null> => {
+  const docRef = doc(db, COLLECTIONS.FORMS, formId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as FormDefinition;
+  }
+  return null;
+};
+
+// ============ SURVEY RESPONSES ============
+
+export interface SurveyResponse {
+  id?: string;
+  formId: string;
+  formTitle: string;
+  eventId?: string;
+  eventTitle?: string;
+  respondentId?: string; // Client or volunteer ID if known
+  respondentType: 'client' | 'volunteer' | 'anonymous';
+  responses: { [fieldId: string]: string | string[] | number };
+  submittedAt?: string;
+  submittedBy?: string; // Volunteer who collected the survey
+  location?: { lat: number; lng: number };
+  metadata?: { [key: string]: any };
+}
+
+/**
+ * Submit a survey response
+ */
+export const submitSurveyResponse = async (response: Omit<SurveyResponse, 'id' | 'submittedAt'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, COLLECTIONS.SURVEY_RESPONSES), {
+    ...response,
+    submittedAt: serverTimestamp()
+  });
+  return docRef.id;
+};
+
+/**
+ * Get survey responses for a specific form
+ */
+export const getSurveyResponsesByForm = async (formId: string, limitCount = 100): Promise<SurveyResponse[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.SURVEY_RESPONSES),
+    where('formId', '==', formId),
+    orderBy('submittedAt', 'desc'),
+    limit(limitCount)
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as SurveyResponse));
+};
+
+/**
+ * Get survey responses for a specific event
+ */
+export const getSurveyResponsesByEvent = async (eventId: string): Promise<SurveyResponse[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.SURVEY_RESPONSES),
+    where('eventId', '==', eventId),
+    orderBy('submittedAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as SurveyResponse));
+};
+
+/**
+ * Get all survey responses within a date range
+ */
+export const getSurveyResponsesByDateRange = async (startDate: Date, endDate: Date): Promise<SurveyResponse[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.SURVEY_RESPONSES),
+    where('submittedAt', '>=', Timestamp.fromDate(startDate)),
+    where('submittedAt', '<=', Timestamp.fromDate(endDate)),
+    orderBy('submittedAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as SurveyResponse));
+};
+
+// ============ VOLUNTEER FEEDBACK SURVEYS ============
+
+/**
+ * Submit volunteer feedback survey (post-event)
+ */
+export const submitVolunteerFeedback = async (feedback: Omit<VolunteerSurveyResponse, 'id'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, COLLECTIONS.SURVEY_RESPONSES), {
+    ...feedback,
+    respondentType: 'volunteer',
+    formId: 'volunteer-feedback',
+    formTitle: 'Volunteer Post-Event Feedback',
+    submittedAt: serverTimestamp()
+  });
+  return docRef.id;
+};
+
+/**
+ * Get volunteer feedback responses
+ */
+export const getVolunteerFeedback = async (eventId?: string): Promise<VolunteerSurveyResponse[]> => {
+  let q;
+
+  if (eventId) {
+    q = query(
+      collection(db, COLLECTIONS.SURVEY_RESPONSES),
+      where('formId', '==', 'volunteer-feedback'),
+      where('eventId', '==', eventId),
+      orderBy('submittedAt', 'desc')
+    );
+  } else {
+    q = query(
+      collection(db, COLLECTIONS.SURVEY_RESPONSES),
+      where('formId', '==', 'volunteer-feedback'),
+      orderBy('submittedAt', 'desc'),
+      limit(100)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      volunteerId: data.respondentId || data.volunteerId,
+      volunteerRole: data.volunteerRole || 'Unknown',
+      eventId: data.eventId,
+      rating: data.responses?.rating || data.rating || 0,
+      feedback: data.responses?.feedback || data.feedback || '',
+      submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
+    } as VolunteerSurveyResponse;
+  });
+};
+
+// ============ CLIENT SURVEYS (SDOH, Intake, etc.) ============
+
+export interface ClientSurveySubmission {
+  id?: string;
+  surveyKitId: string;
+  surveyKitName: string;
+  clientId?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
+  clientPhone?: string;
+  eventId: string;
+  eventTitle: string;
+  collectedBy: string; // Volunteer ID
+  collectedByName: string;
+  responses: { [fieldId: string]: string | string[] | number };
+  consentGiven: boolean;
+  submittedAt?: string;
+  location?: { lat: number; lng: number };
+}
+
+/**
+ * Submit a client survey (collected at events)
+ */
+export const submitClientSurvey = async (survey: Omit<ClientSurveySubmission, 'id' | 'submittedAt'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, COLLECTIONS.CLIENT_SURVEYS), {
+    ...survey,
+    submittedAt: serverTimestamp()
+  });
+  return docRef.id;
+};
+
+/**
+ * Get client surveys for an event
+ */
+export const getClientSurveysByEvent = async (eventId: string): Promise<ClientSurveySubmission[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.CLIENT_SURVEYS),
+    where('eventId', '==', eventId),
+    orderBy('submittedAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as ClientSurveySubmission));
+};
+
+/**
+ * Get client surveys by survey kit type
+ */
+export const getClientSurveysBySurveyKit = async (surveyKitId: string, limitCount = 100): Promise<ClientSurveySubmission[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.CLIENT_SURVEYS),
+    where('surveyKitId', '==', surveyKitId),
+    orderBy('submittedAt', 'desc'),
+    limit(limitCount)
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as ClientSurveySubmission));
+};
+
+// ============ ANALYTICS HELPERS ============
+
+/**
+ * Get survey response count by form
+ */
+export const getSurveyResponseCounts = async (): Promise<{ [formId: string]: number }> => {
+  const snapshot = await getDocs(collection(db, COLLECTIONS.SURVEY_RESPONSES));
+  const counts: { [formId: string]: number } = {};
+
+  snapshot.docs.forEach(doc => {
+    const formId = doc.data().formId;
+    counts[formId] = (counts[formId] || 0) + 1;
+  });
+
+  return counts;
+};
+
+/**
+ * Get average rating from volunteer feedback
+ */
+export const getAverageVolunteerRating = async (eventId?: string): Promise<number> => {
+  const feedback = await getVolunteerFeedback(eventId);
+  if (feedback.length === 0) return 0;
+
+  const total = feedback.reduce((sum, f) => sum + f.rating, 0);
+  return total / feedback.length;
+};
+
+/**
+ * Get survey statistics for analytics dashboard
+ */
+export const getSurveyStats = async (startDate?: Date, endDate?: Date): Promise<{
+  totalResponses: number;
+  responsesByForm: { [formId: string]: number };
+  averageRating: number;
+  responsesOverTime: { date: string; count: number }[];
+}> => {
+  let q = query(collection(db, COLLECTIONS.SURVEY_RESPONSES), orderBy('submittedAt', 'desc'));
+
+  if (startDate && endDate) {
+    q = query(
+      collection(db, COLLECTIONS.SURVEY_RESPONSES),
+      where('submittedAt', '>=', Timestamp.fromDate(startDate)),
+      where('submittedAt', '<=', Timestamp.fromDate(endDate)),
+      orderBy('submittedAt', 'desc')
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const responses = snapshot.docs.map(doc => doc.data());
+
+  // Calculate stats
+  const responsesByForm: { [formId: string]: number } = {};
+  const responsesOverTime: { [date: string]: number } = {};
+  let ratingSum = 0;
+  let ratingCount = 0;
+
+  responses.forEach(r => {
+    // By form
+    responsesByForm[r.formId] = (responsesByForm[r.formId] || 0) + 1;
+
+    // Over time
+    const date = r.submittedAt?.toDate?.()?.toISOString()?.split('T')[0] || 'unknown';
+    responsesOverTime[date] = (responsesOverTime[date] || 0) + 1;
+
+    // Rating
+    const rating = r.responses?.rating || r.rating;
+    if (typeof rating === 'number') {
+      ratingSum += rating;
+      ratingCount++;
+    }
+  });
+
+  return {
+    totalResponses: responses.length,
+    responsesByForm,
+    averageRating: ratingCount > 0 ? ratingSum / ratingCount : 0,
+    responsesOverTime: Object.entries(responsesOverTime).map(([date, count]) => ({ date, count }))
+  };
+};
+
+export default {
+  // Forms
+  createForm,
+  updateForm,
+  deleteForm,
+  getForms,
+  getFormById,
+
+  // Survey Responses
+  submitSurveyResponse,
+  getSurveyResponsesByForm,
+  getSurveyResponsesByEvent,
+  getSurveyResponsesByDateRange,
+
+  // Volunteer Feedback
+  submitVolunteerFeedback,
+  getVolunteerFeedback,
+
+  // Client Surveys
+  submitClientSurvey,
+  getClientSurveysByEvent,
+  getClientSurveysBySurveyKit,
+
+  // Analytics
+  getSurveyResponseCounts,
+  getAverageVolunteerRating,
+  getSurveyStats
+};

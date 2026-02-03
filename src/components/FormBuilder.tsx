@@ -1,45 +1,206 @@
-import React, { useState } from 'react';
-import { FileText, Plus, Save, Trash2, PlusCircle, X, Loader2, CheckCircle, Eye, ChevronRight, TextCursorInput, List, CheckSquare as CheckSquareIcon, Star } from 'lucide-react';
-import { apiService } from '../services/apiService';
+import React, { useState, useEffect } from 'react';
+import { FileText, Plus, Save, Trash2, PlusCircle, X, Loader2, CheckCircle, Eye, ChevronRight, TextCursorInput, List, CheckSquare as CheckSquareIcon, Star, BarChart3, Download } from 'lucide-react';
 import { FormField } from '../types';
+import surveyService, { FormDefinition, SurveyResponse } from '../services/surveyService';
 
-const INITIAL_FORMS = [
-    { id: 'client-intake', title: 'Client Intake Form', description: 'Collect comprehensive client information, demographics, and social determinant needs.', fields: [] },
-    { id: 'new-resource', title: 'New Referral Resource', description: 'Add a new community organization or program to the referral database.', fields: [] },
+const DEFAULT_FORMS: FormDefinition[] = [
+    { id: 'client-intake', title: 'Client Intake Form', description: 'Collect comprehensive client information, demographics, and social determinant needs.', fields: [], isActive: true, category: 'intake' },
+    { id: 'new-resource', title: 'New Referral Resource', description: 'Add a new community organization or program to the referral database.', fields: [], isActive: true, category: 'referral' },
     { id: 'event-feedback', title: 'Post-Event Feedback Survey', description: 'Gather attendee feedback on community events and workshops.', fields: [
         { id: 'q1', type: 'Rating', question: 'How would you rate your overall event experience?', options: ['1', '2', '3', '4', '5'], required: true },
         { id: 'q2', type: 'Short Text', question: 'Do you have any feedback for the event coordinators?', required: false },
-    ] },
+    ], isActive: true, category: 'feedback' },
 ];
 
 const FormBuilder: React.FC = () => {
-    const [forms, setForms] = useState(INITIAL_FORMS);
-    const [activeForm, setActiveForm] = useState<typeof INITIAL_FORMS[0] | null>(null);
+    const [forms, setForms] = useState<FormDefinition[]>(DEFAULT_FORMS);
+    const [activeForm, setActiveForm] = useState<FormDefinition | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [responseCounts, setResponseCounts] = useState<{ [formId: string]: number }>({});
+    const [viewingResponses, setViewingResponses] = useState<{ formId: string; responses: SurveyResponse[] } | null>(null);
 
-    const handleSaveForm = (updatedForm: typeof INITIAL_FORMS[0]) => {
-        // Check if this is a new form or existing form
-        const existingFormIndex = forms.findIndex(f => f.id === updatedForm.id);
-        if (existingFormIndex >= 0) {
-            setForms(forms.map(f => f.id === updatedForm.id ? updatedForm : f));
-        } else {
-            setForms([...forms, updatedForm]);
+    // Load forms from Firestore on mount
+    useEffect(() => {
+        const loadForms = async () => {
+            try {
+                const firestoreForms = await surveyService.getForms();
+                if (firestoreForms.length > 0) {
+                    setForms(firestoreForms);
+                }
+                // Load response counts
+                const counts = await surveyService.getSurveyResponseCounts();
+                setResponseCounts(counts);
+            } catch (error) {
+                console.error('Error loading forms:', error);
+                // Fall back to defaults
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadForms();
+    }, []);
+
+    const handleSaveForm = async (updatedForm: FormDefinition) => {
+        setIsSaving(true);
+        try {
+            // Check if this is a new form or existing form
+            const existingFormIndex = forms.findIndex(f => f.id === updatedForm.id);
+
+            if (existingFormIndex >= 0 && updatedForm.id && !updatedForm.id.startsWith('form-')) {
+                // Update existing form in Firestore
+                await surveyService.updateForm(updatedForm.id, {
+                    title: updatedForm.title,
+                    description: updatedForm.description,
+                    fields: updatedForm.fields,
+                    category: updatedForm.category,
+                    isActive: updatedForm.isActive
+                });
+                setForms(forms.map(f => f.id === updatedForm.id ? updatedForm : f));
+            } else {
+                // Create new form in Firestore
+                const newFormId = await surveyService.createForm({
+                    title: updatedForm.title,
+                    description: updatedForm.description || '',
+                    fields: updatedForm.fields,
+                    isActive: true,
+                    category: updatedForm.category || 'custom'
+                });
+                const newForm = { ...updatedForm, id: newFormId };
+                setForms([...forms, newForm]);
+            }
+            setActiveForm(null);
+        } catch (error) {
+            console.error('Error saving form:', error);
+            alert('Failed to save form. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
-        setActiveForm(null);
-        alert("Form saved successfully!");
+    };
+
+    const handleDeleteForm = async (formId: string) => {
+        if (!confirm('Are you sure you want to delete this form? This cannot be undone.')) return;
+
+        try {
+            await surveyService.deleteForm(formId);
+            setForms(forms.filter(f => f.id !== formId));
+        } catch (error) {
+            console.error('Error deleting form:', error);
+            alert('Failed to delete form.');
+        }
+    };
+
+    const handleViewResponses = async (formId: string) => {
+        try {
+            const responses = await surveyService.getSurveyResponsesByForm(formId);
+            setViewingResponses({ formId, responses });
+        } catch (error) {
+            console.error('Error loading responses:', error);
+            alert('Failed to load responses.');
+        }
+    };
+
+    const handleExportResponses = (responses: SurveyResponse[]) => {
+        const csv = convertToCSV(responses);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `survey-responses-${Date.now()}.csv`;
+        a.click();
+    };
+
+    const convertToCSV = (responses: SurveyResponse[]): string => {
+        if (responses.length === 0) return '';
+
+        // Get all unique field IDs across responses
+        const allFields = new Set<string>();
+        responses.forEach(r => Object.keys(r.responses || {}).forEach(k => allFields.add(k)));
+
+        const headers = ['Submitted At', 'Event', 'Respondent Type', ...Array.from(allFields)];
+        const rows = responses.map(r => [
+            r.submittedAt || '',
+            r.eventTitle || '',
+            r.respondentType || '',
+            ...Array.from(allFields).map(f => String(r.responses?.[f] || ''))
+        ]);
+
+        return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     };
 
     const handleCreateNewForm = () => {
-        const newForm = {
+        const newForm: FormDefinition = {
             id: `form-${Date.now()}`,
             title: 'New Survey Form',
             description: 'Enter a description for your new form.',
-            fields: []
+            fields: [],
+            isActive: true,
+            category: 'custom'
         };
         setActiveForm(newForm);
     };
 
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin text-blue-600" size={32} />
+            </div>
+        );
+    }
+
+    // Responses viewer modal
+    if (viewingResponses) {
+        return (
+            <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+                <header className="flex items-center justify-between">
+                    <div>
+                        <button onClick={() => setViewingResponses(null)} className="text-sm font-bold text-zinc-500 mb-2">← Back to Forms</button>
+                        <h1 className="text-4xl font-black text-zinc-900 tracking-tighter">Survey Responses</h1>
+                        <p className="text-zinc-500 mt-1">{viewingResponses.responses.length} responses collected</p>
+                    </div>
+                    <button
+                        onClick={() => handleExportResponses(viewingResponses.responses)}
+                        className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-xs font-black uppercase tracking-widest"
+                    >
+                        <Download size={16} /> Export CSV
+                    </button>
+                </header>
+
+                {viewingResponses.responses.length === 0 ? (
+                    <div className="bg-zinc-50 rounded-3xl p-12 text-center">
+                        <BarChart3 className="mx-auto text-zinc-300 mb-4" size={48} />
+                        <p className="text-zinc-500">No responses collected yet.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {viewingResponses.responses.map((response, idx) => (
+                            <div key={response.id || idx} className="bg-white p-6 rounded-2xl border border-zinc-100">
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                                        {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'Unknown date'}
+                                    </span>
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                        {response.respondentType}
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    {Object.entries(response.responses || {}).map(([key, value]) => (
+                                        <div key={key} className="flex gap-4">
+                                            <span className="text-sm font-medium text-zinc-500 min-w-[120px]">{key}:</span>
+                                            <span className="text-sm text-zinc-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     if (activeForm) {
-        return <FormEditor form={activeForm} onSave={handleSaveForm} onBack={() => setActiveForm(null)} />;
+        return <FormEditor form={activeForm} onSave={handleSaveForm} onBack={() => setActiveForm(null)} isSaving={isSaving} />;
     }
 
     return (
@@ -61,14 +222,35 @@ const FormBuilder: React.FC = () => {
                 {forms.map(form => (
                     <div key={form.id} className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm flex flex-col">
                         <div className="flex-1">
-                          <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 mb-6 border border-zinc-100"><FileText /></div>
+                          <div className="flex items-start justify-between mb-6">
+                            <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 border border-zinc-100"><FileText /></div>
+                            {responseCounts[form.id!] > 0 && (
+                              <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
+                                <BarChart3 size={14} className="text-green-600" />
+                                <span className="text-xs font-bold text-green-700">{responseCounts[form.id!]} responses</span>
+                              </div>
+                            )}
+                          </div>
                           <h3 className="text-lg font-black text-zinc-900">{form.title}</h3>
                           <p className="text-sm text-zinc-500 mt-2">{form.description}</p>
+                          <div className="mt-3">
+                            <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-bold uppercase tracking-wider rounded">
+                              {form.category || 'custom'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-end">
-                            <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl hover:bg-zinc-200">
-                                Edit Form
+                        <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-between gap-3">
+                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 px-4 py-3 rounded-xl">
+                                <BarChart3 size={14} /> Responses
                             </button>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl">
+                                    <Trash2 size={14} />
+                                </button>
+                                <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl hover:bg-zinc-200">
+                                    Edit Form
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -77,7 +259,7 @@ const FormBuilder: React.FC = () => {
     );
 };
 
-const FormEditor: React.FC<{form: any, onSave: (form: any) => void, onBack: () => void}> = ({ form, onSave, onBack }) => {
+const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition) => void, onBack: () => void, isSaving?: boolean}> = ({ form, onSave, onBack, isSaving }) => {
     const [formTitle, setFormTitle] = useState(form.title);
     const [fields, setFields] = useState<FormField[]>(form.fields);
 
@@ -121,8 +303,13 @@ const FormEditor: React.FC<{form: any, onSave: (form: any) => void, onBack: () =
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <button onClick={onBack} className="text-sm font-bold text-zinc-500">← Back to Forms</button>
-                <button onClick={() => onSave({ ...form, title: formTitle, fields })} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg">
-                    <Save size={16} /> Save Changes
+                <button
+                    onClick={() => onSave({ ...form, title: formTitle, fields })}
+                    disabled={isSaving}
+                    className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                >
+                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
             </div>
 

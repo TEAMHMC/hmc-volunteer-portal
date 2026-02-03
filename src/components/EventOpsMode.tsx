@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField } from '../types';
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS } from '../constants';
 import { apiService } from '../services/apiService';
-import { 
+import surveyService from '../services/surveyService';
+import {
   ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
@@ -132,7 +133,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-[48px] md:rounded-[64px] p-8 md:p-16 shadow-sm min-h-[600px] relative">
           {activeTab === 'overview' && <OverviewTab user={user} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} />}
-          {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} />}
+          {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
@@ -285,21 +286,73 @@ const ChecklistsView: React.FC<{template: ChecklistTemplate, completedItems: str
   </div>
 );
 
-const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer}> = ({ surveyKit, user }) => {
+const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventId?: string, eventTitle?: string}> = ({ surveyKit, user, eventId, eventTitle }) => {
     const [submission, setSubmission] = useState<{ [key: string]: any }>({});
+    const [clientInfo, setClientInfo] = useState({ firstName: '', lastName: '', phone: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [consentGiven, setConsentGiven] = useState(false);
+    const [responseCount, setResponseCount] = useState(0);
+
     if (!user.trainingFlags?.surveySOPComplete && !user.isAdmin) return <AccessGate requiredTraining="Survey SOP" />;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!consentGiven) {
+            alert('Client consent is required before submitting.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await surveyService.submitClientSurvey({
+                surveyKitId: surveyKit.id,
+                surveyKitName: surveyKit.name,
+                clientFirstName: clientInfo.firstName,
+                clientLastName: clientInfo.lastName,
+                clientPhone: clientInfo.phone,
+                eventId: eventId || 'unknown',
+                eventTitle: eventTitle || 'Unknown Event',
+                collectedBy: user.id,
+                collectedByName: `${user.firstName} ${user.lastName}`,
+                responses: submission,
+                consentGiven: true
+            });
+            setResponseCount(prev => prev + 1);
+            setIsSubmitted(true);
+        } catch (error) {
+            console.error('Error submitting survey:', error);
+            alert('Failed to submit survey. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const resetForm = () => {
+        setIsSubmitted(false);
+        setSubmission({});
+        setClientInfo({ firstName: '', lastName: '', phone: '' });
+        setConsentGiven(false);
+    };
+
     if(isSubmitted) return (
         <div className="text-center py-32 animate-in fade-in scale-110">
             <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-emerald-100"><CheckCircle size={40} className="text-emerald-500" /></div>
             <h3 className="font-black text-2xl uppercase italic tracking-tight">Sync Complete</h3>
             <p className="text-zinc-400 text-sm mt-2 font-medium italic">Data transmitted to Registry Cloud.</p>
-            <button onClick={() => { setIsSubmitted(false); setSubmission({}); }} className="mt-12 px-10 py-4 bg-zinc-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">Next Participant</button>
+            <p className="text-emerald-600 text-sm font-bold mt-4">{responseCount} surveys collected this session</p>
+            <button onClick={resetForm} className="mt-12 px-10 py-4 bg-zinc-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">Next Participant</button>
         </div>
     );
+
     return (
         <div className="space-y-12 animate-in fade-in">
-            <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Survey Kiosk</h2>
+            <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Survey Kiosk</h2>
+                <div className="px-4 py-2 bg-emerald-50 rounded-full">
+                    <span className="text-xs font-bold text-emerald-700">{responseCount} collected</span>
+                </div>
+            </div>
             <div className="p-10 bg-zinc-50 rounded-[48px] border border-zinc-100 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#233DFF]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#233DFF]/10 transition-all" />
                 <div className="flex items-center justify-between mb-6">
@@ -307,7 +360,36 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer}> = ({ 
                 </div>
                 <p className="text-lg font-medium text-zinc-700 leading-relaxed italic">{surveyKit.volunteerScript.en}</p>
             </div>
-            <form onSubmit={(e)=>{ e.preventDefault(); setIsSubmitted(true); }} className="space-y-8">
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Client Info Section */}
+                <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 space-y-4">
+                    <h4 className="text-xs font-black text-blue-700 uppercase tracking-widest">Participant Info (Optional)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <input
+                            type="text"
+                            placeholder="First Name"
+                            value={clientInfo.firstName}
+                            onChange={e => setClientInfo({...clientInfo, firstName: e.target.value})}
+                            className="p-4 bg-white border border-blue-100 rounded-2xl text-sm font-medium outline-none focus:border-blue-300"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Last Name"
+                            value={clientInfo.lastName}
+                            onChange={e => setClientInfo({...clientInfo, lastName: e.target.value})}
+                            className="p-4 bg-white border border-blue-100 rounded-2xl text-sm font-medium outline-none focus:border-blue-300"
+                        />
+                    </div>
+                    <input
+                        type="tel"
+                        placeholder="Phone (for follow-up)"
+                        value={clientInfo.phone}
+                        onChange={e => setClientInfo({...clientInfo, phone: e.target.value})}
+                        className="w-full p-4 bg-white border border-blue-100 rounded-2xl text-sm font-medium outline-none focus:border-blue-300"
+                    />
+                </div>
+
                 {surveyKit.formStructure.map(field => (
                     <div key={field.id} className="space-y-4">
                         <label className="text-sm font-black text-zinc-900 leading-tight flex items-center gap-3">
@@ -316,9 +398,45 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer}> = ({ 
                         </label>
                         {field.type === 'Short Text' && <textarea value={submission[field.id] || ''} onChange={e => setSubmission({...submission, [field.id]: e.target.value})} className="w-full p-6 bg-zinc-50 border-2 border-zinc-100 rounded-3xl text-sm font-medium focus:bg-white focus:border-[#233DFF]/20 outline-none transition-all" rows={3} />}
                         {field.type === 'Rating' && <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-14 h-14 rounded-2xl shrink-0 font-black transition-all border-2 ${submission[field.id] === opt ? 'bg-[#233DFF] text-white border-[#233DFF] shadow-xl scale-110' : 'bg-white text-zinc-300 border-zinc-100 hover:border-zinc-200'}`}>{opt}</button>)}</div>}
+                        {field.type === 'Multiple Choice' && <div className="space-y-2">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-full p-4 rounded-2xl text-left text-sm font-medium transition-all border-2 ${submission[field.id] === opt ? 'bg-[#233DFF]/5 border-[#233DFF] text-[#233DFF]' : 'bg-zinc-50 border-zinc-100 hover:border-zinc-200'}`}>{opt}</button>)}</div>}
+                        {field.type === 'Checkboxes' && <div className="space-y-2">{field.options?.map(opt => {
+                            const selected = (submission[field.id] || []).includes(opt);
+                            return <button type="button" key={opt} onClick={() => {
+                                const current = submission[field.id] || [];
+                                setSubmission({...submission, [field.id]: selected ? current.filter((v: string) => v !== opt) : [...current, opt]});
+                            }} className={`w-full p-4 rounded-2xl text-left text-sm font-medium transition-all border-2 flex items-center gap-3 ${selected ? 'bg-[#233DFF]/5 border-[#233DFF] text-[#233DFF]' : 'bg-zinc-50 border-zinc-100 hover:border-zinc-200'}`}>
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selected ? 'bg-[#233DFF] border-[#233DFF]' : 'border-zinc-300'}`}>
+                                    {selected && <CheckSquare size={12} className="text-white" />}
+                                </div>
+                                {opt}
+                            </button>
+                        })}</div>}
                     </div>
                 ))}
-                <button type="submit" className="w-full py-6 bg-[#233DFF] text-white font-black uppercase tracking-[0.3em] text-[11px] rounded-full shadow-[0_20px_50px_rgba(35,61,255,0.3)] hover:scale-[1.02] transition-all active:scale-95 mt-10">Sync Entry</button>
+
+                {/* Consent Checkbox */}
+                <div className="p-6 bg-amber-50 rounded-3xl border border-amber-200">
+                    <label className="flex items-start gap-4 cursor-pointer">
+                        <button
+                            type="button"
+                            onClick={() => setConsentGiven(!consentGiven)}
+                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${consentGiven ? 'bg-amber-500 border-amber-500' : 'border-amber-300 bg-white'}`}
+                        >
+                            {consentGiven && <CheckSquare size={14} className="text-white" />}
+                        </button>
+                        <span className="text-sm text-amber-800">
+                            <strong>Verbal Consent Obtained:</strong> I confirm the participant has given verbal consent to collect and store this information for health services coordination.
+                        </span>
+                    </label>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={isSubmitting || !consentGiven}
+                    className="w-full py-6 bg-[#233DFF] text-white font-black uppercase tracking-[0.3em] text-[11px] rounded-full shadow-[0_20px_50px_rgba(35,61,255,0.3)] hover:scale-[1.02] transition-all active:scale-95 mt-10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                    {isSubmitting ? <><Loader2 className="animate-spin" size={18} /> Syncing...</> : 'Sync Entry'}
+                </button>
             </form>
         </div>
     );

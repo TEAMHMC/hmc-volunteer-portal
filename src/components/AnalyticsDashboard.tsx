@@ -2,9 +2,10 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { Volunteer, VolunteerSurveyResponse } from '../types';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Users, Clock, ShieldCheck, BarChart3, Star, Percent, MessageSquare, Sparkles, Loader2, FileText, CheckCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import { Users, Clock, ShieldCheck, BarChart3, Star, Percent, MessageSquare, Sparkles, Loader2, FileText, CheckCircle, TrendingUp } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
+import surveyService from '../services/surveyService';
 
 interface AnalyticsDashboardProps {
   volunteers: Volunteer[];
@@ -106,15 +107,32 @@ const StatCard: React.FC<{title: string, value: number | string, icon: React.Ele
 
 const VolunteerExperienceView = () => {
   const [surveyResponses, setSurveyResponses] = useState<VolunteerSurveyResponse[]>([]);
+  const [surveyStats, setSurveyStats] = useState<{
+    totalResponses: number;
+    responsesByForm: { [formId: string]: number };
+    averageRating: number;
+    responsesOverTime: { date: string; count: number }[];
+  } | null>(null);
   const [aiSummary, setAiSummary] = useState('');
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would fetch survey responses via apiService
-    // For now, we'll keep it empty since no endpoint exists.
     const fetchResponses = async () => {
-        // const responses = await apiService.get('/api/surveys/responses');
-        // setSurveyResponses(responses);
+      setIsLoading(true);
+      try {
+        // Fetch volunteer feedback from Firestore
+        const feedback = await surveyService.getVolunteerFeedback();
+        setSurveyResponses(feedback);
+
+        // Fetch overall survey stats
+        const stats = await surveyService.getSurveyStats();
+        setSurveyStats(stats);
+      } catch (error) {
+        console.error('Error fetching survey data:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchResponses();
   }, []);
@@ -153,13 +171,40 @@ const VolunteerExperienceView = () => {
       return Object.entries(roleData).map(([name, data]) => ({ name, rating: (data.total / data.count).toFixed(1) }));
   }, [surveyResponses]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatCard title="Overall Satisfaction" value={overallSatisfaction} unit={overallSatisfaction === 'N/A' ? '' : "/ 5"} icon={Star} />
-            <StatCard title="Participation Rate" value={surveyResponses.length > 0 ? "78" : "N/A"} unit="%" icon={Percent} />
-            <StatCard title="Total Responses" value={surveyResponses.length} icon={MessageSquare} />
+            <StatCard title="Total Responses" value={surveyStats?.totalResponses || surveyResponses.length} icon={MessageSquare} />
+            <StatCard title="Avg Rating (All)" value={surveyStats?.averageRating?.toFixed(1) || 'N/A'} unit={surveyStats?.averageRating ? "/ 5" : ""} icon={TrendingUp} />
+            <StatCard title="Form Types" value={Object.keys(surveyStats?.responsesByForm || {}).length} icon={FileText} />
         </div>
+
+        {/* Responses Over Time Chart */}
+        {surveyStats?.responsesOverTime && surveyStats.responsesOverTime.length > 0 && (
+          <div className="bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
+            <h3 className="text-lg font-black text-zinc-900 mb-6 uppercase tracking-widest">Survey Collection Trend</h3>
+            <div style={{ width: '100%', height: 250 }}>
+              <ResponsiveContainer>
+                <LineChart data={surveyStats.responsesOverTime.slice(-30)} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#233DFF" strokeWidth={3} dot={{ fill: '#233DFF', r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
         {surveyResponses.length > 0 ? (
           <>
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
@@ -180,8 +225,10 @@ const VolunteerExperienceView = () => {
                     <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest flex items-center gap-3"><Sparkles size={20} className="text-blue-500"/> Feedback Summary</h3>
                     {isLoadingSummary ? (
                         <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-500" /></div>
-                    ) : (
+                    ) : aiSummary ? (
                         <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: aiSummary.replace(/\*/g, '•') }} />
+                    ) : (
+                        <p className="text-sm text-zinc-400">AI summary will appear when feedback data is available.</p>
                     )}
                 </div>
             </div>
@@ -190,12 +237,9 @@ const VolunteerExperienceView = () => {
             <div className="text-center py-20 bg-zinc-50 rounded-[48px] border border-dashed">
                 <MessageSquare size={48} className="mx-auto text-zinc-300 mb-4" />
                 <h3 className="font-bold text-zinc-500">No feedback data available.</h3>
-                <p className="text-sm text-zinc-400">Create and send a survey to start collecting volunteer experience insights.</p>
+                <p className="text-sm text-zinc-400">Collect surveys at events to start seeing insights here.</p>
             </div>
         )}
-        <div className="text-center pt-4">
-          <button className="px-6 py-3 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest">Create New Survey</button>
-        </div>
     </div>
   );
 };
