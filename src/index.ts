@@ -2117,9 +2117,258 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
     res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
 });
 app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
-    const ref = await db.collection('clients').add(req.body.client);
-    res.json({ id: ref.id, ...req.body.client });
+    const client = {
+        ...req.body.client,
+        createdAt: new Date().toISOString(),
+        status: 'Active'
+    };
+    const ref = await db.collection('clients').add(client);
+    res.json({ id: ref.id, ...client });
 });
+
+// Get all clients (admin)
+app.get('/api/clients', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('clients').orderBy('createdAt', 'desc').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+        console.error('[CLIENTS] Failed to fetch:', error);
+        res.status(500).json({ error: 'Failed to fetch clients' });
+    }
+});
+
+// Get single client
+app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const doc = await db.collection('clients').doc(req.params.id).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Client not found' });
+        res.json({ id: doc.id, ...doc.data() });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch client' });
+    }
+});
+
+// Update client
+app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const updates = { ...req.body.client, updatedAt: new Date().toISOString() };
+        await db.collection('clients').doc(req.params.id).update(updates);
+        res.json({ id: req.params.id, ...updates });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update client' });
+    }
+});
+
+// Get client referral history
+app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('referrals').where('clientId', '==', req.params.id).orderBy('createdAt', 'desc').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch client referrals' });
+    }
+});
+
+// --- FEEDBACK ENDPOINTS ---
+app.get('/api/feedback', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('feedback').orderBy('submittedAt', 'desc').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
+});
+
+app.post('/api/feedback', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const feedback = {
+            ...req.body,
+            submittedAt: new Date().toISOString()
+        };
+        const ref = await db.collection('feedback').add(feedback);
+
+        // Update resource average rating if this is service feedback
+        if (feedback.resourceId) {
+            const resourceFeedback = await db.collection('feedback').where('resourceId', '==', feedback.resourceId).get();
+            const ratings = resourceFeedback.docs.map(d => d.data().rating).filter(r => r);
+            const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+            await db.collection('referral_resources').doc(feedback.resourceId).update({
+                averageRating: Math.round(avgRating * 10) / 10,
+                lastFeedbackDate: new Date().toISOString()
+            });
+        }
+
+        res.json({ id: ref.id, ...feedback });
+    } catch (error) {
+        console.error('[FEEDBACK] Failed to create:', error);
+        res.status(500).json({ error: 'Failed to submit feedback' });
+    }
+});
+
+// --- PARTNER AGENCY ENDPOINTS ---
+app.get('/api/partners', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('partner_agencies').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch partners' });
+    }
+});
+
+app.post('/api/partners', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const partner = {
+            ...req.body,
+            createdAt: new Date().toISOString(),
+            status: 'Active'
+        };
+        const ref = await db.collection('partner_agencies').add(partner);
+        res.json({ id: ref.id, ...partner });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create partner' });
+    }
+});
+
+app.put('/api/partners/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        await db.collection('partner_agencies').doc(req.params.id).update(req.body);
+        res.json({ id: req.params.id, ...req.body });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update partner' });
+    }
+});
+
+// --- SLA COMPLIANCE TRACKING ---
+app.get('/api/referrals/sla-report', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('referrals').get();
+        const referrals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const now = new Date();
+
+        const report = {
+            total: referrals.length,
+            compliant: 0,
+            nonCompliant: 0,
+            onTrack: 0,
+            pending: 0,
+            byStatus: {} as Record<string, number>,
+            byUrgency: {} as Record<string, number>,
+            avgResponseTimeHours: 0
+        };
+
+        let totalResponseTime = 0;
+        let responseCount = 0;
+
+        referrals.forEach((r: any) => {
+            // Count by status
+            report.byStatus[r.status] = (report.byStatus[r.status] || 0) + 1;
+            report.byUrgency[r.urgency] = (report.byUrgency[r.urgency] || 0) + 1;
+
+            // Calculate SLA compliance
+            if (r.status === 'Pending') {
+                const created = new Date(r.createdAt);
+                const deadline = new Date(created.getTime() + 72 * 60 * 60 * 1000); // 72 hours
+                if (now > deadline) {
+                    report.nonCompliant++;
+                } else {
+                    report.onTrack++;
+                }
+                report.pending++;
+            } else if (r.firstContactDate) {
+                const created = new Date(r.createdAt);
+                const contacted = new Date(r.firstContactDate);
+                const hoursToContact = (contacted.getTime() - created.getTime()) / (1000 * 60 * 60);
+                totalResponseTime += hoursToContact;
+                responseCount++;
+
+                if (hoursToContact <= 72) {
+                    report.compliant++;
+                } else {
+                    report.nonCompliant++;
+                }
+            }
+        });
+
+        if (responseCount > 0) {
+            report.avgResponseTimeHours = Math.round(totalResponseTime / responseCount * 10) / 10;
+        }
+
+        res.json(report);
+    } catch (error) {
+        console.error('[SLA] Report generation failed:', error);
+        res.status(500).json({ error: 'Failed to generate SLA report' });
+    }
+});
+
+// --- AI REFERRAL MATCHING ---
+app.post('/api/ai/match-resources', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { clientId, serviceNeeded, clientData } = req.body;
+
+        // Get all active resources
+        const resourcesSnap = await db.collection('referral_resources').get();
+        const resources = resourcesSnap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter((r: any) => r['Active / Inactive'] === 'checked');
+
+        if (!ai || !GEMINI_API_KEY) {
+            // Fallback: simple keyword matching
+            const matches = resources
+                .filter((r: any) => {
+                    const searchText = `${r['Service Category']} ${r['Key Offerings']}`.toLowerCase();
+                    return serviceNeeded.toLowerCase().split(' ').some((word: string) => searchText.includes(word));
+                })
+                .slice(0, 5)
+                .map((r: any) => ({
+                    resourceId: r.id,
+                    resourceName: r['Resource Name'],
+                    matchScore: 70,
+                    matchReason: `Matched based on service category: ${r['Service Category']}`
+                }));
+            return res.json({ matches, aiGenerated: false });
+        }
+
+        // Use Gemini for intelligent matching
+        const prompt = `You are a social services case manager AI. Match a client to the most appropriate resources.
+
+CLIENT NEED: ${serviceNeeded}
+${clientData ? `CLIENT INFO: Language: ${clientData.primaryLanguage || 'English'}, Location: SPA ${clientData.spa || 'Unknown'}, Demographics: ${JSON.stringify(clientData.needs || {})}` : ''}
+
+AVAILABLE RESOURCES:
+${resources.slice(0, 20).map((r: any, i: number) => `${i + 1}. ${r['Resource Name']} - ${r['Service Category']} - ${r['Key Offerings']} - Languages: ${r['Languages Spoken']} - SPA: ${r['SPA']}`).join('\n')}
+
+Return JSON array of top 3-5 matches with format:
+[{"index": 1, "score": 95, "reason": "Best match because..."}]
+
+Only return valid JSON array.`;
+
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+
+        if (jsonMatch) {
+            const aiMatches = JSON.parse(jsonMatch[0]);
+            const matches = aiMatches.map((m: any) => {
+                const resource = resources[m.index - 1] as any;
+                return {
+                    resourceId: resource?.id,
+                    resourceName: resource?.['Resource Name'],
+                    matchScore: m.score,
+                    matchReason: m.reason
+                };
+            }).filter((m: any) => m.resourceId);
+
+            res.json({ matches, aiGenerated: true });
+        } else {
+            throw new Error('Invalid AI response');
+        }
+    } catch (error) {
+        console.error('[AI MATCH] Failed:', error);
+        res.status(500).json({ error: 'AI matching failed' });
+    }
+});
+
 app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: Response) => {
     const { shiftId, userId } = req.params;
     const runId = `${shiftId}_${userId}`;
@@ -2580,10 +2829,86 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
 });
 
 app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response) => {
-    const { title, content, category = 'General' } = req.body;
-    const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved' };
-    const docRef = await db.collection('announcements').add(announcement);
-    res.json({ id: docRef.id, ...announcement });
+    try {
+        const { title, content, category = 'General', sendAsSms = false } = req.body;
+        const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved' };
+        const docRef = await db.collection('announcements').add(announcement);
+
+        let smsResults = { attempted: 0, sent: 0, failed: 0 };
+
+        // Send SMS to all opted-in volunteers if requested
+        if (sendAsSms) {
+            console.log('[BROADCAST] SMS broadcast requested');
+
+            if (!twilioClient || !TWILIO_PHONE_NUMBER) {
+                console.log('[BROADCAST] Twilio not configured, skipping SMS');
+            } else {
+                // Fetch all volunteers who have opted in to SMS
+                const volunteersSnap = await db.collection('volunteers')
+                    .where('notificationPrefs.smsAlerts', '==', true)
+                    .get();
+
+                console.log(`[BROADCAST] Found ${volunteersSnap.size} volunteers opted in to SMS`);
+
+                // Also check volunteers without explicit prefs who have phone numbers
+                const allVolunteersSnap = await db.collection('volunteers').get();
+                const eligibleVolunteers: { id: string; phone: string }[] = [];
+
+                allVolunteersSnap.docs.forEach(doc => {
+                    const data = doc.data();
+                    const phone = data.phone || data.phoneNumber;
+                    const smsOptIn = data.notificationPrefs?.smsAlerts;
+
+                    // Include if they have a phone and haven't explicitly opted out
+                    if (phone && smsOptIn !== false) {
+                        eligibleVolunteers.push({ id: doc.id, phone });
+                    }
+                });
+
+                console.log(`[BROADCAST] ${eligibleVolunteers.length} volunteers eligible for SMS`);
+                smsResults.attempted = eligibleVolunteers.length;
+
+                // Compose SMS message (truncate if too long)
+                const smsBody = `[HMC] ${title}\n\n${content}`.substring(0, 1500);
+
+                // Send SMS to each volunteer
+                const smsPromises = eligibleVolunteers.map(async (vol) => {
+                    try {
+                        await twilioClient!.messages.create({
+                            body: smsBody,
+                            from: TWILIO_PHONE_NUMBER,
+                            to: vol.phone
+                        });
+                        console.log(`[BROADCAST] SMS sent to ${vol.phone}`);
+                        return { success: true };
+                    } catch (error: any) {
+                        console.error(`[BROADCAST] SMS failed for ${vol.phone}:`, error.message);
+                        return { success: false, error: error.message };
+                    }
+                });
+
+                const results = await Promise.allSettled(smsPromises);
+                results.forEach((result, idx) => {
+                    if (result.status === 'fulfilled' && result.value.success) {
+                        smsResults.sent++;
+                    } else {
+                        smsResults.failed++;
+                    }
+                });
+
+                console.log(`[BROADCAST] SMS results: ${smsResults.sent} sent, ${smsResults.failed} failed`);
+            }
+        }
+
+        res.json({
+            id: docRef.id,
+            ...announcement,
+            smsResults: sendAsSms ? smsResults : undefined
+        });
+    } catch (error: any) {
+        console.error('[BROADCAST] Failed to send broadcast:', error);
+        res.status(500).json({ error: error.message || 'Failed to send broadcast' });
+    }
 });
 app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response) => {
     try {

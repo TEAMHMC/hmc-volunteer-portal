@@ -476,11 +476,69 @@ export interface VolunteerSurveyResponse {
 
 export interface ClientRecord {
     id?: string;
+
+    // Basic Info
     firstName: string;
     lastName: string;
     dob: string;
     phone: string;
     email?: string;
+
+    // Demographics (for matching & grant reporting)
+    gender?: string;
+    pronouns?: string;
+    primaryLanguage?: string;
+    race?: string[];
+    ethnicity?: string;
+    veteranStatus?: boolean;
+    lgbtqiaIdentity?: boolean;
+    homelessnessStatus?: 'Currently Homeless' | 'At Risk' | 'Recently Housed' | 'Stably Housed';
+
+    // Location
+    address?: string;
+    city?: string;
+    zipCode?: string;
+    spa?: string; // Service Planning Area (LA County)
+
+    // Social Determinant Needs (for AI matching)
+    needs?: {
+        housing?: boolean;
+        food?: boolean;
+        healthcare?: boolean;
+        mentalHealth?: boolean;
+        substanceUse?: boolean;
+        employment?: boolean;
+        legal?: boolean;
+        transportation?: boolean;
+        utilities?: boolean;
+        childcare?: boolean;
+        domesticViolence?: boolean;
+        other?: string;
+    };
+
+    // Eligibility factors
+    incomeLevel?: string;
+    insuranceStatus?: string;
+    documentationStatus?: string;
+
+    // Consent & Privacy
+    consentToShare?: boolean;
+    consentDate?: string;
+
+    // AI-generated fields
+    aiEligibilitySummary?: string;
+    aiIntakeSummary?: string;
+
+    // Tracking
+    intakeDate?: string;
+    intakeBy?: string;
+    lastServiceDate?: string;
+    totalReferrals?: number;
+
+    // Status
+    status?: 'Active' | 'Inactive' | 'Closed';
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface ScreeningRecord {
@@ -529,18 +587,108 @@ export interface ReferralRecord {
     clientName: string;
     referralDate: string;
     referredBy: string;
+    referredByName?: string;
     serviceNeeded: string;
+    serviceCategory?: string;
     notes?: string;
-    status: 'Pending' | 'In Progress' | 'Completed' | 'Withdrawn';
+    status: 'Pending' | 'In Progress' | 'Completed' | 'Withdrawn' | 'No Show';
     urgency: 'Standard' | 'Urgent' | 'Emergency';
-    referredTo: string;
+    referredTo: string; // Primary resource name
+    referredToId?: string; // Resource ID
     createdAt: string;
     eventId?: string;
+
+    // SLA Tracking (72-hour standard)
+    slaDeadline?: string;
     slaComplianceStatus?: 'Compliant' | 'Non-Compliant' | 'On Track' | 'Excluded';
-    outcome?: string;
+    firstContactDate?: string;
+    firstContactBy?: string;
+
+    // AI Matching
+    aiMatchedResources?: {
+        resourceId: string;
+        resourceName: string;
+        matchScore: number;
+        matchReason: string;
+    }[];
+    aiMatchSummary?: string;
+
+    // Follow-up & Outcome
+    followUpDate?: string;
+    followUpNotes?: string;
+    outcome?: 'Successful' | 'Unsuccessful' | 'Partial' | 'Pending';
+    outcomeDetails?: string;
+    outcomeDate?: string;
+
+    // Client feedback
+    clientSatisfaction?: number; // 1-5
+    clientFeedback?: string;
+
+    // Partner response
+    partnerResponseDate?: string;
+    partnerNotes?: string;
+
+    updatedAt?: string;
+}
+
+export interface ServiceFeedback {
+    id: string;
+    type: 'service' | 'event';
+    referralId?: string;
+    eventId?: string;
+    clientId?: string;
+    resourceId?: string;
+    resourceName?: string;
+    rating: number; // 1-5
+    comments?: string;
+    wouldRecommend?: boolean;
+    submittedAt: string;
+    submittedBy?: string;
+}
+
+export interface PartnerAgency {
+    id: string;
+    name: string;
+    type: 'Healthcare' | 'Housing' | 'Food' | 'Legal' | 'Employment' | 'Mental Health' | 'Other';
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    website?: string;
+    spa?: string;
+    servicesProvided?: string[];
+    languagesSupported?: string[];
+    targetPopulations?: string[];
+    portalAccess?: boolean;
+    portalUserId?: string;
+    performanceScore?: number;
+    totalReferrals?: number;
+    successfulOutcomes?: number;
+    avgResponseTime?: number; // in hours
+    status: 'Active' | 'Inactive' | 'Pending';
+    partnerSince?: string;
+    lastActivityDate?: string;
+    notes?: string;
+}
+
+export interface ClientDocument {
+    id: string;
+    clientId: string;
+    type: 'Legal' | 'Medical' | 'Intake' | 'Referral' | 'ID' | 'Income' | 'Other';
+    name: string;
+    description?: string;
+    fileUrl?: string;
+    fileBase64?: string;
+    uploadedBy: string;
+    uploadedAt: string;
+    expirationDate?: string;
+    verified?: boolean;
+    verifiedBy?: string;
+    verifiedAt?: string;
 }
 
 export interface ReferralResource {
+    id?: string;
     "Resource Name": string;
     "Service Category": string;
     "Key Offerings": string;
@@ -554,6 +702,31 @@ export interface ReferralResource {
     "Website": string;
     "SPA": string;
     "Active / Inactive": "checked" | "unchecked";
+
+    // AI-verified fields
+    aiVerifiedAddress?: string;
+    aiVerifiedPhone?: string;
+    aiVerifiedEmail?: string;
+    aiBusinessSummary?: string;
+    contactInfoVerified?: boolean;
+    lastVerifiedAt?: string;
+
+    // Quality Metrics
+    averageRating?: number;
+    totalReferrals?: number;
+    successfulOutcomes?: number;
+    avgResponseTimeHours?: number;
+    slaComplianceRate?: number;
+
+    // Feedback summary
+    feedbackSummary?: string;
+    lastFeedbackDate?: string;
+
+    // Partner agency link
+    partnerAgencyId?: string;
+
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 // ============================================================

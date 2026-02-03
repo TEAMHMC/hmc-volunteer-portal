@@ -20,6 +20,7 @@ import AnalyticsDashboard from './AnalyticsDashboard';
 import AutomatedWorkflows from './AutomatedWorkflows';
 import FormBuilder from './FormBuilder';
 import ReferralsDashboard from './ReferralsDashboard';
+import ReferralManagement from './ReferralManagement';
 import ResourceDashboard from './ResourceDashboard';
 import CoordinatorView from './CoordinatorView';
 import SystemTour from './SystemTour';
@@ -346,7 +347,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}
          {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}
-         {activeTab === 'referrals' && user.isAdmin && <ReferralsDashboard user={user} allVolunteers={allVolunteers} />}
+         {activeTab === 'referrals' && user.isAdmin && <ReferralManagement isAdmin={true} />}
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} />}
          {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
