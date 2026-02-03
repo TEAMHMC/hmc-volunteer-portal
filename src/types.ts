@@ -414,18 +414,53 @@ export interface ClinicEvent {
   surveyKitId?: string;
 }
 
+export interface TicketNote {
+    id: string;
+    authorId: string;
+    authorName: string;
+    content: string;
+    createdAt: string;
+    isInternal?: boolean; // Internal notes only visible to admins
+}
+
+export interface TicketActivity {
+    id: string;
+    type: 'created' | 'status_change' | 'assigned' | 'note_added' | 'priority_change';
+    description: string;
+    performedBy: string;
+    performedByName: string;
+    timestamp: string;
+    oldValue?: string;
+    newValue?: string;
+}
+
+export type TicketCategory =
+    | 'technical'
+    | 'account'
+    | 'training'
+    | 'scheduling'
+    | 'compliance'
+    | 'feedback'
+    | 'other';
+
 export interface SupportTicket {
     id: string;
     volunteerId?: string;
     submittedBy?: string;
     submitterName?: string;
+    submitterEmail?: string;
     subject: string;
     description: string;
     status: 'open' | 'closed' | 'in_progress';
-    priority?: 'low' | 'medium' | 'high';
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+    category: TicketCategory;
     createdAt: string;
+    updatedAt?: string;
+    closedAt?: string;
     assignedTo?: string;
     assignedToName?: string;
+    notes?: TicketNote[];
+    activity?: TicketActivity[];
     responses?: any[];
 }
 

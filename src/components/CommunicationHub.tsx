@@ -1,10 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
-import { Announcement, Message, Volunteer, SupportTicket } from '../types';
+import { Announcement, Message, Volunteer, SupportTicket, TicketNote, TicketActivity, TicketCategory } from '../types';
 import {
   Megaphone, MessageSquare, LifeBuoy, Send, Plus, Sparkles, Loader2, Clock,
   Trash2, CheckCircle, Search, ChevronDown, User, Filter, X, Check, Smartphone,
-  Hash, Users, GripVertical, MoreHorizontal, AlertCircle, ArrowRight
+  Hash, Users, GripVertical, MoreHorizontal, AlertCircle, ArrowRight, FileText,
+  Tag, Flag, History, ChevronRight, MessageCircle, Bell
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
@@ -493,6 +494,434 @@ const BriefingView: React.FC<{
   );
 };
 
+// Ticket category labels and colors
+const TICKET_CATEGORIES: { value: TicketCategory; label: string; color: string }[] = [
+  { value: 'technical', label: 'Technical Issue', color: 'bg-purple-100 text-purple-700' },
+  { value: 'account', label: 'Account / Access', color: 'bg-blue-100 text-blue-700' },
+  { value: 'training', label: 'Training', color: 'bg-amber-100 text-amber-700' },
+  { value: 'scheduling', label: 'Scheduling', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'compliance', label: 'Compliance', color: 'bg-rose-100 text-rose-700' },
+  { value: 'feedback', label: 'Feedback / Suggestion', color: 'bg-cyan-100 text-cyan-700' },
+  { value: 'other', label: 'Other', color: 'bg-zinc-100 text-zinc-700' },
+];
+
+const TICKET_PRIORITIES: { value: 'low' | 'medium' | 'high' | 'urgent'; label: string; color: string }[] = [
+  { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-600' },
+  { value: 'medium', label: 'Medium', color: 'bg-blue-100 text-blue-600' },
+  { value: 'high', label: 'High', color: 'bg-amber-100 text-amber-600' },
+  { value: 'urgent', label: 'Urgent', color: 'bg-rose-100 text-rose-600' },
+];
+
+// --- TICKET DETAIL MODAL ---
+const TicketDetailModal: React.FC<{
+  ticket: SupportTicket;
+  user: Volunteer;
+  userMode: 'volunteer' | 'admin';
+  allVolunteers: Volunteer[];
+  onClose: () => void;
+  onUpdate: (updates: Partial<SupportTicket>) => void;
+}> = ({ ticket, user, userMode, allVolunteers, onClose, onUpdate }) => {
+  const [newNote, setNewNote] = useState('');
+  const [isInternalNote, setIsInternalNote] = useState(false);
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'notes' | 'activity'>('details');
+
+  const canModify = userMode === 'admin' || ticket.submittedBy === user.id || ticket.assignedTo === user.id;
+  const isAssignedToMe = ticket.assignedTo === user.id;
+
+  const getCategoryInfo = (cat: TicketCategory) => {
+    return TICKET_CATEGORIES.find(c => c.value === cat) || TICKET_CATEGORIES[6];
+  };
+
+  const getPriorityInfo = (priority: string) => {
+    return TICKET_PRIORITIES.find(p => p.value === priority) || TICKET_PRIORITIES[1];
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    setIsSubmittingNote(true);
+
+    const note: TicketNote = {
+      id: `note-${Date.now()}`,
+      authorId: user.id,
+      authorName: user.name,
+      content: newNote,
+      createdAt: new Date().toISOString(),
+      isInternal: isInternalNote,
+    };
+
+    const activity: TicketActivity = {
+      id: `act-${Date.now()}`,
+      type: 'note_added',
+      description: `${user.name} added a ${isInternalNote ? 'internal ' : ''}note`,
+      performedBy: user.id,
+      performedByName: user.name,
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedNotes = [...(ticket.notes || []), note];
+    const updatedActivity = [...(ticket.activity || []), activity];
+
+    onUpdate({
+      notes: updatedNotes,
+      activity: updatedActivity,
+      updatedAt: new Date().toISOString(),
+    });
+
+    setNewNote('');
+    setIsInternalNote(false);
+    setIsSubmittingNote(false);
+  };
+
+  const handleStatusChange = (newStatus: 'open' | 'in_progress' | 'closed') => {
+    const activity: TicketActivity = {
+      id: `act-${Date.now()}`,
+      type: 'status_change',
+      description: `Status changed from ${ticket.status} to ${newStatus}`,
+      performedBy: user.id,
+      performedByName: user.name,
+      timestamp: new Date().toISOString(),
+      oldValue: ticket.status,
+      newValue: newStatus,
+    };
+
+    onUpdate({
+      status: newStatus,
+      activity: [...(ticket.activity || []), activity],
+      updatedAt: new Date().toISOString(),
+      ...(newStatus === 'closed' ? { closedAt: new Date().toISOString() } : {}),
+    });
+  };
+
+  const handlePriorityChange = (newPriority: 'low' | 'medium' | 'high' | 'urgent') => {
+    const activity: TicketActivity = {
+      id: `act-${Date.now()}`,
+      type: 'priority_change',
+      description: `Priority changed from ${ticket.priority} to ${newPriority}`,
+      performedBy: user.id,
+      performedByName: user.name,
+      timestamp: new Date().toISOString(),
+      oldValue: ticket.priority,
+      newValue: newPriority,
+    };
+
+    onUpdate({
+      priority: newPriority,
+      activity: [...(ticket.activity || []), activity],
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleAssign = (volunteerId: string | null) => {
+    const volunteer = volunteerId ? allVolunteers.find(v => v.id === volunteerId) : null;
+    const activity: TicketActivity = {
+      id: `act-${Date.now()}`,
+      type: 'assigned',
+      description: volunteer ? `Assigned to ${volunteer.name}` : 'Unassigned',
+      performedBy: user.id,
+      performedByName: user.name,
+      timestamp: new Date().toISOString(),
+      oldValue: ticket.assignedToName || 'Unassigned',
+      newValue: volunteer?.name || 'Unassigned',
+    };
+
+    onUpdate({
+      assignedTo: volunteerId || undefined,
+      assignedToName: volunteer?.name,
+      activity: [...(ticket.activity || []), activity],
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const categoryInfo = getCategoryInfo(ticket.category);
+  const priorityInfo = getPriorityInfo(ticket.priority);
+
+  // Filter notes - show internal notes only to admins
+  const visibleNotes = (ticket.notes || []).filter(n => !n.isInternal || userMode === 'admin');
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-zinc-100 flex items-start justify-between shrink-0">
+          <div className="flex-1 min-w-0 pr-4">
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${categoryInfo.color}`}>
+                {categoryInfo.label}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${priorityInfo.color}`}>
+                {priorityInfo.label}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                ticket.status === 'open' ? 'bg-amber-100 text-amber-700' :
+                ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                'bg-emerald-100 text-emerald-700'
+              }`}>
+                {ticket.status.replace('_', ' ')}
+              </span>
+            </div>
+            <h2 className="text-xl font-black text-zinc-900 truncate">{ticket.subject}</h2>
+            <p className="text-xs text-zinc-400 mt-1">
+              Opened by {ticket.submitterName} on {new Date(ticket.createdAt).toLocaleString()}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full shrink-0">
+            <X size={20} className="text-zinc-400" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="px-6 border-b border-zinc-100 flex gap-1 shrink-0">
+          {[
+            { id: 'details', label: 'Details', icon: FileText },
+            { id: 'notes', label: `Notes (${visibleNotes.length})`, icon: MessageCircle },
+            { id: 'activity', label: 'Activity', icon: History },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-[#233DFF] text-[#233DFF]'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-600'
+              }`}
+            >
+              <tab.icon size={16} /> {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {activeTab === 'details' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Content */}
+              <div className="lg:col-span-2 space-y-6">
+                <div>
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-2">Description</h4>
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                    <p className="text-sm text-zinc-700 whitespace-pre-wrap">{ticket.description}</p>
+                  </div>
+                </div>
+
+                {isAssignedToMe && ticket.status !== 'closed' && (
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                    <div className="flex items-center gap-2 text-blue-700 font-bold text-sm mb-2">
+                      <Bell size={16} /> This ticket is assigned to you
+                    </div>
+                    <p className="text-xs text-blue-600">
+                      Add notes to track your progress and update the status when resolved.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-4">
+                {/* Status Control */}
+                {canModify && (
+                  <div className="bg-white p-4 rounded-xl border border-zinc-200">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3">Status</h4>
+                    <div className="space-y-2">
+                      {(['open', 'in_progress', 'closed'] as const).map(status => (
+                        <button
+                          key={status}
+                          onClick={() => handleStatusChange(status)}
+                          className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left flex items-center gap-2 transition-colors ${
+                            ticket.status === status
+                              ? status === 'open' ? 'bg-amber-100 text-amber-700' :
+                                status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                'bg-emerald-100 text-emerald-700'
+                              : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100'
+                          }`}
+                        >
+                          {status === 'open' && <AlertCircle size={14} />}
+                          {status === 'in_progress' && <Loader2 size={14} />}
+                          {status === 'closed' && <CheckCircle size={14} />}
+                          {status.replace('_', ' ').toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Control */}
+                {canModify && (
+                  <div className="bg-white p-4 rounded-xl border border-zinc-200">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3">Priority</h4>
+                    <select
+                      value={ticket.priority}
+                      onChange={(e) => handlePriorityChange(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium"
+                    >
+                      {TICKET_PRIORITIES.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Assignment */}
+                <div className="bg-white p-4 rounded-xl border border-zinc-200">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3">Assigned To</h4>
+                  <select
+                    value={ticket.assignedTo || ''}
+                    onChange={(e) => handleAssign(e.target.value || null)}
+                    disabled={!canModify}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium disabled:opacity-60"
+                  >
+                    <option value="">Unassigned</option>
+                    <option value={user.id}>{user.name} (Me)</option>
+                    {allVolunteers
+                      .filter(v => v.id !== user.id && (v.isAdmin || v.role.includes('Coordinator') || v.role.includes('Lead')))
+                      .map(v => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Ticket Info */}
+                <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Ticket ID</span>
+                    <span className="font-mono text-zinc-600">{ticket.id.slice(0, 8)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Created</span>
+                    <span className="text-zinc-600">{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {ticket.updatedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Updated</span>
+                      <span className="text-zinc-600">{new Date(ticket.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {ticket.closedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Closed</span>
+                      <span className="text-zinc-600">{new Date(ticket.closedAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notes' && (
+            <div className="space-y-6">
+              {/* Add Note Form */}
+              {canModify && ticket.status !== 'closed' && (
+                <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
+                  <textarea
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    placeholder="Add a note or update..."
+                    className="w-full min-h-[100px] px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 resize-none text-sm"
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    {userMode === 'admin' && (
+                      <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isInternalNote}
+                          onChange={e => setIsInternalNote(e.target.checked)}
+                          className="w-4 h-4 rounded border-zinc-300"
+                        />
+                        Internal note (admins only)
+                      </label>
+                    )}
+                    <button
+                      onClick={handleAddNote}
+                      disabled={!newNote.trim() || isSubmittingNote}
+                      className="px-4 py-2 bg-[#233DFF] text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 ml-auto"
+                    >
+                      {isSubmittingNote ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      Add Note
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes List */}
+              <div className="space-y-4">
+                {visibleNotes.length === 0 ? (
+                  <div className="text-center py-12 text-zinc-400">
+                    <MessageCircle size={32} className="mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No notes yet</p>
+                  </div>
+                ) : (
+                  visibleNotes.map(note => (
+                    <div
+                      key={note.id}
+                      className={`p-4 rounded-xl border ${
+                        note.isInternal ? 'bg-amber-50 border-amber-200' : 'bg-white border-zinc-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-zinc-200 flex items-center justify-center text-[10px] font-bold">
+                          {note.authorName.charAt(0)}
+                        </div>
+                        <span className="text-sm font-semibold text-zinc-700">{note.authorName}</span>
+                        {note.isInternal && (
+                          <span className="px-2 py-0.5 bg-amber-200 text-amber-700 text-[10px] font-bold rounded-full">
+                            INTERNAL
+                          </span>
+                        )}
+                        <span className="text-xs text-zinc-400 ml-auto">
+                          {new Date(note.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-600 whitespace-pre-wrap">{note.content}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="space-y-4">
+              {(ticket.activity || []).length === 0 ? (
+                <div className="text-center py-12 text-zinc-400">
+                  <History size={32} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No activity recorded</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-zinc-200" />
+                  {(ticket.activity || []).slice().reverse().map((act, idx) => (
+                    <div key={act.id} className="relative pl-10 pb-6">
+                      <div className={`absolute left-2 w-5 h-5 rounded-full flex items-center justify-center ${
+                        act.type === 'created' ? 'bg-emerald-100 text-emerald-600' :
+                        act.type === 'status_change' ? 'bg-blue-100 text-blue-600' :
+                        act.type === 'assigned' ? 'bg-purple-100 text-purple-600' :
+                        act.type === 'note_added' ? 'bg-amber-100 text-amber-600' :
+                        'bg-zinc-100 text-zinc-600'
+                      }`}>
+                        {act.type === 'created' && <Plus size={12} />}
+                        {act.type === 'status_change' && <ArrowRight size={12} />}
+                        {act.type === 'assigned' && <User size={12} />}
+                        {act.type === 'note_added' && <MessageCircle size={12} />}
+                        {act.type === 'priority_change' && <Flag size={12} />}
+                      </div>
+                      <div className="bg-zinc-50 p-3 rounded-xl">
+                        <p className="text-sm text-zinc-700">{act.description}</p>
+                        <p className="text-xs text-zinc-400 mt-1">
+                          {new Date(act.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- OPS SUPPORT VIEW (Kanban Board) ---
 const OpsSupportView: React.FC<{
   user: Volunteer;
@@ -502,11 +931,13 @@ const OpsSupportView: React.FC<{
   allVolunteers: Volunteer[];
 }> = ({ user, supportTickets, setSupportTickets, userMode, allVolunteers }) => {
   const [showNewTicket, setShowNewTicket] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [newTicketSubject, setNewTicketSubject] = useState('');
   const [newTicketBody, setNewTicketBody] = useState('');
+  const [newTicketCategory, setNewTicketCategory] = useState<TicketCategory>('technical');
+  const [newTicketPriority, setNewTicketPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedTicket, setDraggedTicket] = useState<string | null>(null);
-  const [assigningTicketId, setAssigningTicketId] = useState<string | null>(null);
 
   // Show all tickets for admins, or tickets submitted by OR assigned to the user
   const myTickets = userMode === 'admin'
@@ -527,8 +958,8 @@ const OpsSupportView: React.FC<{
       subject: newTicketSubject,
       description: newTicketBody,
       message: newTicketBody,
-      category: 'General',
-      priority: 'Normal',
+      category: newTicketCategory,
+      priority: newTicketPriority,
       submittedBy: user.id,
       submitterName: user.name,
       submitterEmail: user.email,
@@ -536,21 +967,34 @@ const OpsSupportView: React.FC<{
 
     try {
       const response = await apiService.post('/api/support_tickets', { ticket });
+      const initialActivity: TicketActivity = {
+        id: `act-${Date.now()}`,
+        type: 'created',
+        description: `Ticket created by ${user.name}`,
+        performedBy: user.id,
+        performedByName: user.name,
+        timestamp: new Date().toISOString(),
+      };
       const savedTicket: SupportTicket = {
-        id: response.id,
+        id: response.id || `ticket-${Date.now()}`,
         subject: newTicketSubject,
         description: newTicketBody,
         status: 'open',
-        priority: 'medium',
+        priority: newTicketPriority,
+        category: newTicketCategory,
         submittedBy: user.id,
         submitterName: user.name,
+        submitterEmail: user.email,
         createdAt: new Date().toISOString(),
-        responses: []
+        notes: [],
+        activity: [initialActivity],
       };
       setSupportTickets(prev => [savedTicket, ...prev]);
       setShowNewTicket(false);
       setNewTicketSubject('');
       setNewTicketBody('');
+      setNewTicketCategory('technical');
+      setNewTicketPriority('medium');
     } catch (error) {
       console.error('Failed to submit ticket:', error);
       alert('Failed to submit ticket. Please try again.');
@@ -559,16 +1003,44 @@ const OpsSupportView: React.FC<{
     }
   };
 
-  const handleStatusChange = async (ticketId: string, newStatus: 'open' | 'in_progress' | 'closed') => {
+  const handleTicketUpdate = async (ticketId: string, updates: Partial<SupportTicket>) => {
     setSupportTickets(prev => prev.map(t =>
-      t.id === ticketId ? { ...t, status: newStatus } : t
+      t.id === ticketId ? { ...t, ...updates } : t
     ));
 
-    try {
-      await apiService.put(`/api/support_tickets/${ticketId}`, { status: newStatus });
-    } catch (error) {
-      console.error('Failed to update ticket status:', error);
+    // Update selected ticket if viewing it
+    if (selectedTicket?.id === ticketId) {
+      setSelectedTicket(prev => prev ? { ...prev, ...updates } : null);
     }
+
+    try {
+      await apiService.put(`/api/support_tickets/${ticketId}`, updates);
+    } catch (error) {
+      console.error('Failed to update ticket:', error);
+    }
+  };
+
+  const handleStatusChange = async (ticketId: string, newStatus: 'open' | 'in_progress' | 'closed') => {
+    const ticket = supportTickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+
+    const activity: TicketActivity = {
+      id: `act-${Date.now()}`,
+      type: 'status_change',
+      description: `Status changed from ${ticket.status} to ${newStatus}`,
+      performedBy: user.id,
+      performedByName: user.name,
+      timestamp: new Date().toISOString(),
+      oldValue: ticket.status,
+      newValue: newStatus,
+    };
+
+    handleTicketUpdate(ticketId, {
+      status: newStatus,
+      activity: [...(ticket.activity || []), activity],
+      updatedAt: new Date().toISOString(),
+      ...(newStatus === 'closed' ? { closedAt: new Date().toISOString() } : {}),
+    });
   };
 
   const handleDragStart = (e: React.DragEvent, ticketId: string) => {
@@ -584,7 +1056,6 @@ const OpsSupportView: React.FC<{
   const handleDrop = (e: React.DragEvent, status: 'open' | 'in_progress' | 'closed') => {
     e.preventDefault();
     if (draggedTicket) {
-      // Admins can change any ticket, others can change their own or assigned tickets
       const ticket = supportTickets.find(t => t.id === draggedTicket);
       const canModify = userMode === 'admin' || ticket?.submittedBy === user.id || ticket?.assignedTo === user.id;
       if (canModify) {
@@ -594,35 +1065,16 @@ const OpsSupportView: React.FC<{
     setDraggedTicket(null);
   };
 
-  // Check if user can modify a ticket
   const canModifyTicket = (ticket: SupportTicket) => {
     return userMode === 'admin' || ticket.submittedBy === user.id || ticket.assignedTo === user.id;
   };
 
-  const handleAssign = async (ticketId: string, volunteerId: string | null) => {
-    const volunteer = volunteerId ? allVolunteers.find(v => v.id === volunteerId) : null;
-    setSupportTickets(prev => prev.map(t =>
-      t.id === ticketId ? { ...t, assignedTo: volunteerId || undefined, assignedToName: volunteer?.name } : t
-    ));
-    setAssigningTicketId(null);
-
-    try {
-      await apiService.put(`/api/support_tickets/${ticketId}`, {
-        assignedTo: volunteerId,
-        assignedToName: volunteer?.name
-      });
-    } catch (error) {
-      console.error('Failed to assign ticket:', error);
-    }
+  const getCategoryInfo = (cat: TicketCategory) => {
+    return TICKET_CATEGORIES.find(c => c.value === cat) || TICKET_CATEGORIES[6];
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'in_progress': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'closed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      default: return 'bg-zinc-100 text-zinc-700 border-zinc-200';
-    }
+  const getPriorityInfo = (priority: string) => {
+    return TICKET_PRIORITIES.find(p => p.value === priority) || TICKET_PRIORITIES[1];
   };
 
   const getColumnColor = (status: string) => {
@@ -637,75 +1089,59 @@ const OpsSupportView: React.FC<{
   const renderTicketCard = (ticket: SupportTicket) => {
     const canModify = canModifyTicket(ticket);
     const isAssignedToMe = ticket.assignedTo === user.id;
+    const categoryInfo = getCategoryInfo(ticket.category);
+    const priorityInfo = getPriorityInfo(ticket.priority);
+    const noteCount = (ticket.notes || []).length;
 
     return (
-    <div
-      key={ticket.id}
-      draggable={canModify}
-      onDragStart={(e) => handleDragStart(e, ticket.id)}
-      className={`p-4 bg-white rounded-xl border shadow-sm hover:shadow-md transition-all ${
-        isAssignedToMe ? 'border-[#233DFF] border-2' : 'border-zinc-100'
-      } ${canModify ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
-    >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <h4 className="font-semibold text-zinc-900 text-sm leading-tight">{ticket.subject}</h4>
-        {canModify && (
-          <GripVertical size={14} className="text-zinc-300 shrink-0" />
-        )}
-      </div>
-      <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{ticket.description}</p>
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-zinc-400">
-          {new Date(ticket.createdAt).toLocaleDateString()}
-        </span>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-          ticket.priority === 'high' ? 'bg-rose-100 text-rose-600' : 'bg-zinc-100 text-zinc-500'
-        }`}>
-          {ticket.priority}
-        </span>
-      </div>
-      <p className="text-[10px] text-zinc-400 mt-2">By {ticket.submitterName}</p>
-
-      {/* Assignment Section - Available to all users */}
-      <div className="mt-3 pt-3 border-t border-zinc-100">
-        {assigningTicketId === ticket.id ? (
-          <div className="space-y-2">
-            <select
-              className="w-full px-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium"
-              defaultValue={ticket.assignedTo || ''}
-              onChange={(e) => handleAssign(ticket.id, e.target.value || null)}
-              autoFocus
-              onBlur={() => setAssigningTicketId(null)}
-            >
-              <option value="">Unassigned</option>
-              {/* Always show current user as an option to claim */}
-              <option value={user.id}>{user.name} (Me)</option>
-              {/* Show admins/coordinators/leads for admin users */}
-              {userMode === 'admin' && allVolunteers
-                .filter(v => v.id !== user.id && (v.isAdmin || v.role.includes('Coordinator') || v.role.includes('Lead')))
-                .map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))
-              }
-            </select>
+      <div
+        key={ticket.id}
+        draggable={canModify}
+        onDragStart={(e) => handleDragStart(e, ticket.id)}
+        onClick={() => setSelectedTicket(ticket)}
+        className={`p-4 bg-white rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer ${
+          isAssignedToMe ? 'border-[#233DFF] border-2' : 'border-zinc-100'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${categoryInfo.color}`}>
+              {categoryInfo.label}
+            </span>
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${priorityInfo.color}`}>
+              {priorityInfo.label}
+            </span>
           </div>
-        ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); setAssigningTicketId(ticket.id); }}
-              className="flex items-center gap-2 text-xs hover:bg-zinc-50 px-2 py-1.5 rounded-lg w-full transition-colors"
-            >
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                ticket.assignedTo ? 'bg-[#233DFF] text-white' : 'bg-zinc-200 text-zinc-400'
-              }`}>
-                {ticket.assignedToName?.charAt(0) || <User size={10} />}
-              </div>
-              <span className={`font-medium ${ticket.assignedTo ? 'text-zinc-700' : 'text-zinc-400'}`}>
-                {ticket.assignedTo === user.id ? `${ticket.assignedToName} (Me)` : (ticket.assignedToName || 'Claim / Assign...')}
-              </span>
-            </button>
+          {canModify && (
+            <GripVertical size={14} className="text-zinc-300 shrink-0" />
           )}
         </div>
-    </div>
+        <h4 className="font-semibold text-zinc-900 text-sm leading-tight mb-2">{ticket.subject}</h4>
+        <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{ticket.description}</p>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold text-zinc-400">
+            {new Date(ticket.createdAt).toLocaleDateString()}
+          </span>
+          <div className="flex items-center gap-2">
+            {noteCount > 0 && (
+              <span className="flex items-center gap-1 text-[10px] text-zinc-400">
+                <MessageCircle size={10} /> {noteCount}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-100">
+          <p className="text-[10px] text-zinc-400">By {ticket.submitterName}</p>
+          {ticket.assignedTo && (
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded-full bg-[#233DFF] text-white flex items-center justify-center text-[8px] font-bold">
+                {ticket.assignedToName?.charAt(0)}
+              </div>
+              <span className="text-[10px] text-zinc-500">{ticket.assignedTo === user.id ? 'Me' : ticket.assignedToName}</span>
+            </div>
+          )}
+        </div>
+      </div>
     );
   };
 
@@ -808,14 +1244,46 @@ const OpsSupportView: React.FC<{
       {/* New Ticket Modal */}
       {showNewTicket && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl">
-            <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-8 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-2xl font-black text-zinc-900">New Support Ticket</h2>
               <button onClick={() => setShowNewTicket(false)} className="p-2 hover:bg-zinc-100 rounded-full">
                 <X size={20} className="text-zinc-400" />
               </button>
             </div>
             <div className="p-8 space-y-6">
+              {/* Category & Priority Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                    <Tag size={12} className="inline mr-1" /> Category
+                  </label>
+                  <select
+                    value={newTicketCategory}
+                    onChange={e => setNewTicketCategory(e.target.value as TicketCategory)}
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 text-sm font-medium"
+                  >
+                    {TICKET_CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                    <Flag size={12} className="inline mr-1" /> Priority
+                  </label>
+                  <select
+                    value={newTicketPriority}
+                    onChange={e => setNewTicketPriority(e.target.value as any)}
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 text-sm font-medium"
+                  >
+                    {TICKET_PRIORITIES.map(p => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Subject</label>
                 <input
@@ -836,7 +1304,8 @@ const OpsSupportView: React.FC<{
                 />
               </div>
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <p className="text-xs text-blue-700 font-medium">
+                <p className="text-xs text-blue-700 font-medium flex items-center gap-2">
+                  <Bell size={14} />
                   Tech support will be notified via email at tech@healthmatters.clinic when you submit this ticket.
                 </p>
               </div>
@@ -850,6 +1319,18 @@ const OpsSupportView: React.FC<{
             </div>
           </div>
         </div>
+      )}
+
+      {/* Ticket Detail Modal */}
+      {selectedTicket && (
+        <TicketDetailModal
+          ticket={selectedTicket}
+          user={user}
+          userMode={userMode}
+          allVolunteers={allVolunteers}
+          onClose={() => setSelectedTicket(null)}
+          onUpdate={(updates) => handleTicketUpdate(selectedTicket.id, updates)}
+        />
       )}
     </div>
   );
