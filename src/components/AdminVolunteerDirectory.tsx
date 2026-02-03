@@ -567,7 +567,9 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
         legalLastName: '',
         email: '',
         phone: '',
-        role: 'Core Volunteer'
+        role: 'Core Volunteer',
+        password: '',
+        sendPasswordReset: true
     });
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
@@ -625,7 +627,11 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                 }
             };
 
-            const result = await apiService.post('/api/admin/add-volunteer', { volunteer: newVolunteer });
+            const result = await apiService.post('/api/admin/add-volunteer', {
+                volunteer: newVolunteer,
+                password: formData.password || undefined,
+                sendPasswordReset: formData.sendPasswordReset
+            });
             setVolunteers((prev: Volunteer[]) => [...prev, { id: result.id, ...newVolunteer }]);
             setSuccess(true);
             setTimeout(onClose, 2000);
@@ -712,6 +718,31 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                                 <option key={role.id} value={role.label}>{role.label}</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-100">
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Temporary Password</label>
+                        <input
+                            type="password"
+                            value={formData.password}
+                            onChange={e => setFormData({...formData, password: e.target.value})}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            placeholder="Enter a temporary password"
+                        />
+                        <p className="text-xs text-zinc-400 mt-1">Min 6 characters. Volunteer will be asked to reset on first login.</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            id="sendPasswordReset"
+                            checked={formData.sendPasswordReset}
+                            onChange={e => setFormData({...formData, sendPasswordReset: e.target.checked})}
+                            className="w-4 h-4 rounded border-zinc-300"
+                        />
+                        <label htmlFor="sendPasswordReset" className="text-sm text-zinc-600">
+                            Send password reset email (recommended)
+                        </label>
                     </div>
 
                     {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}

@@ -399,6 +399,31 @@ const EmailTemplates = {
     text: `Welcome ${data.volunteerName}! You've applied as a ${data.appliedRole}. Next: Complete profile, HIPAA training, await approval.`
   }),
 
+  // 2b. Admin Added Volunteer (with password reset link)
+  admin_added_volunteer: (data: EmailTemplateData) => ({
+    subject: `🎉 Welcome to Health Matters Clinic, ${data.volunteerName}!`,
+    html: `${emailHeader('Welcome to the Team!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>An administrator has added you to our volunteer community as a <strong>${data.appliedRole}</strong>.</p>
+      ${data.hasPasswordReset ? `
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0; font-weight: 600; color: #92400e;">🔐 Set Up Your Password</p>
+        <p style="margin: 8px 0 0 0; color: #78350f;">Please click the button below to set your password and activate your account.</p>
+      </div>
+      ${actionButton('Set Your Password', data.passwordResetLink)}
+      ` : `
+      ${actionButton('Log In to Your Account', `${EMAIL_CONFIG.WEBSITE_URL}`)}
+      `}
+      <p><strong>Next steps:</strong></p>
+      <ul style="margin: 16px 0; padding-left: 20px;">
+        <li style="margin: 8px 0;">Log in and complete your profile</li>
+        <li style="margin: 8px 0;">Take our HIPAA Training (required)</li>
+        <li style="margin: 8px 0;">Explore available volunteer opportunities</li>
+      </ul>
+    ${emailFooter()}`,
+    text: `Welcome ${data.volunteerName}! You've been added as a ${data.appliedRole}. ${data.hasPasswordReset ? `Set your password here: ${data.passwordResetLink}` : 'Log in to get started.'}`
+  }),
+
   // 3. Password Reset
   password_reset: (data: EmailTemplateData) => ({
     subject: '🔐 Reset Your Password',
@@ -2606,23 +2631,113 @@ app.post('/api/admin/bulk-import', verifyToken, async (req: Request, res: Respon
 // Add single volunteer manually
 app.post('/api/admin/add-volunteer', verifyToken, async (req: Request, res: Response) => {
     try {
-        const { volunteer } = req.body;
-        const docRef = await db.collection('volunteers').add(volunteer);
+        const { volunteer, password, sendPasswordReset } = req.body;
 
-        // Send welcome email
-        if (volunteer.email) {
-            try {
-                await EmailService.send('welcome_volunteer', {
-                    toEmail: volunteer.email,
-                    volunteerName: volunteer.name || volunteer.legalFirstName || 'Volunteer',
-                    appliedRole: volunteer.role || 'HMC Champion',
-                });
-            } catch (emailErr) {
-                console.error(`Failed to send welcome email to ${volunteer.email}:`, emailErr);
-            }
+        if (!volunteer.email) {
+            return res.status(400).json({ error: 'Email is required' });
         }
 
-        res.json({ id: docRef.id, ...volunteer });
+        // Check if email already exists
+        const existingByEmail = await db.collection('volunteers')
+            .where('email', '==', volunteer.email.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (!existingByEmail.empty) {
+            return res.status(409).json({ error: 'A volunteer with this email already exists.' });
+        }
+
+        let finalUserId: string;
+        let passwordResetLink: string | null = null;
+
+        // If password provided and Firebase is configured, create Firebase Auth user
+        if (password && firebaseConfigured) {
+            try {
+                const userRecord = await auth.createUser({
+                    email: volunteer.email.toLowerCase(),
+                    password: password,
+                    displayName: volunteer.name || `${volunteer.legalFirstName} ${volunteer.legalLastName}`.trim()
+                });
+                finalUserId = userRecord.uid;
+                volunteer.authProvider = 'email';
+                console.log(`[ADD VOLUNTEER] Created Firebase Auth user: ${finalUserId}`);
+
+                // Generate password reset link if requested
+                if (sendPasswordReset) {
+                    try {
+                        passwordResetLink = await auth.generatePasswordResetLink(volunteer.email.toLowerCase());
+                        console.log(`[ADD VOLUNTEER] Generated password reset link for ${volunteer.email}`);
+                    } catch (resetErr) {
+                        console.error('[ADD VOLUNTEER] Failed to generate password reset link:', resetErr);
+                    }
+                }
+            } catch (authError: any) {
+                console.error('[ADD VOLUNTEER] Firebase Auth error:', authError.message);
+                return res.status(400).json({
+                    error: `Failed to create account: ${authError.message}`
+                });
+            }
+        } else if (firebaseConfigured) {
+            // No password provided - create Firebase Auth user with random password and send reset
+            try {
+                const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+                const userRecord = await auth.createUser({
+                    email: volunteer.email.toLowerCase(),
+                    password: tempPassword,
+                    displayName: volunteer.name || `${volunteer.legalFirstName} ${volunteer.legalLastName}`.trim()
+                });
+                finalUserId = userRecord.uid;
+                volunteer.authProvider = 'email';
+
+                // Always send password reset when no password provided
+                passwordResetLink = await auth.generatePasswordResetLink(volunteer.email.toLowerCase());
+                console.log(`[ADD VOLUNTEER] Created user with temp password, reset link generated`);
+            } catch (authError: any) {
+                console.error('[ADD VOLUNTEER] Firebase Auth error:', authError.message);
+                return res.status(400).json({
+                    error: `Failed to create account: ${authError.message}`
+                });
+            }
+        } else {
+            // Firebase not configured - create Firestore-only entry
+            const docRef = await db.collection('volunteers').add({
+                ...volunteer,
+                email: volunteer.email.toLowerCase(),
+                authProvider: 'manual',
+                status: volunteer.status || 'active'
+            });
+            finalUserId = docRef.id;
+        }
+
+        // Save volunteer data to Firestore with the correct ID
+        const volunteerData = {
+            ...volunteer,
+            id: finalUserId,
+            email: volunteer.email.toLowerCase(),
+            status: volunteer.status || 'active',
+            role: volunteer.role || 'HMC Champion',
+            createdAt: new Date().toISOString(),
+            createdBy: 'admin',
+            mustResetPassword: sendPasswordReset || !password
+        };
+
+        await db.collection('volunteers').doc(finalUserId).set(volunteerData, { merge: true });
+
+        // Send welcome email with password reset link if available
+        try {
+            await EmailService.send('admin_added_volunteer', {
+                toEmail: volunteer.email,
+                volunteerName: volunteer.name || volunteer.legalFirstName || 'Volunteer',
+                appliedRole: volunteer.role || 'HMC Champion',
+                passwordResetLink: passwordResetLink || undefined,
+                hasPasswordReset: !!passwordResetLink
+            });
+            console.log(`[ADD VOLUNTEER] Welcome email sent to ${volunteer.email} (with reset link: ${!!passwordResetLink})`);
+        } catch (emailErr) {
+            console.error(`Failed to send welcome email to ${volunteer.email}:`, emailErr);
+        }
+
+        res.json({ id: finalUserId, ...volunteerData });
     } catch (error: any) {
         console.error('[ADD VOLUNTEER] Failed:', error);
         res.status(500).json({ error: error.message || 'Failed to add volunteer' });
