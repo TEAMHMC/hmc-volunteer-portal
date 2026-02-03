@@ -216,45 +216,45 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   };
 
   return (
-    <div className="h-full flex flex-col gap-8 animate-in fade-in duration-500 relative">
+    <div className="h-full flex flex-col gap-4 md:gap-8 animate-in fade-in duration-500 relative">
       {/* Toast notification */}
       {showToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-8 py-5 rounded-full shadow-2xl flex items-center gap-3 z-[5000] animate-in slide-in-from-bottom-10">
-          <CheckCircle2 size={18} className="text-emerald-400" />
-          <span className="text-sm font-bold">{toastMessage}</span>
+        <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-4 md:px-8 py-3 md:py-5 rounded-full shadow-2xl flex items-center gap-2 md:gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
+          <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0" />
+          <span className="text-xs md:text-sm font-bold">{toastMessage}</span>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Volunteer Opportunities</h2>
-          <p className="text-slate-500 text-lg font-light">Find and sign up for upcoming community health events.</p>
+          <h2 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">Volunteer Opportunities</h2>
+          <p className="text-slate-500 text-sm md:text-lg font-light">Find and sign up for upcoming community health events.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 flex-1 min-h-0">
-        <div className="lg:col-span-8 flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-10 flex-1 min-h-0">
+        <div className="lg:col-span-8 flex flex-col gap-4 md:gap-6">
           <div className="relative group">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
-            <input 
-              type="text" 
+            <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+            <input
+              type="text"
               placeholder="Search by location or event..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-[28px] py-6 pl-16 pr-8 text-lg font-medium outline-none focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-sm"
+              className="w-full bg-white border border-slate-200 rounded-2xl md:rounded-[28px] py-3 md:py-6 pl-12 md:pl-16 pr-4 md:pr-8 text-base md:text-lg font-medium outline-none focus:ring-4 md:focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-sm"
             />
           </div>
 
-          <div className="bg-slate-200 rounded-[48px] overflow-hidden relative shadow-inner border-4 border-white flex-1 min-h-[400px]">
+          <div className="bg-slate-200 rounded-2xl md:rounded-[48px] overflow-hidden relative shadow-inner border-2 md:border-4 border-white flex-1 min-h-[250px] md:min-h-[400px]">
             <MapContainer center={[34.0522, -118.2437]} zoom={10} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               {filtered.map(e => (
-                <Marker 
-                  key={e.id} 
-                  position={[e.lat, e.lng]} 
+                <Marker
+                  key={e.id}
+                  position={[e.lat, e.lng]}
                   icon={createIcon(PROGRAM_COLORS[e.program] || PROGRAM_COLORS['default'])}
                   eventHandlers={{
                     click: () => setSelectedEvent(e),
@@ -269,7 +269,8 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <MapController event={selectedEvent} />
             </MapContainer>
 
-            <div className="absolute bottom-8 right-8 flex flex-col gap-3 z-[1000]">
+            {/* Legend - hidden on mobile, shown on larger screens */}
+            <div className="hidden md:flex absolute bottom-8 right-8 flex-col gap-3 z-[1000]">
                <div className="bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Legend</p>
                   <div className="flex flex-col gap-2">
@@ -285,88 +286,89 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           </div>
         </div>
 
-        <div className="lg:col-span-4 flex flex-col gap-6 h-full overflow-y-auto no-scrollbar">
+        <div className="lg:col-span-4 flex flex-col gap-4 md:gap-6 h-full overflow-y-auto no-scrollbar">
           {selectedEvent ? (
-            <div className="bg-white rounded-[48px] p-10 border border-slate-100 shadow-xl flex flex-col gap-8 animate-in slide-in-from-right-10 shrink-0">
+            <div className="bg-white rounded-2xl md:rounded-[48px] p-5 md:p-10 border border-slate-100 shadow-xl flex flex-col gap-4 md:gap-8 animate-in slide-in-from-right-10 shrink-0">
               <div className="flex justify-between items-start">
-                 <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg" style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}>
+                 <span className="px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-lg" style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}>
                    {selectedEvent.program}
                  </span>
-                 <button onClick={() => setSelectedEvent(null)} className="text-slate-300 hover:text-slate-600"><Share2 size={24} /></button>
+                 <button onClick={() => setSelectedEvent(null)} className="text-slate-300 hover:text-slate-600"><Share2 size={20} /></button>
               </div>
 
               <div>
-                <h3 className="text-3xl font-black text-slate-900 leading-tight mb-4">{selectedEvent.title}</h3>
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2">
+                <h3 className="text-xl md:text-3xl font-black text-slate-900 leading-tight mb-2 md:mb-4">{selectedEvent.title}</h3>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] md:text-[10px] flex items-center gap-2">
                   <MapPin size={14} /> {selectedEvent.address}, {selectedEvent.city}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                  <Calendar className="text-indigo-600 mb-2" size={20} />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
-                  <p className="text-sm font-black text-slate-900">{selectedEvent.dateDisplay}</p>
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100">
+                  <Calendar className="text-indigo-600 mb-1 md:mb-2" size={18} />
+                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
+                  <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.dateDisplay}</p>
                 </div>
-                <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                  <Clock className="text-indigo-600 mb-2" size={20} />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</p>
-                  <p className="text-sm font-black text-slate-900">{selectedEvent.time}</p>
+                <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100">
+                  <Clock className="text-indigo-600 mb-1 md:mb-2" size={18} />
+                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</p>
+                  <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.time}</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {canSignUp ? (
                   <button
                     onClick={() => handleSignUp(selectedEvent.id)}
                     disabled={isSigningUp}
-                    className={`w-full py-6 rounded-3xl font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-60 ${
+                    className={`w-full py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-sm md:text-lg transition-all shadow-xl flex items-center justify-center gap-2 md:gap-3 disabled:opacity-60 ${
                       user.rsvpedEventIds?.includes(selectedEvent.id)
                         ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100'
                         : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
                     }`}
                   >
                     {isSigningUp ? (
-                      <><Loader2 size={24} className="animate-spin" /> Processing...</>
+                      <><Loader2 size={20} className="animate-spin" /> Processing...</>
                     ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                      <><CheckCircle2 size={24} /> Signed Up - Click to Cancel</>
+                      <><CheckCircle2 size={20} /> <span className="hidden sm:inline">Signed Up - </span>Click to Cancel</>
                     ) : (
                       <>Sign Up</>
                     )}
                   </button>
                 ) : (
-                  <div className="w-full py-6 px-4 rounded-3xl bg-amber-50 border border-amber-200 text-center">
-                    <p className="font-bold text-amber-800 text-sm">Complete Core Volunteer Training to sign up</p>
-                    <p className="text-amber-600 text-xs mt-1">Visit Training Academy to complete required modules</p>
+                  <div className="w-full py-4 md:py-6 px-4 rounded-2xl md:rounded-3xl bg-amber-50 border border-amber-200 text-center">
+                    <p className="font-bold text-amber-800 text-xs md:text-sm">Complete Core Volunteer Training to sign up</p>
+                    <p className="text-amber-600 text-[10px] md:text-xs mt-1">Visit Training Academy to complete required modules</p>
                   </div>
                 )}
-                <p className="text-center text-[10px] text-slate-400 font-medium">Earn impact points for participating in community events.</p>
+                <p className="text-center text-[9px] md:text-[10px] text-slate-400 font-medium">Earn impact points for participating in community events.</p>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-[48px] p-10 border border-slate-100 shadow-sm flex-1 flex flex-col items-center justify-center text-center opacity-60">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
-                <Navigation size={40} />
+            <div className="bg-white rounded-2xl md:rounded-[48px] p-6 md:p-10 border border-slate-100 shadow-sm flex-1 flex flex-col items-center justify-center text-center opacity-60 min-h-[150px] md:min-h-0">
+              <div className="w-14 h-14 md:w-20 md:h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4 md:mb-6">
+                <Navigation size={28} className="md:hidden" />
+                <Navigation size={40} className="hidden md:block" />
               </div>
-              <h3 className="text-xl font-black text-slate-400 mb-2 uppercase tracking-widest">Select an Event</h3>
-              <p className="text-slate-400 text-sm font-medium">Click a marker on the map to view details and sign up.</p>
+              <h3 className="text-base md:text-xl font-black text-slate-400 mb-2 uppercase tracking-widest">Select an Event</h3>
+              <p className="text-slate-400 text-xs md:text-sm font-medium">Tap a marker on the map to view details and sign up.</p>
             </div>
           )}
-          
-          <div className="bg-indigo-900 rounded-[48px] p-10 text-white shadow-2xl relative overflow-hidden group shrink-0">
-             <Calendar className="absolute -bottom-10 -right-10 w-48 h-48 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
+
+          <div className="bg-indigo-900 rounded-2xl md:rounded-[48px] p-5 md:p-10 text-white shadow-2xl relative overflow-hidden group shrink-0">
+             <Calendar className="absolute -bottom-10 -right-10 w-32 md:w-48 h-32 md:h-48 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
              <div className="relative z-10">
-                <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-6">My Confirmed Events</h4>
-                <div className="space-y-4">
+                <h4 className="text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 md:mb-6">My Confirmed Events</h4>
+                <div className="space-y-3 md:space-y-4">
                   {user.rsvpedEventIds?.length ? user.rsvpedEventIds.map(id => {
                     const event = events.find(e => e.id === id);
                     if (!event) return null;
                     return (
-                      <div key={id} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white"><CheckCircle2 size={20} /></div>
-                        <div>
-                          <p className="text-sm font-black">{event.title}</p>
-                          <p className="text-[10px] font-bold text-indigo-300 uppercase">{event.dateDisplay}</p>
+                      <div key={id} className="flex items-center gap-3 md:gap-4 bg-white/5 p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/10">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center text-white flex-shrink-0"><CheckCircle2 size={16} className="md:hidden" /><CheckCircle2 size={20} className="hidden md:block" /></div>
+                        <div className="min-w-0">
+                          <p className="text-xs md:text-sm font-black truncate">{event.title}</p>
+                          <p className="text-[9px] md:text-[10px] font-bold text-indigo-300 uppercase">{event.dateDisplay}</p>
                         </div>
                       </div>
                     );
