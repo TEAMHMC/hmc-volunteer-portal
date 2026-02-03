@@ -29,6 +29,7 @@ import EventExplorer from './EventExplorer';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
 import BoardGovernance from './BoardGovernance';
+import LiveChatDashboard from './LiveChatDashboard';
 
 interface DashboardProps {
   user: Volunteer;
@@ -93,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
@@ -188,6 +189,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     // Client Intake & Referrals - for client-facing roles
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
       items.push({ id: 'intake', label: 'Client Portal', icon: Send });
+    }
+
+    // Live Chat Support - for client-facing roles to help website visitors
+    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
+      items.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
     }
 
     // Add governance tab for Board Members and CAB
@@ -368,6 +374,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          )}
          {activeTab === 'governance' && ['Board Member', 'Community Advisory Board'].includes(displayUser.role) && (
            <BoardGovernance user={displayUser} />
+         )}
+         {activeTab === 'livechat' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
+           <LiveChatDashboard currentUser={displayUser} />
          )}
 
       </main>

@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS } from '../constants'
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -305,7 +305,8 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
 
         setIsSubmitting(true);
         try {
-            await surveyService.submitClientSurvey({
+            // 1. Submit survey to survey service
+            const surveyId = await surveyService.submitClientSurvey({
                 surveyKitId: surveyKit.id,
                 surveyKitName: surveyKit.name,
                 clientFirstName: clientInfo.firstName,
@@ -318,6 +319,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                 responses: submission,
                 consentGiven: true
             });
+
             setResponseCount(prev => prev + 1);
             setIsSubmitted(true);
         } catch (error) {

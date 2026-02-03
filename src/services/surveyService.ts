@@ -24,6 +24,15 @@ const COLLECTIONS = {
   CLIENT_SURVEYS: 'clientSurveys'
 };
 
+// Helper to check if Firestore is available
+const isFirestoreAvailable = (): boolean => {
+  if (!db) {
+    console.warn('Firestore not available - survey features disabled');
+    return false;
+  }
+  return true;
+};
+
 // ============ FORM DEFINITIONS ============
 
 export interface FormDefinition {
@@ -42,7 +51,8 @@ export interface FormDefinition {
  * Create a new form definition
  */
 export const createForm = async (form: Omit<FormDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.FORMS), {
+  if (!isFirestoreAvailable()) return '';
+  const docRef = await addDoc(collection(db!, COLLECTIONS.FORMS), {
     ...form,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -54,7 +64,8 @@ export const createForm = async (form: Omit<FormDefinition, 'id' | 'createdAt' |
  * Update an existing form definition
  */
 export const updateForm = async (formId: string, updates: Partial<FormDefinition>): Promise<void> => {
-  const formRef = doc(db, COLLECTIONS.FORMS, formId);
+  if (!isFirestoreAvailable()) return;
+  const formRef = doc(db!, COLLECTIONS.FORMS, formId);
   await updateDoc(formRef, {
     ...updates,
     updatedAt: serverTimestamp()
@@ -65,17 +76,19 @@ export const updateForm = async (formId: string, updates: Partial<FormDefinition
  * Delete a form definition
  */
 export const deleteForm = async (formId: string): Promise<void> => {
-  await deleteDoc(doc(db, COLLECTIONS.FORMS, formId));
+  if (!isFirestoreAvailable()) return;
+  await deleteDoc(doc(db!, COLLECTIONS.FORMS, formId));
 };
 
 /**
  * Get all form definitions
  */
 export const getForms = async (category?: FormDefinition['category']): Promise<FormDefinition[]> => {
-  let q = query(collection(db, COLLECTIONS.FORMS), orderBy('createdAt', 'desc'));
+  if (!isFirestoreAvailable()) return [];
+  let q = query(collection(db!, COLLECTIONS.FORMS), orderBy('createdAt', 'desc'));
 
   if (category) {
-    q = query(collection(db, COLLECTIONS.FORMS), where('category', '==', category), orderBy('createdAt', 'desc'));
+    q = query(collection(db!, COLLECTIONS.FORMS), where('category', '==', category), orderBy('createdAt', 'desc'));
   }
 
   const snapshot = await getDocs(q);
@@ -89,7 +102,8 @@ export const getForms = async (category?: FormDefinition['category']): Promise<F
  * Get a single form by ID
  */
 export const getFormById = async (formId: string): Promise<FormDefinition | null> => {
-  const docRef = doc(db, COLLECTIONS.FORMS, formId);
+  if (!isFirestoreAvailable()) return null;
+  const docRef = doc(db!, COLLECTIONS.FORMS, formId);
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
@@ -119,7 +133,8 @@ export interface SurveyResponse {
  * Submit a survey response
  */
 export const submitSurveyResponse = async (response: Omit<SurveyResponse, 'id' | 'submittedAt'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.SURVEY_RESPONSES), {
+  if (!isFirestoreAvailable()) return '';
+  const docRef = await addDoc(collection(db!, COLLECTIONS.SURVEY_RESPONSES), {
     ...response,
     submittedAt: serverTimestamp()
   });
@@ -130,8 +145,9 @@ export const submitSurveyResponse = async (response: Omit<SurveyResponse, 'id' |
  * Get survey responses for a specific form
  */
 export const getSurveyResponsesByForm = async (formId: string, limitCount = 100): Promise<SurveyResponse[]> => {
+  if (!isFirestoreAvailable()) return [];
   const q = query(
-    collection(db, COLLECTIONS.SURVEY_RESPONSES),
+    collection(db!, COLLECTIONS.SURVEY_RESPONSES),
     where('formId', '==', formId),
     orderBy('submittedAt', 'desc'),
     limit(limitCount)
@@ -149,7 +165,7 @@ export const getSurveyResponsesByForm = async (formId: string, limitCount = 100)
  */
 export const getSurveyResponsesByEvent = async (eventId: string): Promise<SurveyResponse[]> => {
   const q = query(
-    collection(db, COLLECTIONS.SURVEY_RESPONSES),
+    collection(db!, COLLECTIONS.SURVEY_RESPONSES),
     where('eventId', '==', eventId),
     orderBy('submittedAt', 'desc')
   );
@@ -166,7 +182,7 @@ export const getSurveyResponsesByEvent = async (eventId: string): Promise<Survey
  */
 export const getSurveyResponsesByDateRange = async (startDate: Date, endDate: Date): Promise<SurveyResponse[]> => {
   const q = query(
-    collection(db, COLLECTIONS.SURVEY_RESPONSES),
+    collection(db!, COLLECTIONS.SURVEY_RESPONSES),
     where('submittedAt', '>=', Timestamp.fromDate(startDate)),
     where('submittedAt', '<=', Timestamp.fromDate(endDate)),
     orderBy('submittedAt', 'desc')
@@ -185,7 +201,7 @@ export const getSurveyResponsesByDateRange = async (startDate: Date, endDate: Da
  * Submit volunteer feedback survey (post-event)
  */
 export const submitVolunteerFeedback = async (feedback: Omit<VolunteerSurveyResponse, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.SURVEY_RESPONSES), {
+  const docRef = await addDoc(collection(db!, COLLECTIONS.SURVEY_RESPONSES), {
     ...feedback,
     respondentType: 'volunteer',
     formId: 'volunteer-feedback',
@@ -203,14 +219,14 @@ export const getVolunteerFeedback = async (eventId?: string): Promise<VolunteerS
 
   if (eventId) {
     q = query(
-      collection(db, COLLECTIONS.SURVEY_RESPONSES),
+      collection(db!, COLLECTIONS.SURVEY_RESPONSES),
       where('formId', '==', 'volunteer-feedback'),
       where('eventId', '==', eventId),
       orderBy('submittedAt', 'desc')
     );
   } else {
     q = query(
-      collection(db, COLLECTIONS.SURVEY_RESPONSES),
+      collection(db!, COLLECTIONS.SURVEY_RESPONSES),
       where('formId', '==', 'volunteer-feedback'),
       orderBy('submittedAt', 'desc'),
       limit(100)
@@ -256,7 +272,7 @@ export interface ClientSurveySubmission {
  * Submit a client survey (collected at events)
  */
 export const submitClientSurvey = async (survey: Omit<ClientSurveySubmission, 'id' | 'submittedAt'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.CLIENT_SURVEYS), {
+  const docRef = await addDoc(collection(db!, COLLECTIONS.CLIENT_SURVEYS), {
     ...survey,
     submittedAt: serverTimestamp()
   });
@@ -268,7 +284,7 @@ export const submitClientSurvey = async (survey: Omit<ClientSurveySubmission, 'i
  */
 export const getClientSurveysByEvent = async (eventId: string): Promise<ClientSurveySubmission[]> => {
   const q = query(
-    collection(db, COLLECTIONS.CLIENT_SURVEYS),
+    collection(db!, COLLECTIONS.CLIENT_SURVEYS),
     where('eventId', '==', eventId),
     orderBy('submittedAt', 'desc')
   );
@@ -285,7 +301,7 @@ export const getClientSurveysByEvent = async (eventId: string): Promise<ClientSu
  */
 export const getClientSurveysBySurveyKit = async (surveyKitId: string, limitCount = 100): Promise<ClientSurveySubmission[]> => {
   const q = query(
-    collection(db, COLLECTIONS.CLIENT_SURVEYS),
+    collection(db!, COLLECTIONS.CLIENT_SURVEYS),
     where('surveyKitId', '==', surveyKitId),
     orderBy('submittedAt', 'desc'),
     limit(limitCount)
@@ -304,7 +320,7 @@ export const getClientSurveysBySurveyKit = async (surveyKitId: string, limitCoun
  * Get survey response count by form
  */
 export const getSurveyResponseCounts = async (): Promise<{ [formId: string]: number }> => {
-  const snapshot = await getDocs(collection(db, COLLECTIONS.SURVEY_RESPONSES));
+  const snapshot = await getDocs(collection(db!, COLLECTIONS.SURVEY_RESPONSES));
   const counts: { [formId: string]: number } = {};
 
   snapshot.docs.forEach(doc => {
@@ -335,11 +351,11 @@ export const getSurveyStats = async (startDate?: Date, endDate?: Date): Promise<
   averageRating: number;
   responsesOverTime: { date: string; count: number }[];
 }> => {
-  let q = query(collection(db, COLLECTIONS.SURVEY_RESPONSES), orderBy('submittedAt', 'desc'));
+  let q = query(collection(db!, COLLECTIONS.SURVEY_RESPONSES), orderBy('submittedAt', 'desc'));
 
   if (startDate && endDate) {
     q = query(
-      collection(db, COLLECTIONS.SURVEY_RESPONSES),
+      collection(db!, COLLECTIONS.SURVEY_RESPONSES),
       where('submittedAt', '>=', Timestamp.fromDate(startDate)),
       where('submittedAt', '<=', Timestamp.fromDate(endDate)),
       orderBy('submittedAt', 'desc')

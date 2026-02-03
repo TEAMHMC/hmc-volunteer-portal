@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
 
 // Firebase configuration - uses environment variables in production
 const firebaseConfig = {
@@ -12,13 +12,23 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase with error handling
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
 
-// Initialize Firestore
-export const db = getFirestore(app);
+try {
+  // Only initialize if we have at least an API key
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+  } else {
+    console.warn('Firebase client SDK not configured - survey features will be disabled');
+  }
+} catch (error) {
+  console.error('Failed to initialize Firebase client SDK:', error);
+}
 
-// Initialize Auth
-export const auth = getAuth(app);
-
+export { db, auth };
 export default app;
