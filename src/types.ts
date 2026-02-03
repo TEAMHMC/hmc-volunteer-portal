@@ -362,11 +362,17 @@ export interface ClinicEvent {
 
 export interface SupportTicket {
     id: string;
-    volunteerId: string;
+    volunteerId?: string;
+    submittedBy?: string;
+    submitterName?: string;
     subject: string;
     description: string;
-    status: 'open' | 'closed' | 'in-progress';
+    status: 'open' | 'closed' | 'in_progress';
+    priority?: 'low' | 'medium' | 'high';
     createdAt: string;
+    assignedTo?: string;
+    assignedToName?: string;
+    responses?: any[];
 }
 
 export interface ChecklistItem {

@@ -470,12 +470,14 @@ const OpsSupportView: React.FC<{
   supportTickets: SupportTicket[];
   setSupportTickets: React.Dispatch<React.SetStateAction<SupportTicket[]>>;
   userMode: 'volunteer' | 'admin';
-}> = ({ user, supportTickets, setSupportTickets, userMode }) => {
+  allVolunteers: Volunteer[];
+}> = ({ user, supportTickets, setSupportTickets, userMode, allVolunteers }) => {
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [newTicketSubject, setNewTicketSubject] = useState('');
   const [newTicketBody, setNewTicketBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedTicket, setDraggedTicket] = useState<string | null>(null);
+  const [assigningTicketId, setAssigningTicketId] = useState<string | null>(null);
 
   const myTickets = userMode === 'admin'
     ? supportTickets
@@ -557,6 +559,23 @@ const OpsSupportView: React.FC<{
     setDraggedTicket(null);
   };
 
+  const handleAssign = async (ticketId: string, volunteerId: string | null) => {
+    const volunteer = volunteerId ? allVolunteers.find(v => v.id === volunteerId) : null;
+    setSupportTickets(prev => prev.map(t =>
+      t.id === ticketId ? { ...t, assignedTo: volunteerId || undefined, assignedToName: volunteer?.name } : t
+    ));
+    setAssigningTicketId(null);
+
+    try {
+      await apiService.put(`/api/support_tickets/${ticketId}`, {
+        assignedTo: volunteerId,
+        assignedToName: volunteer?.name
+      });
+    } catch (error) {
+      console.error('Failed to assign ticket:', error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-amber-100 text-amber-700 border-amber-200';
@@ -580,8 +599,8 @@ const OpsSupportView: React.FC<{
       key={ticket.id}
       draggable={userMode === 'admin'}
       onDragStart={(e) => handleDragStart(e, ticket.id)}
-      className={`p-4 bg-white rounded-xl border border-zinc-100 shadow-sm hover:shadow-md transition-all cursor-pointer ${
-        userMode === 'admin' ? 'cursor-grab active:cursor-grabbing' : ''
+      className={`p-4 bg-white rounded-xl border border-zinc-100 shadow-sm hover:shadow-md transition-all ${
+        userMode === 'admin' ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -602,6 +621,42 @@ const OpsSupportView: React.FC<{
         </span>
       </div>
       <p className="text-[10px] text-zinc-400 mt-2">By {ticket.submitterName}</p>
+
+      {/* Assignment Section */}
+      {userMode === 'admin' && (
+        <div className="mt-3 pt-3 border-t border-zinc-100">
+          {assigningTicketId === ticket.id ? (
+            <div className="space-y-2">
+              <select
+                className="w-full px-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium"
+                defaultValue={ticket.assignedTo || ''}
+                onChange={(e) => handleAssign(ticket.id, e.target.value || null)}
+                autoFocus
+                onBlur={() => setAssigningTicketId(null)}
+              >
+                <option value="">Unassigned</option>
+                {allVolunteers.filter(v => v.isAdmin || v.role.includes('Coordinator') || v.role.includes('Lead')).map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); setAssigningTicketId(ticket.id); }}
+              className="flex items-center gap-2 text-xs hover:bg-zinc-50 px-2 py-1.5 rounded-lg w-full transition-colors"
+            >
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                ticket.assignedTo ? 'bg-[#233DFF] text-white' : 'bg-zinc-200 text-zinc-400'
+              }`}>
+                {ticket.assignedToName?.charAt(0) || <User size={10} />}
+              </div>
+              <span className={`font-medium ${ticket.assignedTo ? 'text-zinc-700' : 'text-zinc-400'}`}>
+                {ticket.assignedToName || 'Assign...'}
+              </span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -819,6 +874,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
             supportTickets={supportTickets}
             setSupportTickets={setSupportTickets}
             userMode={userMode}
+            allVolunteers={allVolunteers}
           />
         )}
       </div>
