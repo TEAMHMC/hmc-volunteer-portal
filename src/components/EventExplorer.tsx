@@ -245,7 +245,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
             />
           </div>
 
-          <div className="bg-slate-200 rounded-2xl md:rounded-[48px] overflow-hidden relative shadow-inner border-2 md:border-4 border-white flex-1 min-h-[250px] md:min-h-[400px]">
+          <div className="bg-slate-200 rounded-2xl md:rounded-[48px] overflow-hidden relative shadow-inner border-2 md:border-4 border-white h-[300px] md:h-[450px]">
             <MapContainer center={[34.0522, -118.2437]} zoom={10} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

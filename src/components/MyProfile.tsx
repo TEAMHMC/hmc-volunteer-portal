@@ -50,6 +50,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
   const handleSaveProfile = () => {
     const updatedUser: Volunteer = {
       ...currentUser,
+      name: profileData.name,
       email: profileData.email,
       phone: profileData.phone,
       notificationPrefs: profileData.notificationPrefs,
@@ -178,7 +179,17 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <div>
-            <h2 className="text-4xl font-black text-zinc-900 tracking-tight">{currentUser.name}</h2>
+            {isEditing ? (
+              <input
+                type="text"
+                value={profileData.name}
+                onChange={e => setProfileData({...profileData, name: e.target.value})}
+                className="text-4xl font-black text-zinc-900 tracking-tight bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-2 outline-none focus:bg-white transition-all w-full max-w-md"
+                placeholder="Your Name"
+              />
+            ) : (
+              <h2 className="text-4xl font-black text-zinc-900 tracking-tight">{currentUser.name}</h2>
+            )}
             <p className="text-zinc-500 mt-2 font-medium flex items-center gap-2"><Shield size={16} className="text-[#233DFF]" /> {currentUser.role}</p>
           </div>
         </div>
