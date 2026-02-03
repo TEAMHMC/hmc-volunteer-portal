@@ -147,6 +147,40 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// --- GEMINI TEST ENDPOINT (for debugging) ---
+app.get('/api/gemini/test', async (req: Request, res: Response) => {
+  if (!ai) {
+    return res.json({ success: false, error: 'AI not configured - no API key found' });
+  }
+
+  try {
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent('Say "Hello, Gemini is working!" in exactly those words.');
+    const text = result.response.text();
+    res.json({
+      success: true,
+      response: text,
+      model: 'gemini-1.5-flash'
+    });
+  } catch (error: any) {
+    // Capture all possible error properties
+    const errorInfo = {
+      message: error.message,
+      name: error.name,
+      status: error.status,
+      statusText: error.statusText,
+      code: error.code,
+      details: error.errorDetails || error.details,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n')
+    };
+    console.error('[GEMINI TEST] Error:', JSON.stringify(errorInfo, null, 2));
+    res.json({
+      success: false,
+      error: errorInfo
+    });
+  }
+});
+
 // --- ANALYTICS ENDPOINT ---
 app.post('/api/analytics/log', async (req: Request, res: Response) => {
   try {
