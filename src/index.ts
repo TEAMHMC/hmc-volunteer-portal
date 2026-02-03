@@ -153,32 +153,33 @@ app.get('/api/gemini/test', async (req: Request, res: Response) => {
     return res.json({ success: false, error: 'AI not configured - no API key found' });
   }
 
-  try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const result = await model.generateContent('Say "Hello, Gemini is working!" in exactly those words.');
-    const text = result.response.text();
-    res.json({
-      success: true,
-      response: text,
-      model: 'gemini-1.5-flash'
-    });
-  } catch (error: any) {
-    // Capture all possible error properties
-    const errorInfo = {
-      message: error.message,
-      name: error.name,
-      status: error.status,
-      statusText: error.statusText,
-      code: error.code,
-      details: error.errorDetails || error.details,
-      stack: error.stack?.split('\n').slice(0, 3).join('\n')
-    };
-    console.error('[GEMINI TEST] Error:', JSON.stringify(errorInfo, null, 2));
-    res.json({
-      success: false,
-      error: errorInfo
-    });
+  // Try multiple model names to find one that works
+  const modelsToTry = [
+    'gemini-2.0-flash-exp',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash-001',
+    'gemini-pro',
+    'gemini-1.0-pro'
+  ];
+
+  const results: any[] = [];
+
+  for (const modelName of modelsToTry) {
+    try {
+      const model = ai.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent('Say "works" and nothing else.');
+      const text = result.response.text();
+      results.push({ model: modelName, success: true, response: text.trim() });
+    } catch (error: any) {
+      results.push({ model: modelName, success: false, error: error.message?.substring(0, 100) });
+    }
   }
+
+  const workingModel = results.find(r => r.success);
+  res.json({
+    workingModel: workingModel?.model || null,
+    results
+  });
 });
 
 // --- ANALYTICS ENDPOINT ---
