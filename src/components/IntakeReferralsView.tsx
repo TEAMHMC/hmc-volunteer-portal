@@ -61,7 +61,9 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         setView('referral');
     };
 
-    if (!user.trainingFlags?.clientPortalOrientationComplete && !user.isAdmin) {
+    // Licensed Medical Professionals and Medical Admins bypass training requirement
+    const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
+    if (!user.trainingFlags?.clientPortalOrientationComplete && !user.isAdmin && !isMedicalRole) {
         return <AccessGate requiredTraining="Client Portal Orientation" />;
     }
 

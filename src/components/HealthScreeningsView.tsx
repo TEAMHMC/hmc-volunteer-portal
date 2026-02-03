@@ -51,7 +51,9 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
         setView('screening');
     };
 
-    if (!user.trainingFlags?.screeningCompetencyVerified && !user.isAdmin) {
+    // Licensed Medical Professionals and Medical Admins bypass training requirement
+    const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
+    if (!user.trainingFlags?.screeningCompetencyVerified && !user.isAdmin && !isMedicalRole) {
         return <AccessGate requiredTraining="Screening Competency" />;
     }
 
