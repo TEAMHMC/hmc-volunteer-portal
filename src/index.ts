@@ -1210,6 +1210,19 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
     }
 
     try {
+        // Check if email already exists
+        const existingByEmail = await db.collection('volunteers')
+            .where('email', '==', user.email.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (!existingByEmail.empty) {
+            return res.status(409).json({
+                error: 'An account with this email already exists. Please log in instead.',
+                existingAccount: true
+            });
+        }
+
         user.role = user.appliedRole || 'HMC Champion';
         user.status = 'active';
         user.applicationStatus = 'pendingReview';
@@ -1322,8 +1335,27 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
         // Use Google's sub (subject) as user ID, prefixed to avoid conflicts
         const userId = `google_${googleUser.sub}`;
 
+        // First check if this Google account already exists
         const userDoc = await db.collection('volunteers').doc(userId).get();
-        const isNewUser = !userDoc.exists;
+
+        // Also check if this email exists with a different auth provider
+        const existingByEmail = await db.collection('volunteers')
+            .where('email', '==', googleUser.email.toLowerCase())
+            .limit(1)
+            .get();
+
+        // If email exists with different provider, link accounts or inform user
+        if (!userDoc.exists && !existingByEmail.empty) {
+            const existingUser = existingByEmail.docs[0].data();
+            if (existingUser.authProvider === 'email') {
+                // User signed up with email/password before - log them in with that account
+                console.log(`[AUTH] Google login for existing email/password user: ${googleUser.email}`);
+                await createSession(existingByEmail.docs[0].id, isAdmin, res);
+                return;
+            }
+        }
+
+        const isNewUser = !userDoc.exists && existingByEmail.empty;
 
         if (isNewUser) {
              // Check if this email is in the admin bootstrap list
