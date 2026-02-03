@@ -85,13 +85,22 @@ const generateAIContent = async (
   jsonMode: boolean = false
 ): Promise<string> => {
   if (!ai) throw new Error('AI not configured');
-  const model = ai.getGenerativeModel({
-    model: modelName,
-    generationConfig: jsonMode ? { responseMimeType: 'application/json' } : undefined
-  });
-  const content = Array.isArray(parts) ? parts : [parts];
-  const result = await model.generateContent(content);
-  return result.response.text();
+  try {
+    const model = ai.getGenerativeModel({
+      model: modelName,
+      generationConfig: jsonMode ? { responseMimeType: 'application/json' } : undefined
+    });
+    const content = Array.isArray(parts) ? parts : [parts];
+    console.log(`[GEMINI] Calling model ${modelName} with ${content.length} parts`);
+    const result = await model.generateContent(content);
+    const text = result.response.text();
+    console.log(`[GEMINI] Response received (${text.length} chars)`);
+    return text;
+  } catch (error: any) {
+    console.error(`[GEMINI] API Error:`, error.message || error);
+    console.error(`[GEMINI] Full error:`, JSON.stringify(error, null, 2));
+    throw error;
+  }
 };
 
 const app = express();
@@ -1514,7 +1523,8 @@ Return ONLY valid JSON in this exact format:
   "extractedSkills": ["skill1", "skill2", "skill3"]
 }`;
 
-        const text = await generateAIContent('gemini-1.5-pro', [
+        // Use gemini-1.5-flash for vision tasks (more widely available)
+        const text = await generateAIContent('gemini-1.5-flash', [
             { inlineData: { mimeType, data: base64Data } },
             prompt
         ], true);
