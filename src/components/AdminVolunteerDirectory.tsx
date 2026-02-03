@@ -32,6 +32,12 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
   const [viewMode, setViewMode] = useState<'all' | 'applicants'>('all');
   const [isReviewing, setIsReviewing] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAddVolunteerModal, setShowAddVolunteerModal] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskDueDate, setTaskDueDate] = useState('');
+  const [isAssigningTask, setIsAssigningTask] = useState(false);
   
   const applicantsCount = volunteers.filter(v => v.applicationStatus === 'pendingReview').length;
 
@@ -91,6 +97,44 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         alert(`Failed to review application: ${(error as Error).message}`);
     } finally {
         setIsReviewing(false);
+    }
+  };
+
+  const handleAssignTask = async () => {
+    if (!selectedVolunteer || !taskTitle.trim()) return;
+    setIsAssigningTask(true);
+    try {
+      const newTask: Task = {
+        id: `task-${Date.now()}`,
+        title: taskTitle,
+        description: taskDescription,
+        status: 'pending',
+        assignedDate: new Date().toISOString(),
+        dueDate: taskDueDate || undefined
+      };
+
+      const updatedVolunteer = {
+        ...selectedVolunteer,
+        tasks: [...(selectedVolunteer.tasks || []), newTask]
+      };
+
+      await apiService.post('/api/admin/update-volunteer-profile', { volunteer: updatedVolunteer });
+      setVolunteers(prev => prev.map(v => v.id === updatedVolunteer.id ? updatedVolunteer : v));
+      setSelectedVolunteer(updatedVolunteer);
+
+      // Reset form and close modal
+      setTaskTitle('');
+      setTaskDescription('');
+      setTaskDueDate('');
+      setShowTaskModal(false);
+
+      if (onAssignTask) {
+        onAssignTask(selectedVolunteer.id, { title: taskTitle, description: taskDescription, dueDate: taskDueDate });
+      }
+    } catch (error) {
+      alert(`Failed to assign task: ${(error as Error).message}`);
+    } finally {
+      setIsAssigningTask(false);
     }
   };
 
@@ -190,7 +234,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
             </div>
           ))}
           
-          <button className="bg-white border-2 border-dashed border-zinc-100 rounded-[56px] p-12 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-[#233DFF]/20 hover:text-[#233DFF] transition-all group">
+          <button
+            onClick={() => setShowAddVolunteerModal(true)}
+            className="bg-white border-2 border-dashed border-zinc-100 rounded-[56px] p-12 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-[#233DFF]/20 hover:text-[#233DFF] transition-all group">
              <div className="w-20 h-20 rounded-full bg-zinc-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-xl transition-all">
                 <UserPlus size={32} strokeWidth={1.5} />
              </div>
@@ -264,14 +310,51 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                        </div>
                     </div>
                  </div>
-                 <div className="bg-zinc-50/70 p-8 rounded-[32px] border border-zinc-100 space-y-6">
-                    <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Compliance Checklist</h4>
-                    {Object.values(selectedVolunteer.compliance).map((c: ComplianceStep) => (
-                      <div key={c.id} className="flex items-center gap-4">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${c.status === 'verified' || c.status === 'completed' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-zinc-300 border-zinc-200'}`}><CheckCircle size={16}/></div>
-                        <p className={`font-bold text-sm ${c.status === 'verified' || c.status === 'completed' ? 'text-zinc-800' : 'text-zinc-400'}`}>{c.label}</p>
+                 <div className="space-y-6">
+                    <div className="bg-zinc-50/70 p-8 rounded-[32px] border border-zinc-100 space-y-6">
+                      <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Compliance Checklist</h4>
+                      {Object.values(selectedVolunteer.compliance).map((c: ComplianceStep) => (
+                        <div key={c.id} className="flex items-center gap-4">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${c.status === 'verified' || c.status === 'completed' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-zinc-300 border-zinc-200'}`}><CheckCircle size={16}/></div>
+                          <p className={`font-bold text-sm ${c.status === 'verified' || c.status === 'completed' ? 'text-zinc-800' : 'text-zinc-400'}`}>{c.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Task Assignment Section */}
+                    <div className="bg-white p-6 rounded-[32px] border border-zinc-100 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Assigned Tasks</h4>
+                        <button
+                          onClick={() => setShowTaskModal(true)}
+                          className="px-3 py-1.5 bg-[#233DFF] text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                        >
+                          <ClipboardList size={12} /> Assign Task
+                        </button>
                       </div>
-                    ))}
+                      {selectedVolunteer.tasks && selectedVolunteer.tasks.length > 0 ? (
+                        <div className="space-y-2">
+                          {selectedVolunteer.tasks.map(task => (
+                            <div key={task.id} className={`p-4 rounded-xl border ${task.status === 'completed' ? 'bg-emerald-50 border-emerald-100' : 'bg-zinc-50 border-zinc-100'}`}>
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className={`font-bold text-sm ${task.status === 'completed' ? 'text-emerald-700 line-through' : 'text-zinc-800'}`}>{task.title}</p>
+                                  <p className="text-xs text-zinc-500 mt-1">{task.description}</p>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${task.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {task.status}
+                                </span>
+                              </div>
+                              {task.dueDate && (
+                                <p className="text-[10px] text-zinc-400 mt-2">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-zinc-400 italic text-center py-4">No tasks assigned yet</p>
+                      )}
+                    </div>
                  </div>
                  {selectedVolunteer.applicationStatus === 'pendingReview' && <ApplicationReviewPanel volunteer={selectedVolunteer} onReview={handleReview} isReviewing={isReviewing} />}
               </main>
@@ -280,6 +363,61 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       )}
       
       {showImportModal && <BulkImportModal onClose={() => setShowImportModal(false)} setVolunteers={setVolunteers} />}
+      {showAddVolunteerModal && <AddVolunteerModal onClose={() => setShowAddVolunteerModal(false)} setVolunteers={setVolunteers} />}
+
+      {/* Task Assignment Modal */}
+      {showTaskModal && selectedVolunteer && (
+        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1100] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setShowTaskModal(false)}>
+          <div className="bg-white max-w-lg w-full rounded-[40px] shadow-2xl border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Assign Task</h2>
+              <button onClick={() => setShowTaskModal(false)} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-zinc-500 text-sm">Assign a task to <span className="font-bold text-zinc-800">{selectedVolunteer.name}</span></p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Task Title *</label>
+                <input
+                  type="text"
+                  value={taskTitle}
+                  onChange={e => setTaskTitle(e.target.value)}
+                  placeholder="e.g., Complete HIPAA Training"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Description</label>
+                <textarea
+                  value={taskDescription}
+                  onChange={e => setTaskDescription(e.target.value)}
+                  placeholder="Provide details about the task..."
+                  className="w-full min-h-[100px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Due Date (Optional)</label>
+                <input
+                  type="date"
+                  value={taskDueDate}
+                  onChange={e => setTaskDueDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleAssignTask}
+              disabled={isAssigningTask || !taskTitle.trim()}
+              className="w-full py-4 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50"
+            >
+              {isAssigningTask ? <Loader2 size={18} className="animate-spin" /> : <><ClipboardList size={18} /> Assign Task</>}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -418,6 +556,174 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
                         </button>
                     </>
                 )}
+            </div>
+        </div>
+    );
+}
+
+const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}> = ({ onClose, setVolunteers }) => {
+    const [formData, setFormData] = useState({
+        legalFirstName: '',
+        legalLastName: '',
+        email: '',
+        phone: '',
+        role: 'Core Volunteer'
+    });
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.legalFirstName || !formData.legalLastName || !formData.email) {
+            setError('Please fill in all required fields.');
+            return;
+        }
+        setIsSaving(true);
+        setError('');
+        try {
+            const newVolunteer = {
+                legalFirstName: formData.legalFirstName,
+                legalLastName: formData.legalLastName,
+                name: `${formData.legalFirstName} ${formData.legalLastName}`,
+                email: formData.email,
+                phone: formData.phone,
+                role: formData.role,
+                tenantId: 'hmc-health',
+                status: 'active',
+                identityLabel: 'HMC Champion',
+                volunteerRole: formData.role,
+                joinedDate: new Date().toISOString(),
+                onboardingProgress: 0,
+                hoursContributed: 0,
+                points: 0,
+                isAdmin: false,
+                coreVolunteerStatus: false,
+                compliance: {
+                    application: { id: 'application', label: 'Application', status: 'completed' },
+                    backgroundCheck: { id: 'backgroundCheck', label: 'Background Check', status: 'pending' },
+                    hipaaTraining: { id: 'hipaaTraining', label: 'HIPAA Training', status: 'pending' },
+                    training: { id: 'training', label: 'Core Training', status: 'pending' },
+                    orientation: { id: 'orientation', label: 'Orientation', status: 'pending' },
+                },
+                skills: [],
+                tasks: [],
+                achievements: [],
+                availability: {
+                    days: [],
+                    preferredTime: 'Any',
+                    startDate: new Date().toISOString().split('T')[0]
+                },
+                eventEligibility: {
+                    canDeployCore: false,
+                    streetMedicineGate: false,
+                    clinicGate: false,
+                    healthFairGate: false,
+                    naloxoneDistribution: false,
+                    oraQuickDistribution: false,
+                    qualifiedEventTypes: []
+                }
+            };
+
+            const result = await apiService.post('/api/admin/add-volunteer', { volunteer: newVolunteer });
+            setVolunteers((prev: Volunteer[]) => [...prev, { id: result.id, ...newVolunteer }]);
+            setSuccess(true);
+            setTimeout(onClose, 2000);
+        } catch(e) {
+            setError((e as Error).message || 'Failed to add volunteer');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (success) {
+        return (
+            <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1000] flex items-center justify-center p-8 animate-in fade-in">
+                <div className="bg-white max-w-lg w-full rounded-[40px] shadow-2xl border border-zinc-100 p-12 text-center">
+                    <CheckCircle className="mx-auto text-emerald-500 mb-4" size={64} />
+                    <h3 className="text-2xl font-black text-emerald-800">Volunteer Added!</h3>
+                    <p className="text-zinc-500 mt-2">They will receive a welcome email to set up their account.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-lg w-full rounded-[40px] shadow-2xl border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add Volunteer</h2>
+                    <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">First Name *</label>
+                            <input
+                                type="text"
+                                value={formData.legalFirstName}
+                                onChange={e => setFormData({...formData, legalFirstName: e.target.value})}
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                                placeholder="John"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Last Name *</label>
+                            <input
+                                type="text"
+                                value={formData.legalLastName}
+                                onChange={e => setFormData({...formData, legalLastName: e.target.value})}
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                                placeholder="Doe"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Email *</label>
+                        <input
+                            type="email"
+                            value={formData.email}
+                            onChange={e => setFormData({...formData, email: e.target.value})}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            placeholder="john@example.com"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Phone</label>
+                        <input
+                            type="tel"
+                            value={formData.phone}
+                            onChange={e => setFormData({...formData, phone: e.target.value})}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            placeholder="(555) 123-4567"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Role</label>
+                        <select
+                            value={formData.role}
+                            onChange={e => setFormData({...formData, role: e.target.value})}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                        >
+                            {APP_CONFIG.HMC_ROLES.map(role => (
+                                <option key={role.id} value={role.label}>{role.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
+
+                    <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="w-full py-4 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><UserPlus size={18} /> Add Volunteer</>}
+                    </button>
+                </form>
             </div>
         </div>
     );

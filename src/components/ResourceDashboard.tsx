@@ -1,14 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
-import { Database, Plus, X, Loader2, Save, CheckCircle } from 'lucide-react';
+import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud } from 'lucide-react';
 
 const ResourceDashboard: React.FC = () => {
     const [resources, setResources] = useState<ReferralResource[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
 
     const fetchResources = async () => {
         try {
@@ -36,9 +37,14 @@ const ResourceDashboard: React.FC = () => {
                     <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Resource Directory</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage community referral resources.</p>
                 </div>
-                <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-colors">
-                    <Plus size={16} /> Add New Resource
-                </button>
+                <div className="flex gap-4">
+                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-black uppercase tracking-widest shadow-sm hover:bg-zinc-50 transition-colors">
+                        <UploadCloud size={16} /> Bulk Upload
+                    </button>
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-colors">
+                        <Plus size={16} /> Add Resource
+                    </button>
+                </div>
             </header>
 
             <div className="bg-white rounded-[48px] border border-zinc-100 shadow-sm overflow-hidden">
@@ -65,6 +71,97 @@ const ResourceDashboard: React.FC = () => {
                  {resources.length === 0 && <div className="text-center p-20 text-zinc-400">No resources found.</div>}
             </div>
             {showAddModal && <NewResourceModal onClose={() => setShowAddModal(false)} onComplete={fetchResources} />}
+            {showBulkUploadModal && <BulkUploadResourceModal onClose={() => setShowBulkUploadModal(false)} onComplete={fetchResources} />}
+        </div>
+    );
+};
+
+const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }> = ({ onClose, onComplete }) => {
+    const [file, setFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [error, setError] = useState('');
+    const [successCount, setSuccessCount] = useState<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFile(e.target.files ? e.target.files[0] : null);
+        setError('');
+        setSuccessCount(null);
+    };
+
+    const handleUpload = async () => {
+        if (!file) {
+            setError('Please select a CSV file to upload.');
+            return;
+        }
+        setIsUploading(true);
+        setError('');
+        try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const csvContent = e.target?.result as string;
+                    const base64Data = btoa(unescape(encodeURIComponent(csvContent)));
+                    const result = await apiService.post('/api/resources/bulk-import', { csvData: base64Data });
+                    setSuccessCount(result.importedCount);
+                    onComplete();
+                } catch (err) {
+                    setError((err as Error).message || 'Failed to import resources');
+                } finally {
+                    setIsUploading(false);
+                }
+            };
+            reader.readAsText(file);
+        } catch (err) {
+            setError((err as Error).message);
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-2xl w-full rounded-[40px] shadow-2xl border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Upload Resources</h2>
+                    <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <p className="text-zinc-500">Upload a CSV file to import multiple referral resources at once.</p>
+
+                <div className="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-xs text-zinc-500">
+                    <p className="font-bold mb-2">Required CSV Headers:</p>
+                    <code className="font-mono text-[10px] block overflow-x-auto">Resource Name,Service Category,Key Offerings,Contact Phone,Contact Email,Address,Website,SPA,Operation Hours</code>
+                </div>
+
+                {successCount !== null ? (
+                    <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
+                        <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
+                        <h3 className="font-black text-emerald-800">Import Successful</h3>
+                        <p className="text-emerald-700">{successCount} resources have been imported.</p>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg">Done</button>
+                    </div>
+                ) : (
+                    <>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv"
+                            onChange={handleFileChange}
+                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
+                        <button
+                            onClick={handleUpload}
+                            disabled={isUploading || !file}
+                            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50"
+                        >
+                            {isUploading ? <Loader2 className="animate-spin" size={18} /> : <><UploadCloud size={18} /> Import Resources</>}
+                        </button>
+                    </>
+                )}
+            </div>
         </div>
     );
 };

@@ -17,12 +17,27 @@ const FormBuilder: React.FC = () => {
     const [activeForm, setActiveForm] = useState<typeof INITIAL_FORMS[0] | null>(null);
 
     const handleSaveForm = (updatedForm: typeof INITIAL_FORMS[0]) => {
-        // In a real app, this would be an API call
-        console.log("Saving form:", updatedForm);
-        setForms(forms.map(f => f.id === updatedForm.id ? updatedForm : f));
+        // Check if this is a new form or existing form
+        const existingFormIndex = forms.findIndex(f => f.id === updatedForm.id);
+        if (existingFormIndex >= 0) {
+            setForms(forms.map(f => f.id === updatedForm.id ? updatedForm : f));
+        } else {
+            setForms([...forms, updatedForm]);
+        }
+        setActiveForm(null);
         alert("Form saved successfully!");
     };
-    
+
+    const handleCreateNewForm = () => {
+        const newForm = {
+            id: `form-${Date.now()}`,
+            title: 'New Survey Form',
+            description: 'Enter a description for your new form.',
+            fields: []
+        };
+        setActiveForm(newForm);
+    };
+
     if (activeForm) {
         return <FormEditor form={activeForm} onSave={handleSaveForm} onBack={() => setActiveForm(null)} />;
     }
@@ -34,7 +49,10 @@ const FormBuilder: React.FC = () => {
                     <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Forms Dashboard</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage data collection forms for surveys, applications, and feedback.</p>
                 </div>
-                <button className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg">
+                <button
+                    onClick={handleCreateNewForm}
+                    className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
+                >
                     <Plus size={16} /> New Form
                 </button>
             </header>

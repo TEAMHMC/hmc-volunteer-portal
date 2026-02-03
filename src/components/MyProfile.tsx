@@ -49,7 +49,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
 
   const handleSaveProfile = () => {
     const updatedUser: Volunteer = {
-      ...currentUser, 
+      ...currentUser,
       email: profileData.email,
       phone: profileData.phone,
       notificationPrefs: profileData.notificationPrefs,
@@ -59,11 +59,13 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         preferredTime: profileData.preferredTime,
         startDate: profileData.startDate,
         unavailableDates: profileData.unavailableDates,
+        lastUpdated: new Date().toISOString(),
       },
       tasks: profileData.tasks,
     };
     onUpdate(updatedUser);
     setIsEditing(false);
+    setShowReminderBanner(false);
     alert("Profile Updated: Your changes have been saved.");
   };
 
@@ -127,8 +129,45 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
       }))
   }
 
+  // Weekly availability reminder
+  const [showReminderBanner, setShowReminderBanner] = useState(() => {
+    const lastUpdated = currentUser.availability?.lastUpdated;
+    if (!lastUpdated) return true;
+    const daysSinceUpdate = Math.floor((Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceUpdate >= 7;
+  });
+
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+      {/* Weekly Availability Reminder Banner */}
+      {showReminderBanner && (
+        <div className="bg-amber-50 border border-amber-200 p-6 rounded-[32px] flex items-center justify-between animate-in slide-in-from-top">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+              <Bell size={24} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-amber-900">Weekly Availability Reminder</h4>
+              <p className="text-xs text-amber-700">It's been a while since you updated your availability. Keep your schedule current so we can reach you!</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setIsEditing(true); setShowReminderBanner(false); }}
+              className="px-4 py-2 bg-amber-600 text-white rounded-full font-bold text-xs hover:bg-amber-700 transition-colors"
+            >
+              Update Now
+            </button>
+            <button
+              onClick={() => setShowReminderBanner(false)}
+              className="p-2 text-amber-400 hover:text-amber-600"
+            >
+              <XCircle size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <div className="relative group">

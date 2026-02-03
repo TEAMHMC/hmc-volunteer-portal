@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Volunteer } from '../types';
 import { APP_CONFIG } from '../config';
 import { geminiService } from '../services/geminiService';
-import { 
+import {
   DollarSign, BarChart3, Gift, Sparkles, Loader2, Copy, Check,
-  Trophy, Award as AwardIcon, User as UserIcon, Instagram, Linkedin
+  Trophy, Award as AwardIcon, User as UserIcon, Instagram, Linkedin, Youtube
 } from 'lucide-react';
 
 interface ImpactHubProps {
@@ -39,7 +39,7 @@ const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) 
       
       {activeTab === 'content' && <ContentStudioPanel user={user} />}
       {activeTab === 'leaderboard' && <LeaderboardPanel user={user} userRank={userRank} leaderboardData={leaderboardData} />}
-      {activeTab === 'rewards' && <RewardsPanel user={user} />}
+      {activeTab === 'rewards' && <RewardsPanel user={user} onUpdate={onUpdate} />}
 
     </div>
   );
@@ -147,29 +147,99 @@ const LeaderboardPanel: React.FC<{user: Volunteer, userRank: number, leaderboard
   </div>
 );
 
-const RewardsPanel: React.FC<{user: Volunteer}> = ({user}) => (
-   <div className="bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm">
-      <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-2">Rewards Store</h3>
-      <p className="text-zinc-500 mb-8">Redeem your Impact XP for exclusive HMC merchandise.</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {APP_CONFIG.GAMIFICATION.rewards.map(reward => {
-          const canAfford = user.points >= reward.points;
-          return (
-            <div key={reward.id} className={`p-8 rounded-3xl border text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
-              <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-4 ${canAfford ? 'bg-[#233DFF]/5 border-[#233DFF]/10 text-[#233DFF]' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
-                 <AwardIcon size={48} />
-              </div>
-              <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>
-              <p className="text-2xl font-black text-zinc-900 my-4">{reward.points} <span className="text-xs font-bold text-zinc-300">XP</span></p>
-              <button disabled={!canAfford} className="w-full py-3 bg-zinc-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed">
-                Redeem
+const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}> = ({user, onUpdate}) => {
+  const [claimedSocial, setClaimedSocial] = useState<string[]>(user.claimedSocialPoints || []);
+
+  const socialLinks = [
+    { id: 'instagram', name: 'Instagram', url: APP_CONFIG.GAMIFICATION.socialLinks.instagram, points: 50, icon: Instagram, color: 'bg-gradient-to-br from-purple-500 to-pink-500' },
+    { id: 'linkedin', name: 'LinkedIn', url: APP_CONFIG.GAMIFICATION.socialLinks.linkedin, points: 50, icon: Linkedin, color: 'bg-[#0077B5]' },
+    { id: 'youtube', name: 'YouTube', url: APP_CONFIG.GAMIFICATION.socialLinks.youtube, points: 50, icon: Youtube, color: 'bg-red-600' },
+  ];
+
+  const handleFollowClaim = (socialId: string, socialUrl: string, pointsValue: number) => {
+    if (claimedSocial.includes(socialId)) return;
+
+    // Open social link in new tab
+    window.open(socialUrl, '_blank');
+
+    // Update claimed list and add points
+    const newClaimedSocial = [...claimedSocial, socialId];
+    setClaimedSocial(newClaimedSocial);
+
+    const updatedUser = {
+      ...user,
+      points: user.points + pointsValue,
+      claimedSocialPoints: newClaimedSocial
+    };
+    onUpdate(updatedUser);
+  };
+
+  return (
+   <div className="space-y-10">
+      {/* Social Media Points Section */}
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-12 rounded-[56px] text-white">
+        <h3 className="text-2xl font-black tracking-tight uppercase mb-2">Follow Us & Earn XP</h3>
+        <p className="text-zinc-400 mb-8">Support HMC on social media and earn bonus points for each platform you follow!</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {socialLinks.map(social => {
+            const isClaimed = claimedSocial.includes(social.id);
+            return (
+              <button
+                key={social.id}
+                onClick={() => handleFollowClaim(social.id, social.url, social.points)}
+                disabled={isClaimed}
+                className={`p-6 rounded-3xl border-2 flex flex-col items-center gap-4 transition-all ${
+                  isClaimed
+                    ? 'border-emerald-500/30 bg-emerald-500/10'
+                    : 'border-white/10 hover:border-white/30 hover:bg-white/5'
+                }`}
+              >
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${social.color}`}>
+                  <social.icon size={32} className="text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-lg">{social.name}</p>
+                  <p className="text-sm text-zinc-400 mt-1">
+                    {isClaimed ? (
+                      <span className="text-emerald-400 flex items-center justify-center gap-1">
+                        <Check size={14} /> Claimed!
+                      </span>
+                    ) : (
+                      <>+{social.points} XP</>
+                    )}
+                  </p>
+                </div>
               </button>
-            </div>
-          )
-        })}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Rewards Store */}
+      <div className="bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm">
+        <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-2">Rewards Store</h3>
+        <p className="text-zinc-500 mb-8">Redeem your Impact XP for exclusive HMC merchandise.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {APP_CONFIG.GAMIFICATION.rewards.map(reward => {
+            const canAfford = user.points >= reward.points;
+            return (
+              <div key={reward.id} className={`p-8 rounded-3xl border text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-4 ${canAfford ? 'bg-[#233DFF]/5 border-[#233DFF]/10 text-[#233DFF]' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
+                   <AwardIcon size={48} />
+                </div>
+                <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>
+                <p className="text-2xl font-black text-zinc-900 my-4">{reward.points} <span className="text-xs font-bold text-zinc-300">XP</span></p>
+                <button disabled={!canAfford} className="w-full py-3 bg-zinc-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed">
+                  Redeem
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
    </div>
-);
+  );
+};
 
 
 export default ImpactHub;
