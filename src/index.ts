@@ -164,20 +164,24 @@ app.get('/api/gemini/test', async (req: Request, res: Response) => {
 
   const results: any[] = [];
 
+  const apiKeyPreview = GEMINI_API_KEY ? `${GEMINI_API_KEY.substring(0, 8)}...` : 'none';
+
   for (const modelName of modelsToTry) {
     try {
       const model = ai.getGenerativeModel({ model: modelName });
       const result = await model.generateContent('Say "works" and nothing else.');
       const text = result.response.text();
       results.push({ model: modelName, success: true, response: text.trim() });
+      break; // Stop after first success
     } catch (error: any) {
-      results.push({ model: modelName, success: false, error: error.message?.substring(0, 100) });
+      results.push({ model: modelName, success: false, error: error.message });
     }
   }
 
   const workingModel = results.find(r => r.success);
   res.json({
     workingModel: workingModel?.model || null,
+    apiKeyPreview,
     results
   });
 });
