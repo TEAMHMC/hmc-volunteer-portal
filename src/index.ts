@@ -129,7 +129,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: ["'self'", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://www.googleapis.com", "https://firestore.googleapis.com", "https://generativelanguage.googleapis.com", "wss:", "https:"],
-      frameSrc: ["'self'", "https://accounts.google.com", "https://www.google.com", "https://meet.google.com"],
+      frameSrc: ["'self'", "https://accounts.google.com", "https://www.google.com", "https://meet.google.com", "https://www.youtube.com", "https://youtube.com", "https://hmc.screencasthost.com", "https://screencasthost.com", "https://screenpal.com", "https://*.screenpal.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     }
