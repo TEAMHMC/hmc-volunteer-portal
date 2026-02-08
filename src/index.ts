@@ -198,8 +198,6 @@ app.get('/api/gemini/test', async (req: Request, res: Response) => {
 
   const results: any[] = [];
 
-  const apiKeyPreview = GEMINI_API_KEY ? `${GEMINI_API_KEY.substring(0, 8)}...` : 'none';
-
   for (const modelName of modelsToTry) {
     try {
       const model = ai.getGenerativeModel({ model: modelName });
@@ -215,7 +213,7 @@ app.get('/api/gemini/test', async (req: Request, res: Response) => {
   const workingModel = results.find(r => r.success);
   res.json({
     workingModel: workingModel?.model || null,
-    apiKeyPreview,
+    apiKeyConfigured: !!GEMINI_API_KEY,
     results
   });
 });
@@ -297,8 +295,11 @@ const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) =>
   }
 
   try {
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`;
-    const response = await fetch(verifyUrl, { method: 'POST' });
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret: secretKey!, response: captchaToken }).toString()
+    });
     const result = await response.json() as { success: boolean; score?: number };
 
     // For v2: check success; for v3: check score
@@ -2217,13 +2218,13 @@ app.get('/api/resources', async (req: Request, res: Response) => {
     const snap = await db.collection('referral_resources').get();
     res.json(snap.docs.map(d => d.data()));
 });
-app.post('/api/resources/create', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/resources/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     const ref = await db.collection('referral_resources').add(req.body.resource);
     res.json({ success: true, id: ref.id });
 });
 
 // Bulk import resources from CSV
-app.post('/api/resources/bulk-import', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const { csvData } = req.body;
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
@@ -2277,7 +2278,7 @@ app.get('/api/referrals', verifyToken, async (req: Request, res: Response) => {
     const snap = await db.collection('referrals').orderBy('createdAt', 'desc').get();
     res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 });
-app.post('/api/referrals/create', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     const ref = await db.collection('referrals').add(req.body.referral);
     res.json({ id: ref.id, ...req.body.referral });
 });
@@ -2295,7 +2296,7 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
     if (snap.empty) return res.status(404).json({ error: "Not found" });
     res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
 });
-app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/clients/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     const client = {
         ...req.body.client,
         createdAt: new Date().toISOString(),
@@ -3451,7 +3452,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
   }
 });
 
-app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const { title, content, category = 'General', sendAsSms = false } = req.body;
         const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved' };
@@ -3748,7 +3749,7 @@ app.post('/api/admin/add-volunteer', verifyToken, requireAdmin, async (req: Requ
         } else if (firebaseConfigured) {
             // No password provided - create Firebase Auth user with random password and send reset
             try {
-                const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+                const tempPassword = crypto.randomBytes(9).toString('base64url') + 'A1!';
                 const userRecord = await auth.createUser({
                     email: volunteer.email.toLowerCase(),
                     password: tempPassword,

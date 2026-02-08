@@ -174,7 +174,7 @@ const VolunteerExperienceView = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <Loader2 className="animate-spin text-[#233DFF]" size={32} />
       </div>
     );
   }
@@ -222,9 +222,9 @@ const VolunteerExperienceView = () => {
                     </div>
                 </div>
                  <div className="xl:col-span-2 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
-                    <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest flex items-center gap-3"><Sparkles size={20} className="text-blue-500"/> Feedback Summary</h3>
+                    <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest flex items-center gap-3"><Sparkles size={20} className="text-[#233DFF]"/> Feedback Summary</h3>
                     {isLoadingSummary ? (
-                        <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-500" /></div>
+                        <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-[#233DFF]" /></div>
                     ) : aiSummary ? (
                         <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-medium">
                             {/* SECURITY: Render as text, not HTML, to prevent XSS */}

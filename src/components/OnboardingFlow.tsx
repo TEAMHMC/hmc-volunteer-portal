@@ -953,8 +953,8 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
 
       <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Demographics (Optional)</h3>
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-4">
-        <p className="text-blue-800 text-sm">This information is collected for grant reporting purposes only and helps HMC demonstrate the diversity of our volunteer workforce to funders. All responses are optional and confidential.</p>
+      <div className="p-4 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-xl mb-4">
+        <p className="text-[#233DFF] text-sm">This information is collected for grant reporting purposes only and helps HMC demonstrate the diversity of our volunteer workforce to funders. All responses are optional and confidential.</p>
       </div>
 
       <div className="space-y-6">
@@ -1033,7 +1033,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
               key={type.value}
               type="button"
               onClick={() => onChange('servicePreference', type.value)}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${data.servicePreference === type.value ? 'border-[#233DFF] bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'}`}
+              className={`p-4 rounded-xl border-2 text-left transition-all ${data.servicePreference === type.value ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-200 hover:border-zinc-300'}`}
             >
               <span className="font-bold text-zinc-900 block">{type.label}</span>
               <span className="text-xs text-zinc-500">{type.desc}</span>
@@ -1179,7 +1179,7 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         <div className="space-y-4">
           <h3 className="font-bold text-zinc-900">AI Recommended Roles</h3>
           {aiRecommendations.map((rec, i) => (
-            <button key={i} onClick={() => onChange('selectedRole', rec.roleName)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${data.selectedRole === rec.roleName ? 'border-[#233DFF] bg-blue-50' : 'border-zinc-200 hover:border-zinc-300'}`}>
+            <button key={i} onClick={() => onChange('selectedRole', rec.roleName)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${data.selectedRole === rec.roleName ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-200 hover:border-zinc-300'}`}>
               <div className="flex justify-between items-center">
                 <span className="font-bold text-zinc-900">{rec.roleName}</span>
                 <span className="text-sm font-bold text-[#233DFF]">{rec.matchPercentage}% Match</span>

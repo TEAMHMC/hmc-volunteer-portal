@@ -105,7 +105,7 @@ const BulkUploadEventsModal: React.FC<{
               <h3 className="text-xl font-bold text-zinc-900 mb-2">Import Complete!</h3>
               <p className="text-zinc-500">
                 Successfully imported <span className="font-bold text-emerald-600">{result.importedCount}</span> events
-                with <span className="font-bold text-blue-600">{result.shiftsCreated}</span> volunteer shifts.
+                with <span className="font-bold text-[#233DFF]">{result.shiftsCreated}</span> volunteer shifts.
               </p>
               <button
                 onClick={onClose}
@@ -510,7 +510,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           <span className="font-bold">{q.role}</span>
                           <div className="flex items-center gap-2">
                              <span className={`${q.filled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{q.filled} / {q.count} Filled</span>
-                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date })} className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Find Volunteer</button>}
+                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
                           </div>
                         </div>
                       ))}

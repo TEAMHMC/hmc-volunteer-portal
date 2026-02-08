@@ -423,13 +423,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
       {/* Tier 1 Complete Banner */}
       {tier1Complete && !tier2Complete && (
-        <div className="bg-blue-50 border border-blue-200 p-8 rounded-[32px] flex items-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-lg shrink-0">
+        <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-8 rounded-[32px] flex items-center gap-6">
+          <div className="w-14 h-14 rounded-2xl bg-[#233DFF]/50 text-white flex items-center justify-center shadow-lg shrink-0">
             <CheckCircle2 size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-blue-900">Orientation Complete!</h4>
-            <p className="text-blue-700 font-medium">Welcome to HMC! Continue with Baseline Training below to unlock operational access.</p>
+            <h4 className="text-lg font-black text-[#233DFF]">Orientation Complete!</h4>
+            <p className="text-[#233DFF] font-medium">Welcome to HMC! Continue with Baseline Training below to unlock operational access.</p>
           </div>
         </div>
       )}
@@ -468,7 +468,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <div className="relative w-16 h-16">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-blue-500 transition-all duration-1000" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier1Progress}%</div>
             </div>
@@ -498,7 +498,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* ===== TIER 1: ORIENTATION ===== */}
       <div>
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center text-sm font-black">1</div>
+          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center text-sm font-black">1</div>
           <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
           {tier1Complete && (
             <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
@@ -593,7 +593,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         user.appliedRole?.includes('Medical') || user.appliedRole?.includes('Licensed')) && (
         <div className={!tier1Complete ? 'opacity-60' : ''}>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center">
               <Stethoscope size={20} />
             </div>
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Clinical Onboarding</h3>

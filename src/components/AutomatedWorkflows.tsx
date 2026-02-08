@@ -52,7 +52,7 @@ const AutomatedWorkflows: React.FC = () => {
                     {workflows.map(wf => (
                         <div key={wf.id} className="py-6 flex items-center justify-between">
                             <div className="flex items-center gap-6">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${wf.enabled ? 'bg-blue-50 text-blue-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${wf.enabled ? 'bg-[#233DFF]/5 text-[#233DFF]' : 'bg-zinc-100 text-zinc-400'}`}>
                                     <wf.icon size={24} />
                                 </div>
                                 <div>
@@ -63,7 +63,7 @@ const AutomatedWorkflows: React.FC = () => {
                             <div className="flex items-center gap-4">
                                <label className="relative inline-flex items-center cursor-pointer">
                                   <input type="checkbox" checked={wf.enabled} onChange={() => handleToggle(wf.id)} className="sr-only peer" />
-                                  <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                  <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#233DFF]"></div>
                                </label>
                             </div>
                         </div>
@@ -71,7 +71,7 @@ const AutomatedWorkflows: React.FC = () => {
                 </div>
                 {hasChanges && (
                     <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-end">
-                        <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50">
+                        <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50">
                            {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                         </button>
                     </div>

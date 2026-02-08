@@ -174,7 +174,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         ) : (
           <div className="max-w-[1200px] text-center space-y-12 md:space-y-16 animate-in fade-in duration-1000">
              <div className="space-y-6 md:space-y-8">
-                <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-blue-50/50 text-[#233DFF] border border-blue-100/30 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
+                <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
                    <Zap size={14} className="animate-pulse" /> Community Operations
                 </div>
                 <h1 className="text-4xl sm:text-5xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-8 italic uppercase">
@@ -197,7 +197,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 <div className="flex items-center gap-4 p-3 bg-white border border-zinc-100 rounded-[28px] shadow-sm">
                    <div className="flex -space-x-3">
                       {[1,2,3,4].map(i => (
-                        <div key={i} className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm ${i === 1 ? 'bg-blue-100' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                        <div key={i} className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-sm ${i === 1 ? 'bg-[#233DFF]/10' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
                           <Users size={14} className="text-zinc-600" />
                         </div>
                       ))}

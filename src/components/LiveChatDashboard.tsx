@@ -272,7 +272,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="w-8 h-8 rounded-full bg-blue-100 text-[#233DFF] flex items-center justify-center text-sm font-semibold">
+                          <span className="w-8 h-8 rounded-full bg-[#233DFF]/10 text-[#233DFF] flex items-center justify-center text-sm font-semibold">
                             {session.userInfo?.name?.[0] || 'V'}
                           </span>
                           <span className="font-semibold text-slate-900">
@@ -396,7 +396,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                         </p>
                       )}
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                      <p className={`text-[10px] mt-1 ${message.type === 'volunteer' ? 'text-blue-200' : 'text-slate-400'}`}>
+                      <p className={`text-[10px] mt-1 ${message.type === 'volunteer' ? 'text-[#233DFF]/40' : 'text-slate-400'}`}>
                         {formatTime(message.timestamp)}
                       </p>
                     </div>

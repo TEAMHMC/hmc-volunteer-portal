@@ -578,7 +578,7 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
                     </div>
                 ) : (
                     <>
-                        <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                        <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#233DFF]/5 file:text-[#233DFF] hover:file:bg-[#233DFF]/10"/>
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
                         <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50">
                             {isUploading ? <Loader2 className="animate-spin"/> : "Start Import"}

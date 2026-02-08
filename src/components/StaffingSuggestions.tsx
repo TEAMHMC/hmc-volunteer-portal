@@ -55,7 +55,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                             <p className="text-xs text-zinc-500">{v.hoursContributed} hours contributed</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg flex items-center gap-2">
+                                    <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-[#233DFF] text-white text-xs font-bold rounded-lg flex items-center gap-2">
                                         <UserPlus size={14} /> Assign
                                     </button>
                                 </div>

@@ -365,22 +365,22 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Client Info Section */}
-                <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 space-y-4">
-                    <h4 className="text-xs font-black text-blue-700 uppercase tracking-widest">Participant Info (Optional)</h4>
+                <div className="p-6 bg-[#233DFF]/5 rounded-3xl border border-[#233DFF]/10 space-y-4">
+                    <h4 className="text-xs font-black text-[#233DFF] uppercase tracking-widest">Participant Info (Optional)</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <input
                             type="text"
                             placeholder="First Name"
                             value={clientInfo.firstName}
                             onChange={e => setClientInfo({...clientInfo, firstName: e.target.value})}
-                            className="p-4 bg-white border border-blue-100 rounded-2xl text-sm font-medium outline-none focus:border-blue-300"
+                            className="p-4 bg-white border border-[#233DFF]/10 rounded-2xl text-sm font-medium outline-none focus:border-[#233DFF]/30"
                         />
                         <input
                             type="text"
                             placeholder="Last Name"
                             value={clientInfo.lastName}
                             onChange={e => setClientInfo({...clientInfo, lastName: e.target.value})}
-                            className="p-4 bg-white border border-blue-100 rounded-2xl text-sm font-medium outline-none focus:border-blue-300"
+                            className="p-4 bg-white border border-[#233DFF]/10 rounded-2xl text-sm font-medium outline-none focus:border-[#233DFF]/30"
                         />
                     </div>
                     <input
@@ -388,7 +388,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                         placeholder="Phone (for follow-up)"
                         value={clientInfo.phone}
                         onChange={e => setClientInfo({...clientInfo, phone: e.target.value})}
-                        className="w-full p-4 bg-white border border-blue-100 rounded-2xl text-sm font-medium outline-none focus:border-blue-300"
+                        className="w-full p-4 bg-white border border-[#233DFF]/10 rounded-2xl text-sm font-medium outline-none focus:border-[#233DFF]/30"
                     />
                 </div>
 
@@ -457,7 +457,7 @@ const SignoffView: React.FC<{shift: Shift, opsRun: MissionOpsRun | null, onSigno
 
     return (
         <div className="max-w-xl mx-auto text-center space-y-12 animate-in zoom-in-95 duration-700">
-            <div className="w-24 h-24 bg-blue-50 rounded-[32px] flex items-center justify-center mx-auto text-[#233DFF] border-4 border-blue-100 shadow-xl">
+            <div className="w-24 h-24 bg-[#233DFF]/5 rounded-[32px] flex items-center justify-center mx-auto text-[#233DFF] border-4 border-[#233DFF]/10 shadow-xl">
                 <UserCheck size={48} />
             </div>
             <div className="space-y-4">

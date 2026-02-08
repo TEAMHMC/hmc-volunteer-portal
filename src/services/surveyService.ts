@@ -164,6 +164,7 @@ export const getSurveyResponsesByForm = async (formId: string, limitCount = 100)
  * Get survey responses for a specific event
  */
 export const getSurveyResponsesByEvent = async (eventId: string): Promise<SurveyResponse[]> => {
+  if (!isFirestoreAvailable()) return [];
   const q = query(
     collection(db!, COLLECTIONS.SURVEY_RESPONSES),
     where('eventId', '==', eventId),
@@ -283,6 +284,7 @@ export const submitClientSurvey = async (survey: Omit<ClientSurveySubmission, 'i
  * Get client surveys for an event
  */
 export const getClientSurveysByEvent = async (eventId: string): Promise<ClientSurveySubmission[]> => {
+  if (!isFirestoreAvailable()) return [];
   const q = query(
     collection(db!, COLLECTIONS.CLIENT_SURVEYS),
     where('eventId', '==', eventId),

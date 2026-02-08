@@ -92,7 +92,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     placeholder="Search documents..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-medium shadow-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-medium shadow-sm outline-none focus:ring-2 focus:ring-[#233DFF]"
                 />
             </div>
 
@@ -172,7 +172,7 @@ const ArticleModal: React.FC<{
             <div className="bg-white max-w-3xl w-full rounded-2xl shadow-lg flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-6 border-b border-zinc-100 flex items-start justify-between">
                     <div>
-                        <p className="text-xs font-bold text-blue-600 uppercase">{article.category}</p>
+                        <p className="text-xs font-bold text-[#233DFF] uppercase">{article.category}</p>
                         <h2 className="text-2xl font-bold text-zinc-900">{article.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">

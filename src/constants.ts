@@ -68,8 +68,7 @@ export const SERVICE_OFFERINGS: ServiceOffering[] = [
     name: 'Health Education',
     description: 'Distributing information on nutrition, exercise, and wellness.',
     requiredRoles: [
-      { role: 'Core Volunteer', count: 1 },
-      { role: 'Outreach Volunteer', count: 1 },
+      { role: 'Core Volunteer', count: 2 },
     ],
   },
   {
@@ -93,7 +92,7 @@ export const SERVICE_OFFERINGS: ServiceOffering[] = [
     name: 'General Event Support',
     description: 'Assisting with logistics, setup, and participant flow.',
     requiredRoles: [
-      { role: 'General Volunteer', count: 4 },
+      { role: 'Core Volunteer', count: 4 },
     ],
   },
 ];

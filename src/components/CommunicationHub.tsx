@@ -154,7 +154,7 @@ const BroadcastsView: React.FC<{
             />
             <div className="flex items-center gap-4 pt-4 border-t border-zinc-100">
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50">
-                <input type="checkbox" checked={sendAsSms} onChange={e => setSendAsSms(e.target.checked)} className="w-5 h-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" checked={sendAsSms} onChange={e => setSendAsSms(e.target.checked)} className="w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]" />
                 <span className="text-xs font-bold text-zinc-600 flex items-center gap-2"><Smartphone size={14} /> Send as SMS alert</span>
               </label>
               <button
@@ -565,7 +565,7 @@ const BriefingView: React.FC<{
 // Ticket category labels and colors
 const TICKET_CATEGORIES: { value: TicketCategory; label: string; color: string }[] = [
   { value: 'technical', label: 'Technical Issue', color: 'bg-purple-100 text-purple-700' },
-  { value: 'account', label: 'Account / Access', color: 'bg-blue-100 text-blue-700' },
+  { value: 'account', label: 'Account / Access', color: 'bg-[#233DFF]/10 text-[#233DFF]' },
   { value: 'training', label: 'Training', color: 'bg-amber-100 text-amber-700' },
   { value: 'scheduling', label: 'Scheduling', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'compliance', label: 'Compliance', color: 'bg-rose-100 text-rose-700' },
@@ -575,7 +575,7 @@ const TICKET_CATEGORIES: { value: TicketCategory; label: string; color: string }
 
 const TICKET_PRIORITIES: { value: 'low' | 'medium' | 'high' | 'urgent'; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-600' },
-  { value: 'medium', label: 'Medium', color: 'bg-blue-100 text-blue-600' },
+  { value: 'medium', label: 'Medium', color: 'bg-[#233DFF]/10 text-[#233DFF]' },
   { value: 'high', label: 'High', color: 'bg-amber-100 text-amber-600' },
   { value: 'urgent', label: 'Urgent', color: 'bg-rose-100 text-rose-600' },
 ];
@@ -722,7 +722,7 @@ const TicketDetailModal: React.FC<{
               </span>
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
                 ticket.status === 'open' ? 'bg-amber-100 text-amber-700' :
-                ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                ticket.status === 'in_progress' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
                 'bg-emerald-100 text-emerald-700'
               }`}>
                 {ticket.status.replace('_', ' ')}
@@ -773,11 +773,11 @@ const TicketDetailModal: React.FC<{
                 </div>
 
                 {isAssignedToMe && ticket.status !== 'closed' && (
-                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                    <div className="flex items-center gap-2 text-blue-700 font-bold text-sm mb-2">
+                  <div className="bg-[#233DFF]/5 p-4 rounded-xl border border-[#233DFF]/20">
+                    <div className="flex items-center gap-2 text-[#233DFF] font-bold text-sm mb-2">
                       <Bell size={16} /> This ticket is assigned to you
                     </div>
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-[#233DFF]">
                       Add notes to track your progress and update the status when resolved.
                     </p>
                   </div>
@@ -798,7 +798,7 @@ const TicketDetailModal: React.FC<{
                           className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left flex items-center gap-2 transition-colors ${
                             ticket.status === status
                               ? status === 'open' ? 'bg-amber-100 text-amber-700' :
-                                status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                status === 'in_progress' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
                                 'bg-emerald-100 text-emerald-700'
                               : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100'
                           }`}
@@ -961,7 +961,7 @@ const TicketDetailModal: React.FC<{
                     <div key={act.id} className="relative pl-10 pb-6">
                       <div className={`absolute left-2 w-5 h-5 rounded-full flex items-center justify-center ${
                         act.type === 'created' ? 'bg-emerald-100 text-emerald-600' :
-                        act.type === 'status_change' ? 'bg-blue-100 text-blue-600' :
+                        act.type === 'status_change' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
                         act.type === 'assigned' ? 'bg-purple-100 text-purple-600' :
                         act.type === 'note_added' ? 'bg-amber-100 text-amber-600' :
                         'bg-zinc-100 text-zinc-600'
@@ -1164,7 +1164,7 @@ const OpsSupportView: React.FC<{
   const getColumnColor = (status: string) => {
     switch (status) {
       case 'open': return 'border-amber-200 bg-amber-50/30';
-      case 'in_progress': return 'border-blue-200 bg-blue-50/30';
+      case 'in_progress': return 'border-[#233DFF]/20 bg-[#233DFF]/5';
       case 'closed': return 'border-emerald-200 bg-emerald-50/30';
       default: return 'border-zinc-200 bg-zinc-50';
     }
@@ -1279,10 +1279,10 @@ const OpsSupportView: React.FC<{
             onDrop={(e) => handleDrop(e, 'in_progress')}
             className={`w-80 rounded-2xl border-2 ${getColumnColor('in_progress')} flex flex-col`}
           >
-            <div className="p-4 border-b border-blue-200/50">
+            <div className="p-4 border-b border-[#233DFF]/20">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Loader2 size={16} className="text-blue-600" />
+                <div className="w-8 h-8 rounded-lg bg-[#233DFF]/10 flex items-center justify-center">
+                  <Loader2 size={16} className="text-[#233DFF]" />
                 </div>
                 <div>
                   <h4 className="font-bold text-zinc-900">In Progress</h4>
@@ -1387,8 +1387,8 @@ const OpsSupportView: React.FC<{
                   className="w-full min-h-[150px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 resize-none"
                 />
               </div>
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <p className="text-xs text-blue-700 font-medium flex items-center gap-2">
+              <div className="bg-[#233DFF]/5 p-4 rounded-xl border border-[#233DFF]/10">
+                <p className="text-xs text-[#233DFF] font-medium flex items-center gap-2">
                   <Bell size={14} />
                   Tech support will be notified via email at tech@healthmatters.clinic when you submit this ticket.
                 </p>

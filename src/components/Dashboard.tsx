@@ -261,7 +261,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
       <aside className={`w-full md:w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
          <div className="flex items-center gap-4 px-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />
             </div>
             <div>
@@ -272,7 +272,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          <nav className="flex flex-col gap-1.5">
             {navItems.map(item => (
-                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-blue-500/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
+                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
                     <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                 </button>
             ))}
@@ -411,7 +411,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-[40px] p-10 md:p-12 text-white shadow-2xl shadow-blue-500/20 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-[40px] p-10 md:p-12 text-white shadow-2xl shadow-[#233DFF]/20 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[280px]">
                 <div>
@@ -441,7 +441,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
           <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-zinc-200/50 shadow-lg shadow-zinc-200/30 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-bold text-zinc-900 tracking-tight">Profile Status</h4>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
                   <ShieldCheck size={18} className="text-white" />
                 </div>
               </div>

@@ -435,7 +435,7 @@ export const APP_CONFIG = {
       { id: 'rew4', title: 'Letter of Rec from CEO', points: 25000, icon: 'award' }
     ],
     socialLinks: {
-      instagram: "http://instagram.com/healthmatters.clinic",
+      instagram: "https://instagram.com/healthmatters.clinic",
       linkedin: "https://www.linkedin.com/company/healthmattersclinic",
       youtube: "https://www.youtube.com/@HEALTHMATTERS.CLINIC"
     }

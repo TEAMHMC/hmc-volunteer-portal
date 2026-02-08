@@ -252,7 +252,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
               <div
                 key={doc.id}
                 className={`bg-white rounded-2xl p-6 border transition-all ${
-                  isSigned ? 'border-emerald-200 bg-emerald-50/30' : 'border-zinc-100 hover:border-blue-200'
+                  isSigned ? 'border-emerald-200 bg-emerald-50/30' : 'border-zinc-100 hover:border-[#233DFF]/20'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -363,7 +363,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                 Upload License Copy
               </label>
               <div className="flex items-center gap-4">
-                <label className="flex-1 flex items-center justify-center gap-3 px-4 py-4 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+                <label className="flex-1 flex items-center justify-center gap-3 px-4 py-4 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-[#233DFF]/40 hover:bg-[#233DFF]/5 transition-all">
                   <Upload size={20} className="text-zinc-400" />
                   <span className="text-sm text-zinc-600 font-medium">
                     {credentials.licenseFileUrl ? 'License uploaded' : 'Click to upload'}
