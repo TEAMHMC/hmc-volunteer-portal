@@ -4254,6 +4254,152 @@ app.get('/api/leaderboard/streaks', async (req: Request, res: Response) => {
   }
 });
 
+// =============================================
+// BOARD GOVERNANCE API ENDPOINTS
+// =============================================
+
+// Get all board meetings
+app.get('/api/board/meetings', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const meetingsSnap = await db.collection('board_meetings').orderBy('date', 'asc').get();
+    const meetings = meetingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json(meetings);
+  } catch (e) { res.json([]); }
+});
+
+// Create/update board meeting (admin/board chair only)
+app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin && userData?.role !== 'Board Member') {
+      return res.status(403).json({ error: 'Only admins and board members can manage meetings' });
+    }
+    const { id, ...meetingData } = req.body;
+    if (id) {
+      await db.collection('board_meetings').doc(id).set(meetingData, { merge: true });
+      res.json({ id, ...meetingData });
+    } else {
+      const ref = await db.collection('board_meetings').add({ ...meetingData, createdBy: user.uid, createdAt: new Date().toISOString() });
+      res.json({ id: ref.id, ...meetingData });
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// RSVP to a board meeting
+app.post('/api/board/meetings/:meetingId/rsvp', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    const { status } = req.body;
+    const meetingRef = db.collection('board_meetings').doc(req.params.meetingId);
+    const meetingSnap = await meetingRef.get();
+    if (!meetingSnap.exists) return res.status(404).json({ error: 'Meeting not found' });
+    const meeting = meetingSnap.data()!;
+    const rsvps = meeting.rsvps || [];
+    const existingIdx = rsvps.findIndex((r: any) => r.odId === user.uid);
+    const rsvpEntry = { odId: user.uid, odName: userData?.name || userData?.legalFirstName || 'Unknown', status, respondedAt: new Date().toISOString() };
+    if (existingIdx >= 0) rsvps[existingIdx] = rsvpEntry;
+    else rsvps.push(rsvpEntry);
+    await meetingRef.update({ rsvps });
+    res.json({ success: true, rsvps });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Request emergency meeting (emails board chair + volunteer@healthmatters.clinic)
+app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    const { reason } = req.body;
+    await db.collection('board_meetings').add({
+      title: 'Emergency Meeting Request',
+      type: 'emergency',
+      status: 'pending_approval',
+      reason,
+      requestedBy: user.uid,
+      requestedByName: userData?.name || 'Board Member',
+      createdAt: new Date().toISOString(),
+      rsvps: [],
+    });
+    if (EMAIL_SERVICE_URL) {
+      try {
+        await fetch(EMAIL_SERVICE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'emergency_board_meeting',
+            toEmail: 'volunteer@healthmatters.clinic',
+            subject: `Emergency Board Meeting Requested by ${userData?.name || 'Board Member'}`,
+            requestedBy: userData?.name,
+            reason,
+          })
+        });
+      } catch {}
+    }
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Save/update meeting minutes
+app.put('/api/board/meetings/:meetingId/minutes', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { minutesContent, minutesStatus } = req.body;
+    await db.collection('board_meetings').doc(req.params.meetingId).update({ minutesContent, minutesStatus, minutesUpdatedAt: new Date().toISOString() });
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Get Give or Get data for current user
+app.get('/api/board/give-or-get', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const docSnap = await db.collection('board_give_or_get').doc(user.uid).get();
+    if (!docSnap.exists) {
+      const defaults = { goal: 0, raised: 0, personalContribution: 0, fundraised: 0, prospects: [], donationLog: [] };
+      await db.collection('board_give_or_get').doc(user.uid).set(defaults);
+      res.json(defaults);
+    } else {
+      res.json(docSnap.data());
+    }
+  } catch (e) { res.json({ goal: 0, raised: 0, personalContribution: 0, fundraised: 0, prospects: [], donationLog: [] }); }
+});
+
+// Update Give or Get data
+app.put('/api/board/give-or-get', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    await db.collection('board_give_or_get').doc(user.uid).set(req.body, { merge: true });
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Save form signature
+app.post('/api/board/forms/:formId/sign', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { signatureData } = req.body;
+    await db.collection('board_form_signatures').doc(`${user.uid}_${req.params.formId}`).set({
+      volunteerId: user.uid,
+      formId: req.params.formId,
+      signatureData,
+      signedAt: new Date().toISOString(),
+    });
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Get signed forms for current user
+app.get('/api/board/forms/signed', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const snap = await db.collection('board_form_signatures').where('volunteerId', '==', user.uid).get();
+    const signed: Record<string, string> = {};
+    snap.docs.forEach(d => { const data = d.data(); signed[data.formId] = data.signedAt; });
+    res.json(signed);
+  } catch (e) { res.json({}); }
+});
+
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
 const buildPath = path.resolve(process.cwd(), 'dist/client'); 
 app.use(express.static(buildPath, { index: false }));
