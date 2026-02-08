@@ -151,8 +151,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                       </div>
                     </div>
                     {error && (
-                        <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-center text-xs font-bold border border-rose-100 flex items-center justify-center gap-2">
-                          <Zap size={14} /> {error}
+                        <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-center text-xs font-bold border border-rose-100 space-y-2">
+                          <div className="flex items-center justify-center gap-2"><Zap size={14} /> {error}</div>
+                          {!isAdmin && error.toLowerCase().includes('invalid') && (
+                            <p className="text-rose-400 font-medium">Don't have an account? Click <button type="button" onClick={handleSignUpClick} className="underline font-bold text-rose-600 hover:text-rose-800">Apply to Volunteer</button> below to get started.</p>
+                          )}
                         </div>
                     )}
                     <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
