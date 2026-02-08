@@ -155,6 +155,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
   const [showMinutesModal, setShowMinutesModal] = useState<BoardMeeting | null>(null);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [showNewMeetingModal, setShowNewMeetingModal] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<BoardMeeting | null>(null);
   const [showProspectModal, setShowProspectModal] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState<'personal' | 'fundraised' | null>(null);
   const [showEmailDraft, setShowEmailDraft] = useState<Prospect | null>(null);
@@ -275,6 +276,15 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
       if (result?.id) setMeetings(prev => [...prev, result as BoardMeeting]);
     } catch {}
     setShowNewMeetingModal(false);
+  };
+
+  const handleEditMeeting = async (meetingData: Partial<BoardMeeting>) => {
+    if (!editingMeeting) return;
+    try {
+      await apiService.post('/api/board/meetings', { id: editingMeeting.id, ...meetingData });
+      setMeetings(prev => prev.map(m => m.id === editingMeeting.id ? { ...m, ...meetingData } : m));
+    } catch {}
+    setEditingMeeting(null);
   };
 
   const getUserRsvpStatus = (meeting: BoardMeeting) => {
@@ -412,6 +422,16 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-3 shrink-0">
+                      {/* Edit button for admins/board members */}
+                      {(user.isAdmin || isBoardMember) && (
+                        <button
+                          onClick={() => setEditingMeeting(meeting)}
+                          className="flex items-center gap-1.5 px-3 py-1 text-zinc-400 hover:text-[#233DFF] hover:bg-[#233DFF]/5 rounded-full text-xs font-bold transition-colors"
+                        >
+                          <Edit3 size={14} />
+                          Edit
+                        </button>
+                      )}
                       {/* RSVP */}
                       <div className="flex items-center gap-2">
                         {getUserRsvpStatus(meeting) ? (
@@ -438,6 +458,15 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
                         >
                           <Video size={16} />
                           Join Google Meet
+                        </button>
+                      )}
+                      {!meeting.googleMeetLink && (user.isAdmin || isBoardMember) && (
+                        <button
+                          onClick={() => setEditingMeeting(meeting)}
+                          className="flex items-center gap-2 px-4 py-2 border border-dashed border-zinc-300 text-zinc-500 rounded-full font-bold text-xs hover:border-[#233DFF] hover:text-[#233DFF] transition-colors"
+                        >
+                          <Video size={14} />
+                          Add Meet Link
                         </button>
                       )}
                     </div>
@@ -795,9 +824,18 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
 
       {/* New Meeting Modal */}
       {showNewMeetingModal && (
-        <NewMeetingModal
+        <MeetingFormModal
           onClose={() => setShowNewMeetingModal(false)}
           onSubmit={handleCreateMeeting}
+        />
+      )}
+
+      {/* Edit Meeting Modal */}
+      {editingMeeting && (
+        <MeetingFormModal
+          meeting={editingMeeting}
+          onClose={() => setEditingMeeting(null)}
+          onSubmit={handleEditMeeting}
         />
       )}
 
@@ -1110,23 +1148,25 @@ const EmergencyMeetingModal: React.FC<{
   );
 };
 
-// New Meeting Modal
-const NewMeetingModal: React.FC<{
+// Meeting Form Modal — handles both create and edit
+const MeetingFormModal: React.FC<{
+  meeting?: BoardMeeting;
   onClose: () => void;
   onSubmit: (data: Partial<BoardMeeting>) => void;
-}> = ({ onClose, onSubmit }) => {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('5:30 PM PT');
-  const [type, setType] = useState<'board' | 'committee' | 'cab'>('board');
-  const [meetLink, setMeetLink] = useState('');
-  const [agendaText, setAgendaText] = useState('');
+}> = ({ meeting, onClose, onSubmit }) => {
+  const isEdit = !!meeting;
+  const [title, setTitle] = useState(meeting?.title || '');
+  const [date, setDate] = useState(meeting?.date || '');
+  const [time, setTime] = useState(meeting?.time || '5:30 PM PT');
+  const [type, setType] = useState<'board' | 'committee' | 'cab'>(meeting?.type === 'emergency' ? 'board' : (meeting?.type || 'board'));
+  const [meetLink, setMeetLink] = useState(meeting?.googleMeetLink || '');
+  const [agendaText, setAgendaText] = useState(meeting?.agenda?.join('\n') || '');
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-xl font-black text-zinc-900">Schedule Meeting</h3>
+          <h3 className="text-xl font-black text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -1153,8 +1193,19 @@ const NewMeetingModal: React.FC<{
             </select>
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Google Meet Link (optional)</label>
-            <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="https://meet.google.com/..." />
+            <label className="text-sm font-bold text-zinc-700">Google Meet Link</label>
+            <div className="flex gap-2 mt-1">
+              <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="flex-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="https://meet.google.com/..." />
+              <button
+                onClick={() => window.open('https://meet.google.com/new', '_blank')}
+                className="px-4 py-3 bg-zinc-100 text-zinc-700 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-colors flex items-center gap-2 shrink-0"
+                title="Opens Google Meet — create a meeting, copy the link, paste it here"
+              >
+                <ExternalLink size={14} />
+                Create
+              </button>
+            </div>
+            <p className="text-xs text-zinc-400 mt-1.5">Click "Create" to open Google Meet, then copy the link back here.</p>
           </div>
           <div>
             <label className="text-sm font-bold text-zinc-700">Agenda Items (one per line)</label>
@@ -1163,11 +1214,16 @@ const NewMeetingModal: React.FC<{
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
             <button
-              onClick={() => onSubmit({ title, date, time, type, status: 'scheduled', googleMeetLink: meetLink || undefined, agenda: agendaText.split('\n').filter(a => a.trim()), rsvps: [] })}
+              onClick={() => onSubmit({
+                title, date, time, type,
+                ...(isEdit ? {} : { status: 'scheduled', rsvps: [] }),
+                googleMeetLink: meetLink || undefined,
+                agenda: agendaText.split('\n').filter(a => a.trim()),
+              })}
               disabled={!title || !date}
               className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50"
             >
-              Create Meeting
+              {isEdit ? 'Save Changes' : 'Create Meeting'}
             </button>
           </div>
         </div>
