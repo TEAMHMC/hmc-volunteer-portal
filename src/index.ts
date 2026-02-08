@@ -1571,8 +1571,27 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
             const err = await firebaseRes.json() as { error?: { message?: string } };
             const errorMsg = err.error?.message || "Invalid credentials.";
 
-            // Check if user exists and what auth provider they used
-            if (errorMsg.includes('PASSWORD_LOGIN_DISABLED') || errorMsg.includes('INVALID_LOGIN_CREDENTIALS')) {
+            // Email/password sign-in disabled at project level
+            if (errorMsg.includes('PASSWORD_LOGIN_DISABLED')) {
+                console.warn('[AUTH] PASSWORD_LOGIN_DISABLED - Email/password sign-in may be disabled in Firebase console');
+                const existingUser = await db.collection('volunteers')
+                    .where('email', '==', email.toLowerCase())
+                    .limit(1)
+                    .get();
+
+                if (!existingUser.empty) {
+                    return res.status(401).json({
+                        error: "Email/password login is currently unavailable. Please sign in with Google instead.",
+                        useGoogle: true
+                    });
+                }
+                return res.status(401).json({
+                    error: "Email/password login is currently unavailable. Please sign in with Google or contact support."
+                });
+            }
+
+            // Invalid credentials - check if user exists and what auth provider they used
+            if (errorMsg.includes('INVALID_LOGIN_CREDENTIALS')) {
                 const existingUser = await db.collection('volunteers')
                     .where('email', '==', email.toLowerCase())
                     .limit(1)
@@ -1593,9 +1612,11 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
                         });
                     }
                 }
+                return res.status(401).json({ error: 'Invalid email or password.' });
             }
 
-            return res.status(401).json({ error: errorMsg === 'INVALID_LOGIN_CREDENTIALS' ? 'Invalid email or password.' : errorMsg });
+            // Never expose raw Firebase error codes to users
+            return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
         const firebaseData = await firebaseRes.json() as { localId: string };
