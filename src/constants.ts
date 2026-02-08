@@ -98,114 +98,197 @@ export const SERVICE_OFFERINGS: ServiceOffering[] = [
   },
 ];
 
+// ============================================================
+// TRAINING MODULE SYSTEM — 4-TIER ARCHITECTURE
+// Status determines foundation. Role determines eligibility.
+// Training determines clearance. Permissions determine actions.
+// ============================================================
+
+export type TrainingFormat = 'screenpal' | 'recorded_video' | 'read_ack';
+export type TrainingTier = 1 | 2 | 3 | 4;
+export type ProgramAssociation = null | 'community_wellness' | 'community_health_outreach' | 'street_medicine' | 'clinical';
+
+export interface TrainingModule {
+  id: string;
+  title: string;
+  desc: string;
+  dur: number;
+  embed: string;                    // Video embed URL or empty for read_ack
+  format: TrainingFormat;
+  tier: TrainingTier;
+  programAssociation: ProgramAssociation;
+  isBlocking: boolean;              // true = blocks progression, false = deadline-tracked
+  deadlineDays: number | null;      // null for blocking, 30 for tier 4
+  isAIGenerated: boolean;
+  req: boolean;                     // legacy compat — true if blocking
+}
+
+// --- TIER 1: UNIVERSAL (Champion Level) ---
+// Required for ALL users. Unlocks core portal experience.
+export const TIER_1_MODULES: TrainingModule[] = [
+  { id: 'hmc_orientation', title: 'Get to Know Health Matters Clinic', desc: 'Who we are, who we serve in Los Angeles, and how our programs work together.', dur: 12, embed: 'https://hmc.screencasthost.com/player/cTQ6cDnowch?width=100%&height=100%&ff=1&title=0', format: 'screenpal', tier: 1, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'hmc_champion', title: 'Because You\u2019re a Champion', desc: 'Our values, expectations, and what it means to show up for community with HMC.', dur: 6, embed: 'https://hmc.screencasthost.com/player/cTQQcxnoth6?width=100%&height=100%&ff=1&title=0', format: 'screenpal', tier: 1, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+];
+
+// --- TIER 2: BASELINE OPERATIONAL ---
+// Unlocks Core Volunteer status + My Missions (requires role approval first)
+export const TIER_2_MODULES: TrainingModule[] = [
+  { id: 'hipaa_nonclinical', title: 'HIPAA (Non-Clinical)', desc: 'Data protection, privacy obligations, and handling protected health information as a non-clinical volunteer.', dur: 10, embed: '', format: 'read_ack', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'cmhw_part1', title: 'Community Mental Health Worker Training \u2013 Part 1', desc: 'Foundations of community mental health work, trauma-informed principles, and working with vulnerable populations.', dur: 23, embed: 'https://www.youtube.com/embed/FCDOH6KNep4', format: 'recorded_video', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'cmhw_part2', title: 'Community Mental Health Worker Training \u2013 Part 2', desc: 'Applied engagement, de-escalation, communication skills, and field-based mental health work.', dur: 28, embed: 'https://www.youtube.com/embed/nq9UBUJIAEQ', format: 'recorded_video', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'survey_general', title: 'Survey & Research Data Collection (General HMC)', desc: 'Consent practices, data accuracy, neutrality, and privacy for all HMC survey and research activities.', dur: 8, embed: '', format: 'read_ack', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  { id: 'portal_howto', title: 'How to Use the HMC Volunteer Portal', desc: 'Dashboard overview, training and clearance logic, My Missions, and Event Ops.', dur: 8, embed: '', format: 'read_ack', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+];
+
+// --- TIER 3: PROGRAM-SPECIFIC CLEARANCE ---
+// Controls which shifts a Core Volunteer can register for.
+
+// Community Wellness (Unstoppable, workshops, movement, reflection)
+export const PROGRAM_COMMUNITY_WELLNESS: TrainingModule[] = [
+  // CMHW 1 & 2 shared from Tier 2 — tracked by ID, not duplicated
+  { id: 'accessibility_inclusion', title: 'Accessibility & Inclusion', desc: 'Creating welcoming, accessible spaces for participants of all abilities, identities, and backgrounds.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'community_wellness', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  { id: 'participant_support', title: 'Participant Support & Escalation', desc: 'How to support participants in distress, when to escalate, and maintaining appropriate boundaries.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'community_wellness', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+];
+
+// Community Health Outreach (pop-ups, education, non-clinical screenings, tabling)
+export const PROGRAM_COMMUNITY_HEALTH_OUTREACH: TrainingModule[] = [
+  { id: 'consent_data_handling', title: 'Consent & Data Handling', desc: 'Obtaining informed consent, handling sensitive data, and maintaining participant trust in community settings.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'community_health_outreach', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  { id: 'community_safety', title: 'Community Safety Basics', desc: 'Situational awareness, personal safety, and emergency protocols for community outreach events.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'community_health_outreach', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+];
+
+// Street Medicine Outreach (SMO)
+export const PROGRAM_STREET_MEDICINE: TrainingModule[] = [
+  { id: 'smo_orientation', title: 'Welcome to Your Street Medicine Outreach Shift', desc: 'HMC-specific orientation for street medicine outreach volunteers.', dur: 20, embed: 'https://www.youtube.com/embed/htO9SJXUJ18', format: 'recorded_video', tier: 3, programAssociation: 'street_medicine', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'naloxone_distribution', title: 'Naloxone Distribution', desc: 'How to safely distribute naloxone and support overdose prevention in the field.', dur: 15, embed: 'https://www.youtube.com/embed/NYF89-WR3v4', format: 'recorded_video', tier: 3, programAssociation: 'street_medicine', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'hiv_selftest', title: 'HIV Self-Test Kit Distribution', desc: 'How to safely distribute and support HIV OraQuick self-testing in community settings.', dur: 15, embed: 'https://hmc.screencasthost.com/player/cTfv1pnQIIL?width=100%&height=100%&ff=1&title=0', format: 'recorded_video', tier: 3, programAssociation: 'street_medicine', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'survey_smo', title: 'Survey Training (Street Medicine Specific)', desc: 'How to administer HMC street medicine surveys, collect SDOH data, and respect privacy. Distinct from general survey training.', dur: 20, embed: 'https://hmc.screencasthost.com/player/cTftF4nQesE?width=100%&height=100%&ff=1&title=0', format: 'recorded_video', tier: 3, programAssociation: 'street_medicine', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'field_safety', title: 'Field Safety Protocols', desc: 'Safety procedures, hazard awareness, and emergency response for non-clinical field operations.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'street_medicine', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  { id: 'environmental_awareness', title: 'Environmental Awareness', desc: 'Understanding environmental conditions, terrain hazards, and weather-related risks during outreach.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'street_medicine', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+];
+
+// Clinical Services (Licensed providers only)
+export const PROGRAM_CLINICAL: TrainingModule[] = [
+  { id: 'credential_verification', title: 'Credential Verification', desc: 'License upload, verification process, and maintaining current credentials with HMC.', dur: 10, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'scope_of_practice', title: 'Scope of Practice Acknowledgment', desc: 'Understanding and acknowledging the boundaries of your clinical role within HMC programs.', dur: 8, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  { id: 'clinical_sops', title: 'Clinical Standard Operating Procedures', desc: 'HMC clinical protocols, documentation requirements, and care standards.', dur: 15, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  { id: 'emergency_protocols', title: 'Emergency Protocols', desc: 'Emergency response procedures, escalation paths, and crisis management for clinical settings.', dur: 10, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+];
+
+// --- TIER 4: REQUIRED BUT NON-BLOCKING ---
+// Tracked with 30-day deadline. After deadline, blocks advanced missions.
+export const TIER_4_MODULES: TrainingModule[] = [
+  { id: 'deescalation_1', title: 'How to De-escalate Someone', desc: 'Practical techniques for calming tense situations in community settings.', dur: 10, embed: 'https://www.youtube.com/embed/4qsfBCatgX8', format: 'recorded_video', tier: 4, programAssociation: null, isBlocking: false, deadlineDays: 30, isAIGenerated: false, req: false },
+  { id: 'deescalation_2', title: '21 Phrases to De-escalate Angry Patients', desc: 'Communication tools for defusing anger and building rapport under pressure.', dur: 8, embed: 'https://www.youtube.com/embed/5t6ez8N86qk', format: 'recorded_video', tier: 4, programAssociation: null, isBlocking: false, deadlineDays: 30, isAIGenerated: false, req: false },
+  { id: 'sdoh_tedx', title: 'Social Determinants of Health', desc: 'How housing, income, environment, and policy shape health outcomes.', dur: 15, embed: 'https://www.youtube.com/embed/rKo8Sv99MkM', format: 'recorded_video', tier: 4, programAssociation: null, isBlocking: false, deadlineDays: 30, isAIGenerated: false, req: false },
+  { id: 'community_context', title: 'Skid Row Explained', desc: 'Understanding the history, conditions, and lived experiences in Los Angeles Skid Row.', dur: 12, embed: 'https://www.youtube.com/embed/xEoJ4FmBUG8', format: 'recorded_video', tier: 4, programAssociation: null, isBlocking: false, deadlineDays: 30, isAIGenerated: false, req: false },
+];
+
+// --- PROGRAM-SPECIFIC TRAINING REQUIREMENTS ---
+// Each program requires Tier 2 baseline + these specific module IDs
+export const PROGRAM_TRAINING_REQUIREMENTS: Record<string, string[]> = {
+  community_wellness: ['cmhw_part1', 'cmhw_part2', 'accessibility_inclusion', 'participant_support'],
+  community_health_outreach: ['consent_data_handling', 'community_safety'],
+  street_medicine: ['smo_orientation', 'naloxone_distribution', 'hiv_selftest', 'survey_smo', 'field_safety', 'environmental_awareness'],
+  clinical: ['credential_verification', 'scope_of_practice', 'clinical_sops', 'emergency_protocols'],
+};
+
+// --- ALL MODULES (flat list for lookups) ---
+export const ALL_TRAINING_MODULES: TrainingModule[] = [
+  ...TIER_1_MODULES,
+  ...TIER_2_MODULES,
+  ...PROGRAM_COMMUNITY_WELLNESS,
+  ...PROGRAM_COMMUNITY_HEALTH_OUTREACH,
+  ...PROGRAM_STREET_MEDICINE,
+  ...PROGRAM_CLINICAL,
+  ...TIER_4_MODULES,
+];
+
+// --- TIER ID LISTS (for quick checks) ---
+export const TIER_1_IDS = TIER_1_MODULES.map(m => m.id);
+export const TIER_2_IDS = TIER_2_MODULES.map(m => m.id);
+export const TIER_4_IDS = TIER_4_MODULES.map(m => m.id);
+
+// --- LEGACY ID MAPPING ---
+// Maps old module IDs (stored in existing user data) to new IDs
+export const LEGACY_MODULE_ID_MAP: Record<string, string> = {
+  'hmc_get_to_know_us': 'hmc_orientation',
+  'hmc_because_champion': 'hmc_champion',
+  'hipaa_staff_2025': 'hipaa_nonclinical',
+  'hmc_survey_training': 'survey_general',
+};
+
+// Helper: check if a user has completed a module, accounting for legacy IDs
+export const hasCompletedModule = (completedIds: string[], moduleId: string): boolean => {
+  if (completedIds.includes(moduleId)) return true;
+  for (const [legacyId, newId] of Object.entries(LEGACY_MODULE_ID_MAP)) {
+    if (newId === moduleId && completedIds.includes(legacyId)) return true;
+  }
+  return false;
+};
+
+// Helper: check if ALL modules in a list are completed (with legacy compat)
+export const hasCompletedAllModules = (completedIds: string[], moduleIds: string[]): boolean => {
+  return moduleIds.every(id => hasCompletedModule(completedIds, id));
+};
+
+// --- LEGACY COMPAT EXPORTS ---
+export const ORIENTATION_MODULES = TIER_1_MODULES;
+export const ALL_REQUIRED_MODULES = [...TIER_1_MODULES, ...TIER_2_MODULES];
+
+// HMC_MODULES compat export (used by MigrationFlow, OnboardingFlow)
 export const HMC_MODULES = {
-  /* HMC Core Orientation */
-  hmcIntro: { id: 'hmc_get_to_know_us', title: 'Get to Know Health Matters Clinic', desc: 'Who we are, who we serve in Los Angeles, and how our programs work together.', dur: 12, embed: 'https://hmc.screencasthost.com/player/cTQ6cDnowch?width=100%&height=100%&ff=1&title=0', req: true },
-  champion: { id: 'hmc_because_champion', title: 'Because You’re a Champion', desc: 'Our values, expectations, and what it means to show up for community with HMC.', dur: 6, embed: 'https://hmc.screencasthost.com/player/cTQQcxnoth6?width=100%&height=100%&ff=1&title=0', req: true },
-
-  /* HMC Program-Specific Trainings */
-  hivOraquick: { id: 'hmc_hiv_oraquick', title: 'HIV OraQuick Self-Test Kit Distribution', desc: 'How to safely distribute and support HIV OraQuick self-testing in community settings.', dur: 15, embed: 'https://hmc.screencasthost.com/player/cTfv1pnQIIL?width=100%&height=100%&ff=1&title=0', req: true },
-  surveyTraining: { id: 'hmc_survey_training', title: 'HMC Survey Training & Data Collection', desc: 'How to administer HMC surveys, collect SDOH data, and respect privacy in the process.', dur: 20, embed: 'https://hmc.screencasthost.com/player/cTftF4nQesE?width=100%&height=100%&ff=1&title=0', req: true },
-
-  /* Community Mental Health Worker Training (YouTube) */
-  cmhwPart1: { id: 'cmhw_part1', title: 'Community Mental Health Worker Training – Part 1', desc: 'Foundations of community mental health work, trauma-informed principles, and working with vulnerable populations.', dur: 23, embed: 'https://www.youtube.com/embed/xEoJ4FmBUG8', req: true },
-  cmhwPart2: { id: 'cmhw_part2', title: 'Community Mental Health Worker Training – Part 2', desc: 'De-escalation, communication skills, cultural humility, and field-based mental health engagement.', dur: 28, embed: 'https://www.youtube.com/embed/FCDOH6KNep4', req: true },
-  
-  /* External – HIPAA & data privacy */
-  hipaa2025: { id: 'hipaa_staff_2025', title: 'Complete HIPAA Staff Training 2025', desc: 'Updated HIPAA staff training covering privacy, security, and real-world scenarios.', dur: 30, embed: 'https://www.youtube.com/embed/CdUUfVOP4bE', req: true },
-  hipaaCyber2024: { id: 'hipaa_cyber_2024', title: 'HIPAA Training: 2024 Cybersecurity Standards', desc: 'Cybersecurity performance goals and safeguards to protect PHI and systems.', dur: 39, embed: 'https://www.youtube.com/embed/2tBs65yi7yk', req: false },
-
-  /* External - Street Medicine Core */
-  streetMedIntro: { id: 'street_med_intro', title: 'Street Medicine Part 1: Introduction', desc: 'Theory, skills, and practice of street medicine for unsheltered communities.', dur: 55, embed: 'https://www.youtube.com/embed/FqgDTk2-ypk', req: false },
-
-  /* External – CHW Role Overview */
-  chwRole: { id: 'chw_role_overview', title: 'Understanding the Community Health Worker Role', desc: 'Overview of CHWs as trusted frontline health workers in the community.', dur: 4, embed: 'https://www.youtube.com/embed/dqIk0ECpWzU', req: false },
-
-  /* External – Health equity / SDOH */
-  sdohShort: { id: 'sdoh_short', title: 'What Makes Us Healthy? Social Determinants of Health', desc: 'How housing, income, environment, and policy shape health outcomes.', dur: 6, embed: 'https://www.youtube.com/embed/8PH4JYfF4Ns', req: false },
-  
-  /* Board & governance */
-  board101: { id: 'board_governance_101', title: 'Board of Directors 101: Roles & Responsibilities', desc: 'Legal duties, governance, and oversight for nonprofit board members.', dur: 60, embed: 'https://www.youtube.com/embed/zADB9U5TK0A', req: true },
-  boardChange2025: { id: 'board_change_2025', title: 'Beyond Board Training: How to Create Real Change (2025)', desc: 'How modern boards can drive equity, culture, and strategy.', dur: 30, embed: 'https://www.youtube.com/embed/nTUM9NCydM4', req: false },
-  cabRoles: { id: 'cab_roles', title: 'Advisory Boards: Roles, Voice, and Community Power', desc: 'How community advisory boards shape programs and accountability.', dur: 20, embed: 'https://www.youtube.com/embed/K6mgnRbiiqM', req: true },
-
-  /* Storytelling / content */
-  npStorytelling: { id: 'np_storytelling', title: 'Storytelling for Nonprofits: How to Share Impact with Dignity', desc: 'How to write stories that center dignity, consent, and impact—not trauma.', dur: 22, embed: 'https://www.youtube.com/embed/ZFh3yq_u7aE', req: true },
-
-  /* Fundraising / development */
-  fundraisingBasics: { id: 'fundraising_basics', title: 'Fundraising Basics for Small & Community Nonprofits', desc: 'Core donor strategy, campaigns, and building a culture of giving.', dur: 52, embed: 'https://www.youtube.com/embed/bMf3HUtxbw4', req: true },
-  grantTipsMillions: { id: 'grant_tips_millions', title: 'Grant Writing Tips: How I Secured Millions in Funding', desc: 'Positioning, alignment, and writing grants that actually get funded.', dur: 18, embed: 'https://www.youtube.com/embed/wS_p_1wR8rE', req: true },
-  p2pFundraising: { id: 'p2p_fundraising', title: 'How to Run a Peer-to-Peer Fundraising Campaign', desc: 'Setting up a page, telling your story, and inviting your network to give.', dur: 18, embed: 'https://www.youtube.com/embed/4_IES6QeYrl', req: true },
-  
-  /* Social media */
-  smHowUse2024: { id: 'sm_how_use_2024', title: 'How You Should Be Using Social Media in 2024 (Nonprofits)', desc: "What content works, what doesn't, and how to show up online as a nonprofit.", dur: 9, embed: 'https://www.youtube.com/embed/-j9qVki1_EM', req: true },
-  smStrategy1: { id: 'sm_strategy_1', title: '#1 Social Media Strategy for Nonprofits', desc: 'Live, real, human-centered content that builds trust and donations.', dur: 7, embed: 'https://www.youtube.com/embed/VG_IT0ct1ig', req: true },
-  smPlan2024: { id: 'sm_plan_2024', title: 'Create a Nonprofit Social Media Strategy & Content Calendar', desc: "How to plan content, campaigns, and a posting rhythm that's sustainable.", dur: 18, embed: 'https://www.youtube.com/embed/bF3eMIKnRVg', req: false },
-  
-  /* Ops / program / events */
-  npOps: { id: 'np_ops', title: 'Building Simple, Effective Nonprofit Operations', desc: 'How to design processes, checklists, and systems that actually work.', dur: 24, embed: 'https://www.youtube.com/embed/x8gYQ8oQn9g', req: true },
-  npEvents: { id: 'events_for_np', title: 'How to Plan a Nonprofit Event Step by Step', desc: 'Logistics, timelines, and roles for smooth nonprofit events.', dur: 20, embed: 'https://www.youtube.com/embed/s7KJ4qPp1kM', req: true },
-  npProgramMgmt: { id: 'np_program_mgmt', title: 'Program Management for Nonprofits', desc: 'Designing, running, and evaluating community programs.', dur: 28, embed: 'https://www.youtube.com/embed/S1v964E64-s', req: true },
-  
-  /* Volunteer Management */
-  recruitManageVols: { id: 'recruit_manage_vols', title: 'How to Successfully Recruit and Manage Volunteers', desc: 'Practical strategies for supporting, appreciating, and retaining volunteers.', dur: 45, embed: 'https://www.youtube.com/embed/SWLDdEkr9EM', req: true },
-  volMgmtTop5: { id: 'vol_mgmt_top5', title: 'Top 5 Volunteer Management Strategies Every Nonprofit Needs', desc: 'High-level approaches to building a strong volunteer culture.', dur: 12, embed: 'https://www.youtube.com/embed/eBGINprwFM0', req: false },
+  hmcIntro: TIER_1_MODULES[0],
+  champion: TIER_1_MODULES[1],
 };
 
-// Orientation - Required for ALL volunteers (2 videos only)
-// Must be completed before accessing other training
-export const ORIENTATION_MODULES = [
-  HMC_MODULES.hmcIntro,        // hmc_get_to_know_us - "Get to Know Health Matters Clinic"
-  HMC_MODULES.champion,        // hmc_because_champion - "Because You're a Champion"
-];
-
-// Core Training Modules - Required for ALL volunteers to unlock operational features
-// These modules (after orientation) must be completed for event eligibility
-const CORE_TRAINING = [
-  HMC_MODULES.hipaa2025,       // hipaa_staff_2025
-  HMC_MODULES.cmhwPart1,       // cmhw_part1
-  HMC_MODULES.cmhwPart2,       // cmhw_part2
-  HMC_MODULES.surveyTraining,  // hmc_survey_training
-];
-
-// All required modules for HMC Champion status (Orientation + Core Training)
-export const ALL_REQUIRED_MODULES = [...ORIENTATION_MODULES, ...CORE_TRAINING];
-
-// Helper to merge core training with role-specific modules (avoids duplicates)
-const withCoreTraining = (roleModules: any[]) => {
-  const coreIds = CORE_TRAINING.map(m => m.id);
-  const additionalModules = roleModules.filter(m => !coreIds.includes(m.id));
-  return [...CORE_TRAINING, ...additionalModules];
+// --- ROLE-SPECIFIC TRAINING (specialized roles, NOT program gates) ---
+// These are additional modules for specialized roles beyond the operational tiers
+export const ROLE_SPECIFIC_MODULES: Record<string, TrainingModule[]> = {
+  board_member: [
+    { id: 'board_governance_101', title: 'Board of Directors 101: Roles & Responsibilities', desc: 'Legal duties, governance, and oversight for nonprofit board members.', dur: 60, embed: 'https://www.youtube.com/embed/zADB9U5TK0A', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'board_change_2025', title: 'Beyond Board Training: How to Create Real Change (2025)', desc: 'How modern boards can drive equity, culture, and strategy.', dur: 30, embed: 'https://www.youtube.com/embed/nTUM9NCydM4', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: false, deadlineDays: null, isAIGenerated: false, req: false },
+  ],
+  community_advisory_board: [
+    { id: 'cab_roles', title: 'Advisory Boards: Roles, Voice, and Community Power', desc: 'How community advisory boards shape programs and accountability.', dur: 20, embed: 'https://www.youtube.com/embed/K6mgnRbiiqM', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'board_change_2025', title: 'Beyond Board Training: How to Create Real Change (2025)', desc: 'How modern boards can drive equity, culture, and strategy.', dur: 30, embed: 'https://www.youtube.com/embed/nTUM9NCydM4', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: false, deadlineDays: null, isAIGenerated: false, req: false },
+  ],
+  content_writer: [
+    { id: 'np_storytelling', title: 'Storytelling for Nonprofits: How to Share Impact with Dignity', desc: 'How to write stories that center dignity, consent, and impact\u2014not trauma.', dur: 22, embed: 'https://www.youtube.com/embed/ZFh3yq_u7aE', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  social_media_team: [
+    { id: 'sm_how_use_2024', title: 'How You Should Be Using Social Media in 2024 (Nonprofits)', desc: 'What content works, what doesn\'t, and how to show up online as a nonprofit.', dur: 9, embed: 'https://www.youtube.com/embed/-j9qVki1_EM', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'sm_strategy_1', title: '#1 Social Media Strategy for Nonprofits', desc: 'Live, real, human-centered content that builds trust and donations.', dur: 7, embed: 'https://www.youtube.com/embed/VG_IT0ct1ig', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'sm_plan_2024', title: 'Create a Nonprofit Social Media Strategy & Content Calendar', desc: 'How to plan content, campaigns, and a posting rhythm that\'s sustainable.', dur: 18, embed: 'https://www.youtube.com/embed/bF3eMIKnRVg', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: false, deadlineDays: null, isAIGenerated: false, req: false },
+  ],
+  development_coordinator: [
+    { id: 'fundraising_basics', title: 'Fundraising Basics for Small & Community Nonprofits', desc: 'Core donor strategy, campaigns, and building a culture of giving.', dur: 52, embed: 'https://www.youtube.com/embed/bMf3HUtxbw4', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  grant_writer: [
+    { id: 'grant_tips_millions', title: 'Grant Writing Tips: How I Secured Millions in Funding', desc: 'Positioning, alignment, and writing grants that actually get funded.', dur: 18, embed: 'https://www.youtube.com/embed/wS_p_1wR8rE', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  fundraising_volunteer: [
+    { id: 'p2p_fundraising', title: 'How to Run a Peer-to-Peer Fundraising Campaign', desc: 'Setting up a page, telling your story, and inviting your network to give.', dur: 18, embed: 'https://www.youtube.com/embed/4_IES6QeYrl', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  events_coordinator: [
+    { id: 'events_for_np', title: 'How to Plan a Nonprofit Event Step by Step', desc: 'Logistics, timelines, and roles for smooth nonprofit events.', dur: 20, embed: 'https://www.youtube.com/embed/s7KJ4qPp1kM', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  program_coordinator: [
+    { id: 'np_program_mgmt', title: 'Program Management for Nonprofits', desc: 'Designing, running, and evaluating community programs.', dur: 28, embed: 'https://www.youtube.com/embed/S1v964E64-s', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  operations_coordinator: [
+    { id: 'np_ops', title: 'Building Simple, Effective Nonprofit Operations', desc: 'How to design processes, checklists, and systems that actually work.', dur: 24, embed: 'https://www.youtube.com/embed/x8gYQ8oQn9g', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  volunteer_lead: [
+    { id: 'recruit_manage_vols', title: 'How to Successfully Recruit and Manage Volunteers', desc: 'Practical strategies for supporting, appreciating, and retaining volunteers.', dur: 45, embed: 'https://www.youtube.com/embed/SWLDdEkr9EM', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'vol_mgmt_top5', title: 'Top 5 Volunteer Management Strategies Every Nonprofit Needs', desc: 'High-level approaches to building a strong volunteer culture.', dur: 12, embed: 'https://www.youtube.com/embed/eBGINprwFM0', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: false, deadlineDays: null, isAIGenerated: false, req: false },
+  ],
+  tech_team: [
+    { id: 'hipaa_cyber_2024', title: 'HIPAA Training: 2024 Cybersecurity Standards', desc: 'Cybersecurity performance goals and safeguards to protect PHI and systems.', dur: 39, embed: 'https://www.youtube.com/embed/2tBs65yi7yk', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  data_analyst: [
+    { id: 'hipaa_cyber_2024', title: 'HIPAA Training: 2024 Cybersecurity Standards', desc: 'Cybersecurity performance goals and safeguards to protect PHI and systems.', dur: 39, embed: 'https://www.youtube.com/embed/2tBs65yi7yk', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
 };
-
-export const ROLE_MODULES: { [key: string]: any[] } = {
-  // All roles now include the 5 core training modules + their role-specific modules
-  general_volunteer: withCoreTraining([ HMC_MODULES.sdohShort ]),
-  core_volunteer: withCoreTraining([ HMC_MODULES.hivOraquick, HMC_MODULES.chwRole, HMC_MODULES.sdohShort ]),
-  licensed_medical: withCoreTraining([ HMC_MODULES.hipaaCyber2024, HMC_MODULES.hivOraquick, HMC_MODULES.streetMedIntro ]),
-  tech_team: withCoreTraining([ HMC_MODULES.hipaaCyber2024 ]),
-  board_member: withCoreTraining([ HMC_MODULES.board101, HMC_MODULES.boardChange2025 ]),
-  community_advisory_board: withCoreTraining([ HMC_MODULES.cabRoles, HMC_MODULES.boardChange2025 ]),
-  content_writer: withCoreTraining([ HMC_MODULES.npStorytelling, HMC_MODULES.sdohShort ]),
-  data_analyst: withCoreTraining([ HMC_MODULES.hipaaCyber2024 ]),
-  development_coordinator: withCoreTraining([ HMC_MODULES.fundraisingBasics ]),
-  events_coordinator: withCoreTraining([ HMC_MODULES.npEvents ]),
-  fundraising_volunteer: withCoreTraining([ HMC_MODULES.p2pFundraising ]),
-  grant_writer: withCoreTraining([ HMC_MODULES.grantTipsMillions ]),
-  medical_admin: withCoreTraining([]),
-  operations_coordinator: withCoreTraining([ HMC_MODULES.npOps, HMC_MODULES.streetMedIntro ]),
-  outreach_volunteer: withCoreTraining([ HMC_MODULES.sdohShort, HMC_MODULES.streetMedIntro ]),
-  program_coordinator: withCoreTraining([ HMC_MODULES.npProgramMgmt, HMC_MODULES.sdohShort ]),
-  social_media_team: withCoreTraining([ HMC_MODULES.smHowUse2024, HMC_MODULES.smStrategy1, HMC_MODULES.smPlan2024 ]),
-  volunteer_lead: withCoreTraining([ HMC_MODULES.recruitManageVols, HMC_MODULES.volMgmtTop5 ]),
-};
-
-export const ADVANCED_MODULES = [
-    { id: 'adv-conflict-resolution', title: 'Advanced Conflict Resolution', objective: 'Master de-escalation techniques for high-stress community interactions.', estimatedMinutes: 15, type: 'ai' },
-    { id: 'adv-grant-writing', title: 'Introduction to Grant Writing', objective: 'Learn the basics of finding and responding to grant opportunities for HMC programs.', estimatedMinutes: 15, type: 'ai' },
-    { id: 'adv-leadership', title: 'Community Leadership Principles', objective: 'Develop skills for leading volunteer teams and managing mission logistics effectively.', estimatedMinutes: 10, type: 'ai' },
-    { id: 'adv-mental-health-first-aid', title: 'Mental Health First Aid', objective: 'An overview of how to assist someone experiencing a mental health crisis.', estimatedMinutes: 55, type: 'video' },
-];
 
 export const EVENTS: ClinicEvent[] = [];
 export const OPPORTUNITIES: Opportunity[] = [];

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Announcement, Message, Volunteer, SupportTicket, TicketNote, TicketActivity, TicketCategory } from '../types';
 import {
   Megaphone, MessageSquare, LifeBuoy, Send, Plus, Sparkles, Loader2, Clock,
@@ -202,6 +202,23 @@ const BriefingView: React.FC<{
   const [newMessage, setNewMessage] = useState('');
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Poll for new messages every 10 seconds
+  useEffect(() => {
+    const pollMessages = async () => {
+      try {
+        const data = await apiService.get('/api/messages');
+        if (Array.isArray(data)) {
+          setMessages(data);
+        }
+      } catch (error) {
+        // Silent fail on polling — don't disrupt UX
+      }
+    };
+
+    const interval = setInterval(pollMessages, 10000);
+    return () => clearInterval(interval);
+  }, [setMessages]);
 
   // Get unique DM conversations
   const conversations = useMemo(() => {
@@ -626,8 +643,8 @@ const TicketDetailModal: React.FC<{
     };
 
     onUpdate({
-      assignedTo: volunteerId || undefined,
-      assignedToName: volunteer?.name,
+      assignedTo: volunteerId || null,
+      assignedToName: volunteer?.name || null,
       activity: [...(ticket.activity || []), activity],
       updatedAt: new Date().toISOString(),
     });
@@ -1004,19 +1021,35 @@ const OpsSupportView: React.FC<{
   };
 
   const handleTicketUpdate = async (ticketId: string, updates: Partial<SupportTicket>) => {
+    // Store previous state for rollback
+    const previousTickets = supportTickets;
+    const previousSelected = selectedTicket;
+
+    // Optimistic update
     setSupportTickets(prev => prev.map(t =>
       t.id === ticketId ? { ...t, ...updates } : t
     ));
-
-    // Update selected ticket if viewing it
     if (selectedTicket?.id === ticketId) {
       setSelectedTicket(prev => prev ? { ...prev, ...updates } : null);
     }
 
     try {
-      await apiService.put(`/api/support_tickets/${ticketId}`, updates);
+      const result = await apiService.put(`/api/support_tickets/${ticketId}`, updates);
+      // Sync with server response to ensure consistency
+      if (result && result.id) {
+        setSupportTickets(prev => prev.map(t =>
+          t.id === ticketId ? { ...result } as SupportTicket : t
+        ));
+        if (selectedTicket?.id === ticketId) {
+          setSelectedTicket({ ...result } as SupportTicket);
+        }
+      }
     } catch (error) {
       console.error('Failed to update ticket:', error);
+      // Rollback on failure
+      setSupportTickets(previousTickets);
+      setSelectedTicket(previousSelected);
+      alert('Failed to update ticket. Please try again.');
     }
   };
 

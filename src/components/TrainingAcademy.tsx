@@ -2,12 +2,20 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Volunteer } from '../types';
 import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
-import { ADVANCED_MODULES, ROLE_MODULES, HMC_MODULES, ORIENTATION_MODULES, ALL_REQUIRED_MODULES } from '../constants';
+import {
+  TIER_1_MODULES, TIER_2_MODULES, TIER_4_MODULES,
+  PROGRAM_COMMUNITY_WELLNESS, PROGRAM_COMMUNITY_HEALTH_OUTREACH,
+  PROGRAM_STREET_MEDICINE, PROGRAM_CLINICAL,
+  ROLE_SPECIFIC_MODULES, TIER_1_IDS, TIER_2_IDS,
+  hasCompletedModule, hasCompletedAllModules,
+  TrainingModule,
+} from '../constants';
 import { APP_CONFIG } from '../config';
 import {
   CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
-  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video, Stethoscope
+  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video, Stethoscope,
+  Lock, Monitor, Youtube, FileCheck
 } from 'lucide-react';
 import ClinicalOnboarding from './ClinicalOnboarding';
 
@@ -17,9 +25,24 @@ const getRoleSlug = (roleLabel: string): string => {
   return roleConfig ? roleConfig.id : 'general_volunteer';
 };
 
+// Format badge component
+const FormatBadge: React.FC<{ format: TrainingModule['format'] }> = ({ format }) => {
+  const config = {
+    screenpal: { label: 'ScreenPal', icon: Monitor, color: 'bg-violet-100 text-violet-700 border-violet-200' },
+    recorded_video: { label: 'Video', icon: Youtube, color: 'bg-sky-100 text-sky-700 border-sky-200' },
+    read_ack: { label: 'Read & Acknowledge', icon: FileCheck, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  }[format];
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${config.color}`}>
+      <config.icon size={10} /> {config.label}
+    </span>
+  );
+};
+
 // Static fallback quizzes for core training modules (no AI required)
 const STATIC_QUIZZES: Record<string, { question: string; learningObjective: string; keyConcepts: { concept: string; description: string }[]; acceptableKeywords: string[] }> = {
-  'hmc_get_to_know_us': {
+  'hmc_orientation': {
     question: 'What is the primary mission of Health Matters Clinic, and how does volunteer work support this mission in the Los Angeles community?',
     learningObjective: 'Understand HMC\'s mission, values, and the role volunteers play in community health.',
     keyConcepts: [
@@ -29,7 +52,7 @@ const STATIC_QUIZZES: Record<string, { question: string; learningObjective: stri
     ],
     acceptableKeywords: ['community', 'health', 'volunteer', 'service', 'care', 'support', 'help', 'mission']
   },
-  'hmc_because_champion': {
+  'hmc_champion': {
     question: 'What does it mean to be an HMC Champion, and how will you embody our values when serving the community?',
     learningObjective: 'Understand what it means to represent HMC as a Champion volunteer.',
     keyConcepts: [
@@ -39,7 +62,7 @@ const STATIC_QUIZZES: Record<string, { question: string; learningObjective: stri
     ],
     acceptableKeywords: ['champion', 'values', 'respect', 'dignity', 'compassion', 'community', 'serve', 'committed', 'reliable', 'care']
   },
-  'hipaa_staff_2025': {
+  'hipaa_nonclinical': {
     question: 'Explain how HIPAA protects patient privacy and give an example of what you would do if you accidentally saw protected health information.',
     learningObjective: 'Demonstrate understanding of HIPAA privacy rules and appropriate responses to breaches.',
     keyConcepts: [
@@ -69,7 +92,7 @@ const STATIC_QUIZZES: Record<string, { question: string; learningObjective: stri
     ],
     acceptableKeywords: ['calm', 'listen', 'respect', 'safe', 'space', 'voice', 'tone', 'empathy', 'understand']
   },
-  'hmc_survey_training': {
+  'survey_general': {
     question: 'What are the key principles for collecting survey data while maintaining participant privacy and dignity?',
     learningObjective: 'Apply ethical data collection practices that respect community members.',
     keyConcepts: [
@@ -84,64 +107,75 @@ const STATIC_QUIZZES: Record<string, { question: string; learningObjective: stri
 // Validate quiz response using keyword matching (fallback when AI unavailable)
 const validateResponseLocally = (question: string, response: string, moduleId: string): boolean => {
   const quiz = STATIC_QUIZZES[moduleId];
-  if (!quiz) return response.trim().length > 20; // Basic length check for unknown modules
+  if (!quiz) return response.trim().length > 20;
 
   const responseLower = response.toLowerCase();
   const matchCount = quiz.acceptableKeywords.filter(kw => responseLower.includes(kw)).length;
-  // Require at least 2 relevant keywords and minimum 30 characters
   return matchCount >= 2 && response.trim().length >= 30;
 };
 
 const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void }> = ({ user, onUpdate }) => {
-  const [activeSession, setActiveSession] = useState<any>(null);
+  const [activeSession, setActiveSession] = useState<TrainingModule | null>(null);
   const [quizMode, setQuizMode] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(false);
   const [quizResponse, setQuizResponse] = useState('');
-  const [quizStage, setQuizStage] = useState<'video' | 'concepts' | 'question'>('video');
+  const [quizStage, setQuizStage] = useState<'video' | 'read_ack' | 'concepts' | 'question'>('video');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
-  
+
   const roleSlug = getRoleSlug(user.role);
-  const roleModules = useMemo(() => ROLE_MODULES[roleSlug] || ROLE_MODULES['general_volunteer'], [roleSlug]);
-
-  const requiredModules = useMemo(() => roleModules.filter(m => m.req), [roleModules]);
-  const recommendedModules = useMemo(() => roleModules.filter(m => !m.req), [roleModules]);
-
   const completedModuleIds = user.completedTrainingIds || [];
 
-  const completedRequiredCount = requiredModules.filter(m => completedModuleIds.includes(m.id)).length;
-  const progress = requiredModules.length > 0 ? Math.round((completedRequiredCount / requiredModules.length) * 100) : 100;
+  // Tier completion checks (with legacy compat)
+  const tier1Complete = hasCompletedAllModules(completedModuleIds, TIER_1_IDS);
+  const tier2Complete = hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
+  const isOperationalEligible = user.coreVolunteerStatus === true && tier2Complete;
 
-  // Orientation progress
-  const completedOrientationCount = ORIENTATION_MODULES.filter(m => completedModuleIds.includes(m.id)).length;
-  const orientationProgress = Math.round((completedOrientationCount / ORIENTATION_MODULES.length) * 100);
+  // Progress calculations
+  const tier1CompletedCount = TIER_1_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const tier1Progress = Math.round((tier1CompletedCount / TIER_1_MODULES.length) * 100);
 
-  // Check if module is a ScreenPal video (has built-in quiz, no external assessment needed)
+  const tier2CompletedCount = TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const tier2Progress = Math.round((tier2CompletedCount / TIER_2_MODULES.length) * 100);
+
+  const overallRequired = [...TIER_1_MODULES, ...TIER_2_MODULES];
+  const overallCompletedCount = overallRequired.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const overallProgress = Math.round((overallCompletedCount / overallRequired.length) * 100);
+
+  // Role-specific modules
+  const roleModules = useMemo(() => ROLE_SPECIFIC_MODULES[roleSlug] || [], [roleSlug]);
+
+  // Check if module is a ScreenPal video (has built-in quiz)
   const isScreenPalVideo = (embed: string) => embed?.includes('screencasthost.com') || embed?.includes('screenpal.com');
 
-  const startQuiz = async (module: any) => {
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+
+  const startQuiz = async (module: TrainingModule) => {
     setActiveSession(module);
     setQuizMode(true);
-    // ScreenPal videos have built-in quizzes - just watch and complete
-    // YouTube/other videos need our assessment
-    setQuizStage(module.embed ? 'video' : 'concepts');
     setSubmitError('');
     setQuizResponse('');
     setQuizData(null);
     setVideoError(false);
     setVideoLoading(true);
+
+    if (module.format === 'read_ack') {
+      setQuizStage('read_ack');
+    } else if (module.embed) {
+      setQuizStage('video');
+    } else {
+      setQuizStage('concepts');
+    }
   };
 
   // Get proper embed URL for different video sources
   const getEmbedUrl = (embedUrl: string): string => {
     if (!embedUrl) return '';
 
-    // YouTube URLs - ensure proper embed format
     if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
-      // Extract video ID and construct proper embed URL
       let videoId = '';
       if (embedUrl.includes('youtube.com/embed/')) {
         videoId = embedUrl.split('youtube.com/embed/')[1]?.split('?')[0];
@@ -155,7 +189,6 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       }
     }
 
-    // ScreenPal/ScreenCastHost URLs - return as-is
     if (embedUrl.includes('screencasthost.com') || embedUrl.includes('screenpal.com')) {
       return embedUrl;
     }
@@ -167,24 +200,21 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     if (loadingQuiz || quizData) return;
     setLoadingQuiz(true);
 
-    // First check for static quiz (preferred - no API dependency)
-    const staticQuiz = STATIC_QUIZZES[activeSession?.id];
+    const staticQuiz = STATIC_QUIZZES[activeSession?.id || ''];
     if (staticQuiz) {
       setQuizData(staticQuiz);
       setLoadingQuiz(false);
       return;
     }
 
-    // Fallback to AI-generated quiz if static not available
     try {
-      const aiQuiz = await geminiService.generateModuleQuiz(activeSession.title, user.role);
+      const aiQuiz = await geminiService.generateModuleQuiz(activeSession!.title, user.role);
       setQuizData(aiQuiz);
     } catch (e) {
       console.error("Quiz generation failed, using generic fallback", e);
-      // Provide generic fallback quiz data
       setQuizData({
-        question: `Reflect on "${activeSession.title}" and explain how you would apply the key concepts from this training in your volunteer work with Health Matters Clinic.`,
-        learningObjective: `Demonstrate understanding of the key concepts covered in ${activeSession.title}.`,
+        question: `Reflect on "${activeSession!.title}" and explain how you would apply the key concepts from this training in your volunteer work with Health Matters Clinic.`,
+        learningObjective: `Demonstrate understanding of the key concepts covered in ${activeSession!.title}.`,
         keyConcepts: [
           { concept: 'Core Knowledge', description: 'The fundamental principles covered in this training module.' },
           { concept: 'Practical Application', description: 'How to apply what you learned in real volunteer situations.' },
@@ -196,29 +226,15 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     }
   }, [activeSession, loadingQuiz, quizData, user.role]);
 
-  // Orientation modules (2 videos) - must complete first
-  const ORIENTATION_IDS = ORIENTATION_MODULES.map(m => m.id);
-  const hasCompletedOrientation = ORIENTATION_IDS.every(id => completedModuleIds.includes(id));
-
-  // Core Training modules (after orientation) - required for event eligibility
-  const CORE_TRAINING_IDS = ['hipaa_staff_2025', 'cmhw_part1', 'cmhw_part2', 'hmc_survey_training'];
-  const hasCompletedCoreTraining = CORE_TRAINING_IDS.every(id => completedModuleIds.includes(id));
-
-  // All required for HMC Champion status
-  const ALL_REQUIRED_IDS = [...ORIENTATION_IDS, ...CORE_TRAINING_IDS];
-  const hasCompletedAllRequired = ALL_REQUIRED_IDS.every(id => completedModuleIds.includes(id));
-  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
-
   const handleCompleteModule = (moduleId: string, title: string) => {
-    if (!completedModuleIds.includes(moduleId)) {
+    if (!hasCompletedModule(completedModuleIds, moduleId)) {
       analyticsService.logEvent('training_module_completed', { moduleId, title, userRole: user.role });
 
-      // Calculate new completed training IDs
       const newCompletedIds = [...completedModuleIds, moduleId];
 
-      // Check if this completion completes all required training (Orientation + Core)
-      const nowCompletedCore = ALL_REQUIRED_IDS.every(id => newCompletedIds.includes(id));
-      const wasNotCompletedBefore = !ALL_REQUIRED_IDS.every(id => completedModuleIds.includes(id));
+      // Check if this completion finishes Tier 1 + Tier 2 (Core Volunteer eligible)
+      const nowCompletedAll = hasCompletedAllModules(newCompletedIds, [...TIER_1_IDS, ...TIER_2_IDS]);
+      const wasNotCompletedBefore = !hasCompletedAllModules(completedModuleIds, [...TIER_1_IDS, ...TIER_2_IDS]);
 
       const updatedUser: Partial<Volunteer> = {
         ...user,
@@ -235,17 +251,15 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         ]
       };
 
-      // Set coreVolunteerStatus and eventEligibility when all 5 modules are complete
-      if (nowCompletedCore && wasNotCompletedBefore) {
+      if (nowCompletedAll && wasNotCompletedBefore) {
         updatedUser.coreVolunteerStatus = true;
         updatedUser.coreVolunteerApprovedDate = new Date().toISOString();
-        // Enable core event deployment
         updatedUser.eventEligibility = {
           ...(user.eventEligibility || {}),
           canDeployCore: true,
           streetMedicineGate: false,
           clinicGate: false,
-          healthFairGate: true, // Health fairs are open to core volunteers
+          healthFairGate: true,
           naloxoneDistribution: false,
           oraQuickDistribution: false,
           qualifiedEventTypes: ['Health Fair', 'Community Outreach', 'Wellness Meetup']
@@ -269,12 +283,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
     let isCorrect = false;
 
-    // Try AI validation first, fall back to local validation if it fails
     try {
       isCorrect = await geminiService.validateQuizAnswer(quizData.question, quizResponse);
     } catch (e) {
       console.log("AI validation failed, using local validation");
-      // Use local keyword-based validation as fallback
       isCorrect = validateResponseLocally(quizData.question, quizResponse, activeSession.id);
     }
 
@@ -286,36 +298,40 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     setIsSubmitting(false);
   };
 
-  const renderModuleCard = (m: any, isRequired: boolean) => {
-    const isCompleted = completedModuleIds.includes(m.id);
+  const renderModuleCard = (m: TrainingModule, tierLocked: boolean) => {
+    const isCompleted = hasCompletedModule(completedModuleIds, m.id);
     const hasVideo = !!m.embed;
-    const isOrientationModule = ORIENTATION_IDS.includes(m.id);
-    const isLocked = !isOrientationModule && !hasCompletedOrientation;
+    const isLocked = tierLocked;
 
     return (
       <div key={m.id} className={`p-8 rounded-[40px] border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-xl hover:border-zinc-200'}`}>
         <div>
           <div className="flex items-start justify-between mb-6">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-[#233DFF] text-zinc-300 group-hover:text-white`}`}>
-              {isCompleted ? <CheckCircle2 size={28} /> : hasVideo ? <PlayCircle size={28} /> : <BookOpen size={28} />}
+              {isCompleted ? <CheckCircle2 size={28} /> : m.format === 'read_ack' ? <FileCheck size={28} /> : hasVideo ? <PlayCircle size={28} /> : <BookOpen size={28} />}
             </div>
-            {isRequired && !isCompleted && !isLocked && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
-            {isCompleted && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>}
-            {isLocked && <span className="px-3 py-1 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">Locked</span>}
+            <div className="flex flex-col items-end gap-2">
+              <FormatBadge format={m.format} />
+              {m.req && !isCompleted && !isLocked && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
+              {isCompleted && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>}
+              {isLocked && <span className="px-3 py-1 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">Locked</span>}
+            </div>
           </div>
           <h4 className={`text-xl font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{m.dur} MIN • {m.id.startsWith('hmc') ? 'HMC CORE' : 'EXTERNAL'}</p>
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">
+            {m.dur} MIN {m.isAIGenerated && '• AI-GENERATED'}
+          </p>
           <p className={`text-sm mt-4 font-medium leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
         </div>
         <div className="mt-8">
           {!isCompleted && !isLocked && (
             <button onClick={() => startQuiz(m)} className="w-full py-5 bg-zinc-900 text-white rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:scale-[1.02] shadow-xl">
-              Launch Mastery Assessment
+              {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Mastery Assessment'}
             </button>
           )}
           {isLocked && (
-            <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-black text-[11px] uppercase tracking-widest text-center">
-              Complete Orientation to Unlock
+            <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-black text-[11px] uppercase tracking-widest text-center flex items-center justify-center gap-2">
+              <Lock size={14} /> Complete Previous Tier to Unlock
             </div>
           )}
         </div>
@@ -323,42 +339,119 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     );
   };
 
+  // Render the Read & Acknowledge modal content
+  const renderReadAckContent = () => {
+    if (!activeSession) return null;
+    return (
+      <div className="space-y-8 animate-in fade-in">
+        <div className="bg-amber-50 border border-amber-200 rounded-[24px] p-6 flex items-center gap-4">
+          <FileCheck size={24} className="text-amber-600 shrink-0" />
+          <div>
+            <p className="font-bold text-amber-900 text-sm">Read & Acknowledge Module</p>
+            <p className="text-amber-700 text-xs mt-1">Read the content below carefully, then acknowledge your understanding to complete this module.</p>
+          </div>
+        </div>
+
+        <div className="bg-zinc-50 border border-zinc-200 rounded-[24px] p-8 space-y-6 max-h-[400px] overflow-y-auto">
+          <h4 className="text-lg font-black text-zinc-900">{activeSession.title}</h4>
+          <p className="text-zinc-700 leading-relaxed">{activeSession.desc}</p>
+          <div className="border-t border-zinc-200 pt-6 space-y-4">
+            <p className="text-sm text-zinc-600 leading-relaxed">
+              By completing this module, you acknowledge that you have read and understood the above policy, guidelines, and expectations. You commit to applying these principles in your volunteer work with Health Matters Clinic.
+            </p>
+            <p className="text-sm text-zinc-600 leading-relaxed">
+              If you have questions about any of the content, please reach out to your coordinator or the HMC support team through the Communication Hub.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white border border-zinc-200 rounded-[24px] p-6">
+          <label className="flex items-start gap-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={quizResponse === 'acknowledged'}
+              onChange={(e) => setQuizResponse(e.target.checked ? 'acknowledged' : '')}
+              className="mt-1 w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]"
+            />
+            <span className="text-sm font-medium text-zinc-700">
+              I have read and understand the content of this module. I commit to applying these guidelines in my volunteer work.
+            </span>
+          </label>
+        </div>
+
+        <button
+          onClick={() => {
+            if (quizResponse === 'acknowledged') {
+              handleCompleteModule(activeSession.id, activeSession.title);
+            }
+          }}
+          disabled={quizResponse !== 'acknowledged'}
+          className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+        >
+          <Check size={18} /> Acknowledge & Complete Module
+        </button>
+      </div>
+    );
+  };
+
+  // Determine which program modules to show based on user's role / applied role
+  const programModules = useMemo(() => {
+    const sections: { title: string; program: string; modules: TrainingModule[] }[] = [];
+
+    // Show all program sections — users complete what they need
+    if (PROGRAM_COMMUNITY_WELLNESS.length > 0) {
+      sections.push({ title: 'Community Wellness', program: 'community_wellness', modules: PROGRAM_COMMUNITY_WELLNESS });
+    }
+    if (PROGRAM_COMMUNITY_HEALTH_OUTREACH.length > 0) {
+      sections.push({ title: 'Community Health Outreach', program: 'community_health_outreach', modules: PROGRAM_COMMUNITY_HEALTH_OUTREACH });
+    }
+    if (PROGRAM_STREET_MEDICINE.length > 0) {
+      sections.push({ title: 'Street Medicine', program: 'street_medicine', modules: PROGRAM_STREET_MEDICINE });
+    }
+    if (PROGRAM_CLINICAL.length > 0) {
+      sections.push({ title: 'Clinical Services', program: 'clinical', modules: PROGRAM_CLINICAL });
+    }
+
+    return sections;
+  }, []);
+
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
-      {/* Orientation Complete Banner */}
-      {hasCompletedOrientation && !hasCompletedAllRequired && (
+      {/* Tier 1 Complete Banner */}
+      {tier1Complete && !tier2Complete && (
         <div className="bg-blue-50 border border-blue-200 p-8 rounded-[32px] flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-lg shrink-0">
             <CheckCircle2 size={28} />
           </div>
           <div>
             <h4 className="text-lg font-black text-blue-900">Orientation Complete!</h4>
-            <p className="text-blue-700 font-medium">Welcome to HMC! Continue with Core Training below to unlock event eligibility.</p>
+            <p className="text-blue-700 font-medium">Welcome to HMC! Continue with Baseline Training below to unlock operational access.</p>
           </div>
         </div>
       )}
 
-      {/* All Training Complete Banner */}
-      {hasCompletedAllRequired && (
+      {/* All Baseline Complete Banner */}
+      {tier2Complete && (
         <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-[32px] flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shrink-0">
             <Award size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-emerald-900">HMC Champion Training Complete</h4>
-            <p className="text-emerald-700 font-medium">You're eligible to sign up for community-based events. Visit My Missions to find opportunities.</p>
+            <h4 className="text-lg font-black text-emerald-900">Core Training Complete</h4>
+            <p className="text-emerald-700 font-medium">You're eligible for community events. Complete program-specific training below to unlock specialized missions.</p>
           </div>
         </div>
       )}
 
+      {/* Header with progress */}
       <div className="bg-white border border-zinc-100 p-12 rounded-[56px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
           <div className="inline-flex items-center gap-3 px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-10">
              TRAINING ACADEMY
           </div>
-          <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">HMC Champion Training</h2>
+          <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">HMC Training</h2>
           <p className="text-zinc-500 text-lg font-medium leading-relaxed italic">
-            Complete orientation and core training to become an HMC Champion.
+            Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {user.appliedRole && user.appliedRole !== 'HMC Champion' && (
               <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{user.appliedRole}</span></span>
             )}
@@ -366,89 +459,135 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
 
         <div className="w-full md:w-80 bg-zinc-50 p-8 rounded-[40px] border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-6">
-          {/* Orientation Progress */}
+          {/* Tier 1 Progress */}
           <div className="flex items-center gap-4 w-full">
             <div className="relative w-16 h-16">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * orientationProgress) / 100} className="text-blue-500 transition-all duration-1000" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-blue-500 transition-all duration-1000" />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{orientationProgress}%</div>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier1Progress}%</div>
             </div>
             <div>
-              <p className="text-xs font-black text-zinc-700">Orientation</p>
-              <p className="text-[10px] text-zinc-400">{completedOrientationCount}/{ORIENTATION_MODULES.length} videos</p>
+              <p className="text-xs font-black text-zinc-700">Tier 1: Orientation</p>
+              <p className="text-[10px] text-zinc-400">{tier1CompletedCount}/{TIER_1_MODULES.length} videos</p>
             </div>
           </div>
 
-          {/* Overall Progress */}
+          {/* Tier 2 Progress */}
           <div className="flex items-center gap-4 w-full">
             <div className="relative w-16 h-16">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{progress}%</div>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2Progress}%</div>
             </div>
             <div>
-              <p className="text-xs font-black text-zinc-700">All Required</p>
-              <p className="text-[10px] text-zinc-400">{completedRequiredCount}/{requiredModules.length} modules</p>
+              <p className="text-xs font-black text-zinc-700">Tier 2: Baseline</p>
+              <p className="text-[10px] text-zinc-400">{tier2CompletedCount}/{TIER_2_MODULES.length} modules</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ORIENTATION SECTION - 2 Videos */}
+      {/* ===== TIER 1: ORIENTATION ===== */}
       <div>
         <div className="flex items-center gap-4 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center text-sm font-black">1</div>
           <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
-          {hasCompletedOrientation && (
+          {tier1Complete && (
             <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
           )}
         </div>
         <p className="text-zinc-500 font-medium mb-8 -mt-4">Start here! These two videos introduce you to Health Matters Clinic and what it means to be an HMC Champion.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {ORIENTATION_MODULES.map(m => renderModuleCard(m, true))}
+          {TIER_1_MODULES.map(m => renderModuleCard(m, false))}
         </div>
       </div>
 
-      {/* CORE TRAINING SECTION */}
-      <div className={!hasCompletedOrientation ? 'opacity-60' : ''}>
+      {/* ===== TIER 2: BASELINE OPERATIONAL ===== */}
+      <div className={!tier1Complete ? 'opacity-60' : ''}>
         <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Core Training</h3>
-          {hasCompletedCoreTraining && (
+          <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black">2</div>
+          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
+          {tier2Complete && (
             <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
           )}
-          {!hasCompletedOrientation && (
+          {!tier1Complete && (
             <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
           )}
         </div>
-        <p className="text-zinc-500 font-medium mb-8 -mt-4">Required training for all volunteers. Complete these to become eligible for community events.</p>
+        <p className="text-zinc-500 font-medium mb-8 -mt-4">Required for all operational volunteers. Complete these to unlock My Missions and event registration.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {requiredModules.filter(m => !ORIENTATION_IDS.includes(m.id)).map(m => renderModuleCard(m, true))}
+          {TIER_2_MODULES.map(m => renderModuleCard(m, !tier1Complete))}
         </div>
       </div>
 
-      {/* ROLE-SPECIFIC TRAINING */}
-      {recommendedModules.length > 0 && (
-        <div className={!hasCompletedOrientation ? 'opacity-60' : ''}>
+      {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE ===== */}
+      {tier2Complete && (
+        <div>
+          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
+            <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black">3</div>
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
+          </div>
+          <p className="text-zinc-500 font-medium mb-8 -mt-4">Complete program-specific training to unlock specialized event types. Each program has its own requirements.</p>
+
+          {programModules.map(section => {
+            const sectionCompletedCount = section.modules.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+            const sectionComplete = sectionCompletedCount === section.modules.length;
+
+            return (
+              <div key={section.program} className="mb-12">
+                <div className="flex items-center gap-4 mb-6">
+                  <h4 className="text-lg font-black text-zinc-800">{section.title}</h4>
+                  {sectionComplete ? (
+                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest">Cleared</span>
+                  ) : (
+                    <span className="px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest">{sectionCompletedCount}/{section.modules.length}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {section.modules.map(m => renderModuleCard(m, false))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ===== ROLE-SPECIFIC TRAINING ===== */}
+      {roleModules.length > 0 && tier1Complete && (
+        <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {user.appliedRole || user.role}</h3>
-            {!hasCompletedOrientation && (
-              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
-            )}
           </div>
-          <p className="text-zinc-500 font-medium mb-8 -mt-4">Additional training specific to your applied role. Complete all training and await admin approval to be assigned your role.</p>
+          <p className="text-zinc-500 font-medium mb-8 -mt-4">Additional training specific to your assigned role.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {recommendedModules.map(m => renderModuleCard(m, false))}
+            {roleModules.map(m => renderModuleCard(m, false))}
           </div>
         </div>
       )}
 
-      {/* CLINICAL ONBOARDING - For Licensed Medical Professionals */}
+      {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline) ===== */}
+      {tier2Complete && (
+        <div>
+          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
+            <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black">4</div>
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
+            <span className="px-4 py-1.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200">30-Day Deadline</span>
+          </div>
+          <p className="text-zinc-500 font-medium mb-8 -mt-4">These modules provide important context. Complete within 30 days of becoming operational to maintain access to advanced missions.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {TIER_4_MODULES.map(m => renderModuleCard(m, false))}
+          </div>
+        </div>
+      )}
+
+      {/* ===== CLINICAL ONBOARDING ===== */}
       {(user.role?.includes('Medical') || user.role?.includes('Licensed') ||
         user.appliedRole?.includes('Medical') || user.appliedRole?.includes('Licensed')) && (
-        <div className={!hasCompletedOrientation ? 'opacity-60' : ''}>
+        <div className={!tier1Complete ? 'opacity-60' : ''}>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center">
               <Stethoscope size={20} />
@@ -457,14 +596,14 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             {user.clinicalOnboarding?.completed && (
               <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
             )}
-            {!hasCompletedOrientation && (
+            {!tier1Complete && (
               <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
             )}
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">
             Required for all Licensed Medical Professionals. Complete document review with signatures and upload your credentials before accessing clinical stations.
           </p>
-          {!hasCompletedOrientation ? (
+          {!tier1Complete ? (
             <div className="p-8 bg-zinc-50 rounded-[32px] border border-zinc-100 text-center">
               <p className="text-zinc-400 font-medium">Complete Orientation training above to unlock Clinical Onboarding.</p>
             </div>
@@ -474,14 +613,22 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       )}
 
-
+      {/* ===== QUIZ/ASSESSMENT MODAL ===== */}
       {quizMode && activeSession && (
         <div className="fixed inset-0 bg-zinc-900/95 backdrop-blur-2xl z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-           <div className="bg-white p-12 rounded-[56px] max-w-5xl w-full space-y-10 shadow-2xl border border-zinc-100">
+           <div className="bg-white p-12 rounded-[56px] max-w-5xl w-full space-y-10 shadow-2xl border border-zinc-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
-                 <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
+                 <div className="flex items-center gap-4">
+                   <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
+                   <FormatBadge format={activeSession.format} />
+                 </div>
                  <button onClick={() => setQuizMode(false)} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-300 hover:text-zinc-900"><X size={24} /></button>
               </div>
+
+              {/* Read & Acknowledge flow */}
+              {quizStage === 'read_ack' && renderReadAckContent()}
+
+              {/* Video flow */}
               {quizStage === 'video' && activeSession?.embed ? (
                 <div className="space-y-8 animate-in fade-in">
                   <div className="aspect-video bg-zinc-900 rounded-[32px] overflow-hidden shadow-2xl relative">
@@ -551,7 +698,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     </>
                   )}
                 </div>
-              ) : loadingQuiz ? (
+              ) : quizStage !== 'read_ack' && loadingQuiz ? (
                 <div className="py-20 flex flex-col items-center gap-6">
                    <Loader2 size={48} className="text-[#233DFF] animate-spin" />
                    <p className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">Generating Assessment...</p>
@@ -574,7 +721,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     Proceed to Question
                   </button>
                 </div>
-              ) : (
+              ) : quizStage === 'question' ? (
                 <div className="animate-in fade-in">
                   <div className="space-y-4 bg-zinc-50 p-8 rounded-[32px] border border-zinc-100 shadow-inner">
                      <p className="text-zinc-900 font-black text-xl leading-tight">"{quizData?.question}"</p>
@@ -586,7 +733,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                      Submit & Complete Module
                   </button>
                 </div>
-              )}
+              ) : null}
            </div>
         </div>
       )}
@@ -600,7 +747,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
             <h3 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">Core Volunteer Training Complete</h3>
             <p className="text-xl text-zinc-600 font-medium leading-relaxed mb-8">
-              You've completed Core Volunteer Training. You're now eligible to sign up for community-based events.
+              You've completed all baseline training. You're now eligible to sign up for community-based events through My Missions.
             </p>
             <div className="flex items-center justify-center gap-3 text-emerald-600 font-bold text-sm mb-8">
               <Calendar size={18} />

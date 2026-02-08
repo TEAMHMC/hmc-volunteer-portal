@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Volunteer } from '../types';
-import { HMC_MODULES, ROLE_MODULES } from '../constants';
-import { APP_CONFIG } from '../config';
-import { ArrowRight, CheckSquare, Loader2, PlayCircle, Square } from 'lucide-react';
+import { HMC_MODULES, TIER_1_MODULES, TIER_2_MODULES, ALL_TRAINING_MODULES, hasCompletedAllModules, TIER_1_IDS, TIER_2_IDS } from '../constants';
+import { ArrowRight, CheckSquare, Loader2, Square } from 'lucide-react';
 import TrainingAcademy from './TrainingAcademy';
 
 interface MigrationFlowProps {
@@ -13,12 +12,6 @@ interface MigrationFlowProps {
 }
 
 const formatPhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10).replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-
-const getRoleSlug = (roleLabel: string): string => {
-  if (!roleLabel) return 'general_volunteer';
-  const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === roleLabel);
-  return roleConfig ? roleConfig.id : 'general_volunteer';
-};
 
 const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onComplete }) => {
   const [step, setStep] = useState<'profile' | 'orientation' | 'training'>('profile');
@@ -76,15 +69,12 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
     }
   };
   
-  const roleSlug = getRoleSlug(migratingUser.role);
-  const roleModules = useMemo(() => ROLE_MODULES[roleSlug] || ROLE_MODULES['general_volunteer'], [roleSlug]);
-  const requiredModules = useMemo(() => roleModules.filter(m => m.req), [roleModules]);
   const completedModuleIds = useMemo(() => migratingUser.completedTrainingIds || [], [migratingUser.completedTrainingIds]);
 
+  // Training complete = Tier 1 + Tier 2 all done (with legacy compat)
   const isTrainingComplete = useMemo(() => {
-    if (requiredModules.length === 0) return true;
-    return requiredModules.every(m => completedModuleIds.includes(m.id));
-  }, [requiredModules, completedModuleIds]);
+    return hasCompletedAllModules(completedModuleIds, [...TIER_1_IDS, ...TIER_2_IDS]);
+  }, [completedModuleIds]);
 
 
   const renderContent = () => {
@@ -119,8 +109,8 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
                         <div key={m.id} className="bg-zinc-50/50 p-8 rounded-2xl border border-zinc-100 space-y-6">
                             <h3 className="text-xl font-black text-zinc-900">{m.title}</h3>
                             <div className="aspect-video bg-zinc-200 rounded-xl overflow-hidden"><iframe src={m.embed} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture;" allowFullScreen></iframe></div>
-                            <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl bg-white" onClick={() => (m.id === 'hmc_get_to_know_us' ? setWatchedIntro(!watchedIntro) : setWatchedChampion(!watchedChampion))}>
-                                {(m.id === 'hmc_get_to_know_us' ? watchedIntro : watchedChampion) ? <CheckSquare className="text-[#233DFF]" /> : <Square className="text-zinc-300" />}
+                            <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl bg-white" onClick={() => (m.id === 'hmc_orientation' ? setWatchedIntro(!watchedIntro) : setWatchedChampion(!watchedChampion))}>
+                                {(m.id === 'hmc_orientation' ? watchedIntro : watchedChampion) ? <CheckSquare className="text-[#233DFF]" /> : <Square className="text-zinc-300" />}
                                 <span className="text-sm font-medium text-zinc-600">I have watched and understood this module.</span>
                             </label>
                         </div>

@@ -3545,11 +3545,18 @@ app.put('/api/support_tickets/:ticketId', verifyToken, async (req: Request, res:
             return res.status(404).json({ error: 'Ticket not found' });
         }
 
-        // Update the ticket
-        await ticketRef.update({
-            ...updates,
-            updatedAt: new Date().toISOString()
-        });
+        // Sanitize updates: remove undefined values (Firestore rejects them)
+        // and use FieldValue.deleteField() for explicit field removal
+        const sanitized: Record<string, any> = { updatedAt: new Date().toISOString() };
+        for (const [key, value] of Object.entries(updates)) {
+            if (value === undefined) {
+                sanitized[key] = admin.firestore.FieldValue.delete();
+            } else {
+                sanitized[key] = value;
+            }
+        }
+
+        await ticketRef.update(sanitized);
 
         const updatedTicket = (await ticketRef.get()).data();
         console.log(`[SUPPORT] Ticket ${ticketId} updated:`, Object.keys(updates).join(', '));

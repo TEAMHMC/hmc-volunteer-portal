@@ -372,8 +372,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         roleAssessment: formData.roleAssessment,
         // Mark orientation videos as completed if watched during onboarding
         completedTrainingIds: [
-          ...(formData.watchedIntro ? ['hmc_get_to_know_us'] : []),
-          ...(formData.watchedChampion ? ['hmc_because_champion'] : []),
+          ...(formData.watchedIntro ? ['hmc_orientation'] : []),
+          ...(formData.watchedChampion ? ['hmc_champion'] : []),
         ],
       };
       

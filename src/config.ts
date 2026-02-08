@@ -54,9 +54,13 @@ export const APP_CONFIG = {
       category: "community",
       complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'],
       trainingModules: [
-        'core_academy_module_1',
-        'core_academy_module_2',
-        'hipaa_training',
+        'hmc_orientation',
+        'hmc_champion',
+        'hipaa_nonclinical',
+        'cmhw_part1',
+        'cmhw_part2',
+        'survey_general',
+        'portal_howto',
       ],
       applicationQuestions: [
         "Describe your experience working with diverse or vulnerable populations in a community setting.", 

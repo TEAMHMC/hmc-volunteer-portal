@@ -499,7 +499,8 @@ export interface ServiceOffering {
 export interface Message {
     id: string;
     senderId: string;
-    receiverId: string;
+    sender?: string;
+    recipientId: string;
     content: string;
     timestamp: string;
     read: boolean;

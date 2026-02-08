@@ -10,6 +10,7 @@ import {
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
+import { hasCompletedModule } from '../constants';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
 import CommunicationHub from './CommunicationHub';
@@ -139,20 +140,25 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     handleUpdateUser({ ...user, hasCompletedSystemTour: true });
   };
 
-  // Core Volunteer Training - ALL 5 modules required for operational access
+  // Core Volunteer Training — Tier 1 + Tier 2 required for operational access
   const CORE_TRAINING_MODULES = [
-    'hmc_get_to_know_us',
-    'hipaa_staff_2025',
+    'hmc_orientation',
+    'hmc_champion',
+    'hipaa_nonclinical',
     'cmhw_part1',
     'cmhw_part2',
-    'hmc_survey_training'
+    'survey_general',
+    'portal_howto',
   ];
 
   const completedTrainingIds = displayUser.completedTrainingIds || [];
-  const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => completedTrainingIds.includes(id));
+  const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => hasCompletedModule(completedTrainingIds, id));
 
-  // Access to operational tools requires: Core Training complete (admins bypass this)
-  const canAccessOperationalTools = displayUser.isAdmin || hasCompletedCoreTraining;
+  // isOperationalEligible = approvedOperationalRole AND tier2Complete
+  // Champions (non-operational) see a limited view until role approved + training complete
+  const isOperationalEligible = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && hasCompletedCoreTraining);
+  // Legacy alias
+  const canAccessOperationalTools = isOperationalEligible;
 
   const navItems = useMemo(() => {
     let items = [
@@ -338,7 +344,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   )}
                 </div>
             </header>
-            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} />}
+            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} />}
             <div className="pt-8 border-t border-zinc-100">
                <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} shifts={shifts} setShifts={setShifts} />
             </div>
@@ -444,7 +450,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     </div>
 )};
 
-const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining }) => {
+const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible }) => {
   // Get upcoming shifts the user is assigned to
   const upcomingShifts = shifts
     .filter(s => user.assignedShiftIds?.includes(s.id) && new Date(s.startTime) > new Date())
@@ -463,16 +469,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   const hasUpcomingMission = nextShift || nextRsvpedEvent;
   const pendingTasks = user.tasks?.filter(t => t.status === 'pending') || [];
 
-  // If core training not complete, show training required message
-  if (!hasCompletedCoreTraining) {
-    const completedCount = [
-      user.completedTrainingIds?.includes('hmc_get_to_know_us'),
-      user.completedTrainingIds?.includes('hipaa_staff_2025'),
-      user.completedTrainingIds?.includes('cmhw_part1'),
-      user.completedTrainingIds?.includes('cmhw_part2'),
-      user.completedTrainingIds?.includes('hmc_survey_training')
-    ].filter(Boolean).length;
-    const progress = (completedCount / 5) * 100;
+  // If not operationally eligible, show training/approval required message
+  if (!isOperationalEligible) {
+    const coreModules = ['hmc_orientation', 'hmc_champion', 'hipaa_nonclinical', 'cmhw_part1', 'cmhw_part2', 'survey_general', 'portal_howto'];
+    const completedCount = coreModules.filter(id => hasCompletedModule(user.completedTrainingIds || [], id)).length;
+    const progress = (completedCount / coreModules.length) * 100;
+    const trainingDone = hasCompletedCoreTraining;
+    const roleApproved = user.coreVolunteerStatus === true;
 
     return (
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -486,9 +489,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                   <GraduationCap size={28} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-amber-900 tracking-tight mb-2">Complete Your Training</h3>
+                  <h3 className="text-2xl font-bold text-amber-900 tracking-tight mb-2">
+                    {trainingDone && !roleApproved ? 'Awaiting Role Approval' : 'Complete Your Training'}
+                  </h3>
                   <p className="text-amber-700 font-medium">
-                    {completedCount} of 5 modules completed
+                    {trainingDone && !roleApproved
+                      ? 'Your training is complete! Your role application is being reviewed.'
+                      : `${completedCount} of ${coreModules.length} modules completed`}
                   </p>
                 </div>
               </div>
@@ -501,19 +508,23 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
               </div>
 
               <p className="text-amber-800 font-medium leading-relaxed mb-6">
-                Complete all required modules to unlock community missions and start making an impact.
+                {trainingDone && !roleApproved
+                  ? 'As an HMC Champion, you can explore Impact Hub, connect with the community, and participate in non-operational activities while your role is reviewed.'
+                  : 'Complete all required modules to unlock community missions and start making an impact.'}
               </p>
 
               {/* Training Checklist */}
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-amber-200/50 mb-6 space-y-3">
                 {[
-                  { id: 'hmc_get_to_know_us', label: 'HMC Orientation' },
-                  { id: 'hipaa_staff_2025', label: 'HIPAA Training' },
+                  { id: 'hmc_orientation', label: 'HMC Orientation' },
+                  { id: 'hmc_champion', label: 'Because You\'re a Champion' },
+                  { id: 'hipaa_nonclinical', label: 'HIPAA (Non-Clinical)' },
                   { id: 'cmhw_part1', label: 'Community Health Worker (Part 1)' },
                   { id: 'cmhw_part2', label: 'Community Health Worker (Part 2)' },
-                  { id: 'hmc_survey_training', label: 'Survey Administration' }
+                  { id: 'survey_general', label: 'Survey & Data Collection' },
+                  { id: 'portal_howto', label: 'Portal How-To' },
                 ].map(item => {
-                  const isComplete = user.completedTrainingIds?.includes(item.id);
+                  const isComplete = hasCompletedModule(user.completedTrainingIds || [], item.id);
                   return (
                     <div key={item.id} className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${isComplete ? 'bg-emerald-50' : ''}`}>
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isComplete ? 'bg-emerald-500 text-white' : 'bg-amber-200 text-amber-400'}`}>
