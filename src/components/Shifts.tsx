@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
-import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2 } from 'lucide-react';
+import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { EVENT_CATEGORIES } from '../constants';
 import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
@@ -305,6 +305,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Opportunity | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const getOpp = (id: string) => opportunities.find(o => o.id === id);
 
@@ -361,6 +362,24 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     if (!showStaffingModal) return;
     alert(`Assigned volunteer ${volunteerId} to the ${showStaffingModal.role} shift.`);
     setShowStaffingModal(null);
+  };
+
+  const handleSyncFromFinder = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await apiService.post('/api/events/sync-from-finder', {});
+      if (result.events?.length > 0) setOpportunities(prev => [...prev, ...result.events]);
+      if (result.shifts?.length > 0) setShifts(prev => [...prev, ...result.shifts]);
+      setToastMsg(`Synced ${result.synced} new, ${result.updated} updated, ${result.skipped} unchanged`);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+    } catch (e: any) {
+      setToastMsg(e.message || 'Sync failed');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleDeleteEvent = async (oppId: string) => {
@@ -538,12 +557,15 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       
       {activeTab === 'manage' && userMode === 'admin' && (
         <div>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
              <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:bg-zinc-800 transition-colors">
                   <Plus size={16} /> Create New Event
               </button>
-              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:opacity-90 transition-opacity">
-                  <Upload size={16} /> Bulk Import Events
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
+              </button>
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-white border-2 border-zinc-200 text-zinc-700 rounded-2xl text-sm font-black uppercase tracking-widest shadow-sm hover:border-zinc-300 transition-colors">
+                  <Upload size={16} /> Bulk Import CSV
               </button>
            </div>
 

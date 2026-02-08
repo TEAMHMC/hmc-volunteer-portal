@@ -2372,10 +2372,11 @@ app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Res
 
 // --- PUBLIC EVENT ENDPOINTS (for Event-Finder-Tool integration) ---
 
-// GET /api/public/events - Public endpoint to get approved events
+// GET /api/public/events - Public endpoint to get approved, public-facing events
 app.get('/api/public/events', async (req: Request, res: Response) => {
     try {
         const today = new Date().toISOString().split('T')[0];
+        const includeAll = req.query.all === 'true'; // ?all=true to get all approved (for internal tools)
 
         // Query approved events with date >= today
         const snapshot = await db.collection('opportunities')
@@ -2384,26 +2385,29 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
             .orderBy('date', 'asc')
             .get();
 
-        const events = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                title: data.title || data.name || 'Untitled Event',
-                date: data.date,
-                dateDisplay: data.dateDisplay || data.date,
-                time: data.time || data.startTime || 'TBD',
-                location: data.location || data.serviceLocation || 'TBD',
-                city: data.city || 'Los Angeles',
-                address: data.address || data.location || '',
-                program: data.program || data.category || 'Community Health',
-                lat: data.locationCoordinates?.lat || data.lat || 34.0522,
-                lng: data.locationCoordinates?.lng || data.lng || -118.2437,
-                description: data.description || '',
-                saveTheDate: data.saveTheDate || false
-            };
-        });
+        const events = snapshot.docs
+            .filter(doc => includeAll || doc.data().isPublicFacing !== false)
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    title: data.title || data.name || 'Untitled Event',
+                    date: data.date,
+                    dateDisplay: data.dateDisplay || data.date,
+                    time: data.time || data.startTime || 'TBD',
+                    location: data.location || data.serviceLocation || 'TBD',
+                    city: data.city || 'Los Angeles',
+                    address: data.address || data.location || '',
+                    program: data.program || data.category || 'Community Health',
+                    lat: data.locationCoordinates?.lat || data.lat || 34.0522,
+                    lng: data.locationCoordinates?.lng || data.lng || -118.2437,
+                    description: data.description || '',
+                    saveTheDate: data.saveTheDate || false,
+                    flyerUrl: data.flyerUrl || undefined,
+                };
+            });
 
-        console.log(`[PUBLIC EVENTS] Returned ${events.length} approved events`);
+        console.log(`[PUBLIC EVENTS] Returned ${events.length} approved events (includeAll=${includeAll})`);
         res.json(events);
     } catch (error: any) {
         console.error('[PUBLIC EVENTS] Failed to fetch events:', error);
@@ -3402,6 +3406,159 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
     } catch (error: any) {
         console.error('[EVENTS] Bulk import failed:', error);
         res.status(500).json({ error: error.message || 'Failed to import events' });
+    }
+});
+
+// Sync events from Event Finder Tool (Google Sheets via Apps Script)
+app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const userProfile = (req as any).user?.profile;
+        if (!userProfile?.isAdmin) {
+            return res.status(403).json({ error: 'Only admins can sync events' });
+        }
+
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNSjtr83ytQRy-3TEgtNNCfWW3XYWKCjOzvI8MsUmsDgDsJGe2iw-eZiZcJ4zuuSuf/exec';
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`);
+        if (!response.ok) {
+            return res.status(502).json({ error: 'Failed to reach Event Finder backend' });
+        }
+
+        const data = await response.json() as { success?: boolean; events?: any[] };
+        if (!data.success || !Array.isArray(data.events) || data.events.length === 0) {
+            return res.json({ success: true, synced: 0, skipped: 0, message: 'No events found in Event Finder Tool' });
+        }
+
+        // Get existing opportunities to avoid duplicates (match by syncSourceId or title+date)
+        const existingSnap = await db.collection('opportunities').get();
+        const existingEvents = existingSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+        let synced = 0;
+        let skipped = 0;
+        let updated = 0;
+        const syncedEvents: any[] = [];
+        const syncedShifts: any[] = [];
+
+        for (const event of data.events) {
+            if (!event.title || !event.date) { skipped++; continue; }
+
+            // Check for existing event by syncSourceId or title+date match
+            const existing = existingEvents.find(e =>
+                e.syncSourceId === event.id ||
+                (e.title === event.title && e.date === event.date)
+            );
+
+            if (existing) {
+                // Update existing event with latest data from Event Finder
+                const updates: any = {};
+                if (event.time && event.time !== existing.time) updates.time = event.time;
+                if (event.address && event.address !== existing.address) updates.address = event.address;
+                if (event.location && event.location !== (existing.serviceLocation || existing.location)) updates.serviceLocation = event.location;
+                if (event.description && event.description !== existing.description) updates.description = event.description;
+                if (event.flyerUrl && event.flyerUrl !== existing.flyerUrl) updates.flyerUrl = event.flyerUrl;
+                if (event.program && event.program !== existing.category) updates.category = event.program;
+
+                if (Object.keys(updates).length > 0) {
+                    updates.lastSyncedAt = new Date().toISOString();
+                    await db.collection('opportunities').doc(existing.id).update(updates);
+                    updated++;
+                } else {
+                    skipped++;
+                }
+                continue;
+            }
+
+            // Parse time string to extract start/end times
+            let startTime = '09:00:00';
+            let endTime = '14:00:00';
+            if (event.time && event.time !== 'TBD') {
+                const timeMatch = event.time.match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+                if (timeMatch) {
+                    let hours = parseInt(timeMatch[1].split(':')[0]);
+                    const mins = timeMatch[1].split(':')[1];
+                    if (timeMatch[2]?.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                    if (timeMatch[2]?.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                    startTime = `${hours.toString().padStart(2, '0')}:${mins}:00`;
+                    // Default end time: 5 hours after start
+                    const endHours = Math.min(hours + 5, 23);
+                    endTime = `${endHours.toString().padStart(2, '0')}:${mins}:00`;
+                }
+                // Check for range format "10:00 AM - 2:00 PM"
+                const rangeMatch = event.time.match(/(\d{1,2}:\d{2})\s*(AM|PM)?\s*[-–]\s*(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+                if (rangeMatch) {
+                    let sHours = parseInt(rangeMatch[1].split(':')[0]);
+                    const sMins = rangeMatch[1].split(':')[1];
+                    if (rangeMatch[2]?.toUpperCase() === 'PM' && sHours !== 12) sHours += 12;
+                    if (rangeMatch[2]?.toUpperCase() === 'AM' && sHours === 12) sHours = 0;
+                    startTime = `${sHours.toString().padStart(2, '0')}:${sMins}:00`;
+
+                    let eHours = parseInt(rangeMatch[3].split(':')[0]);
+                    const eMins = rangeMatch[3].split(':')[1];
+                    if (rangeMatch[4]?.toUpperCase() === 'PM' && eHours !== 12) eHours += 12;
+                    if (rangeMatch[4]?.toUpperCase() === 'AM' && eHours === 12) eHours = 0;
+                    endTime = `${eHours.toString().padStart(2, '0')}:${eMins}:00`;
+                }
+            }
+
+            const opportunity = {
+                title: event.title,
+                description: event.description || '',
+                category: event.program || 'Community Health',
+                serviceLocation: event.location || event.city || 'TBD',
+                address: event.address || '',
+                date: event.date,
+                dateDisplay: event.dateDisplay || event.date,
+                time: event.time || 'TBD',
+                isPublic: true,
+                isPublicFacing: false, // Default: NOT public-facing until admin marks it
+                urgency: 'medium' as const,
+                requiredSkills: [],
+                slotsTotal: 10,
+                slotsFilled: 0,
+                staffingQuotas: [{ role: 'Core Volunteer', count: 10, filled: 0 }],
+                tenantId: 'hmc-health',
+                approvalStatus: 'approved',
+                locationCoordinates: (event.lat && event.lng) ? { lat: event.lat, lng: event.lng } : undefined,
+                flyerUrl: event.flyerUrl || undefined,
+                syncSource: 'event-finder-tool',
+                syncSourceId: event.id,
+                lastSyncedAt: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+            };
+
+            const docRef = await db.collection('opportunities').add(opportunity);
+            const opportunityId = docRef.id;
+
+            // Create a default shift
+            const shift = {
+                tenantId: 'hmc-health',
+                opportunityId,
+                roleType: 'Core Volunteer',
+                slotsTotal: 10,
+                slotsFilled: 0,
+                assignedVolunteerIds: [],
+                startTime: `${event.date}T${startTime}`,
+                endTime: `${event.date}T${endTime}`,
+            };
+            const shiftRef = await db.collection('shifts').add(shift);
+
+            syncedEvents.push({ id: opportunityId, ...opportunity });
+            syncedShifts.push({ id: shiftRef.id, ...shift });
+            synced++;
+        }
+
+        console.log(`[SYNC] Event Finder sync complete: ${synced} new, ${updated} updated, ${skipped} skipped`);
+        res.json({
+            success: true,
+            synced,
+            updated,
+            skipped,
+            total: data.events.length,
+            events: syncedEvents,
+            shifts: syncedShifts,
+        });
+    } catch (error: any) {
+        console.error('[SYNC] Event Finder sync failed:', error);
+        res.status(500).json({ error: error.message || 'Failed to sync events' });
     }
 });
 
