@@ -466,6 +466,8 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 )};
 
 const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible }) => {
+  const getOpp = (oppId: string) => opportunities.find(o => o.id === oppId);
+
   // Get upcoming shifts the user is assigned to
   const upcomingShifts = shifts
     .filter(s => user.assignedShiftIds?.includes(s.id) && new Date(s.startTime) > new Date())
@@ -478,6 +480,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
 
   // Combine: prefer shifts if available, otherwise use opportunity data
   const nextShift = upcomingShifts[0];
+  const nextShiftOpp = nextShift ? getOpp(nextShift.opportunityId) : undefined;
   const nextRsvpedEvent = rsvpedOpportunities[0];
 
   // Determine what to show - prioritize shifts, fallback to rsvped events
@@ -585,10 +588,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
             <p className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Next Mission</p>
             {nextShift ? (
               <>
-                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextShift.roleType}</h4>
-                <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium">
+                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextShiftOpp?.title || nextShift.roleType}</h4>
+                <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
                   <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextShift.startTime).toLocaleDateString()}</span>
                   <span className="flex items-center gap-2"><Clock size={16}/> {new Date(nextShift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  {nextShiftOpp?.serviceLocation && <span className="flex items-center gap-2"><MapPin size={16}/> {nextShiftOpp.serviceLocation}</span>}
                 </div>
               </>
             ) : nextRsvpedEvent && (

@@ -3168,8 +3168,10 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
         // Create shifts for each staffing quota
         const createdShifts: any[] = [];
         const eventDate = opportunity.date || new Date().toISOString().split('T')[0];
-        const defaultStartTime = `${eventDate}T09:00:00`;
-        const defaultEndTime = `${eventDate}T14:00:00`;
+        const startTimePart = opportunity.startTime || '09:00:00';
+        const endTimePart = opportunity.endTime || '14:00:00';
+        const defaultStartTime = `${eventDate}T${startTimePart}`;
+        const defaultEndTime = `${eventDate}T${endTimePart}`;
 
         if (opportunity.staffingQuotas && opportunity.staffingQuotas.length > 0) {
             for (const quota of opportunity.staffingQuotas) {
@@ -3210,14 +3212,19 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
     }
 });
 
-// Update opportunity (for approval workflow, etc.)
+// Update opportunity (for approval workflow, editing, etc.)
 app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updates = req.body;
 
         // Security: Only allow certain fields to be updated
-        const allowedFields = ['approvalStatus', 'approvedBy', 'approvedAt', 'isPublic', 'isPublicFacing', 'urgency', 'description', 'title'];
+        const allowedFields = [
+            'approvalStatus', 'approvedBy', 'approvedAt', 'isPublic', 'isPublicFacing',
+            'urgency', 'description', 'title', 'date', 'serviceLocation', 'category',
+            'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime',
+            'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64'
+        ];
         const sanitizedUpdates: any = {};
         for (const field of allowedFields) {
             if (updates[field] !== undefined) {
@@ -3231,15 +3238,55 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
 
         await db.collection('opportunities').doc(id).update(sanitizedUpdates);
 
+        // If date or time changed, update associated shifts
+        if (sanitizedUpdates.date || sanitizedUpdates.startTime || sanitizedUpdates.endTime) {
+            const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', id).get();
+            const batch = db.batch();
+            const eventDate = sanitizedUpdates.date || (await db.collection('opportunities').doc(id).get()).data()?.date;
+            shiftsSnap.docs.forEach(shiftDoc => {
+                const shiftUpdates: any = {};
+                if (sanitizedUpdates.startTime) shiftUpdates.startTime = `${eventDate}T${sanitizedUpdates.startTime}`;
+                else if (sanitizedUpdates.date) shiftUpdates.startTime = `${eventDate}T${shiftDoc.data().startTime?.split('T')[1] || '09:00:00'}`;
+                if (sanitizedUpdates.endTime) shiftUpdates.endTime = `${eventDate}T${sanitizedUpdates.endTime}`;
+                else if (sanitizedUpdates.date) shiftUpdates.endTime = `${eventDate}T${shiftDoc.data().endTime?.split('T')[1] || '14:00:00'}`;
+                if (Object.keys(shiftUpdates).length > 0) batch.update(shiftDoc.ref, shiftUpdates);
+            });
+            await batch.commit();
+        }
+
         // Fetch and return the updated document
         const updatedDoc = await db.collection('opportunities').doc(id).get();
         const updatedData = { id: updatedDoc.id, ...updatedDoc.data() };
 
-        console.log(`[EVENTS] Updated opportunity ${id} with:`, sanitizedUpdates);
+        console.log(`[EVENTS] Updated opportunity ${id} with:`, Object.keys(sanitizedUpdates));
         res.json(updatedData);
     } catch (error) {
         console.error('[EVENTS] Failed to update opportunity:', error);
         res.status(500).json({ error: 'Failed to update event' });
+    }
+});
+
+// Delete opportunity and its associated shifts
+app.delete('/api/opportunities/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userProfile = (req as any).user?.profile;
+        if (!userProfile?.isAdmin) {
+            return res.status(403).json({ error: 'Only admins can delete events' });
+        }
+
+        // Delete associated shifts
+        const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', id).get();
+        const batch = db.batch();
+        shiftsSnap.docs.forEach(doc => batch.delete(doc.ref));
+        batch.delete(db.collection('opportunities').doc(id));
+        await batch.commit();
+
+        console.log(`[EVENTS] Deleted opportunity ${id} and ${shiftsSnap.size} associated shift(s)`);
+        res.json({ success: true, deletedShifts: shiftsSnap.size });
+    } catch (error) {
+        console.error('[EVENTS] Failed to delete opportunity:', error);
+        res.status(500).json({ error: 'Failed to delete event' });
     }
 });
 

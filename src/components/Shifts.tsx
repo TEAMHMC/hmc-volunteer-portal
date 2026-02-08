@@ -2,7 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
-import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users, Upload, X, FileText, Loader2, Download } from 'lucide-react';
+import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2 } from 'lucide-react';
+import { EVENT_CATEGORIES } from '../constants';
 import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
@@ -203,6 +204,86 @@ const BulkUploadEventsModal: React.FC<{
   );
 };
 
+// Edit Event Modal
+const EditEventModal: React.FC<{
+  event: Opportunity;
+  onClose: () => void;
+  onSave: (updates: Partial<Opportunity> & { startTime?: string; endTime?: string }) => void;
+}> = ({ event, onClose, onSave }) => {
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description || '');
+  const [date, setDate] = useState(event.date);
+  const [location, setLocation] = useState(event.serviceLocation);
+  const [category, setCategory] = useState(event.category);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('14:00');
+  const [estimatedAttendees, setEstimatedAttendees] = useState(event.estimatedAttendees || 100);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, estimatedAttendees });
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl">
+        <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+          <h2 className="text-xl font-black text-zinc-900">Edit Event</h2>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={18} className="text-zinc-400" /></button>
+        </div>
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 mb-1">Title</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 mb-1">Description</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full h-20 p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-1">Event Type</label>
+              <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+                {EVENT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-1">Location</label>
+              <input type="text" value={location} onChange={e => setLocation(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-1">Date</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-1">Start Time</label>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-1">End Time</label>
+              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 mb-1">Estimated Attendees</label>
+            <input type="number" value={estimatedAttendees} onChange={e => setEstimatedAttendees(parseInt(e.target.value) || 0)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+          </div>
+        </div>
+        <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3">
+          <button onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-bold text-sm">Cancel</button>
+          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50">
+            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface ShiftsProps {
   userMode: 'volunteer' | 'admin';
   user: Volunteer;
@@ -223,6 +304,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [showEventBuilder, setShowEventBuilder] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string } | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Opportunity | null>(null);
   
   const getOpp = (id: string) => opportunities.find(o => o.id === id);
 
@@ -277,9 +359,42 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   const handleAssignVolunteer = async (volunteerId: string) => {
     if (!showStaffingModal) return;
-    // In a real app, you would find the specific shift and update it.
     alert(`Assigned volunteer ${volunteerId} to the ${showStaffingModal.role} shift.`);
     setShowStaffingModal(null);
+  };
+
+  const handleDeleteEvent = async (oppId: string) => {
+    if (!confirm('Are you sure you want to delete this event? This will also delete all associated shifts.')) return;
+    try {
+      await apiService.delete(`/api/opportunities/${oppId}`);
+      setOpportunities(prev => prev.filter(o => o.id !== oppId));
+      setShifts(prev => prev.filter(s => s.opportunityId !== oppId));
+      setToastMsg('Event deleted successfully.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (e) {
+      console.error('Failed to delete event', e);
+      setToastMsg('Failed to delete event.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  const handleUpdateEvent = async (updates: Partial<Opportunity> & { startTime?: string; endTime?: string }) => {
+    if (!editingEvent) return;
+    try {
+      const result = await apiService.put(`/api/opportunities/${editingEvent.id}`, updates);
+      setOpportunities(prev => prev.map(o => o.id === editingEvent.id ? { ...o, ...result } : o));
+      setEditingEvent(null);
+      setToastMsg('Event updated successfully.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (e) {
+      console.error('Failed to update event', e);
+      setToastMsg('Failed to update event.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
   
   if (selectedShiftId) {
@@ -405,6 +520,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
          />
        )}
        {showStaffingModal && <StaffingSuggestions {...showStaffingModal} allVolunteers={allVolunteers} assignedVolunteerIds={[]} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
+       {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
@@ -495,6 +611,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                       <div className="min-w-0">
                         <h3 className="font-bold truncate">{opp.title}</h3>
                         <p className="text-xs text-zinc-400">{new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} • {opp.serviceLocation}</p>
+                        <p className="text-[10px] text-zinc-300 font-bold mt-1">{opp.category}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase shrink-0 ${
                         opp.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
@@ -514,6 +631,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           </div>
                         </div>
                       ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center gap-2">
+                      <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold transition-colors">
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button onClick={() => handleDeleteEvent(opp.id)} className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg text-xs font-bold transition-colors">
+                        <Trash2 size={12} /> Delete
+                      </button>
                     </div>
                  </div>
               ))}

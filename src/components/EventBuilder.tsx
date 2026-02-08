@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Opportunity, ServiceOffering } from '../types';
-import { SERVICE_OFFERINGS } from '../constants';
+import { SERVICE_OFFERINGS, EVENT_CATEGORIES } from '../constants';
 import { geminiService } from '../services/geminiService';
 import { APP_CONFIG } from '../config';
 import { X, Calendar, MapPin, Users, Plus, Trash2, Save, Loader2, CheckCircle, Package, Sparkles, Copy, Check, Image, Upload, AlertTriangle, ShieldCheck, Tent, Stethoscope, ClipboardList } from 'lucide-react';
@@ -49,12 +49,14 @@ interface EventBuilderProps {
 }
 
 const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
-    const [eventData, setEventData] = useState<Partial<Omit<Opportunity, 'id'>>>({
+    const [eventData, setEventData] = useState<Partial<Omit<Opportunity, 'id'>> & { startTime?: string; endTime?: string }>({
         title: '',
         description: '',
         category: 'Health Fair',
         serviceLocation: '',
         date: new Date().toISOString().split('T')[0],
+        startTime: '09:00',
+        endTime: '14:00',
         serviceOfferingIds: [],
         staffingQuotas: [],
         isPublic: true,
@@ -281,8 +283,30 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                         <input type="text" placeholder="Event Title" value={eventData.title} onChange={e => setEventData({...eventData, title: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
                         <textarea placeholder="Description" value={eventData.description} onChange={e => setEventData({...eventData, description: e.target.value})} className="w-full h-24 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
                         <div className="grid grid-cols-2 gap-4">
-                            <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
-                            <input type="text" placeholder="Location (e.g., East LA Library)" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1">Event Type</label>
+                                <select value={eventData.category} onChange={e => setEventData({...eventData, category: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+                                    {EVENT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1">Location</label>
+                                <input type="text" placeholder="e.g., East LA Library" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1">Date</label>
+                                <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1">Start Time</label>
+                                <input type="time" value={eventData.startTime || '09:00'} onChange={e => setEventData({...eventData, startTime: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1">End Time</label>
+                                <input type="time" value={eventData.endTime || '14:00'} onChange={e => setEventData({...eventData, endTime: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                            </div>
                         </div>
 
                         {/* Event Flyer Upload */}

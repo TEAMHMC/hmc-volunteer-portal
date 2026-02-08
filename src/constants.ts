@@ -310,35 +310,146 @@ export const SUPPORT_TICKETS: SupportTicket[] = [];
 
 export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
   {
-    id: 'workshop-event-ops',
-    name: 'Workshop / Event Operations',
+    id: 'health-fair-ops',
+    name: 'Health Fair Operations',
     stages: {
       setup: {
         title: 'Pre-Event Setup',
         items: [
-          { id: 'we-s-1', text: 'Assist with event space setup (tables, chairs, signage)' },
-          { id: 'we-s-2', text: 'Prepare registration table: sign-in sheets, materials, pens' },
-          { id: 'we-s-3', text: 'Confirm all materials are available and organized' },
+          { id: 'hf-s-1', text: 'Set up canopy/tent, tables, chairs, and signage' },
+          { id: 'hf-s-2', text: 'Prepare registration and intake station' },
+          { id: 'hf-s-3', text: 'Set up health screening stations (BP, glucose, BMI)' },
+          { id: 'hf-s-4', text: 'Test all medical equipment and confirm supplies' },
+          { id: 'hf-s-5', text: 'Distribute volunteer role assignments and lanyards' },
         ],
       },
       live_ops: {
         title: 'During Event',
         items: [
-          { id: 'we-lo-1', text: 'Greet and sign-in participants' },
-          { id: 'we-lo-2', text: 'Distribute event materials and goodie bags' },
-          { id: 'we-lo-3', text: 'Track attendance count' },
-          { id: 'we-lo-4', text: 'Take photos (only with consent)' },
-          { id: 'we-lo-5', text: 'Maintain a tidy and welcoming environment' },
+          { id: 'hf-lo-1', text: 'Greet and register participants at intake' },
+          { id: 'hf-lo-2', text: 'Guide participants through screening stations' },
+          { id: 'hf-lo-3', text: 'Conduct health screenings per clinical protocols' },
+          { id: 'hf-lo-4', text: 'Distribute health education materials' },
+          { id: 'hf-lo-5', text: 'Track attendance and screening counts' },
+          { id: 'hf-lo-6', text: 'Take photos (only with consent)' },
         ],
       },
       breakdown: {
         title: 'Post-Event Breakdown',
         items: [
-          { id: 'we-b-1', text: 'Collect all sign-in sheets and feedback forms' },
-          { id: 'we-b-2', text: 'Track final count of distributed incentives/goodie bags' },
-          { id: 'we-b-3', text: 'Pack up all materials and supplies' },
-          { id: 'we-b-4', text: 'Wipe down tables and clean up the area' },
-          { id: 'we-b-5', text: 'Debrief with event lead' },
+          { id: 'hf-b-1', text: 'Collect all sign-in sheets and screening records' },
+          { id: 'hf-b-2', text: 'Properly dispose of medical waste (sharps, gloves)' },
+          { id: 'hf-b-3', text: 'Pack up medical equipment and supplies' },
+          { id: 'hf-b-4', text: 'Clean and sanitize all surfaces' },
+          { id: 'hf-b-5', text: 'Debrief with clinical lead and event coordinator' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'street-medicine-ops',
+    name: 'Street Medicine Outreach Operations',
+    stages: {
+      setup: {
+        title: 'Pre-Outreach Preparation',
+        items: [
+          { id: 'sm-s-1', text: 'Review route plan and safety briefing' },
+          { id: 'sm-s-2', text: 'Pack medical supplies, naloxone kits, and OraQuick tests' },
+          { id: 'sm-s-3', text: 'Confirm mobile hotspot and tablets are charged' },
+          { id: 'sm-s-4', text: 'Prepare resource cards and referral information' },
+          { id: 'sm-s-5', text: 'Distribute PPE (gloves, masks, hand sanitizer)' },
+        ],
+      },
+      live_ops: {
+        title: 'During Outreach',
+        items: [
+          { id: 'sm-lo-1', text: 'Approach community members respectfully and introduce HMC' },
+          { id: 'sm-lo-2', text: 'Offer available services (wound care, screenings, supplies)' },
+          { id: 'sm-lo-3', text: 'Distribute naloxone kits with verbal instructions' },
+          { id: 'sm-lo-4', text: 'Conduct surveys with informed consent' },
+          { id: 'sm-lo-5', text: 'Document encounters and services provided' },
+          { id: 'sm-lo-6', text: 'Provide referral cards for follow-up care' },
+        ],
+      },
+      breakdown: {
+        title: 'Post-Outreach Wrap-Up',
+        items: [
+          { id: 'sm-b-1', text: 'Log total encounters, services, and supplies distributed' },
+          { id: 'sm-b-2', text: 'Properly dispose of medical waste' },
+          { id: 'sm-b-3', text: 'Account for all equipment and unused supplies' },
+          { id: 'sm-b-4', text: 'Complete post-outreach safety check-in' },
+          { id: 'sm-b-5', text: 'Debrief with team lead on observations and follow-ups' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'community-run-walk-ops',
+    name: 'Community Run & Walk Operations',
+    stages: {
+      setup: {
+        title: 'Pre-Event Setup',
+        items: [
+          { id: 'rw-s-1', text: 'Set up start/finish line, course markers, and signage' },
+          { id: 'rw-s-2', text: 'Prepare registration and bib distribution table' },
+          { id: 'rw-s-3', text: 'Set up water stations along the route' },
+          { id: 'rw-s-4', text: 'Position first aid station with medical supplies' },
+          { id: 'rw-s-5', text: 'Test PA system and music' },
+        ],
+      },
+      live_ops: {
+        title: 'During Event',
+        items: [
+          { id: 'rw-lo-1', text: 'Register participants and distribute bibs/materials' },
+          { id: 'rw-lo-2', text: 'Staff water stations and cheer points along route' },
+          { id: 'rw-lo-3', text: 'Monitor participant safety and course conditions' },
+          { id: 'rw-lo-4', text: 'Distribute finisher medals/goodie bags' },
+          { id: 'rw-lo-5', text: 'Take photos at key moments (with consent)' },
+          { id: 'rw-lo-6', text: 'Track participation count' },
+        ],
+      },
+      breakdown: {
+        title: 'Post-Event Breakdown',
+        items: [
+          { id: 'rw-b-1', text: 'Remove all course markers and signage' },
+          { id: 'rw-b-2', text: 'Collect all registration forms and waivers' },
+          { id: 'rw-b-3', text: 'Clean up water stations and dispose of waste' },
+          { id: 'rw-b-4', text: 'Pack up all equipment and supplies' },
+          { id: 'rw-b-5', text: 'Debrief with event coordinator' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'wellness-workshop-ops',
+    name: 'Wellness Workshop / Education Operations',
+    stages: {
+      setup: {
+        title: 'Pre-Event Setup',
+        items: [
+          { id: 'ww-s-1', text: 'Set up venue: tables, chairs, and presentation equipment' },
+          { id: 'ww-s-2', text: 'Prepare registration table: sign-in sheets, materials, pens' },
+          { id: 'ww-s-3', text: 'Confirm all workshop materials and handouts are ready' },
+        ],
+      },
+      live_ops: {
+        title: 'During Workshop',
+        items: [
+          { id: 'ww-lo-1', text: 'Greet and sign-in participants' },
+          { id: 'ww-lo-2', text: 'Distribute workshop materials and handouts' },
+          { id: 'ww-lo-3', text: 'Track attendance count' },
+          { id: 'ww-lo-4', text: 'Take photos (only with consent)' },
+          { id: 'ww-lo-5', text: 'Maintain a tidy and welcoming environment' },
+        ],
+      },
+      breakdown: {
+        title: 'Post-Workshop Breakdown',
+        items: [
+          { id: 'ww-b-1', text: 'Collect all sign-in sheets and feedback forms' },
+          { id: 'ww-b-2', text: 'Track final count of distributed materials' },
+          { id: 'ww-b-3', text: 'Pack up all materials and supplies' },
+          { id: 'ww-b-4', text: 'Clean up the venue' },
+          { id: 'ww-b-5', text: 'Debrief with event lead' },
         ],
       },
     },
@@ -377,7 +488,73 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
       },
     },
   },
+  {
+    id: 'tabling-outreach-ops',
+    name: 'Tabling & Community Outreach Operations',
+    stages: {
+      setup: {
+        title: 'Setup',
+        items: [
+          { id: 'to-s-1', text: 'Set up table, banner, and display materials' },
+          { id: 'to-s-2', text: 'Organize flyers, brochures, and resource cards' },
+          { id: 'to-s-3', text: 'Prepare sign-up sheets and QR codes' },
+          { id: 'to-s-4', text: 'Set out giveaway items (pens, totes, etc.)' },
+        ],
+      },
+      live_ops: {
+        title: 'During Outreach',
+        items: [
+          { id: 'to-lo-1', text: 'Engage passersby and share HMC mission' },
+          { id: 'to-lo-2', text: 'Distribute flyers and resource information' },
+          { id: 'to-lo-3', text: 'Collect contact info from interested community members' },
+          { id: 'to-lo-4', text: 'Answer questions about upcoming events and programs' },
+          { id: 'to-lo-5', text: 'Track engagement count and materials distributed' },
+        ],
+      },
+      breakdown: {
+        title: 'Breakdown',
+        items: [
+          { id: 'to-b-1', text: 'Collect all sign-up sheets and contact forms' },
+          { id: 'to-b-2', text: 'Count remaining materials and note restock needs' },
+          { id: 'to-b-3', text: 'Pack up table, banner, and supplies' },
+          { id: 'to-b-4', text: 'Debrief with outreach lead' },
+        ],
+      },
+    },
+  },
 ];
+
+// Map event categories to their checklist template IDs
+export const EVENT_TYPE_TEMPLATE_MAP: Record<string, string> = {
+  'Health Fair': 'health-fair-ops',
+  'Wellness': 'health-fair-ops',
+  'Street Medicine': 'street-medicine-ops',
+  'Community Run': 'community-run-walk-ops',
+  'Community Walk': 'community-run-walk-ops',
+  'Run & Walk': 'community-run-walk-ops',
+  'Community Run & Walk': 'community-run-walk-ops',
+  '5K': 'community-run-walk-ops',
+  'Workshop': 'wellness-workshop-ops',
+  'Wellness Education': 'wellness-workshop-ops',
+  'Education': 'wellness-workshop-ops',
+  'Survey': 'survey-station-ops',
+  'Survey Collection': 'survey-station-ops',
+  'Tabling': 'tabling-outreach-ops',
+  'Outreach': 'tabling-outreach-ops',
+  'Community Outreach': 'tabling-outreach-ops',
+};
+
+// Ordered list of event categories for EventBuilder dropdown
+export const EVENT_CATEGORIES = [
+  'Health Fair',
+  'Street Medicine',
+  'Wellness Education',
+  'Community Run & Walk',
+  'Community Outreach',
+  'Tabling',
+  'Survey Collection',
+  'Workshop',
+] as const;
 
 // Board Member Governance Documents & Required Forms
 export const BOARD_GOVERNANCE_DOCS = {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField } from '../types';
-import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS } from '../constants';
+import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
@@ -27,12 +27,23 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
-  const checklistTemplate = useMemo(() => 
-    opportunity.category.includes('Survey') 
-      ? CHECKLIST_TEMPLATES.find(t => t.id === 'survey-station-ops')! 
-      : CHECKLIST_TEMPLATES.find(t => t.id === 'workshop-event-ops')!,
-    [opportunity.category]
-  );
+  const checklistTemplate = useMemo(() => {
+    // Match template by event category using the type map
+    const templateId = EVENT_TYPE_TEMPLATE_MAP[opportunity.category];
+    if (templateId) {
+      const match = CHECKLIST_TEMPLATES.find(t => t.id === templateId);
+      if (match) return match;
+    }
+    // Fallback: partial match on category keywords
+    for (const [key, id] of Object.entries(EVENT_TYPE_TEMPLATE_MAP)) {
+      if (opportunity.category.toLowerCase().includes(key.toLowerCase())) {
+        const match = CHECKLIST_TEMPLATES.find(t => t.id === id);
+        if (match) return match;
+      }
+    }
+    // Final fallback: wellness workshop (generic)
+    return CHECKLIST_TEMPLATES.find(t => t.id === 'wellness-workshop-ops') || CHECKLIST_TEMPLATES[0];
+  }, [opportunity.category]);
     
   const event = useMemo(() => EVENTS.find(e => `opp-${e.id}` === opportunity.id), [opportunity.id]);
   const surveyKit = useMemo(() => SURVEY_KITS.find(s => s.id === event?.surveyKitId) || SURVEY_KITS[0], [event]);
