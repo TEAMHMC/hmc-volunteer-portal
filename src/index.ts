@@ -4272,8 +4272,9 @@ app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response)
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    if (!userData?.isAdmin && userData?.role !== 'Board Member') {
-      return res.status(403).json({ error: 'Only admins and board members can manage meetings' });
+    const meetingRoles = ['Board Member', 'Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'];
+    if (!userData?.isAdmin && !meetingRoles.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins, board members, coordinators, and leads can manage meetings' });
     }
     const { id, ...meetingData } = req.body;
     if (id) {

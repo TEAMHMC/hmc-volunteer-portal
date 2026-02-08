@@ -13,6 +13,7 @@ import {
 
 interface BoardGovernanceProps {
   user: Volunteer;
+  meetingsOnly?: boolean;
 }
 
 interface BoardMeeting {
@@ -147,7 +148,7 @@ Respectfully submitted,
 [Secretary Name], Board Secretary
 Date approved: [Date]`;
 
-const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
+const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly }) => {
   const [activeTab, setActiveTab] = useState<'meetings' | 'forms' | 'documents' | 'give-or-get'>('meetings');
   const [meetings, setMeetings] = useState<BoardMeeting[]>([]);
   const [showFormModal, setShowFormModal] = useState<string | null>(null);
@@ -167,6 +168,8 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
 
   const isBoardMember = user.role === 'Board Member';
   const isCAB = user.role === 'Community Advisory Board';
+  const isCoordinatorOrLead = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'].includes(user.role);
+  const canManageMeetings = user.isAdmin || isBoardMember || isCoordinatorOrLead;
 
   // Load data from API
   useEffect(() => {
@@ -306,46 +309,48 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
         <div className="relative z-10 flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-lg">
-            <Briefcase size={28} />
+            {meetingsOnly ? <CalendarDays size={28} /> : <Briefcase size={28} />}
           </div>
           <div>
-            <h2 className="text-3xl font-black tracking-tight">Board Governance Center</h2>
+            <h2 className="text-3xl font-black tracking-tight">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h2>
             <p className="text-zinc-400 mt-1">
-              {isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal
+              {meetingsOnly ? 'Schedule and manage team meetings' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal`}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex gap-2 bg-zinc-100 p-2 rounded-2xl">
-        {[
-          { id: 'meetings', label: 'Meetings', icon: CalendarDays },
-          { id: 'forms', label: 'Required Forms', icon: FileSignature },
-          { id: 'documents', label: 'Governance Docs', icon: FileText },
-          ...(isBoardMember ? [{ id: 'give-or-get', label: 'Give or Get', icon: DollarSign }] : []),
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-sm transition-all ${
-              activeTab === tab.id
-                ? 'bg-white text-zinc-900 shadow-lg'
-                : 'text-zinc-500 hover:text-zinc-700'
-            }`}
-          >
-            <tab.icon size={18} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Navigation Tabs — hidden in meetingsOnly mode */}
+      {!meetingsOnly && (
+        <div className="flex gap-2 bg-zinc-100 p-2 rounded-2xl">
+          {[
+            { id: 'meetings', label: 'Meetings', icon: CalendarDays },
+            { id: 'forms', label: 'Required Forms', icon: FileSignature },
+            { id: 'documents', label: 'Governance Docs', icon: FileText },
+            ...(isBoardMember ? [{ id: 'give-or-get', label: 'Give or Get', icon: DollarSign }] : []),
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-sm transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-zinc-900 shadow-lg'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              <tab.icon size={18} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Meetings Tab */}
-      {activeTab === 'meetings' && (
+      {(activeTab === 'meetings' || meetingsOnly) && (
         <div className="space-y-8">
           {/* Quick Actions */}
           <div className="flex gap-4 flex-wrap">
-            {(user.isAdmin || isBoardMember) && (
+            {canManageMeetings && (
               <button
                 onClick={() => setShowNewMeetingModal(true)}
                 className="flex items-center gap-3 px-6 py-4 bg-[#233DFF]/5 border border-[#233DFF]/20 text-[#233DFF] rounded-full font-bold text-sm hover:bg-[#233DFF]/10 transition-colors"
@@ -423,7 +428,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
                     </div>
                     <div className="flex flex-col items-end gap-3 shrink-0">
                       {/* Edit button for admins/board members */}
-                      {(user.isAdmin || isBoardMember) && (
+                      {canManageMeetings && (
                         <button
                           onClick={() => setEditingMeeting(meeting)}
                           className="flex items-center gap-1.5 px-3 py-1 text-zinc-400 hover:text-[#233DFF] hover:bg-[#233DFF]/5 rounded-full text-xs font-bold transition-colors"
@@ -460,7 +465,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user }) => {
                           Join Google Meet
                         </button>
                       )}
-                      {!meeting.googleMeetLink && (user.isAdmin || isBoardMember) && (
+                      {!meeting.googleMeetLink && canManageMeetings && (
                         <button
                           onClick={() => setEditingMeeting(meeting)}
                           className="flex items-center gap-2 px-4 py-2 border border-dashed border-zinc-300 text-zinc-500 rounded-full font-bold text-xs hover:border-[#233DFF] hover:text-[#233DFF] transition-colors"

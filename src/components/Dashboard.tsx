@@ -94,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
@@ -205,6 +205,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     // Add governance tab for Board Members and CAB
     if (['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
         items.push({ id: 'governance', label: 'Governance', icon: Briefcase });
+    }
+
+    // Add meetings tab for coordinators and leads
+    const meetingRoles = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'];
+    if (canAccessOperationalTools && meetingRoles.includes(displayUser.role)) {
+        items.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
     }
 
     if(displayUser.isAdmin) {
@@ -380,6 +386,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          )}
          {activeTab === 'governance' && ['Board Member', 'Community Advisory Board'].includes(displayUser.role) && (
            <BoardGovernance user={displayUser} />
+         )}
+         {activeTab === 'meetings' && (
+           <BoardGovernance user={displayUser} meetingsOnly />
          )}
          {activeTab === 'livechat' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
            <LiveChatDashboard currentUser={displayUser} />
