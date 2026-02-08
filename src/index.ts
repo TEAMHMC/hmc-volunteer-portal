@@ -139,7 +139,7 @@ app.use(helmet({
 }));
 
 // SECURITY: Restrict CORS to allowed origins
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://healthmatters.clinic,https://www.healthmatters.clinic,https://volunteer.healthmatters.clinic,http://localhost:5173,http://localhost:8080,https://hmc-volunteer-portal-172668994130.us-west2.run.app').split(',');
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://healthmatters.clinic,https://www.healthmatters.clinic,https://volunteer.healthmatters.clinic,http://localhost:5173,http://localhost:8080,https://hmc-volunteer-portal-172668994130.us-west2.run.app,https://teamhmc.github.io').split(',');
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -148,7 +148,7 @@ app.use(cors({
       return;
     }
     // Allow same-origin requests and Cloud Run URLs
-    if (ALLOWED_ORIGINS.includes(origin) || origin.includes('.run.app') || origin.includes('localhost') || origin.includes('healthmatters.clinic')) {
+    if (ALLOWED_ORIGINS.includes(origin) || origin.includes('.run.app') || origin.includes('localhost') || origin.includes('healthmatters.clinic') || origin.includes('teamhmc.github.io')) {
       callback(null, true);
     } else {
       console.warn(`[SECURITY] Blocked CORS request from: ${origin}`);
@@ -378,6 +378,17 @@ const canSendEmail = async (userId: string, type: 'alerts' | 'opportunities' | '
   } catch {
     return false;
   }
+};
+
+// --- PHONE NORMALIZATION ---
+const normalizePhone = (phone: string | undefined | null): string | null => {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  // Remove leading US country code '1' if present and result is 11 digits
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return digits.slice(1);
+  }
+  return digits.length === 10 ? digits : null;
 };
 
 // --- SMS OPT-IN HELPER ---
@@ -813,6 +824,70 @@ const EmailTemplates = {
       ${actionButton('View Event Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
     ${emailFooter()}`,
     text: `Hi ${data.coordinatorName}, ${data.volunteerName} signed up for ${data.eventTitle} on ${data.eventDate}.`
+  }),
+
+  // Public RSVP: Training Nudge (sent to matched but untrained volunteers)
+  public_rsvp_training_nudge: (data: EmailTemplateData) => ({
+    subject: `📚 Complete Your Training to Volunteer at ${data.eventTitle}`,
+    html: `${emailHeader('Almost Ready to Volunteer!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>We noticed you RSVP'd for <strong>${data.eventTitle}</strong> on <strong>${data.eventDate}</strong> — that's awesome!</p>
+      <p>To volunteer at this event (not just attend), you'll need to complete your training first. It only takes a few minutes and you'll be ready to make a real impact.</p>
+      <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0 0 8px 0;"><strong>📅 Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0;"><strong>🗓️ Date:</strong> ${data.eventDate}</p>
+      </div>
+      <p>Complete your training now so you can be part of the volunteer team:</p>
+      ${actionButton('Complete My Training', `${EMAIL_CONFIG.WEBSITE_URL}/training`)}
+      <p style="color: #6b7280;">You're already in our system — just finish your training and you'll be good to go!</p>
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, you RSVP'd for ${data.eventTitle} on ${data.eventDate}. Complete your training to volunteer at this event: ${EMAIL_CONFIG.WEBSITE_URL}/training`
+  }),
+
+  // Public RSVP: Volunteer Invite (sent to non-volunteers)
+  public_rsvp_volunteer_invite: (data: EmailTemplateData) => ({
+    subject: `💙 Thanks for Your RSVP — Want to Join Our Volunteer Team?`,
+    html: `${emailHeader('Join Our Volunteer Team!')}
+      <p>Hi ${data.rsvpName},</p>
+      <p>Thanks for RSVPing to <strong>${data.eventTitle}</strong> on <strong>${data.eventDate}</strong>! We're excited to have you there.</p>
+      <p>Did you know you can also <strong>join our volunteer team</strong>? As a Health Matters Clinic volunteer, you'll get to:</p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">Make a direct impact in your community</li>
+        <li style="margin: 8px 0;">Gain valuable experience and skills</li>
+        <li style="margin: 8px 0;">Earn volunteer hours and recognition</li>
+        <li style="margin: 8px 0;">Connect with an amazing team</li>
+      </ul>
+      ${actionButton('Apply to Volunteer', `${EMAIL_CONFIG.WEBSITE_URL}/apply`)}
+      <p style="color: #6b7280;">No pressure — we'd love to have you whether you attend as a guest or join the team!</p>
+    ${emailFooter()}`,
+    text: `Hi ${data.rsvpName}, thanks for RSVPing to ${data.eventTitle}! Want to join our volunteer team? Apply here: ${EMAIL_CONFIG.WEBSITE_URL}/apply`
+  }),
+
+  // Coordinator: Public RSVP Name Match (needs manual review)
+  coordinator_public_rsvp_name_match: (data: EmailTemplateData) => ({
+    subject: `🔍 Review Needed: Possible Volunteer Match for RSVP`,
+    html: `${emailHeader('RSVP Volunteer Match — Review Needed 🔍')}
+      <p>Hi ${data.coordinatorName},</p>
+      <p>A public RSVP was submitted that matches a volunteer by <strong>name only</strong> (no email or phone match). Please review and confirm whether this is the same person.</p>
+      <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+        <h4 style="margin: 0 0 16px 0; color: #92400e;">RSVP Details</h4>
+        <p style="margin: 0 0 8px 0;"><strong>👤 Name:</strong> ${data.rsvpName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>📧 Email:</strong> ${data.rsvpEmail}</p>
+        <p style="margin: 0 0 8px 0;"><strong>📱 Phone:</strong> ${data.rsvpPhone || 'Not provided'}</p>
+        <p style="margin: 0 0 8px 0;"><strong>📅 Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0;"><strong>🗓️ Date:</strong> ${data.eventDate}</p>
+      </div>
+      <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <h4 style="margin: 0 0 16px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">Possible Volunteer Match</h4>
+        <p style="margin: 0 0 8px 0;"><strong>👤 Name:</strong> ${data.volunteerName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>📧 Email:</strong> ${data.volunteerEmail}</p>
+        <p style="margin: 0 0 8px 0;"><strong>📱 Phone:</strong> ${data.volunteerPhone || 'Not on file'}</p>
+        <p style="margin: 0;"><strong>🔖 Status:</strong> ${data.volunteerStatus}</p>
+      </div>
+      <p>If this is the same person, you can manually register them for the event in the admin portal.</p>
+      ${actionButton('Review in Admin Portal', `${EMAIL_CONFIG.WEBSITE_URL}/admin/volunteers`)}
+    ${emailFooter()}`,
+    text: `Review needed: RSVP from ${data.rsvpName} (${data.rsvpEmail}) for ${data.eventTitle} may match volunteer ${data.volunteerName} (${data.volunteerEmail}). Name-only match — please verify.`
   }),
 
   // Support Ticket Notification
@@ -2278,6 +2353,210 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
     }
 });
 
+// --- VOLUNTEER MATCH FOR PUBLIC RSVPS ---
+const processVolunteerMatch = async (
+  rsvpId: string,
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string }
+): Promise<void> => {
+  try {
+    const { eventId, eventTitle, eventDate, name, email, phone } = rsvpData;
+    const rsvpRef = db.collection('public_rsvps').doc(rsvpId);
+
+    // 1. Email match (strongest) — case-insensitive
+    const emailLower = email.toLowerCase();
+    const emailSnap = await db.collection('volunteers')
+      .where('email', '==', emailLower)
+      .limit(1)
+      .get();
+
+    if (!emailSnap.empty) {
+      const vol = emailSnap.docs[0];
+      const volData = vol.data();
+      await handleVolunteerMatch(rsvpRef, vol.id, volData, 'email', rsvpData);
+      return;
+    }
+
+    // 2. Phone match (strong) — normalized digits
+    const normalizedRsvpPhone = normalizePhone(phone);
+    if (normalizedRsvpPhone) {
+      const allVolunteers = await db.collection('volunteers').get();
+      for (const vol of allVolunteers.docs) {
+        const volData = vol.data();
+        const normalizedVolPhone = normalizePhone(volData.phone);
+        const normalizedVolHome = normalizePhone(volData.homePhone);
+        if (
+          (normalizedVolPhone && normalizedVolPhone === normalizedRsvpPhone) ||
+          (normalizedVolHome && normalizedVolHome === normalizedRsvpPhone)
+        ) {
+          await handleVolunteerMatch(rsvpRef, vol.id, volData, 'phone', rsvpData);
+          return;
+        }
+      }
+    }
+
+    // 3. Name match (weak — flagged for review)
+    const rsvpNameParts = name.trim().toLowerCase().split(/\s+/);
+    if (rsvpNameParts.length >= 2) {
+      const rsvpFirst = rsvpNameParts[0];
+      const rsvpLast = rsvpNameParts[rsvpNameParts.length - 1];
+      const allVolunteers = await db.collection('volunteers').get();
+      for (const vol of allVolunteers.docs) {
+        const v = vol.data();
+        const legalMatch =
+          (v.legalFirstName || '').toLowerCase() === rsvpFirst &&
+          (v.legalLastName || '').toLowerCase() === rsvpLast;
+        const preferredMatch =
+          (v.preferredFirstName || '').toLowerCase() === rsvpFirst &&
+          (v.preferredLastName || '').toLowerCase() === rsvpLast;
+        const legacyName = (v.name || '').trim().toLowerCase();
+        const legacyMatch = legacyName === name.trim().toLowerCase();
+
+        if (legalMatch || preferredMatch || legacyMatch) {
+          // Name-only match — flag for coordinator review
+          await rsvpRef.update({
+            volunteerMatch: {
+              matchType: 'name',
+              volunteerId: vol.id,
+              autoRegistered: false,
+              flaggedForReview: true
+            }
+          });
+
+          // Notify coordinators
+          const coordinatorsSnap = await db.collection('volunteers')
+            .where('role', 'in', ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator'])
+            .where('status', '==', 'active')
+            .get();
+
+          for (const coord of coordinatorsSnap.docs) {
+            const coordData = coord.data();
+            if (coordData.email) {
+              await EmailService.send('coordinator_public_rsvp_name_match', {
+                toEmail: coordData.email,
+                coordinatorName: coordData.name || coordData.legalFirstName || 'Coordinator',
+                rsvpName: name,
+                rsvpEmail: email,
+                rsvpPhone: phone || '',
+                eventTitle,
+                eventDate,
+                volunteerName: v.name || `${v.legalFirstName} ${v.legalLastName}`.trim(),
+                volunteerEmail: v.email || '',
+                volunteerPhone: v.phone || '',
+                volunteerStatus: v.status || 'unknown'
+              });
+            }
+          }
+
+          console.log(`[PUBLIC RSVP] Name-only match: RSVP ${rsvpId} → volunteer ${vol.id} (flagged for review)`);
+          return;
+        }
+      }
+    }
+
+    // 4. No match — send volunteer invite email
+    await rsvpRef.update({
+      volunteerMatch: {
+        matchType: 'none',
+        volunteerId: null,
+        autoRegistered: false,
+        flaggedForReview: false
+      }
+    });
+
+    await EmailService.send('public_rsvp_volunteer_invite', {
+      toEmail: email,
+      rsvpName: name,
+      eventTitle,
+      eventDate
+    });
+
+    console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${email}`);
+  } catch (error) {
+    console.error(`[PUBLIC RSVP] processVolunteerMatch failed for RSVP ${rsvpId}:`, error);
+  }
+};
+
+// Helper: handle email/phone volunteer match (auto-register if trained, nudge if not)
+const handleVolunteerMatch = async (
+  rsvpRef: FirebaseFirestore.DocumentReference,
+  volunteerId: string,
+  volData: FirebaseFirestore.DocumentData,
+  matchType: 'email' | 'phone',
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string }
+): Promise<void> => {
+  const isTrained = volData.status === 'active' && (volData.onboardingProgress >= 100 || volData.coreVolunteerStatus === true);
+
+  if (isTrained) {
+    // Auto-register: add eventId to rsvpedEventIds, update slotsFilled, send confirmation, award XP
+    const volunteerRef = db.collection('volunteers').doc(volunteerId);
+    const existingRsvps = volData.rsvpedEventIds || [];
+    const updatedRsvpIds = [...new Set([...existingRsvps, rsvpData.eventId])];
+    await volunteerRef.update({ rsvpedEventIds: updatedRsvpIds });
+
+    // Update opportunity slotsFilled
+    const oppRef = db.collection('opportunities').doc(rsvpData.eventId);
+    const oppDoc = await oppRef.get();
+    if (oppDoc.exists) {
+      const oppData = oppDoc.data() as any;
+      await oppRef.update({ slotsFilled: (oppData.slotsFilled || 0) + 1 });
+    }
+
+    // Send confirmation email
+    const volunteerName = volData.name || volData.legalFirstName || 'Volunteer';
+    const volunteerEmail = volData.email;
+    if (volunteerEmail) {
+      await EmailService.send('event_registration_confirmation', {
+        toEmail: volunteerEmail,
+        volunteerName,
+        eventTitle: rsvpData.eventTitle,
+        eventDate: rsvpData.eventDate,
+        eventLocation: 'See event details'
+      });
+    }
+
+    // Award XP
+    try {
+      await GamificationService.addXP(volunteerId, 'event_signup');
+    } catch (xpErr) {
+      console.error(`[PUBLIC RSVP] Failed to award XP to ${volunteerId}:`, xpErr);
+    }
+
+    await rsvpRef.update({
+      volunteerMatch: {
+        matchType,
+        volunteerId,
+        autoRegistered: true,
+        flaggedForReview: false
+      }
+    });
+
+    console.log(`[PUBLIC RSVP] ${matchType} match: auto-registered volunteer ${volunteerId} for event ${rsvpData.eventId}`);
+  } else {
+    // Untrained / onboarding — send training nudge
+    await rsvpRef.update({
+      volunteerMatch: {
+        matchType,
+        volunteerId,
+        autoRegistered: false,
+        flaggedForReview: false
+      }
+    });
+
+    const volunteerName = volData.name || volData.legalFirstName || 'Volunteer';
+    const volunteerEmail = volData.email;
+    if (volunteerEmail) {
+      await EmailService.send('public_rsvp_training_nudge', {
+        toEmail: volunteerEmail,
+        volunteerName,
+        eventTitle: rsvpData.eventTitle,
+        eventDate: rsvpData.eventDate
+      });
+    }
+
+    console.log(`[PUBLIC RSVP] ${matchType} match: sent training nudge to volunteer ${volunteerId}`);
+  }
+};
+
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
 app.post('/api/public/rsvp', async (req: Request, res: Response) => {
     try {
@@ -2290,7 +2569,7 @@ app.post('/api/public/rsvp', async (req: Request, res: Response) => {
         // Generate a unique check-in token
         const checkinToken = crypto.randomBytes(16).toString('hex');
 
-        // Store the RSVP
+        // Store the RSVP with default volunteerMatch
         const rsvp = {
             eventId,
             eventTitle: eventTitle || '',
@@ -2304,6 +2583,12 @@ app.post('/api/public/rsvp', async (req: Request, res: Response) => {
             checkinToken,
             checkedIn: false,
             checkedInAt: null,
+            volunteerMatch: {
+                matchType: 'none',
+                volunteerId: null,
+                autoRegistered: false,
+                flaggedForReview: false
+            },
             createdAt: new Date().toISOString()
         };
 
@@ -2320,6 +2605,17 @@ app.post('/api/public/rsvp', async (req: Request, res: Response) => {
         }
 
         console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
+
+        // Fire-and-forget: process volunteer matching asynchronously
+        processVolunteerMatch(rsvpRef.id, {
+            eventId,
+            eventTitle: eventTitle || '',
+            eventDate: eventDate || '',
+            name,
+            email,
+            phone: phone || ''
+        }).catch(err => console.error(`[PUBLIC RSVP] Background match failed for ${rsvpRef.id}:`, err));
+
         res.json({
             success: true,
             rsvpId: rsvpRef.id,
