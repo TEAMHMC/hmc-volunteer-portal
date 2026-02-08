@@ -44,7 +44,7 @@ export interface FormDefinition {
   updatedAt?: string;
   createdBy?: string;
   isActive: boolean;
-  category: 'intake' | 'feedback' | 'screening' | 'referral' | 'custom';
+  category: 'intake' | 'feedback' | 'screening' | 'referral' | 'custom' | 'internal';
 }
 
 /**

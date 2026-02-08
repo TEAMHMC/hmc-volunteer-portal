@@ -10,6 +10,37 @@ const DEFAULT_FORMS: FormDefinition[] = [
         { id: 'q1', type: 'Rating', question: 'How would you rate your overall event experience?', options: ['1', '2', '3', '4', '5'], required: true },
         { id: 'q2', type: 'Short Text', question: 'Do you have any feedback for the event coordinators?', required: false },
     ], isActive: true, category: 'feedback' },
+    // Internal coordinator survey templates
+    { id: 'volunteer-debrief', title: 'Post-Event Volunteer Debrief', description: 'Internal debrief survey for volunteers after an event. Measures team performance, communication, and areas for improvement.', fields: [
+        { id: 'vd1', type: 'Rating', question: 'How clear were your role and responsibilities before the event?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd2', type: 'Rating', question: 'How well did the team communicate during the event?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd3', type: 'Rating', question: 'How adequate were the supplies and equipment provided?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd4', type: 'Multiple Choice', question: 'Did you feel adequately trained for your assigned tasks?', options: ['Yes', 'Mostly', 'Somewhat', 'No'], required: true },
+        { id: 'vd5', type: 'Short Text', question: 'What went well that we should repeat?', required: false },
+        { id: 'vd6', type: 'Short Text', question: 'What could be improved for next time?', required: false },
+    ], isActive: true, category: 'internal' },
+    { id: 'volunteer-satisfaction', title: 'Volunteer Satisfaction Check-In', description: 'Quarterly survey to gauge volunteer engagement, satisfaction, and retention risk.', fields: [
+        { id: 'vs1', type: 'Rating', question: 'Overall, how satisfied are you with your volunteer experience at HMC?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vs2', type: 'Rating', question: 'How supported do you feel by your coordinator or team lead?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vs3', type: 'Multiple Choice', question: 'How likely are you to continue volunteering with HMC in the next 6 months?', options: ['Definitely', 'Probably', 'Unsure', 'Unlikely'], required: true },
+        { id: 'vs4', type: 'Checkboxes', question: 'What motivates you to volunteer? (Select all that apply)', options: ['Making an impact', 'Learning new skills', 'Building community', 'Resume/career development', 'Social connection', 'Mission alignment'], required: false },
+        { id: 'vs5', type: 'Short Text', question: 'Is there anything we could do to improve your experience?', required: false },
+    ], isActive: true, category: 'internal' },
+    { id: 'ops-readiness', title: 'Operational Readiness Assessment', description: 'Pre-event checklist for coordinators to verify team readiness, logistics, and compliance.', fields: [
+        { id: 'or1', type: 'Multiple Choice', question: 'Are all required volunteer slots filled for this event?', options: ['Yes', 'Partially (>75%)', 'Under-staffed (<75%)', 'Critical shortage'], required: true },
+        { id: 'or2', type: 'Multiple Choice', question: 'Have all assigned volunteers completed required training?', options: ['Yes, all verified', 'Most (1-2 pending)', 'Several gaps', 'Not checked'], required: true },
+        { id: 'or3', type: 'Multiple Choice', question: 'Are supplies and equipment confirmed and packed?', options: ['Yes, fully prepared', 'Mostly ready', 'Significant items missing', 'Not started'], required: true },
+        { id: 'or4', type: 'Multiple Choice', question: 'Is there a clinical lead assigned (if screenings are offered)?', options: ['Yes', 'No — not required', 'No — still needed', 'Pending confirmation'], required: true },
+        { id: 'or5', type: 'Checkboxes', question: 'Confirm the following are in place:', options: ['Venue confirmed', 'Parking/transit plan', 'Sign-in sheets printed', 'Emergency contact list', 'First aid kit', 'Water/snacks for volunteers'], required: false },
+        { id: 'or6', type: 'Short Text', question: 'Any outstanding issues or risks?', required: false },
+    ], isActive: true, category: 'internal' },
+    { id: 'team-performance', title: 'Team Performance Review', description: 'Periodic review of team dynamics, workload distribution, and process effectiveness for coordinators.', fields: [
+        { id: 'tp1', type: 'Rating', question: 'How effectively is work distributed across the team?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'tp2', type: 'Rating', question: 'How well are team members meeting their commitments?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'tp3', type: 'Multiple Choice', question: 'What is the team\'s current morale?', options: ['Excellent', 'Good', 'Fair', 'Low'], required: true },
+        { id: 'tp4', type: 'Checkboxes', question: 'Which areas need attention? (Select all that apply)', options: ['Onboarding/training', 'Communication', 'Scheduling conflicts', 'Burnout/workload', 'Role clarity', 'Tool/resource gaps'], required: false },
+        { id: 'tp5', type: 'Short Text', question: 'What actions should leadership take to support this team?', required: false },
+    ], isActive: true, category: 'internal' },
 ];
 
 const FormBuilder: React.FC = () => {
@@ -143,7 +174,7 @@ const FormBuilder: React.FC = () => {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <Loader2 className="animate-spin text-blue-600" size={32} />
+                <Loader2 className="animate-spin text-[#233DFF]" size={32} />
             </div>
         );
     }
@@ -179,7 +210,7 @@ const FormBuilder: React.FC = () => {
                                     <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                                         {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'Unknown date'}
                                     </span>
-                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                    <span className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] text-xs font-bold rounded-full">
                                         {response.respondentType}
                                     </span>
                                 </div>
@@ -212,7 +243,7 @@ const FormBuilder: React.FC = () => {
                 </div>
                 <button
                     onClick={handleCreateNewForm}
-                    className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
+                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
                 >
                     <Plus size={16} /> New Form
                 </button>
@@ -240,7 +271,7 @@ const FormBuilder: React.FC = () => {
                           </div>
                         </div>
                         <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-between gap-3">
-                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 px-4 py-3 rounded-xl">
+                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#233DFF] hover:bg-[#233DFF]/5 px-4 py-3 rounded-xl">
                                 <BarChart3 size={14} /> Responses
                             </button>
                             <div className="flex gap-2">
@@ -306,7 +337,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                 <button
                     onClick={() => onSave({ ...form, title: formTitle, fields })}
                     disabled={isSaving}
-                    className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
@@ -330,7 +361,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                                             <button onClick={() => removeOption(field.id, i)} className="text-zinc-300 hover:text-rose-500 opacity-0 group-hover/option:opacity-100"><X size={14}/></button>
                                         </div>
                                     ))}
-                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-blue-600 mt-2 p-1 hover:bg-blue-50 rounded"><PlusCircle size={14} /> Add Option</button>
+                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-[#233DFF] mt-2 p-1 hover:bg-[#233DFF]/5 rounded"><PlusCircle size={14} /> Add Option</button>
                                 </div>
                             )}
                         </div>
@@ -339,7 +370,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                 <div className="col-span-4 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm space-y-4">
                      <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest">Add Field</h3>
                      {fieldTypes.map(field => (
-                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-blue-300 hover:bg-blue-50">
+                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-[#233DFF]/30 hover:bg-[#233DFF]/5">
                             <field.icon className="text-zinc-400" />
                             <span className="font-bold text-zinc-700">{field.name}</span>
                          </button>

@@ -213,6 +213,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         items.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
     }
 
+    // Coordinators and leads get access to Forms for internal surveys
+    const formRoles = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'];
+    if (!displayUser.isAdmin && canAccessOperationalTools && formRoles.includes(displayUser.role)) {
+        items.push({ id: 'forms', label: 'Forms', icon: FileText });
+    }
+
     if(displayUser.isAdmin) {
         items.push({ id: 'directory', label: 'Directory', icon: Users });
         items.push({ id: 'referrals', label: 'Referrals', icon: Send });
@@ -369,7 +375,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} />}
          {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
-         {activeTab === 'forms' && user.isAdmin && <FormBuilder />}
+         {activeTab === 'forms' && (user.isAdmin || ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'].includes(displayUser.role)) && <FormBuilder />}
          {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (
            <HealthScreeningsView
              user={displayUser}

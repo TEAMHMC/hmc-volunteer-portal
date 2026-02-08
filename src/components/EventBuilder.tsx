@@ -4,7 +4,44 @@ import { Opportunity, ServiceOffering } from '../types';
 import { SERVICE_OFFERINGS } from '../constants';
 import { geminiService } from '../services/geminiService';
 import { APP_CONFIG } from '../config';
-import { X, Calendar, MapPin, Users, Plus, Trash2, Save, Loader2, CheckCircle, Package, Sparkles, Copy, Check, Image, Upload } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Plus, Trash2, Save, Loader2, CheckCircle, Package, Sparkles, Copy, Check, Image, Upload, AlertTriangle, ShieldCheck, Tent, Stethoscope, ClipboardList } from 'lucide-react';
+
+// Equipment/resource catalog for event assembly
+const EQUIPMENT_CATALOG = [
+  { id: 'eq-tables', name: 'Folding Tables', category: 'Setup', defaultQty: 4 },
+  { id: 'eq-chairs', name: 'Chairs', category: 'Setup', defaultQty: 20 },
+  { id: 'eq-canopy', name: 'Pop-Up Canopy / Tent', category: 'Setup', defaultQty: 2 },
+  { id: 'eq-signage', name: 'Event Signage & Banners', category: 'Setup', defaultQty: 3 },
+  { id: 'eq-tablecloths', name: 'Tablecloths', category: 'Setup', defaultQty: 4 },
+  { id: 'eq-generator', name: 'Portable Generator', category: 'Setup', defaultQty: 1 },
+  { id: 'eq-cooler', name: 'Coolers (water/snacks)', category: 'Setup', defaultQty: 2 },
+  { id: 'eq-gloves', name: 'Nitrile Gloves (box)', category: 'PPE', defaultQty: 4 },
+  { id: 'eq-masks', name: 'Face Masks (box)', category: 'PPE', defaultQty: 2 },
+  { id: 'eq-sanitizer', name: 'Hand Sanitizer', category: 'PPE', defaultQty: 6 },
+  { id: 'eq-gowns', name: 'Disposable Gowns (pack)', category: 'PPE', defaultQty: 1 },
+  { id: 'eq-bpcuff', name: 'Blood Pressure Cuffs', category: 'Medical', defaultQty: 4 },
+  { id: 'eq-glucometer', name: 'Glucometers + Strips', category: 'Medical', defaultQty: 2 },
+  { id: 'eq-pulseox', name: 'Pulse Oximeters', category: 'Medical', defaultQty: 2 },
+  { id: 'eq-scale', name: 'Digital Scale', category: 'Medical', defaultQty: 1 },
+  { id: 'eq-stadiometer', name: 'Height Measurement Tool', category: 'Medical', defaultQty: 1 },
+  { id: 'eq-firstaid', name: 'First Aid Kit', category: 'Medical', defaultQty: 2 },
+  { id: 'eq-sharps', name: 'Sharps Container', category: 'Medical', defaultQty: 1 },
+  { id: 'eq-laptop', name: 'Laptops / Tablets', category: 'Tech', defaultQty: 3 },
+  { id: 'eq-hotspot', name: 'Mobile Hotspot', category: 'Tech', defaultQty: 1 },
+  { id: 'eq-speaker', name: 'Portable Speaker / PA', category: 'Tech', defaultQty: 1 },
+  { id: 'eq-flyers', name: 'Event Flyers (stack)', category: 'Outreach', defaultQty: 200 },
+  { id: 'eq-brochures', name: 'Health Education Brochures', category: 'Outreach', defaultQty: 100 },
+  { id: 'eq-signin', name: 'Sign-In Sheets', category: 'Outreach', defaultQty: 10 },
+  { id: 'eq-pens', name: 'Pens / Markers', category: 'Outreach', defaultQty: 20 },
+  { id: 'eq-clipboards', name: 'Clipboards', category: 'Outreach', defaultQty: 10 },
+  { id: 'eq-bags', name: 'Goodie Bags / Totes', category: 'Outreach', defaultQty: 50 },
+];
+
+interface EquipmentItem {
+  equipmentId: string;
+  name: string;
+  quantity: number;
+}
 
 interface EventBuilderProps {
     onClose: () => void;
@@ -26,6 +63,15 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
         supplyList: '',
         flyerBase64: '',
     });
+    const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem[]>([]);
+    const [checklist, setChecklist] = useState<{ text: string; done: boolean }[]>([
+        { text: 'Venue confirmed and reserved', done: false },
+        { text: 'Flyer designed and approved', done: false },
+        { text: 'All volunteer slots filled', done: false },
+        { text: 'Clinical lead assigned (if screenings)', done: false },
+        { text: 'Supplies packed and loaded', done: false },
+        { text: 'Emergency contact list printed', done: false },
+    ]);
     const [isSaving, setIsSaving] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isGeneratingSupplies, setIsGeneratingSupplies] = useState(false);
@@ -116,12 +162,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                 ...eventData,
                 slotsTotal: eventData.staffingQuotas?.reduce((sum, q) => sum + q.count, 0) || 0,
                 slotsFilled: 0,
-                urgency: 'medium', // Default
-                requiredSkills: [], // Default
+                urgency: 'medium',
+                requiredSkills: [],
                 tenantId: APP_CONFIG.TENANT_ID,
-                // New events require admin approval before being visible to all volunteers
                 approvalStatus: 'pending',
                 createdAt: new Date().toISOString(),
+                equipment: selectedEquipment,
+                checklist: checklist.filter(c => c.text.trim()),
+                requiresClinicalLead: hasClinicalService,
             };
             await onSave(finalEventData as Omit<Opportunity, 'id'>);
             setIsSuccess(true);
@@ -157,6 +205,55 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
     }
+
+    // Detect if clinical services are selected but no LMP in staffing
+    const hasClinicalService = eventData.serviceOfferingIds?.some(id =>
+        ['so-screening', 'so-vaccine', 'so-mental-health'].includes(id)
+    );
+    const hasLMP = eventData.staffingQuotas?.some(q =>
+        q.role === 'Licensed Medical Professional' && q.count > 0
+    );
+    const clinicalWarning = hasClinicalService && !hasLMP;
+
+    const handleToggleEquipment = (item: typeof EQUIPMENT_CATALOG[0]) => {
+        setSelectedEquipment(prev => {
+            const exists = prev.find(e => e.equipmentId === item.id);
+            if (exists) return prev.filter(e => e.equipmentId !== item.id);
+            return [...prev, { equipmentId: item.id, name: item.name, quantity: item.defaultQty }];
+        });
+    };
+
+    const handleEquipmentQtyChange = (equipmentId: string, qty: number) => {
+        setSelectedEquipment(prev => prev.map(e =>
+            e.equipmentId === equipmentId ? { ...e, quantity: Math.max(0, qty) } : e
+        ));
+    };
+
+    const handleToggleChecklist = (idx: number) => {
+        setChecklist(prev => prev.map((item, i) => i === idx ? { ...item, done: !item.done } : item));
+    };
+
+    const handleAddChecklistItem = () => {
+        setChecklist(prev => [...prev, { text: '', done: false }]);
+    };
+
+    const handleUpdateChecklistItem = (idx: number, text: string) => {
+        setChecklist(prev => prev.map((item, i) => i === idx ? { ...item, text } : item));
+    };
+
+    const handleRemoveChecklistItem = (idx: number) => {
+        setChecklist(prev => prev.filter((_, i) => i !== idx));
+    };
+
+    // Group equipment by category
+    const equipmentByCategory = useMemo(() => {
+        const groups: Record<string, typeof EQUIPMENT_CATALOG> = {};
+        EQUIPMENT_CATALOG.forEach(item => {
+            if (!groups[item.category]) groups[item.category] = [];
+            groups[item.category].push(item);
+        });
+        return groups;
+    }, []);
 
     if(isSuccess) {
         return (
@@ -252,7 +349,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                      <h3 className="text-lg font-bold mb-4">2. Service Offerings</h3>
                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {SERVICE_OFFERINGS.map(service => (
-                            <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-lg text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-blue-500 bg-blue-50' : 'bg-white'}`}>
+                            <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-lg text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-[#233DFF] bg-[#233DFF]/5' : 'bg-white'}`}>
                                 <h4 className="font-bold">{service.name}</h4>
                                 <p className="text-xs text-zinc-500">{service.description}</p>
                             </button>
@@ -276,9 +373,118 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     </div>
                 </section>
                 
+                {/* Clinical Lead Warning */}
+                {clinicalWarning && (
+                    <div className="flex items-start gap-4 p-5 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                        <AlertTriangle size={24} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-amber-800">Clinical Lead Required</p>
+                            <p className="text-sm text-amber-700 mt-1">
+                                This event includes clinical services (screenings, vaccinations, or mental health support).
+                                At least one Licensed Medical Professional must be assigned before the event can proceed.
+                                Add an LMP to staffing above or remove clinical services.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Equipment & Resources */}
+                <section>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                        <Package size={20} /> 4. Equipment & Resources
+                    </h3>
+                    <p className="text-sm text-zinc-500 mb-4">Select the equipment and resources needed for this event. Adjust quantities as needed.</p>
+                    <div className="space-y-6">
+                        {Object.entries(equipmentByCategory).map(([category, items]) => (
+                            <div key={category}>
+                                <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-3">{category}</p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {items.map(item => {
+                                        const selected = selectedEquipment.find(e => e.equipmentId === item.id);
+                                        return (
+                                            <div key={item.id} className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                                                selected ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-100 hover:border-zinc-300'
+                                            }`}>
+                                                <div className="flex items-center justify-between">
+                                                    <button
+                                                        onClick={() => handleToggleEquipment(item)}
+                                                        className="flex-1 text-left"
+                                                    >
+                                                        <p className={`text-sm font-bold ${selected ? 'text-[#233DFF]' : 'text-zinc-700'}`}>{item.name}</p>
+                                                    </button>
+                                                    {selected && (
+                                                        <input
+                                                            type="number"
+                                                            value={selected.quantity}
+                                                            onChange={e => handleEquipmentQtyChange(item.id, parseInt(e.target.value) || 0)}
+                                                            className="w-14 p-1 text-center text-sm border border-zinc-200 rounded-lg bg-white"
+                                                            onClick={e => e.stopPropagation()}
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {selectedEquipment.length > 0 && (
+                        <div className="mt-4 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
+                            <p className="text-xs font-bold text-zinc-500 mb-2">{selectedEquipment.length} items selected</p>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedEquipment.map(item => (
+                                    <span key={item.equipmentId} className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] rounded-full text-xs font-bold">
+                                        {item.name} x{item.quantity}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                {/* Event Checklist */}
+                <section>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                        <ClipboardList size={20} /> 5. Pre-Event Checklist
+                    </h3>
+                    <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-3">
+                        {checklist.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-3 group">
+                                <button
+                                    onClick={() => handleToggleChecklist(idx)}
+                                    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                        item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-[#233DFF]'
+                                    }`}
+                                >
+                                    {item.done && <Check size={14} />}
+                                </button>
+                                <input
+                                    value={item.text}
+                                    onChange={e => handleUpdateChecklistItem(idx, e.target.value)}
+                                    className={`flex-1 bg-transparent outline-none text-sm ${item.done ? 'line-through text-zinc-400' : 'text-zinc-700'}`}
+                                    placeholder="Checklist item..."
+                                />
+                                <button
+                                    onClick={() => handleRemoveChecklistItem(idx)}
+                                    className="p-1 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ))}
+                        <button
+                            onClick={handleAddChecklistItem}
+                            className="flex items-center gap-2 text-sm font-bold text-[#233DFF] hover:bg-[#233DFF]/5 px-3 py-2 rounded-lg mt-2"
+                        >
+                            <Plus size={14} /> Add Item
+                        </button>
+                    </div>
+                </section>
+
                 {/* Logistics & Supplies */}
                  <section>
-                    <h3 className="text-lg font-bold mb-4">4. Logistics & Supplies</h3>
+                    <h3 className="text-lg font-bold mb-4">6. Logistics & Supplies</h3>
                     <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-4">
                         <input type="number" placeholder="Estimated Attendees" value={eventData.estimatedAttendees || ''} onChange={e => setEventData({...eventData, estimatedAttendees: parseInt(e.target.value, 10) || 0})} className="w-full p-3 bg-white border border-zinc-200 rounded-lg"/>
                         <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-black uppercase tracking-widest shadow-sm hover:bg-zinc-100 disabled:opacity-50">
@@ -297,7 +503,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
             </main>
             <footer className="p-8 border-t border-zinc-100 flex justify-end">
-                <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 disabled:opacity-50">
+                <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#1a2fbf] disabled:opacity-50">
                     {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
                 </button>
             </footer>
