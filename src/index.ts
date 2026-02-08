@@ -380,6 +380,16 @@ const canSendEmail = async (userId: string, type: 'alerts' | 'opportunities' | '
   }
 };
 
+// --- DATE FORMATTING ---
+// Format YYYY-MM-DD to human-readable "Friday, February 14, 2026"
+const formatEventDate = (dateStr: string): string => {
+  if (!dateStr || dateStr === 'TBD') return dateStr || 'TBD';
+  // Append T00:00:00 to avoid UTC offset interpretation
+  const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+};
+
 // --- PHONE NORMALIZATION ---
 const normalizePhone = (phone: string | undefined | null): string | null => {
   if (!phone) return null;
@@ -487,7 +497,7 @@ type EmailTemplateData = Record<string, any>;
 const EmailTemplates = {
   // 1. Email Verification
   email_verification: (data: EmailTemplateData) => ({
-    subject: '✓ Verify Your Health Matters Clinic Account',
+    subject: 'Verify Your Health Matters Clinic Account',
     html: `${emailHeader('Verify Your Email')}
       <p>Hi ${data.volunteerName},</p>
       <p>Welcome to Health Matters Clinic! Please verify your email address using this code:</p>
@@ -502,7 +512,7 @@ const EmailTemplates = {
 
   // 2. Welcome Volunteer
   welcome_volunteer: (data: EmailTemplateData) => ({
-    subject: `🎉 Welcome to Health Matters Clinic, ${data.volunteerName}!`,
+    subject: `Welcome to Health Matters Clinic, ${data.volunteerName}!`,
     html: `${emailHeader('Welcome to the Team!')}
       <p>Hi ${data.volunteerName},</p>
       <p>We're excited to have you join our volunteer community! You've applied as a <strong>${data.appliedRole}</strong>.</p>
@@ -519,13 +529,13 @@ const EmailTemplates = {
 
   // 2b. Admin Added Volunteer (with password reset link)
   admin_added_volunteer: (data: EmailTemplateData) => ({
-    subject: `🎉 Welcome to Health Matters Clinic, ${data.volunteerName}!`,
+    subject: `Welcome to Health Matters Clinic, ${data.volunteerName}!`,
     html: `${emailHeader('Welcome to the Team!')}
       <p>Hi ${data.volunteerName},</p>
       <p>An administrator has added you to our volunteer community as a <strong>${data.appliedRole}</strong>.</p>
       ${data.hasPasswordReset ? `
       <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 4px;">
-        <p style="margin: 0; font-weight: 600; color: #92400e;">🔐 Set Up Your Password</p>
+        <p style="margin: 0; font-weight: 600; color: #92400e;">Set Up Your Password</p>
         <p style="margin: 8px 0 0 0; color: #78350f;">Please click the button below to set your password and activate your account.</p>
       </div>
       ${actionButton('Set Your Password', data.passwordResetLink)}
@@ -544,7 +554,7 @@ const EmailTemplates = {
 
   // 3. Password Reset
   password_reset: (data: EmailTemplateData) => ({
-    subject: '🔐 Reset Your Password',
+    subject: 'Reset Your Password',
     html: `${emailHeader('Reset Your Password')}
       <p>Hi ${data.volunteerName},</p>
       <p>We received a request to reset your password. Click the button below to create a new password.</p>
@@ -557,7 +567,7 @@ const EmailTemplates = {
 
   // 4. Login Confirmation
   login_confirmation: (data: EmailTemplateData) => ({
-    subject: '🔐 New Login to Your Account',
+    subject: 'New Login to Your Account',
     html: `${emailHeader('New Login Detected')}
       <p>Hi ${data.volunteerName},</p>
       <p>We detected a new login to your account:</p>
@@ -572,17 +582,17 @@ const EmailTemplates = {
 
   // 5. Shift Confirmation
   shift_confirmation: (data: EmailTemplateData) => ({
-    subject: `📅 You're Assigned: ${data.eventName}`,
+    subject: `You're Assigned: ${data.eventName}`,
     html: `${emailHeader("You're Assigned to a Shift")}
       <p>Hi ${data.volunteerName},</p>
       <p>Great news! You've been assigned to an upcoming shift:</p>
       <div style="background: #f9fafb; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventName}</p>
-        <p style="margin: 8px 0;"><strong>📅 Date:</strong> ${data.eventDate}</p>
-        <p style="margin: 8px 0;"><strong>⏱️ Time:</strong> ${data.eventTime}</p>
-        <p style="margin: 8px 0;"><strong>📍 Location:</strong> ${data.location}</p>
-        <p style="margin: 8px 0;"><strong>⏳ Duration:</strong> ${data.duration}</p>
-        <p style="margin: 8px 0;"><strong>👤 Your Role:</strong> <span style="color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: 600;">${data.role}</span></p>
+        <p style="margin: 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 8px 0;"><strong>Time:</strong> ${data.eventTime}</p>
+        <p style="margin: 8px 0;"><strong>Location:</strong> ${data.location}</p>
+        <p style="margin: 8px 0;"><strong>Duration:</strong> ${data.duration}</p>
+        <p style="margin: 8px 0;"><strong>Your Role:</strong> <span style="color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: 600;">${data.role}</span></p>
       </div>
       ${actionButton('Confirm Attendance', `${EMAIL_CONFIG.WEBSITE_URL}/shifts/confirm`)}
     ${emailFooter()}`,
@@ -591,7 +601,7 @@ const EmailTemplates = {
 
   // 6. Shift Reminder (24h)
   shift_reminder_24h: (data: EmailTemplateData) => ({
-    subject: `⏰ Reminder: Your Shift Tomorrow at ${data.eventTime}`,
+    subject: `Reminder: Your Shift Tomorrow at ${data.eventTime}`,
     html: `${emailHeader('Your Shift is Tomorrow!')}
       <p>Hi ${data.volunteerName},</p>
       <p>Just a friendly reminder—you have a shift <strong>tomorrow</strong>!</p>
@@ -599,9 +609,9 @@ const EmailTemplates = {
         <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px; text-transform: uppercase;">Tomorrow at</p>
         <p style="margin: 0 0 16px 0; font-size: 32px; font-weight: bold;">${data.eventTime}</p>
         <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${data.eventName}</p>
-        <p style="margin: 0; opacity: 0.9;">📍 ${data.location}</p>
+        <p style="margin: 0; opacity: 0.9;">${data.location}</p>
       </div>
-      <p><strong>🕐 Arrive 15 minutes early</strong> to get oriented.</p>
+      <p><strong>Arrive 15 minutes early</strong> to get oriented.</p>
       ${actionButton('View Shift Details', `${EMAIL_CONFIG.WEBSITE_URL}/shifts/upcoming`)}
     ${emailFooter()}`,
     text: `Hi ${data.volunteerName}, Reminder: ${data.eventName} tomorrow at ${data.eventTime}. Location: ${data.location}. Arrive 15 min early.`
@@ -609,7 +619,7 @@ const EmailTemplates = {
 
   // 7. Shift Cancellation
   shift_cancellation: (data: EmailTemplateData) => ({
-    subject: `❌ Shift Cancelled: ${data.eventName}`,
+    subject: `Shift Cancelled: ${data.eventName}`,
     html: `${emailHeader('Shift Cancelled')}
       <p>Hi ${data.volunteerName},</p>
       <p>Unfortunately, the following shift has been cancelled:</p>
@@ -626,14 +636,14 @@ const EmailTemplates = {
 
   // 8. Training Assigned
   training_assigned: (data: EmailTemplateData) => ({
-    subject: `📚 New Training: ${data.trainingName}`,
+    subject: `New Training Assigned: ${data.trainingName}`,
     html: `${emailHeader('New Training Module')}
       <p>Hi ${data.volunteerName},</p>
       <p>You've been assigned a new training module:</p>
       <div style="background: #f9fafb; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.trainingName}</p>
-        <p style="margin: 8px 0; color: #6b7280;">⏱️ Estimated time: ${data.estimatedMinutes} minutes</p>
-        <p style="margin: 8px 0; color: #9ca3af;">📅 Complete by: ${data.deadline}</p>
+        <p style="margin: 8px 0; color: #6b7280;">Estimated time: ${data.estimatedMinutes} minutes</p>
+        <p style="margin: 8px 0; color: #9ca3af;">Complete by: ${data.deadline}</p>
       </div>
       <p>All modules are self-paced and mobile-friendly.</p>
       ${actionButton('Start Training', `${EMAIL_CONFIG.WEBSITE_URL}/training`)}
@@ -643,7 +653,7 @@ const EmailTemplates = {
 
   // 9. Training Reminder
   training_reminder: (data: EmailTemplateData) => ({
-    subject: `⏰ ${data.daysRemaining} Days Left: ${data.trainingName}`,
+    subject: `${data.daysRemaining} Days Left: ${data.trainingName}`,
     html: `${emailHeader('Training Deadline Approaching')}
       <p>Hi ${data.volunteerName},</p>
       <p>You have <strong>${data.daysRemaining} days left</strong> to complete your training:</p>
@@ -656,12 +666,12 @@ const EmailTemplates = {
 
   // 10. HIPAA Acknowledgment
   hipaa_acknowledgment: (data: EmailTemplateData) => ({
-    subject: '✓ HIPAA Training Complete',
-    html: `${emailHeader('HIPAA Training Complete ✓')}
+    subject: 'HIPAA Training Complete',
+    html: `${emailHeader('HIPAA Training Complete')}
       <p>Hi ${data.volunteerName},</p>
       <p>Thank you for completing HIPAA training on ${data.completionDate}.</p>
       <div style="text-align: center; margin: 32px 0;">
-        <span style="font-size: 48px; color: #10b981;">✓</span>
+        <span style="font-size: 48px; color: #10b981; font-family: sans-serif;">&#10003;</span>
       </div>
       <p style="text-align: center; font-weight: 600; color: #10b981;">You're now cleared to volunteer!</p>
       <p><strong>Next steps:</strong></p>
@@ -676,7 +686,7 @@ const EmailTemplates = {
 
   // 11. Application Received
   application_received: (data: EmailTemplateData) => ({
-    subject: '✓ We Received Your Application',
+    subject: 'We Received Your Application',
     html: `${emailHeader('Application Received')}
       <p>Hi ${data.volunteerName},</p>
       <p>We received your volunteer application! Thank you for your interest.</p>
@@ -690,13 +700,31 @@ const EmailTemplates = {
     text: `Hi ${data.volunteerName}, Application received for ${data.appliedRole}. ID: ${data.applicationId}. Review in 2-3 days.`
   }),
 
+  // 11b. Admin Notification: New Applicant
+  admin_new_applicant: (data: EmailTemplateData) => ({
+    subject: `New Volunteer Application: ${data.volunteerName} — ${data.appliedRole}`,
+    html: `${emailHeader('New Volunteer Application')}
+      <p>Hi Team,</p>
+      <p>A new volunteer application has been submitted and is awaiting review.</p>
+      <div style="background: #f9fafb; padding: 20px; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0;"><strong>Name:</strong> ${data.volunteerName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${data.volunteerEmail}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Applied Role:</strong> ${data.appliedRole}</p>
+        <p style="margin: 0;"><strong>Application ID:</strong> ${data.applicationId}</p>
+      </div>
+      <p>Please review this application in the Volunteer Directory.</p>
+      ${actionButton('Review Application', `${EMAIL_CONFIG.WEBSITE_URL}/dashboard?tab=directory`)}
+    ${emailFooter()}`,
+    text: `New applicant: ${data.volunteerName} (${data.volunteerEmail}) applied as ${data.appliedRole}. ID: ${data.applicationId}. Review in dashboard.`
+  }),
+
   // 12. Application Approved
   application_approved: (data: EmailTemplateData) => ({
-    subject: '✓ Welcome! Your Application is Approved',
-    html: `${emailHeader('Application Approved! 🎉')}
+    subject: 'Welcome! Your Application is Approved',
+    html: `${emailHeader('Application Approved!')}
       <p>Congratulations, ${data.volunteerName}!</p>
       <div style="text-align: center; margin: 32px 0;">
-        <span style="font-size: 48px; color: #10b981;">✓</span>
+        <span style="font-size: 48px; color: #10b981; font-family: sans-serif;">&#10003;</span>
       </div>
       <p>Your application has been approved! You're now a <strong>${data.approvedRole}</strong>.</p>
       <p><strong>Next steps:</strong></p>
@@ -727,7 +755,7 @@ const EmailTemplates = {
 
   // 14. Monthly Summary
   monthly_summary: (data: EmailTemplateData) => ({
-    subject: `💙 Your Impact: ${data.hoursContributed} Hours, ${data.peopleHelped} Lives Touched`,
+    subject: `Your Impact: ${data.hoursContributed} Hours, ${data.peopleHelped} Lives Touched`,
     html: `${emailHeader('Your Impact This Month')}
       <p>Hi ${data.volunteerName},</p>
       <p>Thank you for your service this month. Here's the impact you've made:</p>
@@ -742,7 +770,7 @@ const EmailTemplates = {
         </div>
       </div>
       <div style="background: #eff6ff; padding: 16px; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; border-radius: 4px;">
-        <p style="margin: 0;"><strong>💙 You made a real difference</strong> for ${data.peopleHelped} people in our community. Thank you.</p>
+        <p style="margin: 0;"><strong>You made a real difference</strong> for ${data.peopleHelped} people in our community. Thank you.</p>
       </div>
       ${actionButton('View Your Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/profile`)}
     ${emailFooter()}`,
@@ -751,11 +779,11 @@ const EmailTemplates = {
 
   // Achievement Unlocked (for gamification)
   achievement_unlocked: (data: EmailTemplateData) => ({
-    subject: `🏆 Achievement Unlocked: ${data.achievementName}`,
-    html: `${emailHeader('Achievement Unlocked! 🏆')}
+    subject: `Achievement Unlocked: ${data.achievementName}`,
+    html: `${emailHeader('Achievement Unlocked!')}
       <p>Hi ${data.volunteerName},</p>
       <div style="text-align: center; margin: 32px 0;">
-        <span style="font-size: 64px;">🏆</span>
+        <span style="font-size: 48px; color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: 900;">&#9733;</span>
       </div>
       <p style="text-align: center; font-size: 20px; font-weight: 600; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.achievementName}</p>
       <p style="text-align: center; color: #6b7280;">${data.achievementDescription}</p>
@@ -768,13 +796,10 @@ const EmailTemplates = {
 
   // Referral Converted
   referral_converted: (data: EmailTemplateData) => ({
-    subject: `🎉 Your Referral Joined: ${data.referredName}`,
-    html: `${emailHeader('Referral Success! 🎉')}
+    subject: `Your Referral Joined: ${data.referredName}`,
+    html: `${emailHeader('Referral Success!')}
       <p>Hi ${data.volunteerName},</p>
       <p>Great news! <strong>${data.referredName}</strong> just joined Health Matters Clinic using your referral!</p>
-      <div style="text-align: center; margin: 32px 0;">
-        <span style="font-size: 48px;">🎉</span>
-      </div>
       <p style="text-align: center; font-weight: 600; color: #10b981;">+${data.referralBonus} XP earned!</p>
       <p>Keep sharing your referral link to earn more XP and help grow our volunteer community.</p>
       ${actionButton('View Referral Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/referrals`)}
@@ -784,17 +809,14 @@ const EmailTemplates = {
 
   // Event Registration Confirmation
   event_registration_confirmation: (data: EmailTemplateData) => ({
-    subject: `✓ You're Signed Up: ${data.eventTitle}`,
-    html: `${emailHeader('Event Registration Confirmed! 📅')}
+    subject: `You're Signed Up: ${data.eventTitle}`,
+    html: `${emailHeader('Event Registration Confirmed')}
       <p>Hi ${data.volunteerName},</p>
-      <div style="text-align: center; margin: 32px 0;">
-        <span style="font-size: 48px;">📅</span>
-      </div>
       <p>You're registered for the following event:</p>
       <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
         <h3 style="margin: 0 0 12px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventTitle}</h3>
-        <p style="margin: 0 0 8px 0;"><strong>📅 Date:</strong> ${data.eventDate}</p>
-        <p style="margin: 0;"><strong>📍 Location:</strong> ${data.eventLocation}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0;"><strong>Location:</strong> ${data.eventLocation}</p>
       </div>
       <p><strong>What to bring:</strong></p>
       <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
@@ -811,14 +833,14 @@ const EmailTemplates = {
 
   // Coordinator Registration Alert
   coordinator_registration_alert: (data: EmailTemplateData) => ({
-    subject: `📋 New Volunteer Signup: ${data.eventTitle}`,
-    html: `${emailHeader('New Event Registration 📋')}
+    subject: `New Volunteer Signup: ${data.eventTitle}`,
+    html: `${emailHeader('New Event Registration')}
       <p>Hi ${data.coordinatorName},</p>
       <p>A volunteer has signed up for an upcoming event:</p>
       <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #10b981;">
-        <p style="margin: 0 0 8px 0;"><strong>👤 Volunteer:</strong> ${data.volunteerName}</p>
-        <p style="margin: 0 0 8px 0;"><strong>📅 Event:</strong> ${data.eventTitle}</p>
-        <p style="margin: 0;"><strong>🗓️ Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Volunteer:</strong> ${data.volunteerName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0;"><strong>Date:</strong> ${data.eventDate}</p>
       </div>
       <p>You can view all registrations and manage staffing in the admin portal.</p>
       ${actionButton('View Event Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
@@ -828,14 +850,14 @@ const EmailTemplates = {
 
   // Public RSVP: Training Nudge (sent to matched but untrained volunteers)
   public_rsvp_training_nudge: (data: EmailTemplateData) => ({
-    subject: `📚 Complete Your Training to Volunteer at ${data.eventTitle}`,
+    subject: `Complete Your Training to Volunteer at ${data.eventTitle}`,
     html: `${emailHeader('Almost Ready to Volunteer!')}
       <p>Hi ${data.volunteerName},</p>
       <p>We noticed you RSVP'd for <strong>${data.eventTitle}</strong> on <strong>${data.eventDate}</strong> — that's awesome!</p>
       <p>To volunteer at this event (not just attend), you'll need to complete your training first. It only takes a few minutes and you'll be ready to make a real impact.</p>
       <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
-        <p style="margin: 0 0 8px 0;"><strong>📅 Event:</strong> ${data.eventTitle}</p>
-        <p style="margin: 0;"><strong>🗓️ Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0;"><strong>Date:</strong> ${data.eventDate}</p>
       </div>
       <p>Complete your training now so you can be part of the volunteer team:</p>
       ${actionButton('Complete My Training', `${EMAIL_CONFIG.WEBSITE_URL}/training`)}
@@ -846,7 +868,7 @@ const EmailTemplates = {
 
   // Public RSVP: Volunteer Invite (sent to non-volunteers)
   public_rsvp_volunteer_invite: (data: EmailTemplateData) => ({
-    subject: `💙 Thanks for Your RSVP — Want to Join Our Volunteer Team?`,
+    subject: `Thanks for Your RSVP — Want to Join Our Volunteer Team?`,
     html: `${emailHeader('Join Our Volunteer Team!')}
       <p>Hi ${data.rsvpName},</p>
       <p>Thanks for RSVPing to <strong>${data.eventTitle}</strong> on <strong>${data.eventDate}</strong>! We're excited to have you there.</p>
@@ -865,24 +887,24 @@ const EmailTemplates = {
 
   // Coordinator: Public RSVP Name Match (needs manual review)
   coordinator_public_rsvp_name_match: (data: EmailTemplateData) => ({
-    subject: `🔍 Review Needed: Possible Volunteer Match for RSVP`,
-    html: `${emailHeader('RSVP Volunteer Match — Review Needed 🔍')}
+    subject: `Review Needed: Possible Volunteer Match for RSVP`,
+    html: `${emailHeader('RSVP Volunteer Match — Review Needed')}
       <p>Hi ${data.coordinatorName},</p>
       <p>A public RSVP was submitted that matches a volunteer by <strong>name only</strong> (no email or phone match). Please review and confirm whether this is the same person.</p>
       <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
         <h4 style="margin: 0 0 16px 0; color: #92400e;">RSVP Details</h4>
-        <p style="margin: 0 0 8px 0;"><strong>👤 Name:</strong> ${data.rsvpName}</p>
-        <p style="margin: 0 0 8px 0;"><strong>📧 Email:</strong> ${data.rsvpEmail}</p>
-        <p style="margin: 0 0 8px 0;"><strong>📱 Phone:</strong> ${data.rsvpPhone || 'Not provided'}</p>
-        <p style="margin: 0 0 8px 0;"><strong>📅 Event:</strong> ${data.eventTitle}</p>
-        <p style="margin: 0;"><strong>🗓️ Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Name:</strong> ${data.rsvpName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${data.rsvpEmail}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Phone:</strong> ${data.rsvpPhone || 'Not provided'}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0;"><strong>Date:</strong> ${data.eventDate}</p>
       </div>
       <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
         <h4 style="margin: 0 0 16px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">Possible Volunteer Match</h4>
-        <p style="margin: 0 0 8px 0;"><strong>👤 Name:</strong> ${data.volunteerName}</p>
-        <p style="margin: 0 0 8px 0;"><strong>📧 Email:</strong> ${data.volunteerEmail}</p>
-        <p style="margin: 0 0 8px 0;"><strong>📱 Phone:</strong> ${data.volunteerPhone || 'Not on file'}</p>
-        <p style="margin: 0;"><strong>🔖 Status:</strong> ${data.volunteerStatus}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Name:</strong> ${data.volunteerName}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${data.volunteerEmail}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Phone:</strong> ${data.volunteerPhone || 'Not on file'}</p>
+        <p style="margin: 0;"><strong>Status:</strong> ${data.volunteerStatus}</p>
       </div>
       <p>If this is the same person, you can manually register them for the event in the admin portal.</p>
       ${actionButton('Review in Admin Portal', `${EMAIL_CONFIG.WEBSITE_URL}/admin/volunteers`)}
@@ -892,15 +914,15 @@ const EmailTemplates = {
 
   // Support Ticket Notification
   support_ticket_notification: (data: EmailTemplateData) => ({
-    subject: `🎫 New Support Ticket: ${data.subject}`,
-    html: `${emailHeader('New Support Ticket Received 🎫')}
+    subject: `New Support Ticket: ${data.subject}`,
+    html: `${emailHeader('New Support Ticket Received')}
       <p>A new support ticket has been submitted:</p>
       <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
-        <p style="margin: 0 0 8px 0;"><strong>📝 Subject:</strong> ${data.subject}</p>
-        <p style="margin: 0 0 8px 0;"><strong>👤 From:</strong> ${data.submitterName} (${data.submitterEmail})</p>
-        <p style="margin: 0 0 8px 0;"><strong>📂 Category:</strong> ${data.category}</p>
-        <p style="margin: 0 0 8px 0;"><strong>⚡ Priority:</strong> ${data.priority}</p>
-        <p style="margin: 0 0 8px 0;"><strong>🆔 Ticket ID:</strong> ${data.ticketId}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Subject:</strong> ${data.subject}</p>
+        <p style="margin: 0 0 8px 0;"><strong>From:</strong> ${data.submitterName} (${data.submitterEmail})</p>
+        <p style="margin: 0 0 8px 0;"><strong>Category:</strong> ${data.category}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Priority:</strong> ${data.priority}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Ticket ID:</strong> ${data.ticketId}</p>
       </div>
       <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
         <p style="margin: 0; color: #374151;"><strong>Description:</strong></p>
@@ -1252,9 +1274,9 @@ Or donate: [DONATION_LINK]
 };
 
 const SOCIAL_TEMPLATES = {
-  instagram: `🩺 Just completed [HOURS] hours volunteering with @healthmatters.clinic
+  instagram: `Just completed [HOURS] hours volunteering with @healthmatters.clinic
 
-Want to join me? Link in bio! 💙
+Want to join me? Link in bio!
 
 #HealthMatters #Volunteering #HealthEquity`,
   linkedin: `I'm proud to volunteer with Health Matters Clinic, a 501(c)(3) nonprofit dedicated to health equity.
@@ -1444,7 +1466,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
         }
 
         user.role = user.appliedRole || 'HMC Champion';
-        user.status = 'active';
+        user.status = 'applicant';
         user.applicationStatus = 'pendingReview';
 
         let finalUserId: string;
@@ -1505,6 +1527,20 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
           appliedRole: user.appliedRole || 'HMC Champion',
           applicationId: finalUserId.substring(0, 12).toUpperCase(),
         });
+
+        // Notify admin team about new applicant
+        try {
+          await EmailService.send('admin_new_applicant', {
+            toEmail: 'volunteer@healthmatters.clinic',
+            volunteerName: user.name || user.firstName || 'New Applicant',
+            volunteerEmail: user.email,
+            appliedRole: user.appliedRole || 'HMC Champion',
+            applicationId: finalUserId.substring(0, 12).toUpperCase(),
+          });
+          console.log(`[SIGNUP] Sent admin notification for new applicant: ${user.email}`);
+        } catch (adminEmailErr) {
+          console.error('[SIGNUP] Failed to send admin notification:', adminEmailErr);
+        }
 
         // Process referral if provided
         if (referralCode) {
@@ -1727,8 +1763,8 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             }
         }
 
-        // Compute online status based on lastActiveAt (within last 5 minutes = online)
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        // Compute online status based on lastActiveAt (within last 90 seconds = online)
+        const fiveMinutesAgo = new Date(Date.now() - 90 * 1000).toISOString();
         const volunteersWithOnlineStatus = volunteersSnap.docs.map(d => {
             const data = d.data();
             return {
@@ -2438,7 +2474,7 @@ const processVolunteerMatch = async (
                 rsvpEmail: email,
                 rsvpPhone: phone || '',
                 eventTitle,
-                eventDate,
+                eventDate: formatEventDate(eventDate),
                 volunteerName: v.name || `${v.legalFirstName} ${v.legalLastName}`.trim(),
                 volunteerEmail: v.email || '',
                 volunteerPhone: v.phone || '',
@@ -2467,7 +2503,7 @@ const processVolunteerMatch = async (
       toEmail: email,
       rsvpName: name,
       eventTitle,
-      eventDate
+      eventDate: formatEventDate(eventDate)
     });
 
     console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${email}`);
@@ -2509,7 +2545,7 @@ const handleVolunteerMatch = async (
         toEmail: volunteerEmail,
         volunteerName,
         eventTitle: rsvpData.eventTitle,
-        eventDate: rsvpData.eventDate,
+        eventDate: formatEventDate(rsvpData.eventDate),
         eventLocation: 'See event details'
       });
     }
@@ -2549,7 +2585,7 @@ const handleVolunteerMatch = async (
         toEmail: volunteerEmail,
         volunteerName,
         eventTitle: rsvpData.eventTitle,
-        eventDate: rsvpData.eventDate
+        eventDate: formatEventDate(rsvpData.eventDate)
       });
     }
 
@@ -3003,7 +3039,7 @@ app.post('/api/volunteer/presence', verifyToken, async (req: Request, res: Respo
 // Get online users for chat
 app.get('/api/volunteers/online', verifyToken, async (req: Request, res: Response) => {
     try {
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const fiveMinutesAgo = new Date(Date.now() - 90 * 1000).toISOString();
         const snapshot = await db.collection('volunteers')
             .where('lastActiveAt', '>=', fiveMinutesAgo)
             .get();
@@ -3090,7 +3126,7 @@ app.post('/api/messages', verifyToken, async (req: Request, res: Response) => {
 app.put('/api/messages/:messageId/read', verifyToken, async (req: Request, res: Response) => {
     try {
         const { messageId } = req.params;
-        await db.collection('messages').doc(messageId).update({ read: true });
+        await db.collection('messages').doc(messageId).update({ read: true, readAt: new Date().toISOString() });
         res.json({ success: true });
     } catch (error) {
         console.error('[MESSAGES] Failed to mark message as read:', error);
@@ -3358,7 +3394,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           toEmail: volunteerEmail,
           volunteerName: volunteerName || 'Volunteer',
           eventTitle: eventTitle || 'Community Event',
-          eventDate: eventDate || 'TBD',
+          eventDate: formatEventDate(eventDate || 'TBD'),
           eventLocation: eventLocation || 'TBD'
         });
         console.log(`[EVENTS] Sent registration confirmation to ${volunteerEmail} for ${eventTitle}`);
@@ -3391,7 +3427,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
             coordinatorName: coordinator.name || coordinator.firstName || 'Coordinator',
             volunteerName: volunteerName || 'A volunteer',
             eventTitle: eventTitle || 'an event',
-            eventDate: eventDate || 'upcoming',
+            eventDate: formatEventDate(eventDate || 'upcoming'),
           });
         }
       });

@@ -90,8 +90,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }
   };
 
-  const getDefaultTab = (role: string) => {
-    if (['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(role)) return 'analytics';
+  const getDefaultTab = (_role: string) => {
     return 'overview';
   };
 
@@ -107,9 +106,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return user;
   }, [user, viewingAsRole]);
 
+  // Only reset tab when admin switches role preview
   useEffect(() => {
-    setActiveTab(getDefaultTab(displayUser.role));
-  }, [displayUser.role]);
+    if (viewingAsRole) setActiveTab('overview');
+  }, [viewingAsRole]);
 
   // Presence tracking - ping server every 2 minutes to show online status
   useEffect(() => {
@@ -122,9 +122,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       }
     };
 
-    // Update presence immediately and then every 2 minutes
+    // Update presence immediately and then every 30 seconds
     updatePresence();
-    const intervalId = setInterval(updatePresence, 2 * 60 * 1000);
+    const intervalId = setInterval(updatePresence, 30 * 1000);
 
     return () => clearInterval(intervalId);
   }, [user.id]);

@@ -294,7 +294,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   // Helper to check if a date is in the past
   const isPastEvent = (dateStr: string) => {
-    const eventDate = new Date(dateStr);
+    const eventDate = new Date(dateStr + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate < today;
@@ -353,7 +353,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   // Add rsvped opportunities without shifts to the grouped data
   displayRsvpedOpps.forEach(opp => {
-    const date = new Date(opp.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const date = new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     if (!groupedByDate[date]) groupedByDate[date] = { shifts: [], opportunities: [] };
     groupedByDate[date].opportunities.push(opp);
   });
@@ -369,7 +369,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   // Add past rsvped opportunities
   if (activeTab === 'my-schedule') {
     pastRsvpedOpps.forEach(opp => {
-      const date = new Date(opp.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const date = new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       if (!pastGroupedByDate[date]) pastGroupedByDate[date] = { shifts: [], opportunities: [] };
       pastGroupedByDate[date].opportunities.push(opp);
     });
@@ -483,16 +483,20 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            )}
 
            {/* All Events */}
-           <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4 px-2">All Events</h3>
-            <div className="space-y-4">
-              {opportunities.filter(o => o.approvalStatus !== 'pending').map(opp => (
-                 <div key={opp.id} className={`bg-white p-6 rounded-2xl border shadow-sm ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
+           <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-2">All Events</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[...opportunities].filter(o => o.approvalStatus !== 'pending').sort((a, b) => {
+                const dateA = new Date(a.date + 'T00:00:00').getTime();
+                const dateB = new Date(b.date + 'T00:00:00').getTime();
+                return dateA - dateB;
+              }).map(opp => (
+                 <div key={opp.id} className={`bg-white p-6 rounded-2xl border shadow-sm flex flex-col ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold">{opp.title}</h3>
-                        <p className="text-xs text-zinc-400">{opp.date} • {opp.serviceLocation}</p>
+                      <div className="min-w-0">
+                        <h3 className="font-bold truncate">{opp.title}</h3>
+                        <p className="text-xs text-zinc-400">{new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} • {opp.serviceLocation}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase shrink-0 ${
                         opp.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
                         opp.approvalStatus === 'rejected' ? 'bg-rose-100 text-rose-600' :
                         'bg-zinc-100 text-zinc-500'
@@ -500,13 +504,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         {opp.approvalStatus || 'Published'}
                       </span>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
+                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2 flex-1">
                       {opp.staffingQuotas.map(q => (
                         <div key={q.role} className="flex justify-between items-center text-sm">
                           <span className="font-bold">{q.role}</span>
                           <div className="flex items-center gap-2">
                              <span className={`${q.filled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{q.filled} / {q.count} Filled</span>
-                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date })} className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">Find Volunteer</button>}
+                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date })} className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Find Volunteer</button>}
                           </div>
                         </div>
                       ))}
@@ -585,7 +589,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           )}
                                           {userMode === 'admin' && (
                                             (() => {
-                                              const eventDate = new Date(opp.date);
+                                              const eventDate = new Date(opp.date + 'T00:00:00');
                                               const today = new Date();
                                               const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                                               const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
@@ -649,7 +653,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                             <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Event Date</p>
                                             <p className="text-sm font-black text-zinc-900 tracking-tight flex items-center gap-2">
                                               <Calendar size={14} className="text-[#233DFF] shrink-0" />
-                                              {new Date(opp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </p>
                                           </div>
                                           {userMode === 'volunteer' && isRsvped && (

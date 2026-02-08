@@ -67,7 +67,7 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
         lng: opp.locationCoordinates?.lng || defaultLng,
         address: opp.serviceLocation,
         city: extractCityFromAddress(opp.serviceLocation),
-        dateDisplay: new Date(opp.date).toLocaleDateString(),
+        dateDisplay: new Date(opp.date + 'T00:00:00').toLocaleDateString(),
         time: '9:00 AM - 3:00 PM', // Default/Placeholder as Opportunity object date is just YYYY-MM-DD
         surveyKitId: opp.surveyKitId
     };
@@ -92,7 +92,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
   // Helper to check if event is in the past
   const isPastEvent = (dateStr: string) => {
-    const eventDate = new Date(dateStr);
+    const eventDate = new Date(dateStr + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate < today;

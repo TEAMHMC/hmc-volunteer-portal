@@ -141,7 +141,7 @@ export const validateShiftRegistration = (
   // ============================================================
   // AVAILABILITY CHECK
   // ============================================================
-  const shiftDate = new Date(opportunity.date);
+  const shiftDate = new Date(opportunity.date + 'T00:00:00');
   const shiftDayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][shiftDate.getDay()];
 
   const volunteerAvailableDays = volunteer.availability?.days || [];

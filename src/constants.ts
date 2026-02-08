@@ -288,7 +288,20 @@ export const ROLE_SPECIFIC_MODULES: Record<string, TrainingModule[]> = {
   data_analyst: [
     { id: 'hipaa_cyber_2024', title: 'HIPAA Training: 2024 Cybersecurity Standards', desc: 'Cybersecurity performance goals and safeguards to protect PHI and systems.', dur: 39, embed: 'https://www.youtube.com/embed/2tBs65yi7yk', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
   ],
+  licensed_medical: [
+    { id: 'lmp_hipaa_clinical', title: 'HIPAA for Clinical Volunteers', desc: 'HIPAA compliance specific to licensed providers handling PHI in community health settings.', dur: 30, embed: 'https://www.youtube.com/embed/jdGhezryMgI', format: 'recorded_video', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'lmp_field_medicine', title: 'Field Medicine & Community Health Basics', desc: 'Adapting clinical skills to field conditions, mobile clinics, and limited-resource environments.', dur: 25, embed: 'https://www.youtube.com/embed/T_rC0GPyq60', format: 'recorded_video', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'lmp_scope_review', title: 'Scope of Practice in Volunteer Settings', desc: 'Understanding practice boundaries, liability, and Good Samaritan protections for licensed volunteers.', dur: 15, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'lmp_triage_protocols', title: 'Community Triage & Escalation Protocols', desc: 'HMC triage workflows, when to escalate, and coordinating with EMS for community events.', dur: 20, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  medical_admin: [
+    { id: 'hipaa_cyber_2024', title: 'HIPAA Training: 2024 Cybersecurity Standards', desc: 'Cybersecurity performance goals and safeguards to protect PHI and systems.', dur: 39, embed: 'https://www.youtube.com/embed/2tBs65yi7yk', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'medical_records_basics', title: 'Medical Records & Documentation for Community Health', desc: 'Proper documentation, record handling, and compliance for healthcare admin in community settings.', dur: 20, embed: '', format: 'read_ack', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
 };
+
+// Append role-specific modules to flat lookup list
+ALL_TRAINING_MODULES.push(...Object.values(ROLE_SPECIFIC_MODULES).flat());
 
 export const EVENTS: ClinicEvent[] = [];
 export const OPPORTUNITIES: Opportunity[] = [];

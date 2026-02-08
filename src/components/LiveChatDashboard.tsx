@@ -26,6 +26,19 @@ interface LiveChatDashboardProps {
   currentUser: User;
 }
 
+// Check if current time is within live chat hours (10 AM - 6 PM Pacific)
+const isWithinChatHours = (): boolean => {
+  const now = new Date();
+  // Use Pacific time — this is an LA-based clinic
+  const ptFormatter = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hour12: false,
+    timeZone: 'America/Los_Angeles'
+  });
+  const hour = parseInt(ptFormatter.format(now), 10);
+  return hour >= 10 && hour < 18; // 10 AM to 6 PM
+};
+
 export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUser }) => {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
@@ -33,6 +46,15 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
   const [view, setView] = useState<'queue' | 'chat'>('queue');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [chatAvailable, setChatAvailable] = useState(isWithinChatHours());
+
+  // Re-check chat hours every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setChatAvailable(isWithinChatHours());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load chat requests from localStorage (in production, this would be from a WebSocket or API)
   useEffect(() => {
@@ -186,8 +208,8 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
             onClick={() => setView('queue')}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border-2 ${
               view === 'queue'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                ? 'bg-[#233DFF] text-white border-[#233DFF]'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-[#233DFF]/40'
             }`}
           >
             Queue ({pendingSessions.length})
@@ -196,8 +218,8 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
             onClick={() => setView('chat')}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border-2 ${
               view === 'chat'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                ? 'bg-[#233DFF] text-white border-[#233DFF]'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-[#233DFF]/40'
             }`}
           >
             My Chats ({activeSessions.length})
@@ -205,8 +227,26 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
         </div>
       </div>
 
+      {/* Offline hours banner */}
+      {!chatAvailable && (
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-amber-800 mb-2">Live Chat is Currently Offline</h3>
+          <p className="text-sm text-amber-600 mb-1">
+            Live chat support is available <strong>Monday – Friday, 10:00 AM – 6:00 PM Pacific Time</strong>.
+          </p>
+          <p className="text-sm text-amber-600">
+            For urgent needs, please submit a support ticket or email <strong>support@healthmatters.clinic</strong>.
+          </p>
+        </div>
+      )}
+
       {/* Queue View */}
-      {view === 'queue' && (
+      {view === 'queue' && chatAvailable && (
         <div className="grid gap-4">
           {/* Pending Requests */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -232,7 +272,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-semibold">
+                          <span className="w-8 h-8 rounded-full bg-blue-100 text-[#233DFF] flex items-center justify-center text-sm font-semibold">
                             {session.userInfo?.name?.[0] || 'V'}
                           </span>
                           <span className="font-semibold text-slate-900">
@@ -248,7 +288,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                       </div>
                       <button
                         onClick={() => handleClaimSession(session)}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 transition-colors border-2 border-black"
+                        className="px-4 py-2 bg-[#233DFF] text-white text-sm font-semibold rounded-full hover:bg-[#1a2fbf] transition-colors border-2 border-black"
                       >
                         Accept Chat
                       </button>
@@ -300,7 +340,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
       )}
 
       {/* Chat View */}
-      {view === 'chat' && (
+      {view === 'chat' && chatAvailable && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden h-[600px] flex flex-col">
           {activeSession ? (
             <>
@@ -344,14 +384,14 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     <div
                       className={`max-w-[75%] ${
                         message.type === 'volunteer'
-                          ? 'bg-blue-600 text-white rounded-2xl rounded-br-md'
+                          ? 'bg-[#233DFF] text-white rounded-2xl rounded-br-md'
                           : message.type === 'user'
                           ? 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md shadow-sm'
                           : 'bg-slate-200 text-slate-800 rounded-2xl rounded-bl-md'
                       } px-4 py-3`}
                     >
                       {message.type !== 'volunteer' && message.senderName && (
-                        <p className="text-xs font-semibold mb-1 text-blue-600">
+                        <p className="text-xs font-semibold mb-1 text-[#233DFF]">
                           {message.senderName}
                         </p>
                       )}
@@ -374,12 +414,12 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Type your message..."
-                    className="flex-1 px-4 py-3 border border-slate-200 rounded-full text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="flex-1 px-4 py-3 border border-slate-200 rounded-full text-sm focus:outline-none focus:border-[#233DFF]/40 focus:ring-2 focus:ring-[#233DFF]/10"
                   />
                   <button
                     type="submit"
                     disabled={!messageInput.trim()}
-                    className="px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
+                    className="px-6 py-3 bg-[#233DFF] text-white text-sm font-semibold rounded-full hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
                   >
                     Send
                   </button>
@@ -415,7 +455,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 <p className="text-sm mt-1">Accept a chat from the queue to get started</p>
                 <button
                   onClick={() => setView('queue')}
-                  className="mt-4 px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 transition-colors border-2 border-black"
+                  className="mt-4 px-6 py-2 bg-[#233DFF] text-white text-sm font-semibold rounded-full hover:bg-[#1a2fbf] transition-colors border-2 border-black"
                 >
                   View Queue
                 </button>

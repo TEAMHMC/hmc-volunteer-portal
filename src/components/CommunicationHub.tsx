@@ -202,6 +202,7 @@ const BriefingView: React.FC<{
   const [newMessage, setNewMessage] = useState('');
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
   // Poll for new messages every 10 seconds
   useEffect(() => {
@@ -219,6 +220,28 @@ const BriefingView: React.FC<{
     const interval = setInterval(pollMessages, 10000);
     return () => clearInterval(interval);
   }, [setMessages]);
+
+  // Poll online status every 15 seconds
+  useEffect(() => {
+    const pollOnline = async () => {
+      try {
+        const data = await apiService.get('/api/volunteers/online');
+        if (Array.isArray(data)) {
+          setOnlineUserIds(new Set(data.map((u: any) => u.id)));
+        }
+      } catch {
+        // Silent fail
+      }
+    };
+    pollOnline();
+    const interval = setInterval(pollOnline, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper to check if a volunteer is online
+  const isUserOnline = useCallback((volunteerId: string) => {
+    return onlineUserIds.has(volunteerId);
+  }, [onlineUserIds]);
 
   // Get unique DM conversations
   const conversations = useMemo(() => {
@@ -259,6 +282,26 @@ const BriefingView: React.FC<{
                    (m.senderId === activeChannel && m.recipientId === user.id))
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [messages, activeChannel, user.id]);
+
+  // Mark unread messages as read when viewing a DM conversation
+  useEffect(() => {
+    if (activeChannel === 'general') return;
+    const unreadMessages = activeMessages.filter(
+      m => m.senderId !== user.id && !m.read
+    );
+    if (unreadMessages.length === 0) return;
+
+    unreadMessages.forEach(async (msg) => {
+      try {
+        await apiService.put(`/api/messages/${msg.id}/read`, {});
+        setMessages(prev => prev.map(m =>
+          m.id === msg.id ? { ...m, read: true, readAt: new Date().toISOString() } : m
+        ));
+      } catch {
+        // Silent fail
+      }
+    });
+  }, [activeChannel, activeMessages, user.id, setMessages]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -347,14 +390,14 @@ const BriefingView: React.FC<{
                       <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-bold">
                         {v.name.charAt(0)}
                       </div>
-                      {v.isOnline && (
+                      {isUserOnline(v.id) && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-zinc-700 truncate block">{v.name}</span>
-                      <span className={`text-[10px] ${v.isOnline ? 'text-emerald-600' : 'text-zinc-400'}`}>
-                        {v.isOnline ? 'Online' : 'Offline'}
+                      <span className={`text-[10px] ${isUserOnline(v.id) ? 'text-emerald-600' : 'text-zinc-400'}`}>
+                        {isUserOnline(v.id) ? 'Online' : 'Offline'}
                       </span>
                     </div>
                   </button>
@@ -365,8 +408,7 @@ const BriefingView: React.FC<{
 
           <div className="space-y-1">
             {conversations.map(conv => {
-              const recipient = allVolunteers.find(v => v.id === conv.recipientId);
-              const isOnline = recipient?.isOnline;
+              const isOnline = isUserOnline(conv.recipientId);
               return (
                 <button
                   key={conv.recipientId}
@@ -424,14 +466,14 @@ const BriefingView: React.FC<{
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold">
                   {getChannelName().charAt(0)}
                 </div>
-                {allVolunteers.find(v => v.id === activeChannel)?.isOnline && (
+                {isUserOnline(activeChannel) && (
                   <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white" />
                 )}
               </div>
               <div>
                 <p className="font-bold text-zinc-900">{getChannelName()}</p>
                 <p className="text-xs text-zinc-400">
-                  {allVolunteers.find(v => v.id === activeChannel)?.isOnline ? (
+                  {isUserOnline(activeChannel) ? (
                     <span className="text-emerald-600 font-medium">Online now</span>
                   ) : (
                     'Offline'
@@ -453,37 +495,46 @@ const BriefingView: React.FC<{
               <p className="text-sm text-zinc-300">Start the conversation!</p>
             </div>
           )}
-          {activeMessages.map(msg => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`flex gap-3 max-w-[70%] ${msg.senderId === user.id ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  msg.senderId === user.id ? 'bg-[#233DFF] text-white' : 'bg-zinc-200 text-zinc-600'
-                }`}>
-                  {msg.sender?.charAt(0) || '?'}
-                </div>
-                <div>
-                  <div className={`flex items-center gap-2 mb-1 ${msg.senderId === user.id ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-xs font-semibold text-zinc-700">{msg.sender}</span>
-                    <span className="text-[10px] text-zinc-400">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+          {activeMessages.map(msg => {
+            const isMyMessage = msg.senderId === user.id;
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`flex gap-3 max-w-[70%] ${isMyMessage ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    isMyMessage ? 'bg-[#233DFF] text-white' : 'bg-zinc-200 text-zinc-600'
+                  }`}>
+                    {msg.sender?.charAt(0) || '?'}
                   </div>
-                  <div
-                    className={`px-4 py-3 rounded-2xl ${
-                      msg.senderId === user.id
-                        ? 'bg-[#233DFF] text-white rounded-tr-md'
-                        : 'bg-white border border-zinc-100 text-zinc-800 rounded-tl-md'
-                    }`}
-                  >
-                    <p className="text-sm">{msg.content}</p>
+                  <div>
+                    <div className={`flex items-center gap-2 mb-1 ${isMyMessage ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-xs font-semibold text-zinc-700">{msg.sender}</span>
+                      <span className="text-[10px] text-zinc-400">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div
+                      className={`px-4 py-3 rounded-2xl ${
+                        isMyMessage
+                          ? 'bg-[#233DFF] text-white rounded-tr-md'
+                          : 'bg-white border border-zinc-100 text-zinc-800 rounded-tl-md'
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                    {/* Read receipt indicator for sent messages */}
+                    {isMyMessage && activeChannel !== 'general' && (
+                      <p className={`text-[10px] mt-1 text-right ${msg.read ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
+                        {msg.read ? 'Read' : 'Sent'}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Message Input */}

@@ -126,7 +126,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
 
-  const roleSlug = getRoleSlug(user.role);
+  // Try both role and appliedRole — use whichever has role-specific training
+  const primarySlug = getRoleSlug(user.role);
+  const appliedSlug = getRoleSlug(user.appliedRole || '');
+  const roleSlug = (ROLE_SPECIFIC_MODULES[primarySlug]?.length > 0) ? primarySlug : appliedSlug;
+  const roleDisplayName = user.appliedRole || user.role || 'Volunteer';
   const completedModuleIds = user.completedTrainingIds || [];
 
   // Tier completion checks (with legacy compat)
@@ -452,8 +456,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">HMC Training</h2>
           <p className="text-zinc-500 text-lg font-medium leading-relaxed italic">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
-            {user.appliedRole && user.appliedRole !== 'HMC Champion' && (
-              <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{user.appliedRole}</span></span>
+            {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
+              <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
             )}
           </p>
         </div>
@@ -560,7 +564,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {roleModules.length > 0 && tier1Complete && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {user.appliedRole || user.role}</h3>
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">Additional training specific to your assigned role.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

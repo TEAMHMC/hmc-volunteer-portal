@@ -504,6 +504,7 @@ export interface Message {
     content: string;
     timestamp: string;
     read: boolean;
+    readAt?: string;
 }
 
 export interface Announcement {
