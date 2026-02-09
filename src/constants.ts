@@ -217,6 +217,14 @@ export const TIER_1_IDS = TIER_1_MODULES.map(m => m.id);
 export const TIER_2_IDS = TIER_2_MODULES.map(m => m.id);
 export const TIER_4_IDS = TIER_4_MODULES.map(m => m.id);
 
+// --- TIER 2 SPLIT: Core Baseline vs Field Readiness ---
+export const TIER_2_CORE_MODULES = TIER_2_MODULES.filter(m =>
+  ['hipaa_nonclinical', 'survey_general', 'portal_howto'].includes(m.id));
+export const TIER_2_FIELD_MODULES = TIER_2_MODULES.filter(m =>
+  ['cmhw_part1', 'cmhw_part2', 'emergency_protocols_general'].includes(m.id));
+export const TIER_2_CORE_IDS = TIER_2_CORE_MODULES.map(m => m.id);
+export const TIER_2_FIELD_IDS = TIER_2_FIELD_MODULES.map(m => m.id);
+
 // --- LEGACY ID MAPPING ---
 // Maps old module IDs (stored in existing user data) to new IDs
 export const LEGACY_MODULE_ID_MAP: Record<string, string> = {

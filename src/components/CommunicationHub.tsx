@@ -5,7 +5,7 @@ import {
   Megaphone, MessageSquare, LifeBuoy, Send, Plus, Sparkles, Loader2, Clock,
   Trash2, CheckCircle, Search, ChevronDown, User, Filter, X, Check, Smartphone,
   Hash, Users, GripVertical, MoreHorizontal, AlertCircle, ArrowRight, FileText,
-  Tag, Flag, History, ChevronRight, MessageCircle, Bell
+  Tag, Flag, History, ChevronRight, MessageCircle, Bell, Eye
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
@@ -65,10 +65,12 @@ const BroadcastsView: React.FC<{
     if (!newAnnounceTitle || !newAnnounceBody || isSending || isSent) return;
     setIsSending(true);
     try {
+      const targetRoles = filters.role === 'All' ? undefined : [filters.role];
       const newAnnouncement = await apiService.post('/api/broadcasts/send', {
         title: newAnnounceTitle,
         content: newAnnounceBody,
         filters,
+        targetRoles,
         sendAsSms,
       });
       setAnnouncements(prev => [newAnnouncement, ...prev]);
@@ -84,12 +86,19 @@ const BroadcastsView: React.FC<{
     }
   };
 
+  const visibleAnnouncements = useMemo(() => {
+    if (user.isAdmin) return announcements;
+    return announcements.filter(a =>
+      !a.targetRoles || a.targetRoles.length === 0 || a.targetRoles.includes(user.role)
+    );
+  }, [announcements, user.role, user.isAdmin]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-10 border-b border-zinc-50 flex items-center justify-between shrink-0">
         <div>
-          <h3 className="text-xl font-bold text-zinc-900 tracking-tight">Leadership Broadcasts</h3>
-          <p className="text-sm text-zinc-500 mt-1">Send targeted announcements to volunteer groups</p>
+          <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{canBroadcast ? 'Leadership Broadcasts' : 'Announcements'}</h3>
+          <p className="text-sm text-zinc-500 mt-1">{canBroadcast ? 'Send targeted announcements to volunteer groups' : 'Team announcements and updates'}</p>
         </div>
         {canBroadcast && !showNewAnnouncer && (
           <button
@@ -171,17 +180,22 @@ const BroadcastsView: React.FC<{
           </div>
         )}
 
-        {announcements.map(a => (
+        {visibleAnnouncements.map(a => (
           <div key={a.id} className="p-10 bg-white rounded-[40px] border border-zinc-100/80 transition-all shadow-sm group relative">
             <div className="flex items-start justify-between mb-4">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{new Date(a.date).toLocaleDateString()}</span>
+              {a.targetRoles && a.targetRoles.length > 0 && canBroadcast && (
+                <span className="text-[9px] font-bold text-[#233DFF] bg-[#233DFF]/10 px-3 py-1 rounded-full uppercase tracking-wider">
+                  {a.targetRoles.join(', ')}
+                </span>
+              )}
             </div>
             <h4 className="text-2xl font-bold text-zinc-900 mb-4 tracking-tight leading-tight">{a.title}</h4>
             <p className="text-[15px] text-zinc-500 leading-relaxed font-medium max-w-2xl">{a.content}</p>
           </div>
         ))}
 
-        {announcements.length === 0 && !showNewAnnouncer && (
+        {visibleAnnouncements.length === 0 && !showNewAnnouncer && (
           <div className="text-center py-20 text-zinc-300">
             <Megaphone size={48} className="mx-auto opacity-10 mb-6" />
             <p className="text-[10px] font-black uppercase tracking-widest">No Broadcasts Yet</p>
@@ -234,7 +248,7 @@ const BriefingView: React.FC<{
     return () => es.close();
   }, [setMessages]);
 
-  // Poll for messages as fallback (immediate fetch + 30s interval)
+  // Poll for messages as fallback (immediate fetch + 5s interval)
   useEffect(() => {
     const pollMessages = async () => {
       try {
@@ -248,7 +262,7 @@ const BriefingView: React.FC<{
     };
 
     pollMessages(); // Immediate fetch on mount
-    const interval = setInterval(pollMessages, 30000);
+    const interval = setInterval(pollMessages, 5000);
     return () => clearInterval(interval);
   }, [setMessages]);
 
@@ -1041,13 +1055,22 @@ const OpsSupportView: React.FC<{
   const [newTicketBody, setNewTicketBody] = useState('');
   const [newTicketCategory, setNewTicketCategory] = useState<TicketCategory>('technical');
   const [newTicketPriority, setNewTicketPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
+  const [newTicketVisibility, setNewTicketVisibility] = useState<'public' | 'team' | 'private'>('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedTicket, setDraggedTicket] = useState<string | null>(null);
 
-  // Show all tickets for admins, or tickets submitted by OR assigned to the user
-  const myTickets = userMode === 'admin'
-    ? supportTickets
-    : supportTickets.filter(t => t.submittedBy === user.id || t.assignedTo === user.id);
+  // Ticket visibility filtering
+  const isCoordinatorOrLead = user.role.includes('Coordinator') || user.role.includes('Lead');
+  const myTickets = useMemo(() => {
+    if (userMode === 'admin') return supportTickets;
+    return supportTickets.filter(t => {
+      const vis = t.visibility || 'public';
+      if (t.submittedBy === user.id || t.assignedTo === user.id) return true;
+      if (vis === 'private') return false;
+      if (vis === 'team') return isCoordinatorOrLead;
+      return true;
+    });
+  }, [supportTickets, user.id, userMode, isCoordinatorOrLead]);
 
   const ticketsByStatus = useMemo(() => ({
     open: myTickets.filter(t => t.status === 'open'),
@@ -1065,9 +1088,11 @@ const OpsSupportView: React.FC<{
       message: newTicketBody,
       category: newTicketCategory,
       priority: newTicketPriority,
+      visibility: newTicketVisibility,
       submittedBy: user.id,
       submitterName: user.name,
       submitterEmail: user.email,
+      submitterRole: user.role,
     };
 
     try {
@@ -1087,9 +1112,11 @@ const OpsSupportView: React.FC<{
         status: 'open',
         priority: newTicketPriority,
         category: newTicketCategory,
+        visibility: newTicketVisibility,
         submittedBy: user.id,
         submitterName: user.name,
         submitterEmail: user.email,
+        submitterRole: user.role,
         createdAt: new Date().toISOString(),
         notes: [],
         activity: [initialActivity],
@@ -1100,6 +1127,7 @@ const OpsSupportView: React.FC<{
       setNewTicketBody('');
       setNewTicketCategory('technical');
       setNewTicketPriority('medium');
+      setNewTicketVisibility('public');
     } catch (error) {
       console.error('Failed to submit ticket:', error);
       alert('Failed to submit ticket. Please try again.');
@@ -1406,6 +1434,21 @@ const OpsSupportView: React.FC<{
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                  <Eye size={12} className="inline mr-1" /> Visibility
+                </label>
+                <select
+                  value={newTicketVisibility}
+                  onChange={e => setNewTicketVisibility(e.target.value as any)}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 text-sm font-medium"
+                >
+                  <option value="public">Public (all staff can see)</option>
+                  <option value="team">My Team Only (coordinators + admins)</option>
+                  <option value="private">Private (only me + assigned + admins)</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Subject</label>
                 <input
                   type="text"
@@ -1467,7 +1510,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
   const canBroadcast = user.isAdmin || user.role.includes('Coordinator') || user.role.includes('Lead');
 
   const [activeTab, setActiveTab] = useState<'broadcasts' | 'briefing' | 'support'>(
-    initialTab || (canBroadcast ? 'broadcasts' : 'briefing')
+    initialTab || 'broadcasts'
   );
 
   // Switch tab when initialTab prop changes (e.g. from notification click)
@@ -1476,7 +1519,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
   }, [initialTab]);
 
   const tabs = [
-    ...(canBroadcast ? [{ id: 'broadcasts', label: 'Broadcasts', icon: Megaphone }] : []),
+    { id: 'broadcasts', label: canBroadcast ? 'Broadcasts' : 'Announcements', icon: Megaphone },
     { id: 'briefing', label: 'Briefing', icon: MessageSquare },
     { id: 'support', label: 'Ops Support', icon: LifeBuoy },
   ];
@@ -1508,7 +1551,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
 
       {/* Content */}
       <div className="flex-1 min-h-0 bg-white border border-zinc-200/50 rounded-[48px] shadow-[0_8px_40px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col">
-        {activeTab === 'broadcasts' && canBroadcast && (
+        {activeTab === 'broadcasts' && (
           <BroadcastsView
             user={user}
             allVolunteers={allVolunteers}

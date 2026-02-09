@@ -304,7 +304,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [showEventBuilder, setShowEventBuilder] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
-  const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string } | null>(null);
+  const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string; eventId: string; eventTitle: string; eventLocation: string } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Opportunity | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   
@@ -361,8 +361,49 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   const handleAssignVolunteer = async (volunteerId: string) => {
     if (!showStaffingModal) return;
-    alert(`Assigned volunteer ${volunteerId} to the ${showStaffingModal.role} shift.`);
-    setShowStaffingModal(null);
+    const { role, eventId, eventDate, eventTitle, eventLocation } = showStaffingModal;
+
+    // Find the matching shift for this event + role
+    const matchingShift = shifts.find(s => s.opportunityId === eventId && s.roleType === role);
+    const volunteer = allVolunteers.find(v => v.id === volunteerId);
+
+    try {
+      await apiService.post('/api/events/register', {
+        volunteerId,
+        eventId,
+        shiftId: matchingShift?.id || null,
+        eventTitle,
+        eventDate,
+        eventLocation,
+        volunteerEmail: volunteer?.email || '',
+        volunteerName: volunteer?.name || '',
+      });
+
+      // Update local shift state
+      if (matchingShift) {
+        setShifts(prev => prev.map(s => s.id === matchingShift.id ? {
+          ...s,
+          slotsFilled: s.slotsFilled + 1,
+          assignedVolunteerIds: [...s.assignedVolunteerIds, volunteerId],
+        } : s));
+      }
+
+      // Update local opportunity staffing quotas
+      setOpportunities(prev => prev.map(o => o.id === eventId ? {
+        ...o,
+        staffingQuotas: o.staffingQuotas.map(q => q.role === role ? { ...q, filled: (q.filled || 0) + 1 } : q),
+      } : o));
+
+      setShowStaffingModal(null);
+      setToastMsg(`${volunteer?.name || 'Volunteer'} assigned to ${role} shift.`);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (e: any) {
+      console.error('Failed to assign volunteer:', e);
+      setToastMsg(e.message || 'Failed to assign volunteer.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
 
   const handleSyncFromFinder = async () => {
@@ -539,7 +580,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            }}
          />
        )}
-       {showStaffingModal && <StaffingSuggestions {...showStaffingModal} allVolunteers={allVolunteers} assignedVolunteerIds={[]} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
+       {showStaffingModal && <StaffingSuggestions role={showStaffingModal.role} eventDate={showStaffingModal.eventDate} allVolunteers={allVolunteers} assignedVolunteerIds={shifts.find(s => s.opportunityId === showStaffingModal.eventId && s.roleType === showStaffingModal.role)?.assignedVolunteerIds || []} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
        {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
@@ -650,7 +691,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           <span className="font-bold">{q.role}</span>
                           <div className="flex items-center gap-2">
                              <span className={`${q.filled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{q.filled} / {q.count} Filled</span>
-                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
+                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
                           </div>
                         </div>
                       ))}

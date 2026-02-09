@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { KnowledgeBaseArticle, Volunteer } from '../types';
 import { KNOWLEDGE_BASE_ARTICLES } from '../docs';
 import { geminiService } from '../services/geminiService';
-import { BookOpen, Search, ChevronDown, X, FileText, Plus, Edit3, Save, Trash2, Sparkles, Loader2, Wand2, RefreshCw } from 'lucide-react';
+import { APP_CONFIG } from '../config';
+import { BookOpen, Search, ChevronDown, X, FileText, Plus, Edit3, Save, Trash2, Sparkles, Loader2, Wand2, RefreshCw, Eye } from 'lucide-react';
 
 interface DocumentationHubProps {
     currentUser?: Volunteer;
@@ -21,16 +22,23 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     const coordinatorRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator'];
     const canEdit = currentUser?.isAdmin || currentUser?.canEdit || coordinatorRoles.includes(currentUser?.role || '');
 
+    const roleFilteredArticles = useMemo(() => {
+        if (currentUser?.isAdmin) return articles;
+        return articles.filter(a =>
+            !a.visibleTo || a.visibleTo.length === 0 || a.visibleTo.includes(currentUser?.role || '')
+        );
+    }, [articles, currentUser?.isAdmin, currentUser?.role]);
+
     const filteredArticles = useMemo(() => {
-        if (!searchQuery) return articles;
+        if (!searchQuery) return roleFilteredArticles;
         const lowerQuery = searchQuery.toLowerCase();
-        return articles.filter(
+        return roleFilteredArticles.filter(
             article =>
                 article.title.toLowerCase().includes(lowerQuery) ||
                 article.content.toLowerCase().includes(lowerQuery) ||
                 article.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))
         );
-    }, [searchQuery, articles]);
+    }, [searchQuery, roleFilteredArticles]);
 
     const articlesByCategory = useMemo(() => {
         return filteredArticles.reduce((acc, article) => {
@@ -206,9 +214,11 @@ const ArticleEditorModal: React.FC<{
     const [category, setCategory] = useState(article?.category || existingCategories[0] || 'Policies & Procedures');
     const [newCategory, setNewCategory] = useState('');
     const [tags, setTags] = useState(article?.tags?.join(', ') || '');
+    const [visibleTo, setVisibleTo] = useState<string[]>(article?.visibleTo || []);
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
     const [showAiPanel, setShowAiPanel] = useState(false);
+    const allRoles = APP_CONFIG.HMC_ROLES.map(r => r.label);
 
     const handleSave = () => {
         if (!title.trim() || !content.trim()) {
@@ -222,7 +232,8 @@ const ArticleEditorModal: React.FC<{
             title: title.trim(),
             content: content.trim(),
             category: finalCategory,
-            tags: tags.split(',').map(t => t.trim()).filter(Boolean)
+            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+            ...(visibleTo.length > 0 ? { visibleTo } : {})
         };
         onSave(savedArticle);
     };
@@ -349,6 +360,35 @@ const ArticleEditorModal: React.FC<{
                                 placeholder="policy, hipaa, compliance..."
                                 className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 font-medium"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                                <Eye size={12} className="inline mr-1" />
+                                Visible To (leave empty for all roles)
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {allRoles.map(role => (
+                                    <button
+                                        key={role}
+                                        type="button"
+                                        onClick={() => setVisibleTo(prev =>
+                                            prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+                                        )}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                            visibleTo.includes(role)
+                                                ? 'bg-[#233DFF] text-white'
+                                                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                                        }`}
+                                    >
+                                        {role}
+                                    </button>
+                                ))}
+                            </div>
+                            {visibleTo.length > 0 && (
+                                <p className="text-xs text-zinc-400 mt-2">
+                                    Only visible to: {visibleTo.join(', ')}
+                                </p>
+                            )}
                         </div>
                     </main>
 

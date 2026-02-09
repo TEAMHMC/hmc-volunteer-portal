@@ -4048,8 +4048,8 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
 
 app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        const { title, content, category = 'General', sendAsSms = false } = req.body;
-        const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved' };
+        const { title, content, category = 'General', sendAsSms = false, targetRoles } = req.body;
+        const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved', ...(targetRoles ? { targetRoles } : {}) };
         const docRef = await db.collection('announcements').add(announcement);
 
         let smsResults = { attempted: 0, sent: 0, failed: 0 };

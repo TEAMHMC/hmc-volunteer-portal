@@ -6,12 +6,12 @@ import {
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
-  Bell
+  Bell, Menu
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
-import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS } from '../constants';
+import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS } from '../constants';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
 import CommunicationHub from './CommunicationHub';
@@ -84,6 +84,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     () => typeof window !== 'undefined' && localStorage.getItem('hmcBetaBannerDismissed') !== 'true'
   );
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [commHubTab, setCommHubTab] = useState<'broadcasts' | 'briefing' | 'support' | undefined>(undefined);
 
   const handleDismissBetaBanner = () => {
@@ -147,36 +148,38 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const GOVERNANCE_ROLES = ['Board Member', 'Community Advisory Board'];
   const isGovernanceRole = GOVERNANCE_ROLES.includes(displayUser.role);
 
-  const GOVERNANCE_TRAINING_MODULES = ['hmc_orientation', 'hmc_champion'];
-  const OPERATIONAL_TRAINING_MODULES = [
-    'hmc_orientation',
-    'hmc_champion',
-    'hipaa_nonclinical',
-    'cmhw_part1',
-    'cmhw_part2',
-    'survey_general',
-    'portal_howto',
-  ];
-  const CORE_TRAINING_MODULES = isGovernanceRole ? GOVERNANCE_TRAINING_MODULES : OPERATIONAL_TRAINING_MODULES;
-
+  // Portal access: Tier 1 only (2 orientation videos)
+  const PORTAL_REQUIRED_MODULES = ['hmc_orientation', 'hmc_champion'];
   const completedTrainingIds = displayUser.completedTrainingIds || [];
-  const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => hasCompletedModule(completedTrainingIds, id));
+  const hasCompletedOrientation = PORTAL_REQUIRED_MODULES.every(id =>
+    hasCompletedModule(completedTrainingIds, id));
+  const hasCompletedCoreTraining = hasCompletedOrientation;
 
-  // isOperationalEligible = approvedOperationalRole AND tier2Complete
-  // Governance roles are eligible once they complete Tier 1 (don't need coreVolunteerStatus flag)
-  const isOperationalEligible = displayUser.isAdmin || (isGovernanceRole && hasCompletedCoreTraining) || (displayUser.coreVolunteerStatus === true && hasCompletedCoreTraining);
+  // Portal unlocks after Tier 1 orientation (or admin)
+  const isOperationalEligible = displayUser.isAdmin || hasCompletedOrientation;
   // Legacy alias
   const canAccessOperationalTools = isOperationalEligible;
+
+  // My Missions: requires coreVolunteerStatus (set after Tier 1 + Tier 2 Core) or admin
+  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true);
 
   // Notification counts
   const unreadDMs = useMemo(() => {
     return messages.filter(m => m.senderId !== displayUser.id && !m.read && m.recipientId !== 'general').length;
   }, [messages, displayUser.id]);
 
+  const isCoordinatorOrLead = displayUser.role.includes('Coordinator') || displayUser.role.includes('Lead');
   const openTicketsCount = useMemo(() => {
     if (displayUser.isAdmin) return supportTickets.filter(t => t.status === 'open').length;
-    return supportTickets.filter(t => (t.assignedTo === displayUser.id || t.submittedBy === displayUser.id) && t.status !== 'closed').length;
-  }, [supportTickets, displayUser.id, displayUser.isAdmin]);
+    return supportTickets.filter(t => {
+      if (t.status === 'closed') return false;
+      if (t.submittedBy === displayUser.id || t.assignedTo === displayUser.id) return true;
+      const vis = t.visibility || 'public';
+      if (vis === 'private') return false;
+      if (vis === 'team') return isCoordinatorOrLead;
+      return true;
+    }).length;
+  }, [supportTickets, displayUser.id, displayUser.isAdmin, isCoordinatorOrLead]);
 
   const newApplicantsCount = useMemo(() => {
     if (!displayUser.isAdmin) return 0;
@@ -191,8 +194,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       { id: 'academy', label: 'Training Academy', icon: GraduationCap },
     ];
 
-    // Only show operational tabs (missions) if core training is complete OR user is admin
-    if (canAccessOperationalTools) {
+    // My Missions: requires coreVolunteerStatus (Tier 1 + Tier 2 Core complete) or admin
+    if (canAccessMissions) {
       // Governance roles see My Missions only if they opted in by completing Tier 2
       const governanceCompletedTier2 = isGovernanceRole && hasCompletedAllModules(completedTrainingIds, TIER_2_IDS);
       if (!isGovernanceRole || governanceCompletedTier2) {
@@ -262,7 +265,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }
     return items;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
+  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, canAccessMissions, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
 
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
 
@@ -291,7 +294,95 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          HMC Volunteer Platform v4.1.0-PROD • <span className="text-amber-400 ml-2">Release Environment</span>
       </div>
 
-      <aside className={`w-full md:w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
+      {/* Mobile top header */}
+      <div className={`fixed top-10 left-0 right-0 h-14 bg-white border-b border-zinc-200 flex md:hidden items-center justify-between px-4 z-[98] ${showBetaBanner ? (viewingAsRole ? 'mt-24' : 'mt-12') : (viewingAsRole ? 'mt-12' : '')}`}>
+        <button onClick={() => setShowMobileMenu(true)} className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center">
+          <Menu size={20} className="text-zinc-700" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center">
+            <img src={APP_CONFIG.BRAND.logoUrl} className="w-5 h-5" alt="HMC" />
+          </div>
+          <span className="text-sm font-black text-zinc-900">HMC Portal</span>
+        </div>
+        <button onClick={() => setShowNotifications(!showNotifications)} className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center relative">
+          <Bell size={18} className="text-zinc-600" />
+          {totalNotifications > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
+              {totalNotifications > 99 ? '99+' : totalNotifications}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile slide-out menu overlay */}
+      {showMobileMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[299] md:hidden" onClick={() => setShowMobileMenu(false)} />
+          <div className="fixed inset-y-0 left-0 w-[300px] bg-white z-[300] md:hidden flex flex-col p-6 gap-6 overflow-y-auto animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center">
+                  <img src={APP_CONFIG.BRAND.logoUrl} className="w-6 h-6" alt="HMC" />
+                </div>
+                <span className="text-sm font-black text-zinc-900">HMC Portal</span>
+              </div>
+              <button onClick={() => setShowMobileMenu(false)} className="p-2 hover:bg-zinc-100 rounded-xl">
+                <X size={20} className="text-zinc-500" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-1">
+              {navItems.map(item => (
+                <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
+                  <item.icon size={18} /> {item.label}
+                  {item.badge && item.badge > 0 ? (
+                    <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </nav>
+            <div className="mt-auto pt-4 border-t border-zinc-100 space-y-3">
+              <button onClick={() => { setActiveTab('profile'); setShowMobileMenu(false); }} className="flex w-full items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                  {displayUser.avatarUrl || displayUser.profilePhoto ? (
+                    <img src={displayUser.avatarUrl || displayUser.profilePhoto} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    displayUser.name?.charAt(0)?.toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-sm font-bold text-zinc-900 truncate">{displayUser.name}</p>
+                  <p className="text-[10px] text-zinc-400 truncate">{displayUser.role}</p>
+                </div>
+              </button>
+              <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-zinc-400 font-medium text-sm hover:text-rose-500 rounded-xl transition-all">
+                <LogOut size={16} /> Sign Out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile bottom tab bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 flex md:hidden items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-[98]">
+        {[
+          { id: 'overview', label: 'Home', icon: Activity },
+          { id: 'academy', label: 'Training', icon: GraduationCap },
+          { id: 'briefing', label: 'Comms', icon: MessageSquare },
+          { id: 'docs', label: 'Docs', icon: BookOpen },
+          { id: 'impact', label: 'Impact', icon: DollarSign },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-0 ${activeTab === tab.id ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
+            <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
+            <span className="text-[10px] font-bold truncate">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop sidebar - hidden on mobile */}
+      <aside className={`hidden md:flex w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
          <div className="flex items-center gap-4 px-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />
@@ -355,7 +446,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {showNotifications && (
         <>
           <div className="fixed inset-0 z-[199]" onClick={() => setShowNotifications(false)} />
-          <div className="fixed left-[240px] top-[80px] w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-[200] overflow-hidden">
+          <div className="fixed right-4 top-[100px] md:left-[240px] md:right-auto md:top-[80px] w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-[200] overflow-hidden">
             <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
               <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
               <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
@@ -422,7 +513,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         </>
       )}
 
-      <main className={`flex-1 p-10 md:p-16 space-y-16 overflow-y-auto h-screen no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28' : 'pt-24')}`}>
+      <main className={`flex-1 p-6 md:p-16 space-y-12 md:space-y-16 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {activeTab === 'overview' && (
            <>
             <header className="space-y-8">
@@ -435,7 +526,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     </h1>
                     <p className="text-lg text-zinc-500 font-medium max-w-lg">
                       {isOnboarding
-                        ? "Let's get you set up and ready to make an impact in our community."
+                        ? "Complete your orientation to unlock missions. You can explore the rest of the portal right away."
                         : "Ready to continue making a difference? Here's your dashboard."}
                     </p>
                   </div>
@@ -487,7 +578,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          )}
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
-         {activeTab === 'missions' && canAccessOperationalTools && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
+         {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
          {activeTab === 'event-management' && canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
@@ -547,7 +638,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                       Welcome to the team, {user.name?.split(' ')[0]}.
                     </h3>
                     <p className="text-lg font-medium text-white/80 max-w-lg leading-relaxed">
-                      Complete your orientation training to unlock community missions and start making an impact.
+                      Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
                 <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#233DFF] rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
@@ -611,19 +702,12 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   const hasUpcomingMission = nextShift || nextRsvpedEvent;
   const pendingTasks = user.tasks?.filter(t => t.status === 'pending') || [];
 
-  // If not operationally eligible, show training/approval required message
+  // If orientation not complete, show training required message (Tier 1 only)
   if (!isOperationalEligible) {
-    const coreModules = isGovernanceRole
-      ? [{ id: 'hmc_orientation', label: 'HMC Orientation' }, { id: 'hmc_champion', label: 'Because You\'re a Champion' }]
-      : [
-          { id: 'hmc_orientation', label: 'HMC Orientation' },
-          { id: 'hmc_champion', label: 'Because You\'re a Champion' },
-          { id: 'hipaa_nonclinical', label: 'HIPAA (Non-Clinical)' },
-          { id: 'cmhw_part1', label: 'Community Health Worker (Part 1)' },
-          { id: 'cmhw_part2', label: 'Community Health Worker (Part 2)' },
-          { id: 'survey_general', label: 'Survey & Data Collection' },
-          { id: 'portal_howto', label: 'Portal How-To' },
-        ];
+    const coreModules = [
+      { id: 'hmc_orientation', label: 'HMC Orientation' },
+      { id: 'hmc_champion', label: 'Because You\'re a Champion' },
+    ];
     const completedCount = coreModules.filter(m => hasCompletedModule(user.completedTrainingIds || [], m.id)).length;
     const progress = (completedCount / coreModules.length) * 100;
     const trainingDone = hasCompletedCoreTraining;
@@ -659,11 +743,17 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                 </div>
               </div>
 
-              <p className="text-amber-800 font-medium leading-relaxed mb-6">
+              <p className="text-amber-800 font-medium leading-relaxed mb-4">
                 {trainingDone && !roleApproved
-                  ? 'Your training is complete! You can explore Impact Hub, connect with the community, and access non-operational features while your role is reviewed.'
-                  : 'Complete all required modules to unlock community missions and start making an impact.'}
+                  ? 'Your orientation is complete! Your role application is being reviewed. You can continue exploring the portal while you wait.'
+                  : 'Complete these 2 orientation videos to unlock community missions and event signups.'}
               </p>
+              {!trainingDone && (
+                <p className="text-amber-700/70 text-sm font-medium mb-6">
+                  You can already explore Training Academy, Communication Hub, Doc Hub, and Impact Hub using the menu.
+                </p>
+              )}
+              {trainingDone && !roleApproved && <div className="mb-6" />}
 
               {/* Training Checklist */}
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-amber-200/50 mb-6 space-y-3">

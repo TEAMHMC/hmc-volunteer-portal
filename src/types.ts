@@ -367,6 +367,7 @@ export interface KnowledgeBaseArticle {
   category: string;
   content: string;
   tags?: string[];
+  visibleTo?: string[];
 }
 
 export interface FormField {
@@ -452,11 +453,13 @@ export interface SupportTicket {
     submittedBy?: string;
     submitterName?: string;
     submitterEmail?: string;
+    submitterRole?: string;
     subject: string;
     description: string;
     status: 'open' | 'closed' | 'in_progress';
     priority: 'low' | 'medium' | 'high' | 'urgent';
     category: TicketCategory;
+    visibility?: 'public' | 'team' | 'private';
     createdAt: string;
     updatedAt?: string;
     closedAt?: string;
@@ -517,6 +520,7 @@ export interface Announcement {
     date: string;
     category: string;
     status: 'pending' | 'approved';
+    targetRoles?: string[];
 }
 
 export interface VolunteerSurveyResponse {

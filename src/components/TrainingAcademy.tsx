@@ -4,6 +4,8 @@ import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
 import {
   TIER_1_MODULES, TIER_2_MODULES, TIER_4_MODULES,
+  TIER_2_CORE_MODULES, TIER_2_FIELD_MODULES,
+  TIER_2_CORE_IDS, TIER_2_FIELD_IDS,
   PROGRAM_COMMUNITY_WELLNESS, PROGRAM_COMMUNITY_HEALTH_OUTREACH,
   PROGRAM_STREET_MEDICINE, PROGRAM_CLINICAL,
   ROLE_SPECIFIC_MODULES, TIER_1_IDS, TIER_2_IDS,
@@ -48,27 +50,8 @@ const FormatBadge: React.FC<{ format: TrainingModule['format'] }> = ({ format })
 };
 
 // Static fallback quizzes for core training modules (no AI required)
+// Note: hmc_orientation and hmc_champion are ScreenPal videos with built-in quizzes — no static quiz needed
 const STATIC_QUIZZES: Record<string, { question: string; learningObjective: string; keyConcepts: { concept: string; description: string }[]; acceptableKeywords: string[] }> = {
-  'hmc_orientation': {
-    question: 'What is the primary mission of Health Matters Clinic, and how does volunteer work support this mission in the Los Angeles community?',
-    learningObjective: 'Understand HMC\'s mission, values, and the role volunteers play in community health.',
-    keyConcepts: [
-      { concept: 'Community Health', description: 'Serving underserved populations with accessible healthcare.' },
-      { concept: 'Volunteer Impact', description: 'How volunteers extend HMC\'s reach and effectiveness.' },
-      { concept: 'Mission Alignment', description: 'Connecting personal values with organizational goals.' }
-    ],
-    acceptableKeywords: ['community', 'health', 'volunteer', 'service', 'care', 'support', 'help', 'mission']
-  },
-  'hmc_champion': {
-    question: 'What does it mean to be an HMC Champion, and how will you embody our values when serving the community?',
-    learningObjective: 'Understand what it means to represent HMC as a Champion volunteer.',
-    keyConcepts: [
-      { concept: 'HMC Values', description: 'Compassion, respect, and dignity in every interaction.' },
-      { concept: 'Champion Mindset', description: 'Showing up prepared, reliable, and committed to service.' },
-      { concept: 'Community First', description: 'Putting the needs of community members at the center of our work.' }
-    ],
-    acceptableKeywords: ['champion', 'values', 'respect', 'dignity', 'compassion', 'community', 'serve', 'committed', 'reliable', 'care']
-  },
   'hipaa_nonclinical': {
     question: 'Explain how HIPAA protects patient privacy and give an example of what you would do if you accidentally saw protected health information.',
     learningObjective: 'Demonstrate understanding of HIPAA privacy rules and appropriate responses to breaches.',
@@ -158,18 +141,21 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
   // Tier completion checks (with legacy compat)
   const tier1Complete = hasCompletedAllModules(completedModuleIds, TIER_1_IDS);
-  const tier2Complete = isGovernanceRole ? true : hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
-  const isOperationalEligible = user.coreVolunteerStatus === true && tier2Complete;
+  const tier2CoreComplete = isGovernanceRole ? true : hasCompletedAllModules(completedModuleIds, TIER_2_CORE_IDS);
+  const tier2FieldComplete = hasCompletedAllModules(completedModuleIds, TIER_2_FIELD_IDS);
+  const tier2Complete = tier2CoreComplete && tier2FieldComplete;
+  const isOperationalEligible = user.coreVolunteerStatus === true && tier2CoreComplete;
 
   // Progress calculations
   const tier1CompletedCount = TIER_1_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const tier1Progress = Math.round((tier1CompletedCount / TIER_1_MODULES.length) * 100);
 
-  const tier2CompletedCount = TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
-  const tier2Progress = Math.round((tier2CompletedCount / TIER_2_MODULES.length) * 100);
+  const tier2CoreCompletedCount = TIER_2_CORE_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const tier2CoreProgress = Math.round((tier2CoreCompletedCount / TIER_2_CORE_MODULES.length) * 100);
+  const tier2FieldCompletedCount = TIER_2_FIELD_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const governanceTier2Complete = hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
 
-  const overallRequired = isGovernanceRole ? [...TIER_1_MODULES] : [...TIER_1_MODULES, ...TIER_2_MODULES];
+  const overallRequired = isGovernanceRole ? [...TIER_1_MODULES] : [...TIER_1_MODULES, ...TIER_2_CORE_MODULES];
   const overallCompletedCount = overallRequired.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const overallProgress = Math.round((overallCompletedCount / overallRequired.length) * 100);
 
@@ -310,7 +296,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       const newCompletedIds = [...completedModuleIds, moduleId];
 
       // Check if this completion finishes required tiers (governance roles skip Tier 2)
-      const requiredIds = isGovernanceRole ? TIER_1_IDS : [...TIER_1_IDS, ...TIER_2_IDS];
+      const requiredIds = isGovernanceRole ? TIER_1_IDS : [...TIER_1_IDS, ...TIER_2_CORE_IDS];
       const nowCompletedAll = hasCompletedAllModules(newCompletedIds, requiredIds);
       const wasNotCompletedBefore = !hasCompletedAllModules(completedModuleIds, requiredIds);
 
@@ -607,20 +593,20 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
       {/* Tier 1 Complete Banner */}
-      {tier1Complete && !tier2Complete && (
+      {tier1Complete && !tier2CoreComplete && (
         <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-8 rounded-[32px] flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-[#233DFF]/50 text-white flex items-center justify-center shadow-lg shrink-0">
             <CheckCircle2 size={28} />
           </div>
           <div>
             <h4 className="text-lg font-black text-[#233DFF]">Orientation Complete!</h4>
-            <p className="text-[#233DFF] font-medium">Welcome to HMC! Continue with Baseline Training below to unlock operational access.</p>
+            <p className="text-[#233DFF] font-medium">Welcome to HMC! Continue with Baseline Training below to unlock My Missions.</p>
           </div>
         </div>
       )}
 
-      {/* All Baseline Complete Banner */}
-      {tier2Complete && (
+      {/* Core Baseline Complete Banner */}
+      {tier2CoreComplete && (
         <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-[32px] flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shrink-0">
             <Award size={28} />
@@ -667,19 +653,19 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
           </div>
 
-          {/* Tier 2 Progress (hidden for governance roles) */}
-          {!isGovernanceRole && (
+          {/* Tier 2 Core Progress (hidden for governance roles, only shown after Tier 1) */}
+          {!isGovernanceRole && tier1Complete && (
             <div className="flex items-center gap-4 w-full">
               <div className="relative w-16 h-16">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
+                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2CoreProgress) / 100} className="text-[#233DFF] transition-all duration-1000" />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2Progress}%</div>
+                <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2CoreProgress}%</div>
               </div>
               <div>
                 <p className="text-xs font-black text-zinc-700">Tier 2: Baseline</p>
-                <p className="text-[10px] text-zinc-400">{tier2CompletedCount}/{TIER_2_MODULES.length} modules</p>
+                <p className="text-[10px] text-zinc-400">{tier2CoreCompletedCount}/{TIER_2_CORE_MODULES.length} modules</p>
               </div>
             </div>
           )}
@@ -739,27 +725,62 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           )}
         </div>
       )}
-      {!isGovernanceRole && (
-        <div className={!tier1Complete ? 'opacity-60' : ''}>
+      {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete) ===== */}
+      {!isGovernanceRole && tier1Complete && (
+        <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black">2</div>
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
-            {tier2Complete && (
+            {tier2CoreComplete && (
               <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
-            )}
-            {!tier1Complete && (
-              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
             )}
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">Required for all operational volunteers. Complete these to unlock My Missions and event registration.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {TIER_2_MODULES.map(m => renderModuleCard(m, !tier1Complete))}
+            {TIER_2_CORE_MODULES.map(m => renderModuleCard(m, false))}
           </div>
         </div>
       )}
 
+      {/* ===== TIER 2B: FIELD READINESS (collapsed, shown after Core Baseline) ===== */}
+      {!isGovernanceRole && tier2CoreComplete && (
+        <div className="pt-8 border-t border-zinc-100">
+          <button
+            onClick={() => setShowFieldAccess(!showFieldAccess)}
+            className="w-full flex items-center gap-4 mb-4 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">
+              <Calendar size={20} />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+                {tier2FieldComplete ? 'Field Readiness Training' : 'Want to Attend In-Person Events?'}
+              </h3>
+              <p className="text-zinc-500 font-medium text-sm mt-1">
+                {tier2FieldComplete
+                  ? 'You\'ve completed field readiness training. You can register for in-person events.'
+                  : 'Optional: Complete these modules before registering for in-person community events.'}
+              </p>
+            </div>
+            {tier2FieldComplete ? (
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">Complete</span>
+            ) : (
+              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">{tier2FieldCompletedCount}/{TIER_2_FIELD_MODULES.length}</span>
+            )}
+            <ChevronDown size={20} className={`text-zinc-400 transition-transform ${showFieldAccess ? 'rotate-180' : ''}`} />
+          </button>
+          {showFieldAccess && (
+            <div className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {TIER_2_FIELD_MODULES.map(m => renderModuleCard(m, false))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
-      {tier2Complete && !isGovernanceRole && (
+      {tier2CoreComplete && !isGovernanceRole && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black">3</div>
@@ -804,7 +825,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
-      {tier2Complete && !isGovernanceRole && (
+      {tier2CoreComplete && !isGovernanceRole && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black">4</div>
