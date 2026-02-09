@@ -1605,9 +1605,9 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
                             useGoogle: true
                         });
                     }
-                    if (userData.authProvider === 'manual') {
+                    if (userData.authProvider === 'manual' || !userData.authProvider) {
                         return res.status(401).json({
-                            error: "Your account was created by an administrator. Please use the password reset link sent to your email, or contact support.",
+                            error: "Your account needs a password. Please click 'Forgot password?' below to set one up.",
                             needsPasswordReset: true
                         });
                     }
@@ -1631,33 +1631,70 @@ app.post('/auth/forgot-password', rateLimit(3, 60000), async (req: Request, res:
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required.' });
     try {
-        // Generate reset link via Firebase Admin SDK (no email sent by Firebase)
-        const resetLink = await auth.generatePasswordResetLink(email);
+        const emailLower = email.toLowerCase();
 
-        // Look up volunteer name for personalized email
+        // Look up volunteer in Firestore
         const volSnap = await db.collection('volunteers')
-            .where('email', '==', email.toLowerCase())
+            .where('email', '==', emailLower)
             .limit(1)
             .get();
-        const volunteerName = volSnap.empty ? 'Volunteer' : (volSnap.docs[0].data().name || 'Volunteer');
+
+        if (volSnap.empty) {
+            // No volunteer record - return success anyway to prevent email enumeration
+            console.log(`[AUTH] Password reset requested for unknown email: ${emailLower}`);
+            return res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
+        }
+
+        const volDoc = volSnap.docs[0];
+        const volData = volDoc.data();
+        const volunteerName = volData.name || 'Volunteer';
+
+        // Check if Firebase Auth user exists; if not, create one
+        let resetLink: string;
+        try {
+            resetLink = await auth.generatePasswordResetLink(emailLower);
+        } catch (err: any) {
+            if (err.code === 'auth/user-not-found') {
+                // Volunteer exists in Firestore but not in Firebase Auth - create the auth account
+                console.log(`[AUTH] Creating Firebase Auth account for existing volunteer: ${emailLower}`);
+                const tempPassword = crypto.randomBytes(9).toString('base64url') + 'A1!';
+                const userRecord = await auth.createUser({
+                    email: emailLower,
+                    password: tempPassword,
+                    displayName: volunteerName,
+                });
+
+                // Update Firestore doc to link to Firebase Auth UID
+                await db.collection('volunteers').doc(userRecord.uid).set({
+                    ...volData,
+                    id: userRecord.uid,
+                    authProvider: 'email',
+                }, { merge: true });
+
+                // If old doc ID was different, delete the orphan
+                if (volDoc.id !== userRecord.uid) {
+                    await db.collection('volunteers').doc(volDoc.id).delete();
+                    console.log(`[AUTH] Migrated volunteer doc ${volDoc.id} -> ${userRecord.uid}`);
+                }
+
+                resetLink = await auth.generatePasswordResetLink(emailLower);
+            } else {
+                throw err;
+            }
+        }
 
         // Send branded email through our own email service
         await EmailService.send('password_reset', {
-            toEmail: email,
+            toEmail: emailLower,
             volunteerName,
             resetLink,
             expiresInHours: 1,
         });
 
-        console.log(`[AUTH] Password reset email sent to ${email}`);
+        console.log(`[AUTH] Password reset email sent to ${emailLower}`);
         res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
     } catch (error: any) {
-        // auth/user-not-found means email doesn't exist — still return success to prevent enumeration
-        if (error.code === 'auth/user-not-found') {
-            console.log(`[AUTH] Password reset requested for non-existent email: ${email}`);
-        } else {
-            console.error('Password reset error:', error);
-        }
+        console.error('Password reset error:', error);
         res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
     }
 });
