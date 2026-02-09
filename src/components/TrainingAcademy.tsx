@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Volunteer } from '../types';
 import { geminiService } from '../services/geminiService';
 import { analyticsService } from '../services/analyticsService';
@@ -125,6 +125,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [submitError, setSubmitError] = useState('');
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
+  const [moduleContent, setModuleContent] = useState<{ content: string; sections: { heading: string; body: string }[] } | null>(null);
+  const [loadingContent, setLoadingContent] = useState(false);
 
   // Try both role and appliedRole — use whichever has role-specific training
   const primarySlug = getRoleSlug(user.role);
@@ -165,6 +167,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     setQuizData(null);
     setVideoError(false);
     setVideoLoading(true);
+    setModuleContent(null);
 
     if (module.format === 'read_ack') {
       setQuizStage('read_ack');
@@ -174,6 +177,30 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       setQuizStage('concepts');
     }
   };
+
+  // Fetch AI-generated content when a read_ack module is opened
+  useEffect(() => {
+    if (!activeSession || activeSession.format !== 'read_ack') return;
+
+    let cancelled = false;
+    setLoadingContent(true);
+
+    geminiService.generateModuleContent(
+      activeSession.id,
+      activeSession.title,
+      activeSession.desc,
+      roleDisplayName
+    ).then(result => {
+      if (!cancelled) {
+        setModuleContent(result);
+        setLoadingContent(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setLoadingContent(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [activeSession?.id, activeSession?.format, roleDisplayName]);
 
   // Get proper embed URL for different video sources
   const getEmbedUrl = (embedUrl: string): string => {
@@ -356,9 +383,32 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </div>
         </div>
 
-        <div className="bg-zinc-50 border border-zinc-200 rounded-[24px] p-8 space-y-6 max-h-[400px] overflow-y-auto">
+        <div className="bg-zinc-50 border border-zinc-200 rounded-[24px] p-8 space-y-6 max-h-[500px] overflow-y-auto">
           <h4 className="text-lg font-black text-zinc-900">{activeSession.title}</h4>
-          <p className="text-zinc-700 leading-relaxed">{activeSession.desc}</p>
+
+          {loadingContent ? (
+            <div className="py-12 flex flex-col items-center gap-4">
+              <Loader2 size={36} className="text-[#233DFF] animate-spin" />
+              <p className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">
+                Generating content for your role...
+              </p>
+            </div>
+          ) : moduleContent && moduleContent.sections.length > 0 ? (
+            <div className="space-y-6">
+              {moduleContent.content && (
+                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-[#233DFF]/30 pl-4">{moduleContent.content}</p>
+              )}
+              {moduleContent.sections.map((section, idx) => (
+                <div key={idx} className="space-y-2">
+                  <h5 className="text-sm font-black text-zinc-800 uppercase tracking-wide">{section.heading}</h5>
+                  <div className="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">{section.body}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-zinc-700 leading-relaxed">{activeSession.desc}</p>
+          )}
+
           <div className="border-t border-zinc-200 pt-6 space-y-4">
             <p className="text-sm text-zinc-600 leading-relaxed">
               By completing this module, you acknowledge that you have read and understood the above policy, guidelines, and expectations. You commit to applying these principles in your volunteer work with Health Matters Clinic.
@@ -375,6 +425,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               type="checkbox"
               checked={quizResponse === 'acknowledged'}
               onChange={(e) => setQuizResponse(e.target.checked ? 'acknowledged' : '')}
+              disabled={loadingContent}
               className="mt-1 w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]"
             />
             <span className="text-sm font-medium text-zinc-700">
@@ -389,7 +440,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               handleCompleteModule(activeSession.id, activeSession.title);
             }
           }}
-          disabled={quizResponse !== 'acknowledged'}
+          disabled={quizResponse !== 'acknowledged' || loadingContent}
           className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
         >
           <Check size={18} /> Acknowledge & Complete Module

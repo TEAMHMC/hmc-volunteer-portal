@@ -17,6 +17,23 @@ export const geminiService = {
     }
   },
 
+  async generateModuleContent(moduleId: string, moduleTitle: string, moduleDesc: string, role: string): Promise<{ content: string; sections: { heading: string; body: string }[] }> {
+    try {
+      const result = await apiService.post('/api/gemini/generate-module-content', { moduleId, moduleTitle, moduleDesc, role }, 60000);
+      return result;
+    } catch (error) {
+      console.error("Module content generation failed", error);
+      return {
+        content: moduleDesc,
+        sections: [
+          { heading: 'Overview', body: moduleDesc || `This module covers ${moduleTitle}.` },
+          { heading: 'Key Expectations', body: 'All volunteers are expected to understand and follow these guidelines in their work with Health Matters Clinic.' },
+          { heading: 'Your Responsibility', body: `As a ${role}, you play a critical role in upholding these standards. Apply what you learn here in every interaction.` }
+        ]
+      };
+    }
+  },
+
   async generateModuleQuiz(moduleTitle: string, role: string) {
     try {
       const result = await apiService.post('/api/gemini/generate-quiz', { moduleTitle, role });

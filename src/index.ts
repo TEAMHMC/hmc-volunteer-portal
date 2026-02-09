@@ -2166,6 +2166,90 @@ Return ONLY valid JSON in this format:
     }
 });
 
+// --- AI MODULE CONTENT GENERATION (for read_ack modules) ---
+const moduleContentCache = new Map<string, { content: string; sections: { heading: string; body: string }[] }>();
+
+app.post('/api/gemini/generate-module-content', async (req: Request, res: Response) => {
+    const { moduleId, moduleTitle, moduleDesc, role } = req.body;
+
+    if (!moduleTitle) {
+        return res.status(400).json({ error: 'moduleTitle is required' });
+    }
+
+    // Check cache first (keyed by moduleId + role)
+    const cacheKey = `${moduleId || moduleTitle}_${role || 'general'}`;
+    const cached = moduleContentCache.get(cacheKey);
+    if (cached) {
+        return res.json(cached);
+    }
+
+    const createDefaultContent = () => ({
+        content: moduleDesc || moduleTitle,
+        sections: [
+            { heading: 'Overview', body: moduleDesc || `This module covers ${moduleTitle}.` },
+            { heading: 'Key Expectations', body: 'All volunteers are expected to understand and follow these guidelines in their work with Health Matters Clinic.' },
+            { heading: 'Your Responsibility', body: `As a ${role || 'volunteer'}, you play a critical role in upholding these standards. Apply what you learn here in every interaction.` }
+        ]
+    });
+
+    try {
+        if (!ai) {
+            console.warn('[GEMINI] AI not configured for module content - using default');
+            const fallback = createDefaultContent();
+            moduleContentCache.set(cacheKey, fallback);
+            return res.json(fallback);
+        }
+
+        const text = await generateAIContent('gemini-2.0-flash',
+            `You are creating training content for Health Matters Clinic (HMC), a nonprofit providing mobile health services in Los Angeles.
+
+Generate detailed, professional training content for the module: "${moduleTitle}"
+Module summary: "${moduleDesc || 'No summary provided'}"
+This content is for a volunteer whose role is: "${role || 'General Volunteer'}"
+
+Tailor the content to be relevant to their specific role. For example:
+- A Board Member should see governance, oversight, and fiduciary perspectives
+- A Licensed Medical Professional should see clinical protocols, scope of practice, and patient safety angles
+- A Community Volunteer should see practical field guidance and community engagement tips
+- A Tech Team member should see data security, system access, and technical compliance angles
+
+Return ONLY valid JSON in this format:
+{
+  "content": "A 1-2 sentence overall summary of this module",
+  "sections": [
+    { "heading": "Section Title", "body": "2-4 paragraphs of detailed, actionable content. Use clear language. Include specific examples relevant to HMC's work in LA. Reference real scenarios the volunteer might encounter." },
+    { "heading": "Section Title", "body": "More detailed content..." },
+    { "heading": "Section Title", "body": "More detailed content..." },
+    { "heading": "Key Takeaways for Your Role", "body": "3-5 specific takeaways tailored to the ${role || 'volunteer'} role at HMC." }
+  ]
+}
+
+Generate 4-6 sections. Each section body should be 2-4 paragraphs (not bullet points). Content should be substantive (at least 800 words total) and specific to HMC's mission of serving underserved communities in Los Angeles through mobile health clinics, street medicine outreach, and community wellness activations.`,
+            true);
+
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+            if (!parsed.sections || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+                throw new Error('Invalid content structure');
+            }
+        } catch (parseError) {
+            console.error('[GEMINI] Failed to parse module content:', text.substring(0, 200));
+            const fallback = createDefaultContent();
+            moduleContentCache.set(cacheKey, fallback);
+            return res.json(fallback);
+        }
+
+        moduleContentCache.set(cacheKey, parsed);
+        res.json(parsed);
+    } catch (e: any) {
+        console.error('[GEMINI] Module content generation error:', e.message || e);
+        const fallback = createDefaultContent();
+        moduleContentCache.set(cacheKey, fallback);
+        res.json(fallback);
+    }
+});
+
 app.post('/api/gemini/validate-answer', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ isCorrect: true });
