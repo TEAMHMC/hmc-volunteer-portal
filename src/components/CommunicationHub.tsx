@@ -204,7 +204,35 @@ const BriefingView: React.FC<{
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
-  // Poll for new messages every 10 seconds
+  // SSE: real-time message stream
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    const baseUrl = window.location.origin;
+    const es = new EventSource(`${baseUrl}/api/messages/stream?token=${encodeURIComponent(token)}`);
+
+    es.onmessage = (event) => {
+      try {
+        const newMsg: Message = JSON.parse(event.data);
+        setMessages(prev => {
+          // Deduplicate by id
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+      } catch {
+        // Ignore parse errors (e.g. heartbeat comments)
+      }
+    };
+
+    es.onerror = () => {
+      // EventSource auto-reconnects; nothing to do
+    };
+
+    return () => es.close();
+  }, [setMessages]);
+
+  // Poll for messages as fallback (immediate fetch + 30s interval)
   useEffect(() => {
     const pollMessages = async () => {
       try {
@@ -217,7 +245,8 @@ const BriefingView: React.FC<{
       }
     };
 
-    const interval = setInterval(pollMessages, 10000);
+    pollMessages(); // Immediate fetch on mount
+    const interval = setInterval(pollMessages, 30000);
     return () => clearInterval(interval);
   }, [setMessages]);
 

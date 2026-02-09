@@ -123,6 +123,19 @@ const generateAIContent = async (
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// --- SSE CLIENT REGISTRY ---
+// Map of userId -> Set of SSE response objects (supports multiple tabs per user)
+const sseClients = new Map<string, Set<Response>>();
+
+function broadcastSSE(targetUserId: string, data: object) {
+  const clients = sseClients.get(targetUserId);
+  if (!clients) return;
+  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  for (const client of clients) {
+    try { client.write(payload); } catch { clients.delete(client); }
+  }
+}
+
 // SECURITY: Configure helmet with CSP
 app.use(helmet({
   contentSecurityPolicy: {
@@ -3195,6 +3208,58 @@ app.get('/api/messages', verifyToken, async (req: Request, res: Response) => {
     }
 });
 
+// --- SSE STREAM ENDPOINT ---
+app.get('/api/messages/stream', async (req: Request, res: Response) => {
+    // EventSource can't send headers, so auth via query param
+    const token = req.query.token as string;
+    if (!token) return res.status(403).json({ error: 'No token' });
+
+    try {
+        const sessionDoc = await db.collection('sessions').doc(token).get();
+        if (!sessionDoc.exists) return res.status(403).json({ error: 'Invalid session' });
+        const session = sessionDoc.data()!;
+        if (new Date() > session.expires.toDate()) return res.status(403).json({ error: 'Session expired' });
+
+        const userDoc = await db.collection('volunteers').doc(session.uid).get();
+        if (!userDoc.exists) return res.status(403).json({ error: 'User not found' });
+
+        const userId = session.uid;
+
+        // Set SSE headers
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no', // disable nginx buffering
+        });
+        res.flushHeaders();
+
+        // Register client
+        if (!sseClients.has(userId)) sseClients.set(userId, new Set());
+        sseClients.get(userId)!.add(res);
+        console.log(`[SSE] Client connected: ${userId} (${sseClients.get(userId)!.size} tabs)`);
+
+        // Heartbeat every 25s to keep connection alive
+        const heartbeat = setInterval(() => {
+            try { res.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); }
+        }, 25000);
+
+        // Clean up on disconnect
+        req.on('close', () => {
+            clearInterval(heartbeat);
+            const clients = sseClients.get(userId);
+            if (clients) {
+                clients.delete(res);
+                if (clients.size === 0) sseClients.delete(userId);
+            }
+            console.log(`[SSE] Client disconnected: ${userId}`);
+        });
+    } catch (error) {
+        console.error('[SSE] Connection failed:', error);
+        res.status(500).json({ error: 'SSE connection failed' });
+    }
+});
+
 app.post('/api/messages', verifyToken, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user?.profile?.id;
@@ -3220,9 +3285,21 @@ app.post('/api/messages', verifyToken, async (req: Request, res: Response) => {
         };
 
         const docRef = await db.collection('messages').add(messageData);
+        const savedMessage = { id: docRef.id, ...messageData };
+
+        // Broadcast via SSE (don't send back to sender — they have it via optimistic update)
+        if (message.recipientId === 'general') {
+            // General channel: broadcast to all connected clients except sender
+            for (const [clientUserId] of sseClients) {
+                if (clientUserId !== userId) broadcastSSE(clientUserId, savedMessage);
+            }
+        } else {
+            // DM: send only to the recipient
+            broadcastSSE(message.recipientId, savedMessage);
+        }
 
         console.log(`[MESSAGES] Message sent from ${userId} to ${message.recipientId}`);
-        res.json({ id: docRef.id, ...messageData });
+        res.json(savedMessage);
     } catch (error) {
         console.error('[MESSAGES] Failed to send message:', error);
         res.status(500).json({ error: 'Failed to send message' });
