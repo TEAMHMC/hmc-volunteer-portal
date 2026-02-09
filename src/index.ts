@@ -2864,7 +2864,7 @@ app.get('/api/partners', verifyToken, async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/partners', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const partner = {
             ...req.body,
@@ -2878,7 +2878,7 @@ app.post('/api/partners', verifyToken, async (req: Request, res: Response) => {
     }
 });
 
-app.put('/api/partners/:id', verifyToken, async (req: Request, res: Response) => {
+app.put('/api/partners/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         await db.collection('partner_agencies').doc(req.params.id).update(req.body);
         res.json({ id: req.params.id, ...req.body });

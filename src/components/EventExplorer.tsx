@@ -9,11 +9,16 @@ import { apiService } from '../services/apiService';
 const PROGRAM_COLORS: { [key: string]: string } = {
   'Unstoppable Workshop': '#4f46e5',
   'Unstoppable Wellness Meetup': '#7c3aed',
+  'Community Run & Walk': '#059669',
   'Community Walk & Run': '#059669',
   'Health Fair': '#ea580c',
   'Wellness': '#db2777',
+  'Wellness Education': '#db2777',
   'Community Outreach': '#0891b2',
   'Street Medicine': '#be123c',
+  'Tabling': '#0891b2',
+  'Survey Collection': '#6366f1',
+  'Workshop': '#4f46e5',
   'default': '#4b5563'
 };
 
