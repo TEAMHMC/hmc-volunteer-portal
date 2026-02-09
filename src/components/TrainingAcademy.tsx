@@ -135,19 +135,23 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const roleDisplayName = user.appliedRole || user.role || 'Volunteer';
   const completedModuleIds = user.completedTrainingIds || [];
 
+  // Governance roles (board, CAB) skip Tier 2 operational training
+  const GOVERNANCE_ROLES = ['board_member', 'community_advisory_board'];
+  const isGovernanceRole = GOVERNANCE_ROLES.includes(primarySlug) || GOVERNANCE_ROLES.includes(appliedSlug);
+
   // Tier completion checks (with legacy compat)
   const tier1Complete = hasCompletedAllModules(completedModuleIds, TIER_1_IDS);
-  const tier2Complete = hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
+  const tier2Complete = isGovernanceRole ? true : hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
   const isOperationalEligible = user.coreVolunteerStatus === true && tier2Complete;
 
   // Progress calculations
   const tier1CompletedCount = TIER_1_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const tier1Progress = Math.round((tier1CompletedCount / TIER_1_MODULES.length) * 100);
 
-  const tier2CompletedCount = TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
-  const tier2Progress = Math.round((tier2CompletedCount / TIER_2_MODULES.length) * 100);
+  const tier2CompletedCount = isGovernanceRole ? 0 : TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const tier2Progress = isGovernanceRole ? 0 : Math.round((tier2CompletedCount / TIER_2_MODULES.length) * 100);
 
-  const overallRequired = [...TIER_1_MODULES, ...TIER_2_MODULES];
+  const overallRequired = isGovernanceRole ? [...TIER_1_MODULES] : [...TIER_1_MODULES, ...TIER_2_MODULES];
   const overallCompletedCount = overallRequired.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const overallProgress = Math.round((overallCompletedCount / overallRequired.length) * 100);
 
@@ -263,9 +267,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       const newCompletedIds = [...completedModuleIds, moduleId];
 
-      // Check if this completion finishes Tier 1 + Tier 2 (Core Volunteer eligible)
-      const nowCompletedAll = hasCompletedAllModules(newCompletedIds, [...TIER_1_IDS, ...TIER_2_IDS]);
-      const wasNotCompletedBefore = !hasCompletedAllModules(completedModuleIds, [...TIER_1_IDS, ...TIER_2_IDS]);
+      // Check if this completion finishes required tiers (governance roles skip Tier 2)
+      const requiredIds = isGovernanceRole ? TIER_1_IDS : [...TIER_1_IDS, ...TIER_2_IDS];
+      const nowCompletedAll = hasCompletedAllModules(newCompletedIds, requiredIds);
+      const wasNotCompletedBefore = !hasCompletedAllModules(completedModuleIds, requiredIds);
 
       const updatedUser: Partial<Volunteer> = {
         ...user,
@@ -492,8 +497,12 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <Award size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-emerald-900">Core Training Complete</h4>
-            <p className="text-emerald-700 font-medium">You're eligible for community events. Complete program-specific training below to unlock specialized missions.</p>
+            <h4 className="text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Core Training Complete'}</h4>
+            <p className="text-emerald-700 font-medium">
+              {isGovernanceRole
+                ? 'Complete your role-specific governance training below.'
+                : "You're eligible for community events. Complete program-specific training below to unlock specialized missions."}
+            </p>
           </div>
         </div>
       )}
@@ -561,23 +570,25 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       </div>
 
-      {/* ===== TIER 2: BASELINE OPERATIONAL ===== */}
-      <div className={!tier1Complete ? 'opacity-60' : ''}>
-        <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-          <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black">2</div>
-          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
-          {tier2Complete && (
-            <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
-          )}
-          {!tier1Complete && (
-            <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
-          )}
+      {/* ===== TIER 2: BASELINE OPERATIONAL (hidden for governance roles) ===== */}
+      {!isGovernanceRole && (
+        <div className={!tier1Complete ? 'opacity-60' : ''}>
+          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
+            <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black">2</div>
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
+            {tier2Complete && (
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+            )}
+            {!tier1Complete && (
+              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
+            )}
+          </div>
+          <p className="text-zinc-500 font-medium mb-8 -mt-4">Required for all operational volunteers. Complete these to unlock My Missions and event registration.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {TIER_2_MODULES.map(m => renderModuleCard(m, !tier1Complete))}
+          </div>
         </div>
-        <p className="text-zinc-500 font-medium mb-8 -mt-4">Required for all operational volunteers. Complete these to unlock My Missions and event registration.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {TIER_2_MODULES.map(m => renderModuleCard(m, !tier1Complete))}
-        </div>
-      </div>
+      )}
 
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE ===== */}
       {tier2Complete && (

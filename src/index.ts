@@ -2224,7 +2224,13 @@ Return ONLY valid JSON in this format:
   ]
 }
 
-Generate 4-6 sections. Each section body should be 2-4 paragraphs (not bullet points). Content should be substantive (at least 800 words total) and specific to HMC's mission of serving underserved communities in Los Angeles through mobile health clinics, street medicine outreach, and community wellness activations.`,
+Generate 4-6 sections. Each section body should be 2-4 paragraphs of plain text. Content should be substantive (at least 800 words total) and specific to HMC's mission of serving underserved communities in Los Angeles through mobile health clinics, street medicine outreach, and community wellness activations.
+
+IMPORTANT FORMATTING RULES:
+- Do NOT use any markdown formatting. No **bold**, no *italic*, no bullet points with - or *, no # headings.
+- Write in plain prose paragraphs only. The headings are already provided via the JSON "heading" field.
+- Do NOT describe features or dashboards that may not exist. Focus on general principles, policies, and role expectations.
+- Keep content grounded in real-world practices — do not invent specific UI features.`,
             true);
 
         let parsed;

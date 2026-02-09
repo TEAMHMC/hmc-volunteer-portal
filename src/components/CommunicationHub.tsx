@@ -203,6 +203,12 @@ const BriefingView: React.FC<{
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change or channel switches
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeMessages, activeChannel]);
 
   // SSE: real-time message stream
   useEffect(() => {
@@ -564,6 +570,7 @@ const BriefingView: React.FC<{
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
