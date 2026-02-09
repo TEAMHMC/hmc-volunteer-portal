@@ -228,6 +228,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       items.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
     }
 
+    // Event management for Events Coordinators
+    if (canAccessOperationalTools && displayUser.role === 'Events Coordinator') {
+      items.push({ id: 'event-management', label: 'Event Management', icon: Calendar });
+    }
+
     // Add governance tab for Board Members and CAB
     if (['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
         items.push({ id: 'governance', label: 'Governance', icon: Briefcase });
@@ -483,6 +488,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessOperationalTools && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
+         {activeTab === 'event-management' && canAccessOperationalTools && displayUser.role === 'Events Coordinator' && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}

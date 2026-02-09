@@ -285,7 +285,7 @@ const EditEventModal: React.FC<{
 };
 
 interface ShiftsProps {
-  userMode: 'volunteer' | 'admin';
+  userMode: 'volunteer' | 'admin' | 'coordinator';
   user: Volunteer;
   shifts: Shift[];
   setShifts: React.Dispatch<React.SetStateAction<Shift[]>>;
@@ -296,7 +296,8 @@ interface ShiftsProps {
 }
 
 const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShifts, onUpdate, opportunities, setOpportunities, allVolunteers }) => {
-  const [activeTab, setActiveTab] = useState<'available' | 'my-schedule' | 'manage'>(userMode === 'admin' ? 'manage' : 'my-schedule');
+  const canManageEvents = userMode === 'admin' || userMode === 'coordinator';
+  const [activeTab, setActiveTab] = useState<'available' | 'my-schedule' | 'manage'>(canManageEvents ? 'manage' : 'my-schedule');
   const [searchQuery, setSearchQuery] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -512,7 +513,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const hasPastEvents = Object.keys(pastGroupedByDate).length > 0;
 
   const tabs = [
-    ...(userMode === 'admin' ? [{ id: 'manage', label: 'Manage Events' }] : []),
+    ...(canManageEvents ? [{ id: 'manage', label: 'Manage Events' }] : []),
     { id: 'available', label: 'Available Missions' },
     { id: 'my-schedule', label: 'My Schedule' },
   ];
@@ -555,7 +556,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
         </div>
       </div>
       
-      {activeTab === 'manage' && userMode === 'admin' && (
+      {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
              <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:bg-zinc-800 transition-colors">
@@ -734,7 +735,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Register</>}
                                             </button>
                                           )}
-                                          {userMode === 'admin' && (
+                                          {canManageEvents && (
                                             (() => {
                                               const eventDate = new Date(opp.date + 'T00:00:00');
                                               const today = new Date();
