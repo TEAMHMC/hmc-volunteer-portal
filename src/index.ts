@@ -3417,7 +3417,7 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             return res.status(403).json({ error: 'Only admins can sync events' });
         }
 
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNSjtr83ytQRy-3TEgtNNCfWW3XYWKCjOzvI8MsUmsDgDsJGe2iw-eZiZcJ4zuuSuf/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJVYwUm8DB58-g1bRwJ7AAvnaDSuCE1UtCVj6IwpxqbQAt_476TCbS9_UT4Gm7Kvd7Jw/exec';
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`);
         if (!response.ok) {
             return res.status(502).json({ error: 'Failed to reach Event Finder backend' });
