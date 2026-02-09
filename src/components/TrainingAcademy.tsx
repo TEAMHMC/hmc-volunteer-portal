@@ -19,9 +19,16 @@ import {
 } from 'lucide-react';
 import ClinicalOnboarding from './ClinicalOnboarding';
 
+const ROLE_LABEL_ALIASES: Record<string, string> = {
+  'Events Coordinator': 'Events Lead',
+  'Operations Coordinator': 'General Operations Coordinator',
+  'Content Writer': 'Newsletter & Content Writer',
+};
+
 const getRoleSlug = (roleLabel: string): string => {
   if (!roleLabel) return 'general_volunteer';
-  const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === roleLabel);
+  const normalized = ROLE_LABEL_ALIASES[roleLabel] || roleLabel;
+  const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === normalized);
   return roleConfig ? roleConfig.id : 'general_volunteer';
 };
 
@@ -135,7 +142,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const primarySlug = getRoleSlug(user.role);
   const appliedSlug = getRoleSlug(user.appliedRole || '');
   const roleSlug = (ROLE_SPECIFIC_MODULES[primarySlug]?.length > 0) ? primarySlug : appliedSlug;
-  const roleDisplayName = user.role || user.appliedRole || 'Volunteer';
+  const roleDisplayName = (() => {
+    const raw = user.role || user.appliedRole || 'Volunteer';
+    return ROLE_LABEL_ALIASES[raw] || raw;
+  })();
   const completedModuleIds = user.completedTrainingIds || [];
 
   // Governance roles (board, CAB) skip Tier 2 operational training
