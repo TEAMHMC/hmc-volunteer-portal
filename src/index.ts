@@ -1631,22 +1631,33 @@ app.post('/auth/forgot-password', rateLimit(3, 60000), async (req: Request, res:
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required.' });
     try {
-        const firebaseResetUrl = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_WEB_API_KEY}`;
-        const firebaseRes = await fetch(firebaseResetUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+        // Generate reset link via Firebase Admin SDK (no email sent by Firebase)
+        const resetLink = await auth.generatePasswordResetLink(email);
+
+        // Look up volunteer name for personalized email
+        const volSnap = await db.collection('volunteers')
+            .where('email', '==', email.toLowerCase())
+            .limit(1)
+            .get();
+        const volunteerName = volSnap.empty ? 'Volunteer' : (volSnap.docs[0].data().name || 'Volunteer');
+
+        // Send branded email through our own email service
+        await EmailService.send('password_reset', {
+            toEmail: email,
+            volunteerName,
+            resetLink,
+            expiresInHours: 1,
         });
 
-        if (!firebaseRes.ok) {
-            // Always return success to prevent email enumeration
-            console.warn('[AUTH] Password reset failed for:', email);
-        }
-
-        // Always return success regardless of whether the email exists
+        console.log(`[AUTH] Password reset email sent to ${email}`);
         res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
-    } catch (error) {
-        console.error('Password reset error:', error);
+    } catch (error: any) {
+        // auth/user-not-found means email doesn't exist — still return success to prevent enumeration
+        if (error.code === 'auth/user-not-found') {
+            console.log(`[AUTH] Password reset requested for non-existent email: ${email}`);
+        } else {
+            console.error('Password reset error:', error);
+        }
         res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
     }
 });
