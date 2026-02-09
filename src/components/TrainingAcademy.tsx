@@ -134,7 +134,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const primarySlug = getRoleSlug(user.role);
   const appliedSlug = getRoleSlug(user.appliedRole || '');
   const roleSlug = (ROLE_SPECIFIC_MODULES[primarySlug]?.length > 0) ? primarySlug : appliedSlug;
-  const roleDisplayName = user.appliedRole || user.role || 'Volunteer';
+  const roleDisplayName = user.role || user.appliedRole || 'Volunteer';
   const completedModuleIds = user.completedTrainingIds || [];
 
   // Governance roles (board, CAB) skip Tier 2 operational training
