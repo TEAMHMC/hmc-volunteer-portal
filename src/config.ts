@@ -61,6 +61,7 @@ export const APP_CONFIG = {
         'cmhw_part2',
         'survey_general',
         'portal_howto',
+        'emergency_protocols_general',
       ],
       applicationQuestions: [
         "Describe your experience working with diverse or vulnerable populations in a community setting.", 

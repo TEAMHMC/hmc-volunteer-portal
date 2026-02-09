@@ -623,7 +623,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
            {/* All Events */}
            <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-2">All Events</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {[...opportunities].filter(o => o.approvalStatus !== 'pending').sort((a, b) => {
                 const dateA = new Date(a.date + 'T00:00:00').getTime();
                 const dateB = new Date(b.date + 'T00:00:00').getTime();
@@ -683,7 +683,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             {Object.entries(groupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
                 <div key={date}>
                     <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-4">{date}</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {/* Render shifts */}
                         {dateData.shifts.map(shift => {
                             const opp = getOpp(shift.opportunityId);
@@ -827,7 +827,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                 {Object.entries(pastGroupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
                   <div key={`past-${date}`} className="mb-8">
                     <h4 className="text-sm font-black text-zinc-300 uppercase tracking-widest mb-4 px-4">{date}</h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {dateData.shifts.map(shift => {
                         const opp = getOpp(shift.opportunityId);
                         if (!opp) return null;

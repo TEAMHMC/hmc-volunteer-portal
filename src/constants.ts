@@ -146,6 +146,7 @@ export const TIER_2_MODULES: TrainingModule[] = [
   { id: 'cmhw_part2', title: 'Community Mental Health Worker Training \u2013 Part 2', desc: 'Applied engagement, de-escalation, communication skills, and field-based mental health work.', dur: 28, embed: 'https://www.youtube.com/embed/nq9UBUJIAEQ', format: 'recorded_video', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
   { id: 'survey_general', title: 'Survey & Research Data Collection (General HMC)', desc: 'Consent practices, data accuracy, neutrality, and privacy for all HMC survey and research activities.', dur: 8, embed: '', format: 'read_ack', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
   { id: 'portal_howto', title: 'How to Use the HMC Volunteer Portal', desc: 'Dashboard overview, training and clearance logic, My Missions, and Event Ops.', dur: 8, embed: '', format: 'read_ack', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  { id: 'emergency_protocols_general', title: 'Emergency Awareness for Volunteers', desc: 'What to do in a medical emergency, how to call for help, when to call 911, and who to escalate to at HMC events.', dur: 8, embed: '', format: 'read_ack', tier: 2, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
 ];
 
 // --- TIER 3: PROGRAM-SPECIFIC CLEARANCE ---
