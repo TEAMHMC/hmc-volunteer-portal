@@ -220,7 +220,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
       }
       if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
+        return `https://www.youtube.com/embed/${videoId}?rel=0`;
       }
     }
 
@@ -735,8 +735,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                         className="w-full h-full"
                         src={getEmbedUrl(activeSession.embed)}
                         title={activeSession.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
+                        referrerPolicy="strict-origin-when-cross-origin"
                         style={{ border: 'none' }}
                         onLoad={() => setVideoLoading(false)}
                         onError={() => { setVideoError(true); setVideoLoading(false); }}
