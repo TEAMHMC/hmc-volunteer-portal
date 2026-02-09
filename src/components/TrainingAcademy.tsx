@@ -127,6 +127,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [videoLoading, setVideoLoading] = useState(true);
   const [moduleContent, setModuleContent] = useState<{ content: string; sections: { heading: string; body: string }[] } | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
 
   // Try both role and appliedRole — use whichever has role-specific training
   const primarySlug = getRoleSlug(user.role);
@@ -166,6 +167,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const startQuiz = async (module: TrainingModule) => {
     setActiveSession(module);
     setQuizMode(true);
+    setReviewMode(false);
     setSubmitError('');
     setQuizResponse('');
     setQuizData(null);
@@ -179,6 +181,26 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       setQuizStage('video');
     } else {
       setQuizStage('concepts');
+    }
+  };
+
+  const startReview = (module: TrainingModule) => {
+    setActiveSession(module);
+    setQuizMode(true);
+    setReviewMode(true);
+    setSubmitError('');
+    setQuizResponse('');
+    setQuizData(null);
+    setVideoError(false);
+    setVideoLoading(true);
+    setModuleContent(null);
+
+    if (module.format === 'read_ack') {
+      setQuizStage('read_ack');
+    } else if (module.embed) {
+      setQuizStage('video');
+    } else {
+      setQuizStage('read_ack'); // Show content for review
     }
   };
 
@@ -366,6 +388,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Mastery Assessment'}
             </button>
           )}
+          {isCompleted && (
+            <button onClick={() => startReview(m)} className="w-full py-5 bg-white border-2 border-zinc-200 text-zinc-600 rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:border-[#233DFF] hover:text-[#233DFF] hover:scale-[1.02] flex items-center justify-center gap-2">
+              <BookOpen size={14} /> Review Module
+            </button>
+          )}
           {isLocked && (
             <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-black text-[11px] uppercase tracking-widest text-center flex items-center justify-center gap-2">
               <Lock size={14} /> Complete Previous Tier to Unlock
@@ -381,11 +408,15 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     if (!activeSession) return null;
     return (
       <div className="space-y-8 animate-in fade-in">
-        <div className="bg-amber-50 border border-amber-200 rounded-[24px] p-6 flex items-center gap-4">
-          <FileCheck size={24} className="text-amber-600 shrink-0" />
+        <div className={`${reviewMode ? 'bg-[#233DFF]/5 border-[#233DFF]/20' : 'bg-amber-50 border-amber-200'} border rounded-[24px] p-6 flex items-center gap-4`}>
+          <FileCheck size={24} className={reviewMode ? 'text-[#233DFF] shrink-0' : 'text-amber-600 shrink-0'} />
           <div>
-            <p className="font-bold text-amber-900 text-sm">Read & Acknowledge Module</p>
-            <p className="text-amber-700 text-xs mt-1">Read the content below carefully, then acknowledge your understanding to complete this module.</p>
+            <p className={`font-bold text-sm ${reviewMode ? 'text-[#233DFF]' : 'text-amber-900'}`}>
+              {reviewMode ? 'Reviewing Completed Module' : 'Read & Acknowledge Module'}
+            </p>
+            <p className={`text-xs mt-1 ${reviewMode ? 'text-[#233DFF]/70' : 'text-amber-700'}`}>
+              {reviewMode ? 'You have already completed this module. Review the content below.' : 'Read the content below carefully, then acknowledge your understanding to complete this module.'}
+            </p>
           </div>
         </div>
 
@@ -425,32 +456,43 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </div>
         </div>
 
-        <div className="bg-white border border-zinc-200 rounded-[24px] p-6">
-          <label className="flex items-start gap-4 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={quizResponse === 'acknowledged'}
-              onChange={(e) => setQuizResponse(e.target.checked ? 'acknowledged' : '')}
-              disabled={loadingContent}
-              className="mt-1 w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]"
-            />
-            <span className="text-sm font-medium text-zinc-700">
-              I have read and understand the content of this module. I commit to applying these guidelines in my volunteer work.
-            </span>
-          </label>
-        </div>
+        {reviewMode ? (
+          <button
+            onClick={() => setQuizMode(false)}
+            className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            Done Reviewing
+          </button>
+        ) : (
+          <>
+            <div className="bg-white border border-zinc-200 rounded-[24px] p-6">
+              <label className="flex items-start gap-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={quizResponse === 'acknowledged'}
+                  onChange={(e) => setQuizResponse(e.target.checked ? 'acknowledged' : '')}
+                  disabled={loadingContent}
+                  className="mt-1 w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]"
+                />
+                <span className="text-sm font-medium text-zinc-700">
+                  I have read and understand the content of this module. I commit to applying these guidelines in my volunteer work.
+                </span>
+              </label>
+            </div>
 
-        <button
-          onClick={() => {
-            if (quizResponse === 'acknowledged') {
-              handleCompleteModule(activeSession.id, activeSession.title);
-            }
-          }}
-          disabled={quizResponse !== 'acknowledged' || loadingContent}
-          className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
-        >
-          <Check size={18} /> Acknowledge & Complete Module
-        </button>
+            <button
+              onClick={() => {
+                if (quizResponse === 'acknowledged') {
+                  handleCompleteModule(activeSession.id, activeSession.title);
+                }
+              }}
+              disabled={quizResponse !== 'acknowledged' || loadingContent}
+              className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+            >
+              <Check size={18} /> Acknowledge & Complete Module
+            </button>
+          </>
+        )}
       </div>
     );
   };
@@ -745,7 +787,17 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       />
                     )}
                   </div>
-                  {isScreenPalVideo(activeSession.embed) ? (
+                  {reviewMode ? (
+                    <>
+                      <p className="text-zinc-500 font-medium text-center">Reviewing completed module. Watch the video above as needed.</p>
+                      <button
+                        onClick={() => setQuizMode(false)}
+                        className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      >
+                        Done Reviewing
+                      </button>
+                    </>
+                  ) : isScreenPalVideo(activeSession.embed) ? (
                     <>
                       <p className="text-zinc-500 font-medium text-center">Complete the built-in quiz in the video, then mark as complete below.</p>
                       <button
@@ -815,9 +867,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <div className="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-8 shadow-xl">
               <Award size={48} />
             </div>
-            <h3 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">Core Volunteer Training Complete</h3>
+            <h3 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">
+              {isGovernanceRole ? 'Orientation Training Complete' : 'Baseline Training Complete'}
+            </h3>
             <p className="text-xl text-zinc-600 font-medium leading-relaxed mb-8">
-              You've completed all baseline training. You're now eligible to sign up for community-based events through My Missions.
+              {isGovernanceRole
+                ? `You've completed your orientation as a ${roleDisplayName}. Continue to your role-specific training below.`
+                : "You've completed all baseline training. You're now eligible to sign up for community-based events through My Missions."}
             </p>
             <div className="flex items-center justify-center gap-3 text-emerald-600 font-bold text-sm mb-8">
               <Calendar size={18} />

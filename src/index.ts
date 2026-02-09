@@ -2207,20 +2207,30 @@ Generate detailed, professional training content for the module: "${moduleTitle}
 Module summary: "${moduleDesc || 'No summary provided'}"
 This content is for a volunteer whose role is: "${role || 'General Volunteer'}"
 
+CRITICAL: Always refer to the reader by their actual role title ("${role || 'Volunteer'}"). Never call them a "core volunteer," "general volunteer," or any other generic label unless that is literally their role. Frame all content, examples, and takeaways through the lens of what a ${role || 'volunteer'} would actually do at HMC.
+
 Tailor the content to be relevant to their specific role. For example:
-- A Board Member should see governance, oversight, and fiduciary perspectives
+- A Board Member should see governance, oversight, fiduciary duty, and strategic decision-making perspectives
+- A Community Advisory Board member should see community advocacy, program feedback, and accountability perspectives
 - A Licensed Medical Professional should see clinical protocols, scope of practice, and patient safety angles
-- A Community Volunteer should see practical field guidance and community engagement tips
-- A Tech Team member should see data security, system access, and technical compliance angles
+- A Medical Admin should see administrative compliance, records management, and clinical support perspectives
+- A Data Analyst should see data governance, analytics ethics, reporting accuracy, and how this topic affects the data they handle
+- A Tech Team member should see data security, system access, technical compliance, and infrastructure angles
+- A Core Volunteer should see practical field guidance, community engagement, and hands-on event tips
+- A Content Writer should see communication ethics, messaging standards, and storytelling with dignity
+- A Social Media Team member should see public-facing communication, consent for media, and brand representation
+- A Development Coordinator or Grant Writer should see donor relations, ethical fundraising, and compliance in funding
+- A Volunteer Lead should see team management, training oversight, and volunteer support perspectives
+- An Events or Program Coordinator should see logistics, operations, participant experience, and coordination angles
 
 Return ONLY valid JSON in this format:
 {
-  "content": "A 1-2 sentence overall summary of this module",
+  "content": "A 1-2 sentence overall summary of this module tailored to the ${role || 'volunteer'} role",
   "sections": [
-    { "heading": "Section Title", "body": "2-4 paragraphs of detailed, actionable content. Use clear language. Include specific examples relevant to HMC's work in LA. Reference real scenarios the volunteer might encounter." },
+    { "heading": "Section Title", "body": "2-4 paragraphs of detailed, actionable content. Use clear language. Include specific examples relevant to what a ${role || 'volunteer'} would encounter at HMC." },
     { "heading": "Section Title", "body": "More detailed content..." },
     { "heading": "Section Title", "body": "More detailed content..." },
-    { "heading": "Key Takeaways for Your Role", "body": "3-5 specific takeaways tailored to the ${role || 'volunteer'} role at HMC." }
+    { "heading": "Key Takeaways for ${role || 'Your Role'}", "body": "3-5 specific takeaways directly relevant to a ${role || 'volunteer'} at HMC." }
   ]
 }
 
