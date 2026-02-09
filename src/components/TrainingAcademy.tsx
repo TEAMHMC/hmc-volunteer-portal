@@ -542,7 +542,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <Award size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Core Training Complete'}</h4>
+            <h4 className="text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Baseline Training Complete'}</h4>
             <p className="text-emerald-700 font-medium">
               {isGovernanceRole
                 ? 'Complete your role-specific governance training below.'
@@ -611,7 +611,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
           )}
         </div>
-        <p className="text-zinc-500 font-medium mb-8 -mt-4">Start here! These two videos introduce you to Health Matters Clinic and what it means to be an HMC Champion.</p>
+        <p className="text-zinc-500 font-medium mb-8 -mt-4">Start here! These two videos introduce you to Health Matters Clinic and what it means to volunteer with HMC.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {TIER_1_MODULES.map(m => renderModuleCard(m, false))}
         </div>

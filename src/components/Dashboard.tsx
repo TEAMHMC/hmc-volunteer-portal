@@ -655,7 +655,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
 
               <p className="text-amber-800 font-medium leading-relaxed mb-6">
                 {trainingDone && !roleApproved
-                  ? 'As an HMC Champion, you can explore Impact Hub, connect with the community, and participate in non-operational activities while your role is reviewed.'
+                  ? 'Your training is complete! You can explore Impact Hub, connect with the community, and access non-operational features while your role is reviewed.'
                   : 'Complete all required modules to unlock community missions and start making an impact.'}
               </p>
 

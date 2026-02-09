@@ -634,7 +634,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                     application: { id: 'application', label: 'Application', status: 'completed' },
                     backgroundCheck: { id: 'backgroundCheck', label: 'Background Check', status: 'pending' },
                     hipaaTraining: { id: 'hipaaTraining', label: 'HIPAA Training', status: 'pending' },
-                    training: { id: 'training', label: 'Core Training', status: 'pending' },
+                    training: { id: 'training', label: 'Baseline Training', status: 'pending' },
                     orientation: { id: 'orientation', label: 'Orientation', status: 'pending' },
                 },
                 skills: [],
