@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { ClinicEvent, Volunteer, Opportunity, Shift } from '../types';
 import { MapPin, Search, Calendar, Clock, Share2, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
@@ -103,26 +104,28 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
     return eventDate < today;
   };
 
-  // Convert live opportunities to map events (only show approved AND upcoming events)
-  const approvedOpportunities = useMemo(() =>
+  // Convert live opportunities to map events (approved or legacy status)
+  const allApprovedOpportunities = useMemo(() =>
     opportunities.filter(o =>
-      (o.approvalStatus === 'approved' || !o.approvalStatus) && // Show approved or legacy events without status
-      !isPastEvent(o.date) // Filter out past events
+      o.approvalStatus === 'approved' || !o.approvalStatus
     ),
     [opportunities]
   );
-  const events = useMemo(() => approvedOpportunities.map(mapOpportunityToEvent), [approvedOpportunities]);
+  const allEvents = useMemo(() => allApprovedOpportunities.map(mapOpportunityToEvent), [allApprovedOpportunities]);
+
+  // Default view: only upcoming events. When searching: include past events so results aren't empty.
+  const upcomingEvents = useMemo(() => allEvents.filter(e => !isPastEvent(e.date)), [allEvents]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return events;
+    if (!search.trim()) return upcomingEvents;
     const searchLower = search.toLowerCase().trim();
-    return events.filter(e =>
+    return allEvents.filter(e =>
       e.title.toLowerCase().includes(searchLower) ||
       e.address.toLowerCase().includes(searchLower) ||
       e.city.toLowerCase().includes(searchLower) ||
       e.program.toLowerCase().includes(searchLower)
     );
-  }, [search, events]);
+  }, [search, upcomingEvents, allEvents]);
 
   const handleSignUp = async (eventId: string) => {
     const alreadySignedUp = user.rsvpedEventIds?.includes(eventId);
@@ -366,7 +369,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                 <h4 className="text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 md:mb-6">My Confirmed Events</h4>
                 <div className="space-y-3 md:space-y-4">
                   {user.rsvpedEventIds?.length ? user.rsvpedEventIds.map(id => {
-                    const event = events.find(e => e.id === id);
+                    const event = allEvents.find(e => e.id === id);
                     if (!event) return null;
                     return (
                       <div key={id} className="flex items-center gap-3 md:gap-4 bg-white/5 p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/10">

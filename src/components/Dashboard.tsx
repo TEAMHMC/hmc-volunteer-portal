@@ -5,7 +5,8 @@ import {
   ArrowRight, Activity, Calendar, Clock, MapPin,
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
-  GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase
+  GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
+  Bell
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -82,6 +83,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const [showBetaBanner, setShowBetaBanner] = useState(
     () => typeof window !== 'undefined' && localStorage.getItem('hmcBetaBannerDismissed') !== 'true'
   );
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleDismissBetaBanner = () => {
     setShowBetaBanner(false);
@@ -160,8 +162,25 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   // Legacy alias
   const canAccessOperationalTools = isOperationalEligible;
 
+  // Notification counts
+  const unreadDMs = useMemo(() => {
+    return messages.filter(m => m.senderId !== displayUser.id && !m.read && m.recipientId !== 'general').length;
+  }, [messages, displayUser.id]);
+
+  const openTicketsCount = useMemo(() => {
+    if (displayUser.isAdmin) return supportTickets.filter(t => t.status === 'open').length;
+    return supportTickets.filter(t => (t.assignedTo === displayUser.id || t.submittedBy === displayUser.id) && t.status !== 'closed').length;
+  }, [supportTickets, displayUser.id, displayUser.isAdmin]);
+
+  const newApplicantsCount = useMemo(() => {
+    if (!displayUser.isAdmin) return 0;
+    return allVolunteers.filter(v => v.status === 'applicant').length;
+  }, [allVolunteers, displayUser.isAdmin]);
+
+  const totalNotifications = unreadDMs + openTicketsCount + newApplicantsCount;
+
   const navItems = useMemo(() => {
-    let items = [
+    let items: { id: string; label: string; icon: any; badge?: number }[] = [
       { id: 'overview', label: 'Overview', icon: Activity },
       { id: 'academy', label: 'Training Academy', icon: GraduationCap },
     ];
@@ -176,7 +195,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
     // Always show these tabs
     items.push({ id: 'impact', label: 'Impact Hub', icon: DollarSign });
-    items.push({ id: 'briefing', label: 'Communication Hub', icon: MessageSquare });
+    items.push({ id: 'briefing', label: 'Communication Hub', icon: MessageSquare, badge: unreadDMs + openTicketsCount });
     items.push({ id: 'docs', label: 'Doc Hub', icon: BookOpen });
 
     if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
@@ -220,7 +239,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }
 
     if(displayUser.isAdmin) {
-        items.push({ id: 'directory', label: 'Directory', icon: Users });
+        items.push({ id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount });
         items.push({ id: 'referrals', label: 'Referrals', icon: Send });
         items.push({ id: 'resources', label: 'Resources', icon: Database });
         items.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
@@ -230,7 +249,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         items.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
     }
     return items;
-  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools]);
+  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, unreadDMs, openTicketsCount, newApplicantsCount]);
 
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
 
@@ -264,16 +283,102 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />
             </div>
-            <div>
+            <div className="flex-1">
               <span className="text-sm font-black text-zinc-900 tracking-tight block">HMC Portal</span>
               <span className="text-[10px] font-medium text-zinc-400">Volunteer Hub</span>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors relative"
+              >
+                <Bell size={18} className="text-zinc-600" />
+                {totalNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                    {totalNotifications > 99 ? '99+' : totalNotifications}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 top-12 w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
+                    <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
+                    <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
+                      <X size={14} className="text-zinc-400" />
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {totalNotifications === 0 ? (
+                      <div className="p-8 text-center">
+                        <Bell size={24} className="mx-auto text-zinc-200 mb-2" />
+                        <p className="text-xs text-zinc-400 font-medium">All caught up!</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-zinc-50">
+                        {unreadDMs > 0 && (
+                          <button
+                            onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
+                            className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
+                              <MessageSquare size={16} className="text-[#233DFF]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
+                              <p className="text-[11px] text-zinc-400">New direct messages waiting</p>
+                            </div>
+                            <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
+                          </button>
+                        )}
+                        {openTicketsCount > 0 && (
+                          <button
+                            onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
+                            className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                              <ShieldAlert size={16} className="text-amber-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-zinc-900">{openTicketsCount} open ticket{openTicketsCount > 1 ? 's' : ''}</p>
+                              <p className="text-[11px] text-zinc-400">{displayUser.isAdmin ? 'Tickets needing attention' : 'Your active tickets'}</p>
+                            </div>
+                            <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                          </button>
+                        )}
+                        {newApplicantsCount > 0 && (
+                          <button
+                            onClick={() => { setActiveTab('directory'); setShowNotifications(false); }}
+                            className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                              <Users size={16} className="text-emerald-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-zinc-900">{newApplicantsCount} new applicant{newApplicantsCount > 1 ? 's' : ''}</p>
+                              <p className="text-[11px] text-zinc-400">Pending review in Directory</p>
+                            </div>
+                            <span className="min-w-[20px] h-5 px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
          </div>
 
          <nav className="flex flex-col gap-1.5">
             {navItems.map(item => (
-                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
+                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
                     <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
+                    {item.badge && item.badge > 0 ? (
+                      <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                        activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'
+                      }`}>
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    ) : null}
                 </button>
             ))}
          </nav>

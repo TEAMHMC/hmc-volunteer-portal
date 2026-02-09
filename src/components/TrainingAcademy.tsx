@@ -538,20 +538,22 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
           </div>
 
-          {/* Tier 2 Progress */}
-          <div className="flex items-center gap-4 w-full">
-            <div className="relative w-16 h-16">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2Progress}%</div>
+          {/* Tier 2 Progress (hidden for governance roles) */}
+          {!isGovernanceRole && (
+            <div className="flex items-center gap-4 w-full">
+              <div className="relative w-16 h-16">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
+                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2Progress}%</div>
+              </div>
+              <div>
+                <p className="text-xs font-black text-zinc-700">Tier 2: Baseline</p>
+                <p className="text-[10px] text-zinc-400">{tier2CompletedCount}/{TIER_2_MODULES.length} modules</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-black text-zinc-700">Tier 2: Baseline</p>
-              <p className="text-[10px] text-zinc-400">{tier2CompletedCount}/{TIER_2_MODULES.length} modules</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -590,8 +592,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       )}
 
-      {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE ===== */}
-      {tier2Complete && (
+      {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
+      {tier2Complete && !isGovernanceRole && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black">3</div>
@@ -635,8 +637,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       )}
 
-      {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline) ===== */}
-      {tier2Complete && (
+      {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
+      {tier2Complete && !isGovernanceRole && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
             <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black">4</div>
