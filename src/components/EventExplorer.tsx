@@ -345,8 +345,8 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   </button>
                 ) : (
                   <div className="w-full py-4 md:py-6 px-4 rounded-2xl md:rounded-3xl bg-amber-50 border border-amber-200 text-center">
-                    <p className="font-bold text-amber-800 text-xs md:text-sm">Complete Core Volunteer Training to sign up</p>
-                    <p className="text-amber-600 text-[10px] md:text-xs mt-1">Visit Training Academy to complete required modules</p>
+                    <p className="font-bold text-amber-800 text-xs md:text-sm">Complete required training to sign up</p>
+                    <p className="text-amber-600 text-[10px] md:text-xs mt-1">Visit Training Academy to complete your orientation modules</p>
                   </div>
                 )}
                 <p className="text-center text-[9px] md:text-[10px] text-slate-400 font-medium">Earn impact points for participating in community events.</p>

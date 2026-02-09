@@ -11,7 +11,7 @@ import {
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
-import { hasCompletedModule } from '../constants';
+import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS } from '../constants';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
 import CommunicationHub from './CommunicationHub';
@@ -84,6 +84,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     () => typeof window !== 'undefined' && localStorage.getItem('hmcBetaBannerDismissed') !== 'true'
   );
   const [showNotifications, setShowNotifications] = useState(false);
+  const [commHubTab, setCommHubTab] = useState<'broadcasts' | 'briefing' | 'support' | undefined>(undefined);
 
   const handleDismissBetaBanner = () => {
     setShowBetaBanner(false);
@@ -192,8 +193,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
     // Only show operational tabs (missions) if core training is complete OR user is admin
     if (canAccessOperationalTools) {
-      // Insert missions after overview for users with access
-      if (!['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
+      // Governance roles see My Missions only if they opted in by completing Tier 2
+      const governanceCompletedTier2 = isGovernanceRole && hasCompletedAllModules(completedTrainingIds, TIER_2_IDS);
+      if (!isGovernanceRole || governanceCompletedTier2) {
         items.splice(1, 0, { id: 'missions', label: 'My Missions', icon: Calendar });
       }
     }
@@ -254,7 +256,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         items.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
     }
     return items;
-  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, unreadDMs, openTicketsCount, newApplicantsCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
 
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
 
@@ -364,7 +367,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <div className="divide-y divide-zinc-50">
                   {unreadDMs > 0 && (
                     <button
-                      onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
+                      onClick={() => { setCommHubTab('briefing'); setActiveTab('briefing'); setShowNotifications(false); }}
                       className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
                     >
                       <div className="w-9 h-9 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
@@ -379,7 +382,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   )}
                   {openTicketsCount > 0 && (
                     <button
-                      onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
+                      onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
                       className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
                     >
                       <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
@@ -482,7 +485,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'missions' && canAccessOperationalTools && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
-         {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} />}
+         {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}
          {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}

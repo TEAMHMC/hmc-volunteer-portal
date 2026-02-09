@@ -15,7 +15,7 @@ import {
   CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
   Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video, Stethoscope,
-  Lock, Monitor, Youtube, FileCheck
+  Lock, Monitor, Youtube, FileCheck, ChevronDown
 } from 'lucide-react';
 import ClinicalOnboarding from './ClinicalOnboarding';
 
@@ -28,7 +28,7 @@ const getRoleSlug = (roleLabel: string): string => {
 // Format badge component
 const FormatBadge: React.FC<{ format: TrainingModule['format'] }> = ({ format }) => {
   const config = {
-    screenpal: { label: 'ScreenPal', icon: Monitor, color: 'bg-violet-100 text-violet-700 border-violet-200' },
+    screenpal: { label: 'Video', icon: PlayCircle, color: 'bg-sky-100 text-sky-700 border-sky-200' },
     recorded_video: { label: 'Video', icon: Youtube, color: 'bg-sky-100 text-sky-700 border-sky-200' },
     read_ack: { label: 'Read & Acknowledge', icon: FileCheck, color: 'bg-amber-100 text-amber-700 border-amber-200' },
   }[format];
@@ -128,6 +128,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [moduleContent, setModuleContent] = useState<{ content: string; sections: { heading: string; body: string }[] } | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
+  const [showFieldAccess, setShowFieldAccess] = useState(false);
 
   // Try both role and appliedRole — use whichever has role-specific training
   const primarySlug = getRoleSlug(user.role);
@@ -149,8 +150,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const tier1CompletedCount = TIER_1_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const tier1Progress = Math.round((tier1CompletedCount / TIER_1_MODULES.length) * 100);
 
-  const tier2CompletedCount = isGovernanceRole ? 0 : TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
-  const tier2Progress = isGovernanceRole ? 0 : Math.round((tier2CompletedCount / TIER_2_MODULES.length) * 100);
+  const tier2CompletedCount = TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const tier2Progress = Math.round((tier2CompletedCount / TIER_2_MODULES.length) * 100);
+  const governanceTier2Complete = hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
 
   const overallRequired = isGovernanceRole ? [...TIER_1_MODULES] : [...TIER_1_MODULES, ...TIER_2_MODULES];
   const overallCompletedCount = overallRequired.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
@@ -615,7 +617,44 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
       </div>
 
-      {/* ===== TIER 2: BASELINE OPERATIONAL (hidden for governance roles) ===== */}
+      {/* ===== TIER 2: BASELINE OPERATIONAL ===== */}
+      {/* For governance roles: optional collapsed section for field access */}
+      {/* For operational roles: required section */}
+      {isGovernanceRole && tier1Complete && (
+        <div className="pt-8 border-t border-zinc-100">
+          <button
+            onClick={() => setShowFieldAccess(!showFieldAccess)}
+            className="w-full flex items-center gap-4 mb-4 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">
+              <Calendar size={20} />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+                {governanceTier2Complete ? 'Field Access Training' : 'Want to Support In-Person Events?'}
+              </h3>
+              <p className="text-zinc-500 font-medium text-sm mt-1">
+                {governanceTier2Complete
+                  ? 'You\'ve completed field training. My Missions is unlocked.'
+                  : 'Optional: Complete these modules to unlock My Missions and sign up for shifts at community events.'}
+              </p>
+            </div>
+            {governanceTier2Complete ? (
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">Unlocked</span>
+            ) : (
+              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">{tier2CompletedCount}/{TIER_2_MODULES.length}</span>
+            )}
+            <ChevronDown size={20} className={`text-zinc-400 transition-transform ${showFieldAccess ? 'rotate-180' : ''}`} />
+          </button>
+          {showFieldAccess && (
+            <div className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {TIER_2_MODULES.map(m => renderModuleCard(m, false))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {!isGovernanceRole && (
         <div className={!tier1Complete ? 'opacity-60' : ''}>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">

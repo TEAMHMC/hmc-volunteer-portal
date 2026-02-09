@@ -21,6 +21,7 @@ interface CommunicationHubProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   supportTickets: SupportTicket[];
   setSupportTickets: React.Dispatch<React.SetStateAction<SupportTicket[]>>;
+  initialTab?: 'broadcasts' | 'briefing' | 'support';
 }
 
 // --- BROADCASTS VIEW (Admins/Leads) ---
@@ -1460,14 +1461,19 @@ const OpsSupportView: React.FC<{
 const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
   const {
     user, userMode, allVolunteers, announcements, setAnnouncements,
-    messages, setMessages, supportTickets, setSupportTickets
+    messages, setMessages, supportTickets, setSupportTickets, initialTab
   } = props;
 
   const canBroadcast = user.isAdmin || user.role.includes('Coordinator') || user.role.includes('Lead');
 
   const [activeTab, setActiveTab] = useState<'broadcasts' | 'briefing' | 'support'>(
-    canBroadcast ? 'broadcasts' : 'briefing'
+    initialTab || (canBroadcast ? 'broadcasts' : 'briefing')
   );
+
+  // Switch tab when initialTab prop changes (e.g. from notification click)
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   const tabs = [
     ...(canBroadcast ? [{ id: 'broadcasts', label: 'Broadcasts', icon: Megaphone }] : []),
