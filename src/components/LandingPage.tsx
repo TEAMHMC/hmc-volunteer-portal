@@ -19,6 +19,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleAdminLoginClick = () => {
     setIsAdmin(true);
@@ -55,6 +57,29 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         setIsLoading(false);
     }
   }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    setResetLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        setResetSent(true);
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSignUpClick = () => {
       setShowLogin(false);
@@ -149,7 +174,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                       </div>
+                      <div className="flex justify-end px-1 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          disabled={resetLoading}
+                          className="text-[11px] font-semibold text-zinc-400 hover:text-[#233DFF] transition-colors"
+                        >
+                          {resetLoading ? 'Sending...' : 'Forgot password?'}
+                        </button>
+                      </div>
                     </div>
+                    {resetSent && (
+                      <div className="bg-emerald-50 text-emerald-700 p-4 rounded-2xl text-center text-xs font-bold border border-emerald-100">
+                        Password reset link sent! Check your email inbox.
+                      </div>
+                    )}
                     {error && (
                         <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-center text-xs font-bold border border-rose-100 space-y-2">
                           <div className="flex items-center justify-center gap-2"><Zap size={14} /> {error}</div>

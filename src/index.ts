@@ -1627,6 +1627,30 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
     }
 });
 
+app.post('/auth/forgot-password', rateLimit(3, 60000), async (req: Request, res: Response) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+    try {
+        const firebaseResetUrl = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_WEB_API_KEY}`;
+        const firebaseRes = await fetch(firebaseResetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+        });
+
+        if (!firebaseRes.ok) {
+            // Always return success to prevent email enumeration
+            console.warn('[AUTH] Password reset failed for:', email);
+        }
+
+        // Always return success regardless of whether the email exists
+        res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
+    } catch (error) {
+        console.error('Password reset error:', error);
+        res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
+    }
+});
+
 app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: Response) => {
     const { credential, referralCode } = req.body;
     // SECURITY: isAdmin is NEVER accepted from client - always read from database
