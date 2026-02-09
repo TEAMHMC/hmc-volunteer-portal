@@ -1589,8 +1589,9 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
         });
 
         if (!firebaseRes.ok) {
-            const err = await firebaseRes.json() as { error?: { message?: string } };
+            const err = await firebaseRes.json() as { error?: { message?: string; code?: number } };
             const errorMsg = err.error?.message || "Invalid credentials.";
+            console.error(`[AUTH] Login failed for ${maskEmail(email)} — Firebase error: ${errorMsg} (HTTP ${firebaseRes.status})`);
 
             // Email/password sign-in disabled at project level
             if (errorMsg.includes('PASSWORD_LOGIN_DISABLED')) {
@@ -1641,9 +1642,10 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
         }
 
         const firebaseData = await firebaseRes.json() as { localId: string };
+        console.log(`[AUTH] Login successful for ${maskEmail(email)} (uid: ${firebaseData.localId})`);
         await createSession(firebaseData.localId, res);
     } catch (error) {
-        console.error("Login error:", error);
+        console.error(`[AUTH] Login exception for ${maskEmail(email)}:`, (error as Error).message);
         res.status(500).json({ error: "Internal server error." });
     }
 });
