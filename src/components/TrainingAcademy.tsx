@@ -460,7 +460,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
         {reviewMode ? (
           <button
-            onClick={() => setQuizMode(false)}
+            onClick={() => { setQuizMode(false); setActiveSession(null); }}
             className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             Done Reviewing
@@ -772,7 +772,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                    <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
                    <FormatBadge format={activeSession.format} />
                  </div>
-                 <button onClick={() => setQuizMode(false)} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-300 hover:text-zinc-900"><X size={24} /></button>
+                 <button onClick={() => { setQuizMode(false); setActiveSession(null); }} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-300 hover:text-zinc-900"><X size={24} /></button>
               </div>
 
               {/* Read & Acknowledge flow */}
@@ -830,7 +830,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     <>
                       <p className="text-zinc-500 font-medium text-center">Reviewing completed module. Watch the video above as needed.</p>
                       <button
-                        onClick={() => setQuizMode(false)}
+                        onClick={() => { setQuizMode(false); setActiveSession(null); }}
                         className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         Done Reviewing
