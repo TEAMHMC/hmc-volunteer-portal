@@ -61,6 +61,10 @@ const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.e
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || process.env.VITE_FIREBASE_API_KEY || '';
 if (!FIREBASE_WEB_API_KEY) {
     console.error('[CRITICAL] FIREBASE_WEB_API_KEY is not set — email/password login will not work. Set it from Firebase Console → Project Settings → General → Web API Key.');
+} else {
+    const keySource = process.env.FIREBASE_WEB_API_KEY ? 'FIREBASE_WEB_API_KEY' : 'VITE_FIREBASE_API_KEY (fallback)';
+    const keyPreview = FIREBASE_WEB_API_KEY.substring(0, 8) + '...' + FIREBASE_WEB_API_KEY.substring(FIREBASE_WEB_API_KEY.length - 4);
+    console.log(`[AUTH] Using API key from ${keySource}: ${keyPreview}`);
 }
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
 
@@ -193,7 +197,9 @@ app.get('/health', (req: Request, res: Response) => {
       aiConfigured: ai !== null,
       aiKeySource: process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.GOOGLE_AI_API_KEY ? 'GOOGLE_AI_API_KEY' : process.env.API_KEY ? 'API_KEY' : 'none',
       firebaseAuthConfigured: firebaseConfigured,
-      firebaseWebApiKey: !!FIREBASE_WEB_API_KEY
+      firebaseWebApiKey: !!FIREBASE_WEB_API_KEY,
+      firebaseWebApiKeySource: process.env.FIREBASE_WEB_API_KEY ? 'FIREBASE_WEB_API_KEY' : process.env.VITE_FIREBASE_API_KEY ? 'VITE_FIREBASE_API_KEY' : 'none',
+      firebaseWebApiKeyPreview: FIREBASE_WEB_API_KEY ? FIREBASE_WEB_API_KEY.substring(0, 8) + '...' : 'NOT SET'
     }
   });
 });
