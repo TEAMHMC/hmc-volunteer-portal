@@ -379,8 +379,8 @@ const BriefingView: React.FC<{
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full px-3 py-2 bg-zinc-50 border border-zinc-100 rounded-lg text-sm outline-none mb-2"
               />
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {filteredVolunteers.slice(0, 5).map(v => (
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {filteredVolunteers.map(v => (
                   <button
                     key={v.id}
                     onClick={() => { setActiveChannel(v.id); setShowNewConversation(false); setSearchQuery(''); }}
