@@ -3745,6 +3745,50 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
     }
 });
 
+// Parse event time string into start/end times (e.g. "8:00 AM", "10:00 AM - 2:00 PM")
+const parseEventTime = (timeStr: string | undefined): { startTime: string; endTime: string; hasEndTime: boolean } => {
+    let startTime = '09:00:00';
+    let endTime = '14:00:00';
+    let hasEndTime = false;
+
+    if (!timeStr || timeStr === 'TBD') return { startTime, endTime, hasEndTime };
+
+    // Check for range format first: "10:00 AM - 2:00 PM"
+    const rangeMatch = timeStr.match(/(\d{1,2}:\d{2})\s*(AM|PM)?\s*[-–]\s*(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+    if (rangeMatch) {
+        let sHours = parseInt(rangeMatch[1].split(':')[0]);
+        const sMins = rangeMatch[1].split(':')[1];
+        if (rangeMatch[2]?.toUpperCase() === 'PM' && sHours !== 12) sHours += 12;
+        if (rangeMatch[2]?.toUpperCase() === 'AM' && sHours === 12) sHours = 0;
+        startTime = `${sHours.toString().padStart(2, '0')}:${sMins}:00`;
+
+        let eHours = parseInt(rangeMatch[3].split(':')[0]);
+        const eMins = rangeMatch[3].split(':')[1];
+        if (rangeMatch[4]?.toUpperCase() === 'PM' && eHours !== 12) eHours += 12;
+        if (rangeMatch[4]?.toUpperCase() === 'AM' && eHours === 12) eHours = 0;
+        endTime = `${eHours.toString().padStart(2, '0')}:${eMins}:00`;
+        hasEndTime = true;
+        return { startTime, endTime, hasEndTime };
+    }
+
+    // Single time: "8:00 AM"
+    const timeMatch = timeStr.match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+    if (timeMatch) {
+        let hours = parseInt(timeMatch[1].split(':')[0]);
+        const mins = timeMatch[1].split(':')[1];
+        if (timeMatch[2]?.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+        if (timeMatch[2]?.toUpperCase() === 'AM' && hours === 12) hours = 0;
+        startTime = `${hours.toString().padStart(2, '0')}:${mins}:00`;
+        // No explicit end time — estimate 3 hours for walks/runs, 2 hours for others
+        const defaultDuration = 3;
+        const endHours = Math.min(hours + defaultDuration, 23);
+        endTime = `${endHours.toString().padStart(2, '0')}:${mins}:00`;
+        hasEndTime = false;
+    }
+
+    return { startTime, endTime, hasEndTime };
+};
+
 // Sync events from Event Finder Tool (Google Sheets via Apps Script)
 app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: Response) => {
     try {
@@ -3786,12 +3830,31 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             if (existing) {
                 // Update existing event with latest data from Event Finder
                 const updates: any = {};
+                if (event.title && event.title !== existing.title) updates.title = event.title;
                 if (event.time && event.time !== existing.time) updates.time = event.time;
                 if (event.address && event.address !== existing.address) updates.address = event.address;
                 if (event.location && event.location !== (existing.serviceLocation || existing.location)) updates.serviceLocation = event.location;
                 if (event.description && event.description !== existing.description) updates.description = event.description;
                 if (event.flyerUrl && event.flyerUrl !== existing.flyerUrl) updates.flyerUrl = event.flyerUrl;
                 if (event.program && event.program !== existing.category) updates.category = event.program;
+                if (event.date && event.date !== existing.date) updates.date = event.date;
+                if (event.dateDisplay) updates.dateDisplay = event.dateDisplay;
+                if (event.lat && event.lng) updates.locationCoordinates = { lat: event.lat, lng: event.lng };
+
+                // Also update shift times when time changes
+                if (updates.time || updates.date) {
+                    const timeStr = event.time || existing.time || '';
+                    const dateStr = event.date || existing.date;
+                    const parsed = parseEventTime(timeStr);
+                    // Update all shifts for this opportunity
+                    const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', existing.id).get();
+                    for (const shiftDoc of shiftsSnap.docs) {
+                        await shiftDoc.ref.update({
+                            startTime: `${dateStr}T${parsed.startTime}`,
+                            endTime: `${dateStr}T${parsed.endTime}`,
+                        });
+                    }
+                }
 
                 if (Object.keys(updates).length > 0) {
                     updates.lastSyncedAt = new Date().toISOString();
@@ -3803,37 +3866,7 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
                 continue;
             }
 
-            // Parse time string to extract start/end times
-            let startTime = '09:00:00';
-            let endTime = '14:00:00';
-            if (event.time && event.time !== 'TBD') {
-                const timeMatch = event.time.match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i);
-                if (timeMatch) {
-                    let hours = parseInt(timeMatch[1].split(':')[0]);
-                    const mins = timeMatch[1].split(':')[1];
-                    if (timeMatch[2]?.toUpperCase() === 'PM' && hours !== 12) hours += 12;
-                    if (timeMatch[2]?.toUpperCase() === 'AM' && hours === 12) hours = 0;
-                    startTime = `${hours.toString().padStart(2, '0')}:${mins}:00`;
-                    // Default end time: 5 hours after start
-                    const endHours = Math.min(hours + 5, 23);
-                    endTime = `${endHours.toString().padStart(2, '0')}:${mins}:00`;
-                }
-                // Check for range format "10:00 AM - 2:00 PM"
-                const rangeMatch = event.time.match(/(\d{1,2}:\d{2})\s*(AM|PM)?\s*[-–]\s*(\d{1,2}:\d{2})\s*(AM|PM)?/i);
-                if (rangeMatch) {
-                    let sHours = parseInt(rangeMatch[1].split(':')[0]);
-                    const sMins = rangeMatch[1].split(':')[1];
-                    if (rangeMatch[2]?.toUpperCase() === 'PM' && sHours !== 12) sHours += 12;
-                    if (rangeMatch[2]?.toUpperCase() === 'AM' && sHours === 12) sHours = 0;
-                    startTime = `${sHours.toString().padStart(2, '0')}:${sMins}:00`;
-
-                    let eHours = parseInt(rangeMatch[3].split(':')[0]);
-                    const eMins = rangeMatch[3].split(':')[1];
-                    if (rangeMatch[4]?.toUpperCase() === 'PM' && eHours !== 12) eHours += 12;
-                    if (rangeMatch[4]?.toUpperCase() === 'AM' && eHours === 12) eHours = 0;
-                    endTime = `${eHours.toString().padStart(2, '0')}:${eMins}:00`;
-                }
-            }
+            const { startTime, endTime } = parseEventTime(event.time);
 
             const opportunity = {
                 title: event.title,
