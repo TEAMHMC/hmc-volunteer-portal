@@ -1613,49 +1613,103 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
                 });
             }
 
-            // Invalid credentials - check if user exists and what auth provider they used
+            // Invalid credentials - determine root cause and provide actionable recovery
             if (errorMsg.includes('INVALID_LOGIN_CREDENTIALS')) {
-                // Check Firebase Auth record for provider info
+                const emailLower = email.toLowerCase();
+
+                // Step 1: Check Firebase Auth record directly for provider info
+                let fbUser: admin.auth.UserRecord | null = null;
                 try {
-                    const fbUser = await auth.getUserByEmail(email.toLowerCase());
+                    fbUser = await auth.getUserByEmail(emailLower);
                     const providers = fbUser.providerData.map(p => p.providerId);
                     const hasPasswordProvider = providers.includes('password');
-                    console.error(`[AUTH] Firebase Auth record for ${maskEmail(email)}: uid=${fbUser.uid}, providers=[${providers.join(',')}], hasPassword=${hasPasswordProvider}, disabled=${fbUser.disabled}`);
-                    if (!hasPasswordProvider) {
-                        console.error(`[AUTH] Account ${maskEmail(email)} does NOT have password provider — only: ${providers.join(', ')}`);
+                    const hasGoogleProvider = providers.includes('google.com');
+                    console.error(`[AUTH] Firebase Auth record for ${maskEmail(email)}: uid=${fbUser.uid}, providers=[${providers.join(',')}], hasPassword=${hasPasswordProvider}, disabled=${fbUser.disabled}, created=${fbUser.metadata.creationTime}`);
+
+                    // Account is disabled
+                    if (fbUser.disabled) {
+                        return res.status(401).json({ error: 'This account has been disabled. Please contact support.' });
+                    }
+
+                    // No password provider — must use Google
+                    if (!hasPasswordProvider && hasGoogleProvider) {
                         return res.status(401).json({
                             error: "This account uses Google Sign-In. Please click 'Sign in with Google' instead.",
                             useGoogle: true
+                        });
+                    }
+
+                    // Has password provider but credentials rejected — password is wrong
+                    // Auto-send password reset email so user can recover immediately
+                    if (hasPasswordProvider) {
+                        console.error(`[AUTH] Account ${maskEmail(email)} HAS password provider but credentials rejected — sending auto-reset`);
+                        try {
+                            const resetLink = await auth.generatePasswordResetLink(emailLower);
+                            // Send branded reset email
+                            if (EMAIL_SERVICE_URL) {
+                                await EmailService.send('password_reset', {
+                                    toEmail: emailLower,
+                                    volunteerName: fbUser.displayName || 'Volunteer',
+                                    resetLink,
+                                });
+                            }
+                            return res.status(401).json({
+                                error: 'Incorrect password. A password reset link has been sent to your email.',
+                                needsPasswordReset: true,
+                                resetSent: true
+                            });
+                        } catch (resetErr) {
+                            console.error(`[AUTH] Failed to send auto-reset for ${maskEmail(email)}:`, (resetErr as Error).message);
+                        }
+                    }
+
+                    // No password provider and no Google — account exists but no login method
+                    if (!hasPasswordProvider && !hasGoogleProvider) {
+                        console.error(`[AUTH] Account ${maskEmail(email)} has NO usable providers: [${providers.join(',')}]`);
+                        return res.status(401).json({
+                            error: "Your account needs a password. Please click 'Forgot password?' below to set one up.",
+                            needsPasswordReset: true
                         });
                     }
                 } catch (fbErr: any) {
                     console.error(`[AUTH] Could not look up Firebase Auth for ${maskEmail(email)}: ${fbErr.message}`);
                 }
 
+                // Step 2: Check Firestore record for additional context
                 const existingUser = await db.collection('volunteers')
-                    .where('email', '==', email.toLowerCase())
+                    .where('email', '==', emailLower)
                     .limit(1)
                     .get();
 
                 if (!existingUser.empty) {
                     const userData = existingUser.docs[0].data();
-                    console.error(`[AUTH] Firestore record for ${maskEmail(email)}: authProvider=${userData.authProvider}, docId=${existingUser.docs[0].id}`);
+                    console.error(`[AUTH] Firestore record for ${maskEmail(email)}: authProvider=${userData.authProvider}, docId=${existingUser.docs[0].id}, fbUid=${fbUser?.uid || 'unknown'}`);
+
+                    // Firestore says Google but Firebase Auth lookup failed — still suggest Google
                     if (userData.authProvider === 'google') {
                         return res.status(401).json({
                             error: "This account uses Google Sign-In. Please click 'Sign in with Google' instead.",
                             useGoogle: true
                         });
                     }
+
+                    // Account exists but may need password setup
                     if (userData.authProvider === 'manual' || !userData.authProvider) {
                         return res.status(401).json({
                             error: "Your account needs a password. Please click 'Forgot password?' below to set one up.",
                             needsPasswordReset: true
                         });
                     }
+
+                    // authProvider is 'email' — they should have a password but it's wrong
+                    return res.status(401).json({
+                        error: "Incorrect password. Please try again or click 'Forgot password?' to reset it.",
+                        needsPasswordReset: true
+                    });
                 } else {
                     console.error(`[AUTH] No Firestore volunteer record found for ${maskEmail(email)}`);
                 }
-                return res.status(401).json({ error: 'Invalid email or password.' });
+                return res.status(401).json({ error: 'No account found with this email. Please sign up first.' });
             }
 
             // Never expose raw Firebase error codes to users

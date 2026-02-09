@@ -40,7 +40,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
     try {
       await onLogin(email, password, isAdmin);
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message;
+      setError(msg);
+      // If server auto-sent a password reset, show the reset banner
+      if (msg.includes('reset link has been sent')) {
+        setResetSent(true);
+      }
     } finally {
       setIsLoading(false);
     }

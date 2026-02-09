@@ -37,16 +37,20 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
     const responseText = await response.text();
 
     if (!response.ok) {
+      // Try to parse as JSON error response
+      let errorMessage = `Request failed with status ${response.status}`;
       try {
         const errorJson = JSON.parse(responseText);
-        throw new Error(errorJson.error || 'An unknown server error occurred.');
-      } catch (e) {
-        // If it's HTML error (like standard Express 404), return a friendly message
+        errorMessage = errorJson.error || errorMessage;
+      } catch {
+        // Not JSON — check if it's an HTML error page
         if (responseText.trim().startsWith('<!DOCTYPE html>')) {
-             throw new Error(`API Error (${response.status}): Endpoint not found or server configuration issue.`);
+          errorMessage = `API Error (${response.status}): Endpoint not found or server configuration issue.`;
+        } else if (responseText) {
+          errorMessage = responseText;
         }
-        throw new Error(responseText || `Request failed with status ${response.status}`);
       }
+      throw new Error(errorMessage);
     }
     
     try {
