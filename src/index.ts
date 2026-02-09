@@ -3920,7 +3920,7 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
             });
 
             // Create volunteer object
-            const volunteer = {
+            const volunteer: Record<string, any> = {
                 legalFirstName: row.legalFirstName || row.firstName || '',
                 legalLastName: row.legalLastName || row.lastName || '',
                 name: `${row.legalFirstName || row.firstName || ''} ${row.legalLastName || row.lastName || ''}`.trim(),
@@ -3964,18 +3964,47 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
             };
 
             if (volunteer.email) {
-                const docRef = await db.collection('volunteers').add(volunteer);
-                newVolunteers.push({ id: docRef.id, ...volunteer });
+                const emailLower = volunteer.email.toLowerCase();
+                volunteer.email = emailLower;
+                let finalUserId: string;
+
+                // Create Firebase Auth account so the volunteer can actually log in
+                try {
+                    const tempPassword = crypto.randomBytes(9).toString('base64url') + 'A1!';
+                    const userRecord = await auth.createUser({
+                        email: emailLower,
+                        password: tempPassword,
+                        displayName: volunteer.name,
+                    });
+                    finalUserId = userRecord.uid;
+                    volunteer.authProvider = 'email';
+                } catch (authErr: any) {
+                    if (authErr.code === 'auth/email-already-exists') {
+                        // Firebase Auth user already exists - use their UID
+                        const existingUser = await auth.getUserByEmail(emailLower);
+                        finalUserId = existingUser.uid;
+                        volunteer.authProvider = existingUser.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email';
+                    } else {
+                        console.error(`[BULK IMPORT] Failed to create auth for ${emailLower}:`, authErr.message);
+                        // Fallback to Firestore-only
+                        const docRef = await db.collection('volunteers').add(volunteer);
+                        finalUserId = docRef.id;
+                        volunteer.authProvider = 'manual';
+                    }
+                }
+
+                await db.collection('volunteers').doc(finalUserId).set({ ...volunteer, id: finalUserId }, { merge: true });
+                newVolunteers.push({ id: finalUserId, ...volunteer });
 
                 // Send welcome email
                 try {
                     await EmailService.send('welcome_volunteer', {
-                        toEmail: volunteer.email,
+                        toEmail: emailLower,
                         volunteerName: volunteer.name || volunteer.legalFirstName || 'Volunteer',
                         appliedRole: volunteer.role,
                     });
                 } catch (emailErr) {
-                    console.error(`Failed to send welcome email to ${maskEmail(volunteer.email)}:`, emailErr);
+                    console.error(`Failed to send welcome email to ${maskEmail(emailLower)}:`, emailErr);
                 }
             }
         }
@@ -3985,6 +4014,71 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
     } catch (error: any) {
         console.error('[BULK IMPORT] Failed:', error);
         res.status(500).json({ error: error.message || 'Failed to import volunteers' });
+    }
+});
+
+// Reconcile Firestore volunteers with Firebase Auth - provisions missing auth accounts
+app.post('/api/admin/reconcile-auth', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const allVols = await db.collection('volunteers').get();
+        let created = 0, skipped = 0, migrated = 0, errors = 0;
+        const results: string[] = [];
+
+        for (const doc of allVols.docs) {
+            const vol = doc.data();
+            if (!vol.email) { skipped++; continue; }
+            const emailLower = vol.email.toLowerCase();
+
+            try {
+                // Check if Firebase Auth user exists and if Firestore doc ID matches
+                const authUser = await auth.getUserByEmail(emailLower);
+                if (doc.id !== authUser.uid) {
+                    // Migrate doc to correct UID
+                    await db.collection('volunteers').doc(authUser.uid).set({
+                        ...vol, id: authUser.uid,
+                        authProvider: authUser.providerData?.[0]?.providerId === 'google.com' ? 'google' : (vol.authProvider || 'email'),
+                    }, { merge: true });
+                    await db.collection('volunteers').doc(doc.id).delete();
+                    migrated++;
+                    results.push(`Migrated ${emailLower}: ${doc.id} -> ${authUser.uid}`);
+                } else {
+                    skipped++;
+                }
+            } catch (err: any) {
+                if (err.code === 'auth/user-not-found') {
+                    // Create Firebase Auth account
+                    try {
+                        const tempPassword = crypto.randomBytes(9).toString('base64url') + 'A1!';
+                        const userRecord = await auth.createUser({
+                            email: emailLower,
+                            password: tempPassword,
+                            displayName: vol.name || `${vol.legalFirstName || ''} ${vol.legalLastName || ''}`.trim() || 'Volunteer',
+                        });
+                        // Migrate Firestore doc to new UID
+                        await db.collection('volunteers').doc(userRecord.uid).set({
+                            ...vol, id: userRecord.uid, authProvider: 'email',
+                        }, { merge: true });
+                        if (doc.id !== userRecord.uid) {
+                            await db.collection('volunteers').doc(doc.id).delete();
+                        }
+                        created++;
+                        results.push(`Created auth + migrated ${emailLower}: ${doc.id} -> ${userRecord.uid}`);
+                    } catch (createErr: any) {
+                        errors++;
+                        results.push(`Failed ${emailLower}: ${createErr.message}`);
+                    }
+                } else {
+                    errors++;
+                    results.push(`Error checking ${emailLower}: ${err.message}`);
+                }
+            }
+        }
+
+        console.log(`[RECONCILE] Created: ${created}, Migrated: ${migrated}, Skipped: ${skipped}, Errors: ${errors}`);
+        res.json({ created, migrated, skipped, errors, results });
+    } catch (error: any) {
+        console.error('[RECONCILE] Failed:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
