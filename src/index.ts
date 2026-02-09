@@ -56,7 +56,11 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 // --- TWILIO ---
-const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FIREBASE_WEB_API_KEY } = process.env;
+const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
+const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || process.env.VITE_FIREBASE_API_KEY || '';
+if (!FIREBASE_WEB_API_KEY) {
+    console.error('[CRITICAL] FIREBASE_WEB_API_KEY is not set — email/password login will not work. Set it from Firebase Console → Project Settings → General → Web API Key.');
+}
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
 
 // --- GOOGLE APPS SCRIPT EMAIL SERVICE ---
@@ -1560,6 +1564,10 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
     // SECURITY: isAdmin is NEVER accepted from client - always read from database
     if (!email || !password) return res.status(400).json({ error: "Email and password are required." });
     try {
+        if (!FIREBASE_WEB_API_KEY) {
+            console.error('[AUTH] FIREBASE_WEB_API_KEY is not configured — cannot verify password');
+            return res.status(503).json({ error: 'Login is temporarily unavailable. Please try Google Sign-In or contact support.' });
+        }
         const firebaseLoginUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_WEB_API_KEY}`;
         const firebaseRes = await fetch(firebaseLoginUrl, {
             method: 'POST',
