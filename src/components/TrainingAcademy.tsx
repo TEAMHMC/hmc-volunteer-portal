@@ -563,26 +563,36 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     );
   };
 
-  // Determine which program modules to show based on user's role / applied role
+  // Determine which program modules to show based on user's role eligibility
   const programModules = useMemo(() => {
     const sections: { title: string; program: string; modules: TrainingModule[] }[] = [];
+    const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === user.role || r.id === roleSlug);
+    const eligibility = roleConfig?.eventEligibility;
 
-    // Show all program sections — users complete what they need
+    // Clinical Services — only for roles with clinic gate access (Licensed Medical, Medical Admin)
+    const clinicalRoles = ['licensed_medical', 'medical_admin'];
+    const showClinical = clinicalRoles.includes(roleSlug) || clinicalRoles.includes(primarySlug);
+
+    // Community Wellness, Health Outreach — available to all operational (non-governance) roles
     if (PROGRAM_COMMUNITY_WELLNESS.length > 0) {
       sections.push({ title: 'Community Wellness', program: 'community_wellness', modules: PROGRAM_COMMUNITY_WELLNESS });
     }
     if (PROGRAM_COMMUNITY_HEALTH_OUTREACH.length > 0) {
       sections.push({ title: 'Community Health Outreach', program: 'community_health_outreach', modules: PROGRAM_COMMUNITY_HEALTH_OUTREACH });
     }
-    if (PROGRAM_STREET_MEDICINE.length > 0) {
+
+    // Street Medicine — only for roles with street medicine gate or clinical roles
+    if (PROGRAM_STREET_MEDICINE.length > 0 && (eligibility?.streetMedicineGate || showClinical)) {
       sections.push({ title: 'Street Medicine', program: 'street_medicine', modules: PROGRAM_STREET_MEDICINE });
     }
-    if (PROGRAM_CLINICAL.length > 0) {
+
+    // Clinical Services — only for clinical roles
+    if (PROGRAM_CLINICAL.length > 0 && showClinical) {
       sections.push({ title: 'Clinical Services', program: 'clinical', modules: PROGRAM_CLINICAL });
     }
 
     return sections;
-  }, []);
+  }, [roleSlug, primarySlug, user.role]);
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">

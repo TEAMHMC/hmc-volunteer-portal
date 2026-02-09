@@ -228,8 +228,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       items.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
     }
 
-    // Event management for Events Coordinators
-    if (canAccessOperationalTools && displayUser.role === 'Events Coordinator') {
+    // Event management for Events Leads/Coordinators and Outreach Leads
+    if (canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role)) {
       items.push({ id: 'event-management', label: 'Event Management', icon: Calendar });
     }
 
@@ -239,13 +239,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }
 
     // Add meetings tab for coordinators and leads
-    const meetingRoles = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'];
+    const meetingRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
     if (canAccessOperationalTools && meetingRoles.includes(displayUser.role)) {
         items.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
     }
 
     // Coordinators and leads get access to Forms for internal surveys
-    const formRoles = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'];
+    const formRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
     if (!displayUser.isAdmin && canAccessOperationalTools && formRoles.includes(displayUser.role)) {
         items.push({ id: 'forms', label: 'Forms', icon: FileText });
     }
@@ -488,7 +488,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessOperationalTools && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
-         {activeTab === 'event-management' && canAccessOperationalTools && displayUser.role === 'Events Coordinator' && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
+         {activeTab === 'event-management' && canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
@@ -499,7 +499,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} />}
          {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
-         {activeTab === 'forms' && (user.isAdmin || ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'].includes(displayUser.role)) && <FormBuilder />}
+         {activeTab === 'forms' && (user.isAdmin || ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'].includes(displayUser.role)) && <FormBuilder />}
          {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (
            <HealthScreeningsView
              user={displayUser}

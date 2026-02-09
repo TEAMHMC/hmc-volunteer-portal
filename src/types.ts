@@ -198,11 +198,13 @@ export interface Volunteer {
   // Roles are now organized into:
   // - Primary: Core Volunteer (community-facing)
   // - Specialized: Board, Medical, Tech, etc. (separate tracks)
-  volunteerRole: 'Core Volunteer' | 'Board Member' | 'Community Advisory Board' | 
-                 'Licensed Medical Professional' | 'Medical Admin' | 'Tech Team' | 
-                 'Data Analyst' | 'Development Coordinator' | 'Grant Writer' | 
-                 'Fundraising Volunteer' | 'Content Writer' | 'Social Media Team' | 
-                 'Events Coordinator' | 'Program Coordinator' | 'Operations Coordinator' | 
+  volunteerRole: 'Core Volunteer' | 'Board Member' | 'Community Advisory Board' |
+                 'Licensed Medical Professional' | 'Medical Admin' | 'Tech Team' |
+                 'Data Analyst' | 'Development Coordinator' | 'Grant Writer' |
+                 'Fundraising Volunteer' | 'Newsletter & Content Writer' | 'Content Writer' | 'Social Media Team' |
+                 'Events Lead' | 'Events Coordinator' | 'Program Coordinator' |
+                 'General Operations Coordinator' | 'Operations Coordinator' |
+                 'Outreach & Engagement Lead' | 'Outreach Volunteer' |
                  'Volunteer Lead' | 'Student Intern' | 'System Administrator';
   
   // Legacy field for backwards compatibility

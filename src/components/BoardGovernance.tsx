@@ -174,7 +174,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
   const isBoardMember = user.role === 'Board Member';
   const isCAB = user.role === 'Community Advisory Board';
-  const isCoordinatorOrLead = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'].includes(user.role);
+  const isCoordinatorOrLead = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'].includes(user.role);
   const canManageMeetings = user.isAdmin || isBoardMember || isCoordinatorOrLead;
 
   // Load data from API

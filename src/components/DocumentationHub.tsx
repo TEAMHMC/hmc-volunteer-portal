@@ -18,7 +18,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     const [editingArticle, setEditingArticle] = useState<KnowledgeBaseArticle | null>(null);
 
     // Allow admins and coordinator roles to edit documents
-    const coordinatorRoles = ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Volunteer Lead', 'Development Coordinator'];
+    const coordinatorRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator'];
     const canEdit = currentUser?.isAdmin || currentUser?.canEdit || coordinatorRoles.includes(currentUser?.role || '');
 
     const filteredArticles = useMemo(() => {

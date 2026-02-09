@@ -267,18 +267,18 @@ export const APP_CONFIG = {
       }
     },
     
-    { 
-      id: "content_writer", 
-      label: "Content Writer", 
-      description: "Newsletter, blog, and impact storytelling",
+    {
+      id: "content_writer",
+      label: "Newsletter & Content Writer",
+      description: "Craft donor newsletters, blog posts, and impact stories that connect supporters to our mission of health equity",
       icon: "FileText",
       category: "specialized",
-      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'], 
+      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'],
       trainingModules: ['storytelling', 'hipaa_training', 'client_privacy'],
       applicationQuestions: [
-        "Please provide a link to a portfolio or 1-2 writing samples (e.g., blog posts, newsletters).", 
-        "How do you approach writing stories that are impactful while respecting the dignity and privacy of the subjects?", 
-        "What topics within community health are you most passionate about writing about?"
+        "Please provide a link to a portfolio or 1-2 writing samples (e.g., newsletters, blog posts, or impact stories).",
+        "How do you approach translating complex healthcare topics or program data into accessible, compelling narratives?",
+        "Describe your experience with newsletter platforms (Mailchimp, Constant Contact) and gathering authentic stories through interviews while respecting privacy."
       ],
       eventEligibility: {
         streetMedicineGate: false,
@@ -309,18 +309,18 @@ export const APP_CONFIG = {
       }
     },
     
-    { 
-      id: "events_coordinator", 
-      label: "Events Coordinator", 
-      description: "Event planning and coordination",
+    {
+      id: "events_coordinator",
+      label: "Events Lead",
+      description: "Plan and coordinate pop-up clinics, wellness meetups, and community activations — lead volunteers, manage logistics, and keep every event running smoothly",
       icon: "Calendar",
       category: "specialized",
-      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'], 
+      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'],
       trainingModules: ['event_logistics', 'hipaa_training'],
       applicationQuestions: [
-        "Describe your experience planning and executing events, from logistics to day-of coordination.", 
-        "How do you prioritize tasks and manage your time when preparing for a large-scale event?", 
-        "What strategies would you use to ensure a smooth and positive experience for both volunteers and attendees?"
+        "Describe your experience planning and coordinating community events, health fairs, wellness activities, or similar gatherings.",
+        "How do you approach leading pre-event briefings and ensuring volunteers feel supported and prepared on the day of an event?",
+        "Events rarely go exactly as planned. Describe a time you had to troubleshoot an issue on the spot and keep things running smoothly."
       ],
       eventEligibility: {
         streetMedicineGate: false,
@@ -351,18 +351,18 @@ export const APP_CONFIG = {
       }
     },
     
-    { 
-      id: "operations_coordinator", 
-      label: "Operations Coordinator", 
-      description: "Logistics and operational planning",
+    {
+      id: "operations_coordinator",
+      label: "General Operations Coordinator",
+      description: "Scheduling, communications, data entry, and project coordination to keep programs and events running smoothly",
       icon: "Settings",
       category: "specialized",
-      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'], 
+      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'],
       trainingModules: ['operations', 'hipaa_training'],
       applicationQuestions: [
-        "Describe your experience with logistics, inventory management, or operational planning.", 
-        "How do you ensure processes are followed correctly during a busy event?", 
-        "What tools or methods do you use to stay organized and manage details effectively?"
+        "Describe your experience coordinating schedules, managing data, or supporting operational workflows for a team or organization.",
+        "What tools are you comfortable with (e.g., Google Workspace, Notion, Trello, Asana) and how have you used them to stay organized?",
+        "This role requires wearing many hats — from tracking supplies to sending logistics updates. How do you prioritize when juggling multiple responsibilities?"
       ],
       eventEligibility: {
         streetMedicineGate: false,
@@ -393,9 +393,51 @@ export const APP_CONFIG = {
       }
     },
     
-    { 
-      id: "student_intern", 
-      label: "Student Intern", 
+    {
+      id: "outreach_lead",
+      label: "Outreach & Engagement Lead",
+      description: "Community outreach strategy, partnership building, and grassroots engagement",
+      icon: "Megaphone",
+      category: "specialized",
+      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'],
+      trainingModules: ['outreach_strategy', 'hipaa_training', 'community_engagement'],
+      applicationQuestions: [
+        "Describe your experience with community outreach, grassroots engagement, or partnership development.",
+        "How would you approach connecting with local schools, churches, and community organizations to promote HMC's programs?",
+        "What strategies would you use to build trust and long-term relationships with underserved communities?"
+      ],
+      eventEligibility: {
+        streetMedicineGate: false,
+        clinicGate: false,
+        healthFairGate: true,
+        naloxoneDistribution: false,
+      }
+    },
+
+    {
+      id: "outreach_volunteer",
+      label: "Outreach Volunteer",
+      description: "Grassroots community outreach, event promotion, and resource distribution",
+      icon: "Globe",
+      category: "community",
+      complianceRequirements: ['application', 'backgroundCheck', 'hipaaTraining', 'training', 'orientation'],
+      trainingModules: ['outreach_basics', 'hipaa_training'],
+      applicationQuestions: [
+        "Why are you interested in community outreach with Health Matters Clinic?",
+        "Are you comfortable approaching people in public settings to share information about health resources?",
+        "Do you have any experience with community engagement, tabling, or canvassing?"
+      ],
+      eventEligibility: {
+        streetMedicineGate: false,
+        clinicGate: false,
+        healthFairGate: true,
+        naloxoneDistribution: false,
+      }
+    },
+
+    {
+      id: "student_intern",
+      label: "Student Intern",
       description: "Academic internship or skill-building",
       icon: "BookOpen",
       category: "specialized",

@@ -14,7 +14,7 @@ interface ImpactHubProps {
 }
 
 const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) => {
-  const isComms = ['Content Writer', 'Social Media Team'].includes(user.role);
+  const isComms = ['Newsletter & Content Writer', 'Content Writer', 'Social Media Team'].includes(user.role);
   const [activeTab, setActiveTab] = useState<'content' | 'leaderboard' | 'rewards'>(isComms ? 'content' : 'leaderboard');
 
   const leaderboardData = [...allVolunteers]
@@ -55,7 +55,7 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
   const [postTopic, setPostTopic] = useState('');
   const [platform, setPlatform] = useState<'Instagram' | 'LinkedIn'>('Instagram');
   
-  const isComms = ['Content Writer', 'Social Media Team'].includes(user.role);
+  const isComms = ['Newsletter & Content Writer', 'Content Writer', 'Social Media Team'].includes(user.role);
 
   const handleDraftEmail = async () => {
     setIsDraftingEmail(true); setDraftedEmail('');

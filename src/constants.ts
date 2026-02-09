@@ -95,6 +95,15 @@ export const SERVICE_OFFERINGS: ServiceOffering[] = [
       { role: 'Core Volunteer', count: 4 },
     ],
   },
+  {
+    id: 'so-outreach',
+    name: 'Community Outreach & Engagement',
+    description: 'Grassroots outreach, tabling, event promotion, and resource distribution.',
+    requiredRoles: [
+      { role: 'Outreach & Engagement Lead', count: 1 },
+      { role: 'Outreach Volunteer', count: 2 },
+    ],
+  },
 ];
 
 // ============================================================
@@ -312,6 +321,14 @@ export const ROLE_SPECIFIC_MODULES: Record<string, TrainingModule[]> = {
   ],
   data_analyst: [
     { id: 'hipaa_cyber_2024', title: 'HIPAA Training: 2024 Cybersecurity Standards', desc: 'Cybersecurity performance goals and safeguards to protect PHI and systems.', dur: 39, embed: 'https://www.youtube.com/embed/2tBs65yi7yk', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+  ],
+  outreach_lead: [
+    { id: 'outreach_strategy_np', title: 'Community Outreach Strategy for Nonprofits', desc: 'How to plan, execute, and measure grassroots outreach campaigns that connect communities to services.', dur: 22, embed: 'https://www.youtube.com/embed/m4I-YDhgQ_8', format: 'recorded_video', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },
+    { id: 'partnership_building', title: 'Partnership Building & Community Engagement', desc: 'Building and maintaining relationships with schools, churches, and community organizations to expand HMC\'s reach.', dur: 12, embed: '', format: 'read_ack', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+    { id: 'outreach_messaging', title: 'Health Equity Messaging & Cultural Sensitivity', desc: 'Communicating about health services in culturally appropriate, trust-building ways for underserved communities.', dur: 10, embed: '', format: 'read_ack', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
+  ],
+  outreach_volunteer: [
+    { id: 'outreach_basics_np', title: 'Grassroots Outreach: Connecting Communities to Care', desc: 'Fundamentals of community outreach, event promotion, and resource sharing for HMC volunteers.', dur: 15, embed: '', format: 'read_ack', tier: 3, programAssociation: null, isBlocking: true, deadlineDays: null, isAIGenerated: true, req: true },
   ],
   licensed_medical: [
     { id: 'lmp_hipaa_clinical', title: 'HIPAA for Clinical Volunteers', desc: 'HIPAA compliance specific to licensed providers handling PHI in community health settings.', dur: 30, embed: 'https://www.youtube.com/embed/jdGhezryMgI', format: 'recorded_video', tier: 3, programAssociation: 'clinical', isBlocking: true, deadlineDays: null, isAIGenerated: false, req: true },

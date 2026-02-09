@@ -1646,27 +1646,12 @@ app.post('/auth/login', rateLimit(10, 60000), async (req: Request, res: Response
                     }
 
                     // Has password provider but credentials rejected — password is wrong
-                    // Auto-send password reset email so user can recover immediately
                     if (hasPasswordProvider) {
-                        console.error(`[AUTH] Account ${maskEmail(email)} HAS password provider but credentials rejected — sending auto-reset`);
-                        try {
-                            const resetLink = await auth.generatePasswordResetLink(emailLower);
-                            // Send branded reset email
-                            if (EMAIL_SERVICE_URL) {
-                                await EmailService.send('password_reset', {
-                                    toEmail: emailLower,
-                                    volunteerName: fbUser.displayName || 'Volunteer',
-                                    resetLink,
-                                });
-                            }
-                            return res.status(401).json({
-                                error: 'Incorrect password. A password reset link has been sent to your email.',
-                                needsPasswordReset: true,
-                                resetSent: true
-                            });
-                        } catch (resetErr) {
-                            console.error(`[AUTH] Failed to send auto-reset for ${maskEmail(email)}:`, (resetErr as Error).message);
-                        }
+                        console.error(`[AUTH] Account ${maskEmail(email)} HAS password provider but credentials rejected. API key source: ${process.env.FIREBASE_WEB_API_KEY ? 'FIREBASE_WEB_API_KEY' : 'VITE_FIREBASE_API_KEY'}, key preview: ${FIREBASE_WEB_API_KEY.substring(0, 8)}...${FIREBASE_WEB_API_KEY.substring(FIREBASE_WEB_API_KEY.length - 4)}`);
+                        return res.status(401).json({
+                            error: "Incorrect password. Please try again or click 'Forgot password?' to reset it.",
+                            needsPasswordReset: true
+                        });
                     }
 
                     // No password provider and no Google — account exists but no login method
@@ -2001,11 +1986,13 @@ app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
         'Development Coordinator',
         'Grant Writer',
         'Fundraising Volunteer',
-        'Content Writer',
+        'Newsletter & Content Writer',
         'Social Media Team',
-        'Events Coordinator',
+        'Events Lead',
         'Program Coordinator',
-        'Operations Coordinator',
+        'General Operations Coordinator',
+        'Outreach & Engagement Lead',
+        'Outreach Volunteer',
         'Volunteer Lead',
         'Student Intern'
     ];
@@ -2048,9 +2035,9 @@ ROLE DESCRIPTIONS:
 - Medical Admin: Medical records, patient intake, healthcare administration
 - Tech Team: Software development, IT support, data engineering
 - Data Analyst: Data analysis, visualization, SQL/Python skills
-- Events Coordinator: Event planning and day-of coordination
+- Events Lead: Plan and coordinate pop-up clinics, wellness meetups, and community activations
 - Volunteer Lead: Team leadership and volunteer management
-- Content Writer: Newsletter, blog, impact storytelling
+- Newsletter & Content Writer: Donor newsletters, blog posts, and impact storytelling
 - Social Media Team: Content creation and social media management
 - Grant Writer: Grant proposal writing and research
 - Development Coordinator: Fundraising and donor relations
@@ -2058,7 +2045,9 @@ ROLE DESCRIPTIONS:
 - Board Member: Governance, strategic planning (executive experience)
 - Community Advisory Board: Community voice and advocacy
 - Program Coordinator: Program management and delivery
-- Operations Coordinator: Logistics and operational planning
+- General Operations Coordinator: Scheduling, communications, data entry, and project coordination
+- Outreach & Engagement Lead: Community outreach strategy, partnership building, grassroots engagement
+- Outreach Volunteer: Grassroots outreach, event promotion, resource distribution
 - Student Intern: Academic internship (currently enrolled students)
 
 INSTRUCTIONS:
@@ -2769,7 +2758,7 @@ const processVolunteerMatch = async (
 
           // Notify coordinators
           const coordinatorsSnap = await db.collection('volunteers')
-            .where('role', 'in', ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator'])
+            .where('role', 'in', ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'])
             .where('status', '==', 'active')
             .get();
 
@@ -3987,7 +3976,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
     // Notify Event Coordinators about the new registration
     try {
       const coordinatorsSnap = await db.collection('volunteers')
-        .where('role', 'in', ['Events Coordinator', 'Program Coordinator', 'Operations Coordinator'])
+        .where('role', 'in', ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'])
         .where('status', '==', 'active')
         .get();
 
@@ -4939,7 +4928,7 @@ app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response)
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    const meetingRoles = ['Board Member', 'Events Coordinator', 'Program Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Volunteer Lead'];
+    const meetingRoles = ['Board Member', 'Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
     if (!userData?.isAdmin && !meetingRoles.includes(userData?.role)) {
       return res.status(403).json({ error: 'Only admins, board members, coordinators, and leads can manage meetings' });
     }
