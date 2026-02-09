@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Volunteer } from '../types';
 import { BOARD_GOVERNANCE_DOCS } from '../constants';
 import { apiService } from '../services/apiService';
+import { geminiService } from '../services/geminiService';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
 import {
   Briefcase, FileSignature, FileText, Download, ExternalLink, Video,
@@ -1388,6 +1389,47 @@ const DocumentViewerModal: React.FC<{
   doc: typeof BOARD_GOVERNANCE_DOCS.governanceDocs[0];
   onClose: () => void;
 }> = ({ docId, doc, onClose }) => {
+  const [content, setContent] = useState<{ content: string; sections: { heading: string; body: string }[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      setLoading(true);
+      try {
+        const moduleId = (doc as any).moduleId || docId;
+        const result = await geminiService.generateModuleContent(moduleId, doc.title, doc.description, 'board_member');
+        setContent(result);
+      } catch {
+        setContent(null);
+      }
+      setLoading(false);
+    };
+    fetchContent();
+  }, [docId, doc]);
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow || !content) return;
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>${doc.title} — Health Matters Clinic</title>
+      <style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.6}
+      h1{font-size:24px;border-bottom:3px solid #233DFF;padding-bottom:12px;margin-bottom:8px}
+      .subtitle{color:#666;font-size:14px;margin-bottom:32px}
+      h2{font-size:17px;text-transform:uppercase;letter-spacing:1px;color:#233DFF;margin-top:28px;margin-bottom:8px}
+      p{margin:0 0 12px;white-space:pre-wrap}
+      .intro{font-style:italic;border-left:4px solid #233DFF;padding-left:16px;color:#444;margin-bottom:24px}
+      .footer{margin-top:40px;padding-top:16px;border-top:1px solid #ddd;font-size:12px;color:#999;text-align:center}
+      @media print{body{margin:20px}}</style></head><body>
+      <h1>${doc.title}</h1>
+      <p class="subtitle">Health Matters Clinic — Official Governance Document</p>
+      ${content.content ? `<p class="intro">${content.content}</p>` : ''}
+      ${content.sections.map(s => `<h2>${s.heading}</h2><p>${s.body}</p>`).join('')}
+      <div class="footer">Health Matters Clinic, Inc. — Confidential Governance Document<br/>Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      </body></html>`);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-4xl w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -1397,23 +1439,48 @@ const DocumentViewerModal: React.FC<{
             <p className="text-sm text-zinc-500">{doc.description}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-zinc-100 rounded-xl flex items-center gap-2 text-sm font-bold">
-              <Download size={16} /> Download
+            <button
+              onClick={handlePrint}
+              disabled={loading || !content}
+              className="p-2 hover:bg-zinc-100 rounded-xl flex items-center gap-2 text-sm font-bold disabled:opacity-30"
+            >
+              <Download size={16} /> Print / Save PDF
             </button>
             <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
           </div>
         </div>
-        <div className="p-6 overflow-y-auto flex-1">
-          <div className="bg-zinc-50 p-8 rounded-2xl min-h-[400px] flex items-center justify-center">
-            <div className="text-center text-zinc-400">
-              <FileText size={64} className="mx-auto mb-4" />
-              <p className="font-bold">Document Preview</p>
-              <p className="text-sm">PDF viewer would display here</p>
-              <button className="mt-4 px-6 py-3 bg-[#233DFF] text-white rounded-full font-bold text-sm">
-                Open in New Tab
-              </button>
+        <div className="p-6 overflow-y-auto flex-1" ref={contentRef}>
+          {loading ? (
+            <div className="py-16 flex flex-col items-center gap-4">
+              <Loader2 size={36} className="text-[#233DFF] animate-spin" />
+              <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">Loading document...</p>
             </div>
-          </div>
+          ) : content && content.sections.length > 0 ? (
+            <div className="space-y-6">
+              {content.content && (
+                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-[#233DFF]/30 pl-4">{content.content}</p>
+              )}
+              {content.sections.map((section, idx) => (
+                <div key={idx} className="space-y-2">
+                  <h4 className="text-sm font-black text-zinc-800 uppercase tracking-wide">{section.heading}</h4>
+                  <div className="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">{section.body}</div>
+                </div>
+              ))}
+              <div className="border-t border-zinc-200 pt-4 mt-8">
+                <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold text-center">
+                  Health Matters Clinic, Inc. — Official Governance Document
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-zinc-50 p-8 rounded-2xl min-h-[400px] flex items-center justify-center">
+              <div className="text-center text-zinc-400">
+                <FileText size={64} className="mx-auto mb-4" />
+                <p className="font-bold">Document Unavailable</p>
+                <p className="text-sm">This document could not be loaded. Please try again later.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
