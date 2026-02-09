@@ -290,6 +290,7 @@ export interface Volunteer {
   trainingPlan?: TrainingPlan;
   roleAssessment?: RoleAssessment[];
   completedTrainingIds?: string[];
+  trainingSignatures?: Record<string, { fullName: string; signedAt: string; }>;
   assignedShiftIds?: string[];
   
   // Notifications

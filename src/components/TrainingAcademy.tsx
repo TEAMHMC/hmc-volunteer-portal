@@ -15,7 +15,7 @@ import {
   CheckCircle2, Play, X, ShieldCheck,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
   Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video, Stethoscope,
-  Lock, Monitor, Youtube, FileCheck, ChevronDown
+  Lock, Monitor, Youtube, FileCheck, ChevronDown, PenLine
 } from 'lucide-react';
 import ClinicalOnboarding from './ClinicalOnboarding';
 
@@ -128,6 +128,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [moduleContent, setModuleContent] = useState<{ content: string; sections: { heading: string; body: string }[] } | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
+  const [signatureName, setSignatureName] = useState('');
   const [showFieldAccess, setShowFieldAccess] = useState(false);
 
   // Try both role and appliedRole — use whichever has role-specific training
@@ -140,6 +141,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   // Governance roles (board, CAB) skip Tier 2 operational training
   const GOVERNANCE_ROLES = ['board_member', 'community_advisory_board'];
   const isGovernanceRole = GOVERNANCE_ROLES.includes(primarySlug) || GOVERNANCE_ROLES.includes(appliedSlug);
+
+  // Modules that require a typed legal signature (governance policies + clinical docs)
+  const requiresSignature = (mod: TrainingModule) =>
+    mod.format === 'read_ack' && (mod.id.startsWith('gov_') || mod.programAssociation === 'clinical');
 
   // Tier completion checks (with legacy compat)
   const tier1Complete = hasCompletedAllModules(completedModuleIds, TIER_1_IDS);
@@ -172,6 +177,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     setReviewMode(false);
     setSubmitError('');
     setQuizResponse('');
+    setSignatureName('');
     setQuizData(null);
     setVideoError(false);
     setVideoLoading(true);
@@ -192,6 +198,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     setReviewMode(true);
     setSubmitError('');
     setQuizResponse('');
+    setSignatureName('');
     setQuizData(null);
     setVideoError(false);
     setVideoLoading(true);
@@ -312,6 +319,17 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         ]
       };
 
+      // Store digital signature for governance and clinical modules
+      if (activeSession && requiresSignature(activeSession) && signatureName.trim()) {
+        updatedUser.trainingSignatures = {
+          ...(user.trainingSignatures || {}),
+          [moduleId]: {
+            fullName: signatureName.trim(),
+            signedAt: new Date().toISOString(),
+          }
+        };
+      }
+
       if (nowCompletedAll && wasNotCompletedBefore) {
         updatedUser.coreVolunteerStatus = true;
         updatedUser.coreVolunteerApprovedDate = new Date().toISOString();
@@ -334,6 +352,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     setQuizMode(false);
     setActiveSession(null);
     setQuizData(null);
+    setSignatureName('');
     setQuizResponse('');
   };
 
@@ -459,12 +478,25 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
 
         {reviewMode ? (
-          <button
-            onClick={() => { setQuizMode(false); setActiveSession(null); }}
-            className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            Done Reviewing
-          </button>
+          <>
+            {activeSession && requiresSignature(activeSession) && user.trainingSignatures?.[activeSession.id] && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-[24px] p-6 flex items-center gap-4">
+                <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-emerald-900">Signed Document</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    Signed by <span style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.1rem' }} className="font-bold">{user.trainingSignatures[activeSession.id].fullName}</span> on {new Date(user.trainingSignatures[activeSession.id].signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => { setQuizMode(false); setActiveSession(null); }}
+              className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            >
+              Done Reviewing
+            </button>
+          </>
         ) : (
           <>
             <div className="bg-white border border-zinc-200 rounded-[24px] p-6">
@@ -482,16 +514,48 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               </label>
             </div>
 
+            {activeSession && requiresSignature(activeSession) && (
+              <div className="bg-white border border-zinc-200 rounded-[24px] p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <PenLine size={18} className="text-[#233DFF] shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-zinc-900">Digital Signature Required</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Type your full legal name below to sign this document.
+                    </p>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={signatureName}
+                    onChange={(e) => setSignatureName(e.target.value)}
+                    placeholder="Full Legal Name"
+                    disabled={loadingContent}
+                    className="w-full px-4 py-3 border-b-2 border-zinc-300 focus:border-[#233DFF] bg-zinc-50 rounded-t-lg text-lg outline-none transition-colors"
+                    style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.5rem' }}
+                  />
+                  <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider font-bold">
+                    Signed electronically on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={() => {
                 if (quizResponse === 'acknowledged') {
                   handleCompleteModule(activeSession.id, activeSession.title);
                 }
               }}
-              disabled={quizResponse !== 'acknowledged' || loadingContent}
+              disabled={quizResponse !== 'acknowledged' || loadingContent || (activeSession && requiresSignature(activeSession) && signatureName.trim().length < 2)}
               className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
             >
-              <Check size={18} /> Acknowledge & Complete Module
+              {activeSession && requiresSignature(activeSession) ? (
+                <><PenLine size={18} /> Sign & Complete Module</>
+              ) : (
+                <><Check size={18} /> Acknowledge & Complete Module</>
+              )}
             </button>
           </>
         )}
