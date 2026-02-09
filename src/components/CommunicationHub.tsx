@@ -205,11 +205,6 @@ const BriefingView: React.FC<{
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change or channel switches
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeMessages, activeChannel]);
-
   // SSE: real-time message stream
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -317,6 +312,11 @@ const BriefingView: React.FC<{
                    (m.senderId === activeChannel && m.recipientId === user.id))
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [messages, activeChannel, user.id]);
+
+  // Auto-scroll to bottom when messages change or channel switches
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeMessages, activeChannel]);
 
   // Mark unread messages as read when viewing a DM conversation
   useEffect(() => {

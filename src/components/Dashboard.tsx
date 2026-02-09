@@ -142,8 +142,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     handleUpdateUser({ ...user, hasCompletedSystemTour: true });
   };
 
-  // Core Volunteer Training — Tier 1 + Tier 2 required for operational access
-  const CORE_TRAINING_MODULES = [
+  // Core Volunteer Training — governance roles only need Tier 1, operational roles need Tier 1 + Tier 2
+  const GOVERNANCE_ROLES = ['Board Member', 'Community Advisory Board'];
+  const isGovernanceRole = GOVERNANCE_ROLES.includes(displayUser.role);
+
+  const GOVERNANCE_TRAINING_MODULES = ['hmc_orientation', 'hmc_champion'];
+  const OPERATIONAL_TRAINING_MODULES = [
     'hmc_orientation',
     'hmc_champion',
     'hipaa_nonclinical',
@@ -152,13 +156,14 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     'survey_general',
     'portal_howto',
   ];
+  const CORE_TRAINING_MODULES = isGovernanceRole ? GOVERNANCE_TRAINING_MODULES : OPERATIONAL_TRAINING_MODULES;
 
   const completedTrainingIds = displayUser.completedTrainingIds || [];
   const hasCompletedCoreTraining = CORE_TRAINING_MODULES.every(id => hasCompletedModule(completedTrainingIds, id));
 
   // isOperationalEligible = approvedOperationalRole AND tier2Complete
-  // Champions (non-operational) see a limited view until role approved + training complete
-  const isOperationalEligible = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && hasCompletedCoreTraining);
+  // Governance roles are eligible once they complete Tier 1 (don't need coreVolunteerStatus flag)
+  const isOperationalEligible = displayUser.isAdmin || (isGovernanceRole && hasCompletedCoreTraining) || (displayUser.coreVolunteerStatus === true && hasCompletedCoreTraining);
   // Legacy alias
   const canAccessOperationalTools = isOperationalEligible;
 
@@ -299,72 +304,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   </span>
                 )}
               </button>
-              {showNotifications && (
-                <div className="absolute right-0 top-12 w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                  <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
-                    <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
-                    <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
-                      <X size={14} className="text-zinc-400" />
-                    </button>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {totalNotifications === 0 ? (
-                      <div className="p-8 text-center">
-                        <Bell size={24} className="mx-auto text-zinc-200 mb-2" />
-                        <p className="text-xs text-zinc-400 font-medium">All caught up!</p>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-zinc-50">
-                        {unreadDMs > 0 && (
-                          <button
-                            onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
-                            className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
-                              <MessageSquare size={16} className="text-[#233DFF]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
-                              <p className="text-[11px] text-zinc-400">New direct messages waiting</p>
-                            </div>
-                            <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
-                          </button>
-                        )}
-                        {openTicketsCount > 0 && (
-                          <button
-                            onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
-                            className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                              <ShieldAlert size={16} className="text-amber-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-zinc-900">{openTicketsCount} open ticket{openTicketsCount > 1 ? 's' : ''}</p>
-                              <p className="text-[11px] text-zinc-400">{displayUser.isAdmin ? 'Tickets needing attention' : 'Your active tickets'}</p>
-                            </div>
-                            <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
-                          </button>
-                        )}
-                        {newApplicantsCount > 0 && (
-                          <button
-                            onClick={() => { setActiveTab('directory'); setShowNotifications(false); }}
-                            className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                              <Users size={16} className="text-emerald-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-zinc-900">{newApplicantsCount} new applicant{newApplicantsCount > 1 ? 's' : ''}</p>
-                              <p className="text-[11px] text-zinc-400">Pending review in Directory</p>
-                            </div>
-                            <span className="min-w-[20px] h-5 px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
          </div>
 
@@ -403,6 +342,77 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </button>
          </div>
       </aside>
+
+      {/* Notification dropdown - rendered outside sidebar to avoid overflow clipping */}
+      {showNotifications && (
+        <>
+          <div className="fixed inset-0 z-[199]" onClick={() => setShowNotifications(false)} />
+          <div className="fixed left-[240px] top-[80px] w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-[200] overflow-hidden">
+            <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
+              <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
+              <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
+                <X size={14} className="text-zinc-400" />
+              </button>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {totalNotifications === 0 ? (
+                <div className="p-8 text-center">
+                  <Bell size={24} className="mx-auto text-zinc-200 mb-2" />
+                  <p className="text-xs text-zinc-400 font-medium">All caught up!</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-zinc-50">
+                  {unreadDMs > 0 && (
+                    <button
+                      onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
+                      className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
+                        <MessageSquare size={16} className="text-[#233DFF]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
+                        <p className="text-[11px] text-zinc-400">New direct messages waiting</p>
+                      </div>
+                      <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
+                    </button>
+                  )}
+                  {openTicketsCount > 0 && (
+                    <button
+                      onClick={() => { setActiveTab('briefing'); setShowNotifications(false); }}
+                      className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                        <ShieldAlert size={16} className="text-amber-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-zinc-900">{openTicketsCount} open ticket{openTicketsCount > 1 ? 's' : ''}</p>
+                        <p className="text-[11px] text-zinc-400">{displayUser.isAdmin ? 'Tickets needing attention' : 'Your active tickets'}</p>
+                      </div>
+                      <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                    </button>
+                  )}
+                  {newApplicantsCount > 0 && (
+                    <button
+                      onClick={() => { setActiveTab('directory'); setShowNotifications(false); }}
+                      className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                        <Users size={16} className="text-emerald-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-zinc-900">{newApplicantsCount} new applicant{newApplicantsCount > 1 ? 's' : ''}</p>
+                        <p className="text-[11px] text-zinc-400">Pending review in Directory</p>
+                      </div>
+                      <span className="min-w-[20px] h-5 px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       <main className={`flex-1 p-10 md:p-16 space-y-16 overflow-y-auto h-screen no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28' : 'pt-24')}`}>
          {activeTab === 'overview' && (
@@ -461,7 +471,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   )}
                 </div>
             </header>
-            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} />}
+            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} />}
             <div className="pt-8 border-t border-zinc-100">
                <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} shifts={shifts} setShifts={setShifts} />
             </div>
@@ -570,7 +580,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     </div>
 )};
 
-const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible }) => {
+const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean, isGovernanceRole?: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible, isGovernanceRole = false }) => {
   const getOpp = (oppId: string) => opportunities.find(o => o.id === oppId);
 
   // Get upcoming shifts the user is assigned to
@@ -594,8 +604,18 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
 
   // If not operationally eligible, show training/approval required message
   if (!isOperationalEligible) {
-    const coreModules = ['hmc_orientation', 'hmc_champion', 'hipaa_nonclinical', 'cmhw_part1', 'cmhw_part2', 'survey_general', 'portal_howto'];
-    const completedCount = coreModules.filter(id => hasCompletedModule(user.completedTrainingIds || [], id)).length;
+    const coreModules = isGovernanceRole
+      ? [{ id: 'hmc_orientation', label: 'HMC Orientation' }, { id: 'hmc_champion', label: 'Because You\'re a Champion' }]
+      : [
+          { id: 'hmc_orientation', label: 'HMC Orientation' },
+          { id: 'hmc_champion', label: 'Because You\'re a Champion' },
+          { id: 'hipaa_nonclinical', label: 'HIPAA (Non-Clinical)' },
+          { id: 'cmhw_part1', label: 'Community Health Worker (Part 1)' },
+          { id: 'cmhw_part2', label: 'Community Health Worker (Part 2)' },
+          { id: 'survey_general', label: 'Survey & Data Collection' },
+          { id: 'portal_howto', label: 'Portal How-To' },
+        ];
+    const completedCount = coreModules.filter(m => hasCompletedModule(user.completedTrainingIds || [], m.id)).length;
     const progress = (completedCount / coreModules.length) * 100;
     const trainingDone = hasCompletedCoreTraining;
     const roleApproved = user.coreVolunteerStatus === true;
@@ -638,15 +658,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
 
               {/* Training Checklist */}
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-amber-200/50 mb-6 space-y-3">
-                {[
-                  { id: 'hmc_orientation', label: 'HMC Orientation' },
-                  { id: 'hmc_champion', label: 'Because You\'re a Champion' },
-                  { id: 'hipaa_nonclinical', label: 'HIPAA (Non-Clinical)' },
-                  { id: 'cmhw_part1', label: 'Community Health Worker (Part 1)' },
-                  { id: 'cmhw_part2', label: 'Community Health Worker (Part 2)' },
-                  { id: 'survey_general', label: 'Survey & Data Collection' },
-                  { id: 'portal_howto', label: 'Portal How-To' },
-                ].map(item => {
+                {coreModules.map(item => {
                   const isComplete = hasCompletedModule(user.completedTrainingIds || [], item.id);
                   return (
                     <div key={item.id} className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${isComplete ? 'bg-emerald-50' : ''}`}>

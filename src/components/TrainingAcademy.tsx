@@ -204,6 +204,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     });
 
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSession?.id, activeSession?.format, roleDisplayName]);
 
   // Get proper embed URL for different video sources
