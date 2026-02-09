@@ -37,10 +37,15 @@ interface BoardMeeting {
 interface Prospect {
   id: string;
   name: string;
+  email?: string;
+  phone?: string;
+  type?: 'individual' | 'corporation' | 'foundation' | 'government' | 'faith_org' | 'other';
+  relationship?: string;
   amount: number;
   status: 'identified' | 'contacted' | 'pending' | 'confirmed' | 'declined';
   notes?: string;
   lastContact?: string;
+  outreachLog?: { date: string; method: 'email' | 'phone' | 'meeting' | 'other'; notes?: string }[];
 }
 
 interface GiveOrGetProgress {
@@ -259,6 +264,32 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
   const handleRemoveProspect = (prospectId: string) => {
     const updated = { ...giveOrGet, prospects: giveOrGet.prospects.filter(p => p.id !== prospectId) };
+    handleSaveGiveOrGet(updated);
+  };
+
+  const handleUpdateProspect = (prospectId: string, changes: Partial<Prospect>) => {
+    const updated = {
+      ...giveOrGet,
+      prospects: giveOrGet.prospects.map(p => p.id === prospectId ? { ...p, ...changes } : p)
+    };
+    handleSaveGiveOrGet(updated);
+  };
+
+  const handleLogOutreach = (prospectId: string, method: 'email' | 'phone' | 'meeting' | 'other', notes?: string) => {
+    const now = new Date().toISOString();
+    const updated = {
+      ...giveOrGet,
+      prospects: giveOrGet.prospects.map(p => {
+        if (p.id !== prospectId) return p;
+        const newLog = [...(p.outreachLog || []), { date: now, method, notes }];
+        return {
+          ...p,
+          outreachLog: newLog,
+          lastContact: now,
+          status: p.status === 'identified' ? 'contacted' as const : p.status
+        };
+      })
+    };
     handleSaveGiveOrGet(updated);
   };
 
@@ -735,34 +766,66 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                 </div>
               )}
               {giveOrGet.prospects.map((prospect) => (
-                <div key={prospect.id} className="p-4 flex items-center justify-between hover:bg-zinc-50">
-                  <div>
-                    <p className="font-bold text-zinc-900">{prospect.name}</p>
-                    <p className="text-sm text-zinc-500">${prospect.amount.toLocaleString()} potential{prospect.notes ? ` — ${prospect.notes}` : ''}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      prospect.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
-                      prospect.status === 'contacted' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
-                      prospect.status === 'declined' ? 'bg-zinc-100 text-zinc-500' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {prospect.status}
-                    </span>
-                    <button
-                      onClick={() => setShowEmailDraft(prospect)}
-                      className="p-2 hover:bg-[#233DFF]/10 rounded-full text-[#233DFF] transition-colors"
-                      title="Draft fundraising email"
-                    >
-                      <Mail size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleRemoveProspect(prospect.id)}
-                      className="p-2 hover:bg-rose-50 rounded-full text-zinc-400 hover:text-rose-500 transition-colors"
-                      title="Remove prospect"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                <div key={prospect.id} className="p-4 hover:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold text-zinc-900">{prospect.name}</p>
+                        {prospect.type && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600">
+                            {prospect.type === 'faith_org' ? 'Faith-Based' : prospect.type}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-zinc-500">${prospect.amount.toLocaleString()} potential{prospect.relationship ? ` · ${prospect.relationship}` : ''}</p>
+                      {(prospect.email || prospect.phone) && (
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          {prospect.email}{prospect.email && prospect.phone ? ' · ' : ''}{prospect.phone}
+                        </p>
+                      )}
+                      {prospect.notes && <p className="text-xs text-zinc-400 mt-1 italic">{prospect.notes}</p>}
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-zinc-400 uppercase tracking-wider font-bold">
+                        {prospect.lastContact && (
+                          <span>Last contact: {new Date(prospect.lastContact).toLocaleDateString()}</span>
+                        )}
+                        {(prospect.outreachLog?.length ?? 0) > 0 && (
+                          <span>{prospect.outreachLog!.length} outreach{prospect.outreachLog!.length !== 1 ? 'es' : ''}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <select
+                        value={prospect.status}
+                        onChange={e => handleUpdateProspect(prospect.id, { status: e.target.value as Prospect['status'] })}
+                        className={`px-2 py-1 rounded-full text-xs font-bold border-0 cursor-pointer appearance-auto ${
+                          prospect.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
+                          prospect.status === 'contacted' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
+                          prospect.status === 'declined' ? 'bg-zinc-100 text-zinc-500' :
+                          prospect.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        <option value="identified">Identified</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="declined">Declined</option>
+                      </select>
+                      <button
+                        onClick={() => setShowEmailDraft(prospect)}
+                        className="p-2 hover:bg-[#233DFF]/10 rounded-full text-[#233DFF] transition-colors"
+                        title="Draft fundraising email"
+                      >
+                        <Mail size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveProspect(prospect.id)}
+                        className="p-2 hover:bg-rose-50 rounded-full text-zinc-400 hover:text-rose-500 transition-colors"
+                        title="Remove prospect"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -866,7 +929,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
       {/* Email Draft Modal */}
       {showEmailDraft && (
-        <EmailDraftModal prospect={showEmailDraft} onClose={() => setShowEmailDraft(null)} />
+        <EmailDraftModal prospect={showEmailDraft} onClose={() => setShowEmailDraft(null)} onOutreachLogged={handleLogOutreach} />
       )}
     </div>
   );
@@ -1241,39 +1304,82 @@ const MeetingFormModal: React.FC<{
 // Add Prospect Modal
 const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => void }> = ({ onClose, onAdd }) => {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [prospectType, setProspectType] = useState<Prospect['type']>('individual');
+  const [relationship, setRelationship] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-xl font-black text-zinc-900">Add Prospect</h3>
+          <div>
+            <h3 className="text-xl font-black text-zinc-900">Add Prospect</h3>
+            <p className="text-sm text-zinc-500">Track a potential donor or sponsor</p>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="text-sm font-bold text-zinc-700">Name / Organization</label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="e.g. Jane Smith or ABC Corp" />
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-sm font-bold text-zinc-700">Name / Organization *</label>
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="e.g. Jane Smith or ABC Corp" />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-700">Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="email@example.com" />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-700">Phone</label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="(555) 555-5555" />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-700">Prospect Type</label>
+              <select value={prospectType} onChange={e => setProspectType(e.target.value as Prospect['type'])} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm bg-white focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none">
+                <option value="individual">Individual</option>
+                <option value="corporation">Corporation</option>
+                <option value="foundation">Foundation</option>
+                <option value="government">Government</option>
+                <option value="faith_org">Faith-Based Org</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-bold text-zinc-700">Potential Amount ($) *</label>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="e.g. 500" />
+            </div>
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Potential Amount ($)</label>
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="e.g. 500" />
+            <label className="text-sm font-bold text-zinc-700">Relationship / Connection</label>
+            <input value={relationship} onChange={e => setRelationship(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="e.g. Former colleague, church member, local business owner" />
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Notes (optional)</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-20" placeholder="Any context or next steps..." />
+            <label className="text-sm font-bold text-zinc-700">Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-20 focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="Any context, warm intro path, or next steps..." />
           </div>
-          <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
-            <button
-              onClick={() => onAdd({ id: `p-${Date.now()}`, name, amount: parseInt(amount) || 0, status: 'identified', notes })}
-              disabled={!name || !amount}
-              className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50"
-            >
-              Add Prospect
-            </button>
-          </div>
+        </div>
+        <div className="p-6 border-t border-zinc-100 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
+          <button
+            onClick={() => onAdd({
+              id: `p-${Date.now()}`,
+              name,
+              email: email || undefined,
+              phone: phone || undefined,
+              type: prospectType,
+              relationship: relationship || undefined,
+              amount: parseInt(amount) || 0,
+              status: 'identified',
+              notes: notes || undefined,
+              outreachLog: []
+            })}
+            disabled={!name || !amount}
+            className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <Plus size={16} /> Add Prospect
+          </button>
         </div>
       </div>
     </div>
@@ -1318,8 +1424,13 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
 };
 
 // Email Draft Modal for fundraising outreach
-const EmailDraftModal: React.FC<{ prospect: Prospect; onClose: () => void }> = ({ prospect, onClose }) => {
+const EmailDraftModal: React.FC<{
+  prospect: Prospect;
+  onClose: () => void;
+  onOutreachLogged?: (prospectId: string, method: 'email', notes?: string) => void;
+}> = ({ prospect, onClose, onOutreachLogged }) => {
   const [copied, setCopied] = useState(false);
+  const [logged, setLogged] = useState(false);
   const emailBody = `Dear ${prospect.name},
 
 I'm reaching out as a Board Member of Health Matters Clinic, a 501(c)(3) nonprofit dedicated to health equity in our community. We serve underserved populations through free health screenings, community wellness programs, and street medicine outreach.
@@ -1341,7 +1452,24 @@ www.healthmatters.clinic`;
   const handleCopy = () => {
     navigator.clipboard.writeText(emailBody);
     setCopied(true);
+    // Auto-log this as outreach
+    if (!logged && onOutreachLogged) {
+      onOutreachLogged(prospect.id, 'email', `Fundraising email drafted and copied`);
+      setLogged(true);
+    }
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleOpenMail = () => {
+    const subject = encodeURIComponent('Supporting Health Matters Clinic');
+    const body = encodeURIComponent(emailBody);
+    const mailto = `mailto:${prospect.email || ''}?subject=${subject}&body=${body}`;
+    window.open(mailto);
+    // Auto-log this as outreach
+    if (!logged && onOutreachLogged) {
+      onOutreachLogged(prospect.id, 'email', `Fundraising email sent via mail client${prospect.email ? ` to ${prospect.email}` : ''}`);
+      setLogged(true);
+    }
   };
 
   return (
@@ -1350,7 +1478,7 @@ www.healthmatters.clinic`;
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Fundraising Email Draft</h3>
-            <p className="text-sm text-zinc-500">For: {prospect.name}</p>
+            <p className="text-sm text-zinc-500">For: {prospect.name}{prospect.email ? ` (${prospect.email})` : ''}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
         </div>
@@ -1371,9 +1499,18 @@ www.healthmatters.clinic`;
               Copy Link
             </button>
           </div>
+          {logged && (
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs font-bold text-emerald-700">
+              <Check size={14} /> Outreach logged for {prospect.name}
+            </div>
+          )}
         </div>
         <div className="p-6 border-t border-zinc-100 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Close</button>
+          {prospect.email && (
+            <button onClick={handleOpenMail} className="flex-1 py-3 border border-[#233DFF] text-[#233DFF] rounded-full font-bold flex items-center justify-center gap-2">
+              <Send size={16} /> Open in Mail
+            </button>
+          )}
           <button onClick={handleCopy} className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold flex items-center justify-center gap-2">
             {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}
           </button>
