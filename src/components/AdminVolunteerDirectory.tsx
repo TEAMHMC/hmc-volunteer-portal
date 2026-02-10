@@ -3,10 +3,10 @@ import React, { useState, useRef } from 'react';
 import { Volunteer, Task, ComplianceStep } from '../types';
 import { APP_CONFIG } from '../config';
 import { apiService } from '../services/apiService';
-import { 
-  Search, MoreVertical, ShieldCheck, 
+import {
+  Search, MoreVertical, ShieldCheck,
   X, Award, Mail, Phone, FileCheck, Fingerprint, Star,
-  Filter, UserPlus, ChevronRight, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud
+  Filter, UserPlus, ChevronRight, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2
 } from 'lucide-react';
 
 interface DirectoryProps {
@@ -39,7 +39,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
   const [taskDescription, setTaskDescription] = useState('');
   const [taskDueDate, setTaskDueDate] = useState('');
   const [isAssigningTask, setIsAssigningTask] = useState(false);
-  
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const applicantsCount = volunteers.filter(v => v.applicationStatus === 'pendingReview').length;
 
   const filtered = volunteers.filter(v => {
@@ -143,6 +145,21 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       alert(`Failed to assign task: ${(error as Error).message}`);
     } finally {
       setIsAssigningTask(false);
+    }
+  };
+
+  const handleDeleteVolunteer = async () => {
+    if (!selectedVolunteer) return;
+    setIsDeleting(true);
+    try {
+      await apiService.delete(`/api/admin/volunteer/${selectedVolunteer.id}`);
+      setVolunteers(prev => prev.filter(v => v.id !== selectedVolunteer.id));
+      setSelectedVolunteer(null);
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      alert(`Failed to delete volunteer: ${(error as Error).message}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -290,7 +307,12 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs mt-1">{selectedVolunteer.applicationStatus === 'pendingReview' ? `Applied for: ${selectedVolunteer.appliedRole}` : selectedVolunteer.role}</p>
                     </div>
                  </div>
-                 <button onClick={() => setSelectedVolunteer(null)} className="p-4 bg-zinc-50 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24} /></button>
+                 <div className="flex items-center gap-2">
+                   {currentUser.isAdmin && selectedVolunteer.id !== currentUser.id && (
+                     <button onClick={() => setShowDeleteConfirm(true)} className="p-4 bg-rose-50 rounded-full text-rose-300 hover:text-rose-600 transition-colors" title="Delete volunteer"><Trash2 size={20} /></button>
+                   )}
+                   <button onClick={() => setSelectedVolunteer(null)} className="p-4 bg-zinc-50 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24} /></button>
+                 </div>
               </header>
               <main className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto">
                  <div className="space-y-8">
@@ -444,6 +466,29 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
             >
               {isAssigningTask ? <Loader2 size={18} className="animate-spin" /> : <><ClipboardList size={18} /> Assign Task</>}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && selectedVolunteer && (
+        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1200] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white max-w-md w-full rounded-3xl shadow-2xl border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={28} className="text-rose-500" />
+              </div>
+              <h2 className="text-xl font-black text-zinc-900">Delete Volunteer?</h2>
+              <p className="text-zinc-500 text-sm mt-2">
+                This will permanently delete <span className="font-bold text-zinc-800">{selectedVolunteer.name}</span>'s account, remove them from all assigned shifts, and delete their login credentials. This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-bold text-sm">Cancel</button>
+              <button onClick={handleDeleteVolunteer} disabled={isDeleting} className="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-rose-600 disabled:opacity-50">
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

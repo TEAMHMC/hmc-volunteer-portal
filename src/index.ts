@@ -4695,6 +4695,51 @@ app.post('/api/admin/update-volunteer-profile', verifyToken, requireAdmin, async
     console.log(`[ADMIN] Profile updated for volunteer ${volunteer.id} by ${(req as any).user?.profile?.email}`);
     res.json({ success: true });
 });
+
+// Delete a volunteer (admin only)
+app.delete('/api/admin/volunteer/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'Volunteer ID is required' });
+
+    // Don't allow deleting yourself
+    const callerUid = (req as any).user?.uid;
+    if (callerUid === id) return res.status(400).json({ error: 'You cannot delete your own account' });
+
+    // Check volunteer exists
+    const volDoc = await db.collection('volunteers').doc(id).get();
+    if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+
+    // Remove volunteer from any assigned shifts
+    const shiftsSnap = await db.collection('shifts').where('assignedVolunteerIds', 'array-contains', id).get();
+    const batch = db.batch();
+    shiftsSnap.docs.forEach(shiftDoc => {
+      const data = shiftDoc.data();
+      batch.update(shiftDoc.ref, {
+        assignedVolunteerIds: (data.assignedVolunteerIds || []).filter((vid: string) => vid !== id),
+        slotsFilled: Math.max(0, (data.slotsFilled || 0) - 1),
+      });
+    });
+
+    // Delete the volunteer document
+    batch.delete(db.collection('volunteers').doc(id));
+    await batch.commit();
+
+    // Try to delete their Firebase Auth account too
+    try {
+      await admin.auth().deleteUser(id);
+    } catch (authErr: any) {
+      console.warn(`[ADMIN] Could not delete auth user ${id}: ${authErr.message}`);
+    }
+
+    console.log(`[ADMIN] Deleted volunteer ${id} (${volDoc.data()?.name}) by ${(req as any).user?.profile?.email}`);
+    res.json({ success: true, deletedId: id });
+  } catch (error: any) {
+    console.error('[ADMIN] Failed to delete volunteer:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete volunteer' });
+  }
+});
+
 app.post('/api/admin/review-application', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { volunteerId, action, notes } = req.body;
