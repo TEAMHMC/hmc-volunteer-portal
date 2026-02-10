@@ -22,18 +22,18 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }
       </div>
 
       <div className="bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm">
-        <h3 className="text-2xl font-medium text-zinc-900 tracking-normal mb-8">Team Roster</h3>
+        <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Team Roster</h3>
         <div className="space-y-4">
           {myTeam.length > 0 ? myTeam.map(v => (
             <div key={v.id} className="p-5 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center font-medium">{v.name.charAt(0)}</div>
+                <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center font-bold">{v.name.charAt(0)}</div>
                 <div>
-                  <p className="font-medium text-zinc-800">{v.name}</p>
+                  <p className="font-bold text-zinc-800">{v.name}</p>
                   <p className="text-xs text-zinc-500">{v.role}</p>
                 </div>
               </div>
-              <button className="text-xs font-medium bg-white border border-zinc-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-zinc-100">
+              <button className="text-xs font-bold bg-white border border-zinc-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-zinc-100">
                 <MessageSquare size={14}/> Message
               </button>
             </div>
@@ -49,8 +49,8 @@ const StatCard: React.FC<{ title: string, value: number, icon: React.ElementType
     <div className="flex items-center justify-center w-12 h-12 bg-zinc-50 rounded-2xl text-zinc-500 mb-4">
       <Icon size={24} />
     </div>
-    <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">{title}</p>
-    <p className="text-4xl font-medium text-zinc-900 mt-1">{value}</p>
+    <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">{title}</p>
+    <p className="text-4xl font-black text-zinc-900 mt-1">{value}</p>
   </div>
 );
 

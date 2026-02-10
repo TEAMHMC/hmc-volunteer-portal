@@ -350,13 +350,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {showToast && (
         <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-4 md:px-8 py-3 md:py-5 rounded-full shadow-2xl flex items-center gap-2 md:gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
           <CheckCircle2 size={18} className={toastIsError ? 'text-rose-400' : 'text-emerald-400'} />
-          <span className="text-xs md:text-sm font-medium">{toastMessage}</span>
+          <span className="text-xs md:text-sm font-bold">{toastMessage}</span>
         </div>
       )}
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-6">
         <div>
-          <h2 className="text-xl md:text-3xl font-medium text-slate-900 tracking-tight">Volunteer Opportunities</h2>
+          <h2 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">Volunteer Opportunities</h2>
           <p className="text-slate-500 text-sm md:text-lg font-light">Find and sign up for upcoming community health events.</p>
         </div>
       </div>
@@ -390,7 +390,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   }}
                 >
                   <Popup>
-                    <p className="font-medium">{e.title}</p>
+                    <p className="font-bold">{e.title}</p>
                     <p>{e.address}</p>
                   </Popup>
                 </Marker>
@@ -401,12 +401,12 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
             {/* Legend - hidden on mobile, shown on larger screens */}
             <div className="flex absolute bottom-2 right-2 md:bottom-8 md:right-8 flex-col gap-2 md:gap-3 z-[1000]">
                <div className="bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white">
-                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mb-3">Legend</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Legend</p>
                   <div className="flex flex-col gap-2">
                     {Array.from(new Set(filtered.map(e => e.program))).sort().map(name => (
                       <div key={name} className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PROGRAM_COLORS[name] || PROGRAM_COLORS['default'] }} />
-                        <span className="text-[10px] font-medium text-slate-600">{name}</span>
+                        <span className="text-[10px] font-bold text-slate-600">{name}</span>
                       </div>
                     ))}
                   </div>
@@ -419,15 +419,15 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           {selectedEvent ? (
             <div className="bg-white rounded-2xl md:rounded-[48px] p-5 md:p-10 border border-slate-100 shadow-xl flex flex-col gap-4 md:gap-8 animate-in slide-in-from-right-10 shrink-0">
               <div className="flex justify-between items-start">
-                 <span className="px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-medium uppercase tracking-wide text-white shadow-lg" style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}>
+                 <span className="px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-lg" style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}>
                    {selectedEvent.program}
                  </span>
                  <button onClick={() => setSelectedEvent(null)} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X size={20} /></button>
               </div>
 
               <div>
-                <h3 className="text-xl md:text-3xl font-medium text-slate-900 leading-tight mb-2 md:mb-4">{selectedEvent.title}</h3>
-                <p className="text-slate-400 font-medium uppercase tracking-wide text-[9px] md:text-[10px] flex items-center gap-2">
+                <h3 className="text-xl md:text-3xl font-black text-slate-900 leading-tight mb-2 md:mb-4">{selectedEvent.title}</h3>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] md:text-[10px] flex items-center gap-2">
                   <MapPin size={14} /> {selectedEvent.address}, {selectedEvent.city}
                 </p>
               </div>
@@ -435,13 +435,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100">
                   <Calendar className="text-indigo-600 mb-1 md:mb-2" size={18} />
-                  <p className="text-[9px] md:text-[10px] font-medium text-slate-400 uppercase tracking-wide">Date</p>
-                  <p className="text-xs md:text-sm font-medium text-slate-900">{selectedEvent.dateDisplay}</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
+                  <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.dateDisplay}</p>
                 </div>
                 <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100">
                   <Clock className="text-indigo-600 mb-1 md:mb-2" size={18} />
-                  <p className="text-[9px] md:text-[10px] font-medium text-slate-400 uppercase tracking-wide">Time</p>
-                  <p className="text-xs md:text-sm font-medium text-slate-900">{selectedEvent.time}</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</p>
+                  <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.time}</p>
                 </div>
               </div>
 
@@ -451,7 +451,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedEvent.address + ', ' + selectedEvent.city)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 md:py-4 rounded-2xl md:rounded-3xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs md:text-sm transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 md:py-4 rounded-2xl md:rounded-3xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm transition-all flex items-center justify-center gap-2"
                 >
                   <Navigation size={16} /> Get Directions
                 </a>
@@ -462,7 +462,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   <button
                     onClick={() => handleSignUp(selectedEvent.id)}
                     disabled={isSigningUp}
-                    className={`w-full py-4 md:py-6 rounded-2xl md:rounded-3xl font-medium text-sm md:text-lg transition-all shadow-xl flex items-center justify-center gap-2 md:gap-3 disabled:opacity-60 ${
+                    className={`w-full py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-sm md:text-lg transition-all shadow-xl flex items-center justify-center gap-2 md:gap-3 disabled:opacity-60 ${
                       user.rsvpedEventIds?.includes(selectedEvent.id)
                         ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100'
                         : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
@@ -478,7 +478,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   </button>
                 ) : (
                   <div className="w-full py-4 md:py-6 px-4 rounded-2xl md:rounded-3xl bg-amber-50 border border-amber-200 text-center">
-                    <p className="font-medium text-amber-800 text-xs md:text-sm">Complete required training to sign up</p>
+                    <p className="font-bold text-amber-800 text-xs md:text-sm">Complete required training to sign up</p>
                     <p className="text-amber-600 text-[10px] md:text-xs mt-1">Visit Training Academy to complete your orientation modules</p>
                   </div>
                 )}
@@ -491,7 +491,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                 <Navigation size={28} className="md:hidden" />
                 <Navigation size={40} className="hidden md:block" />
               </div>
-              <h3 className="text-base md:text-xl font-medium text-slate-400 mb-2 tracking-wide">Select an Event</h3>
+              <h3 className="text-base md:text-xl font-black text-slate-400 mb-2 uppercase tracking-widest">Select an Event</h3>
               <p className="text-slate-400 text-xs md:text-sm font-medium">Tap a marker on the map to view details and sign up.</p>
             </div>
           )}
@@ -499,7 +499,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           <div className="bg-indigo-900 rounded-2xl md:rounded-[48px] p-5 md:p-10 text-white shadow-2xl relative overflow-hidden group shrink-0">
              <Calendar className="absolute -bottom-10 -right-10 w-32 md:w-48 h-32 md:h-48 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
              <div className="relative z-10">
-                <h4 className="text-[9px] md:text-[10px] font-medium text-indigo-400 uppercase tracking-wide mb-4 md:mb-6">My Confirmed Events</h4>
+                <h4 className="text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 md:mb-6">My Confirmed Events</h4>
                 <div className="space-y-3 md:space-y-4">
                   {user.rsvpedEventIds?.length ? user.rsvpedEventIds.map(id => {
                     const event = allEvents.find(e => e.id === id);
@@ -508,8 +508,8 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       <div key={id} className="flex items-center gap-3 md:gap-4 bg-white/5 p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/10">
                         <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center text-white flex-shrink-0"><CheckCircle2 size={16} className="md:hidden" /><CheckCircle2 size={20} className="hidden md:block" /></div>
                         <div className="min-w-0">
-                          <p className="text-xs md:text-sm font-medium truncate">{event.title}</p>
-                          <p className="text-[9px] md:text-[10px] font-medium text-indigo-300 uppercase">{event.dateDisplay}</p>
+                          <p className="text-xs md:text-sm font-black truncate">{event.title}</p>
+                          <p className="text-[9px] md:text-[10px] font-bold text-indigo-300 uppercase">{event.dateDisplay}</p>
                         </div>
                       </div>
                     );

@@ -57,7 +57,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
                     <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-14 h-14" />
                 </div>
                 
-                <h2 className="text-3xl font-medium text-zinc-900 tracking-tight">{currentStep.title}</h2>
+                <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{currentStep.title}</h2>
                 <p className="text-zinc-500 mt-4 text-lg leading-relaxed">{currentStep.content}</p>
 
                 <div className="flex items-center justify-between mt-10">
@@ -66,7 +66,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
                             <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-[#233DFF] scale-125' : 'bg-zinc-200'}`} />
                         ))}
                     </div>
-                    <button onClick={handleNext} className="px-8 py-4 bg-[#233DFF] text-white rounded-full font-medium text-xs uppercase tracking-wide flex items-center gap-3 group shadow-xl">
+                    <button onClick={handleNext} className="px-8 py-4 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-3 group shadow-xl">
                         {isLastStep ? "Let's Get Started" : "Next"}
                         <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </button>

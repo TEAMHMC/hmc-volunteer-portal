@@ -419,9 +419,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
       <div className="max-w-4xl w-full bg-white rounded-[40px] shadow-2xl border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
         <div className="text-center py-20 animate-in fade-in">
             <CheckCircle size={64} className="mx-auto text-emerald-500 mb-6" />
-            <h2 className="text-3xl font-medium text-zinc-900">Application Submitted!</h2>
+            <h2 className="text-3xl font-black text-zinc-900">Application Submitted!</h2>
             <p className="text-zinc-500 mt-4 max-w-md mx-auto">Thank you for applying to volunteer with Health Matters Clinic. Our team will review your application and you will receive an email notification regarding your status soon.</p>
-            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-[#233DFF] border border-black text-white rounded-full font-medium text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
+            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-white" />
               Return to Home
             </button>
@@ -433,20 +433,20 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   return (
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
        <div className="w-full max-w-4xl my-4 flex items-center justify-between">
-         <button onClick={handleBackToLanding} className="text-sm font-medium text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
+         <button onClick={handleBackToLanding} className="text-sm font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
          {step !== 'account' && savedProgress.step !== 'account' && (
-           <button onClick={handleStartOver} className="text-xs font-medium text-zinc-400 hover:text-rose-500">Start Over</button>
+           <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
          )}
        </div>
        <div className={`max-w-4xl w-full bg-white rounded-[40px] shadow-2xl border border-zinc-100 ${step === 'account' ? 'p-10 md:p-12' : 'p-10 md:p-16'} relative overflow-hidden`}>
         {renderStepContent()}
         {step !== 'account' && (
           <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
-            {currentStepIndex > 0 && <button onClick={prevStep} className="py-5 px-10 bg-white border border-black text-zinc-900 rounded-full font-medium text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
+            {currentStepIndex > 0 && <button onClick={prevStep} className="py-5 px-10 bg-white border border-black text-zinc-900 rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-black" />
               Back
             </button>}
-            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-[#233DFF] border border-black text-white rounded-full font-medium text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
               {isStepLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
               </button>}
           </div>
@@ -548,7 +548,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 
   return (
      <div className="space-y-8 animate-in fade-in">
-        <h2 className="text-4xl font-medium text-zinc-900 tracking-normal leading-none">Create Your Volunteer Account</h2>
+        <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none">Create Your Volunteer Account</h2>
         
         {googleClientId && (
             <>
@@ -571,27 +571,27 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 
         <div className="space-y-6">
             <div>
-                <label className="text-sm font-medium text-zinc-600 block mb-2">Email Address</label>
+                <label className="text-sm font-bold text-zinc-600 block mb-2">Email Address</label>
                 <div className="flex gap-3">
                   <input type="email" value={data.email || ''} onChange={handleEmailChange} placeholder="your.email@example.com" readOnly={sent && data.emailVerified} autoComplete="off" className={`flex-1 px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-medium ${errors.email ? 'border-rose-500' : 'border-zinc-200'} read-only:bg-zinc-100`} />
                   {data.emailVerified ? (
-                     <div className="py-4 px-6 rounded-lg font-medium text-xs uppercase flex items-center justify-center gap-2 bg-[#86EFAC] text-emerald-800">
+                     <div className="py-4 px-6 rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 bg-[#86EFAC] text-emerald-800">
                         <Check size={16} /> Verified
                      </div>
                   ) : (
-                     <button onClick={handleSendVerification} disabled={!isValidEmail || verifying || sent || (recaptchaSiteKey && !captchaToken)} className="py-4 px-6 rounded-lg font-medium text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50 bg-zinc-200 text-zinc-600 hover:bg-zinc-300 w-32">
+                     <button onClick={handleSendVerification} disabled={!isValidEmail || verifying || sent || (recaptchaSiteKey && !captchaToken)} className="py-4 px-6 rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50 bg-zinc-200 text-zinc-600 hover:bg-zinc-300 w-32">
                         {verifying ? <Loader2 className="animate-spin" size={16}/> : sent ? 'Sent' : 'Verify'}
                      </button>
                   )}
                 </div>
                 {sent && !data.emailVerified && 
                   <div className="mt-4 space-y-2 animate-in fade-in">
-                    <p className="text-xs font-medium text-sky-600">A verification code has been sent to your email. Please check your inbox.</p>
+                    <p className="text-xs font-bold text-sky-600">A verification code has been sent to your email. Please check your inbox.</p>
                     <div className="flex gap-3">
-                        <input type="text" value={verificationCode} onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0,6))} placeholder="6-digit code" maxLength={6} className="flex-1 px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-medium tracking-[0.5em] text-center" />
-                        <button onClick={handleConfirmCode} className="py-4 px-6 bg-zinc-800 text-white font-medium text-xs uppercase rounded-lg">Confirm</button>
+                        <input type="text" value={verificationCode} onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0,6))} placeholder="6-digit code" maxLength={6} className="flex-1 px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-bold tracking-[0.5em] text-center" />
+                        <button onClick={handleConfirmCode} className="py-4 px-6 bg-zinc-800 text-white font-bold text-xs uppercase rounded-lg">Confirm</button>
                     </div>
-                    {codeError && <div className="flex items-center gap-2 text-rose-500 text-xs font-medium mt-1"><AlertCircle size={12}/>{codeError}</div>}
+                    {codeError && <div className="flex items-center gap-2 text-rose-500 text-xs font-bold mt-1"><AlertCircle size={12}/>{codeError}</div>}
                   </div>
                 }
                 {recaptchaSiteKey && !sent && !data.emailVerified && isValidEmail && (
@@ -600,17 +600,17 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
                     <ReCAPTCHA sitekey={recaptchaSiteKey} onVerify={setCaptchaToken} />
                   </div>
                 )}
-                {errors.email && <p className="text-rose-500 text-xs font-medium mt-2">{errors.email}</p>}
+                {errors.email && <p className="text-rose-500 text-xs font-bold mt-2">{errors.email}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="relative">
-                    <label className="text-sm font-medium text-zinc-600 block mb-2">Password</label>
+                    <label className="text-sm font-bold text-zinc-600 block mb-2">Password</label>
                     <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={data.password || ''} onChange={e => onChange('password', e.target.value)} autoComplete="new-password" className={`w-full px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-medium pr-12 ${errors.password ? 'border-rose-500' : 'border-zinc-200'}`} />
                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 bottom-4 text-zinc-400 hover:text-zinc-600">{showPassword ? <EyeOff size={20}/>:<Eye size={20}/>}</button>
                 </div>
                  <div className="relative">
-                    <label className="text-sm font-medium text-zinc-600 block mb-2">Verify Password</label>
+                    <label className="text-sm font-bold text-zinc-600 block mb-2">Verify Password</label>
                     <input type={showVerifyPassword ? 'text' : 'password'} placeholder="Verify Password" value={data.verifyPassword || ''} onChange={e => onChange('verifyPassword', e.target.value)} autoComplete="new-password" className={`w-full px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-medium pr-12 ${errors.verifyPassword ? 'border-rose-500' : 'border-zinc-200'}`} />
                     <button type="button" onClick={() => setShowVerifyPassword(!showVerifyPassword)} className="absolute right-4 bottom-4 text-zinc-400 hover:text-zinc-600">{showVerifyPassword ? <EyeOff size={20}/>:<Eye size={20}/>}</button>
                 </div>
@@ -618,20 +618,20 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
             {data.password && (
                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-2 pt-2">
                     {passwordStrength.checks.map(check => (
-                        <div key={check.label} className={`flex items-center gap-2 text-xs font-medium ${check.passed ? 'text-emerald-600' : 'text-zinc-400'}`}>
+                        <div key={check.label} className={`flex items-center gap-2 text-xs font-bold ${check.passed ? 'text-emerald-600' : 'text-zinc-400'}`}>
                            {check.passed ? <Check size={14}/> : <X size={14}/>} {check.label}
                         </div>
                     ))}
                  </div>
              )}
-             {data.password && data.password !== data.verifyPassword && data.verifyPassword && <p className="text-rose-500 text-xs font-medium">Passwords do not match.</p>}
+             {data.password && data.password !== data.verifyPassword && data.verifyPassword && <p className="text-rose-500 text-xs font-bold">Passwords do not match.</p>}
         </div>
 
         <div className="pt-6">
           <button
             onClick={onContinue}
             disabled={!canContinue}
-            className="w-full py-5 bg-[#233DFF] text-white rounded-full font-medium text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-5 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" />
           </button>
@@ -644,30 +644,30 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Personal Information</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Personal Information</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Legal First Name *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Legal First Name *</label>
           <input type="text" value={data.legalFirstName || ''} onChange={e => onChange('legalFirstName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="John" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Legal Last Name *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Legal Last Name *</label>
           <input type="text" value={data.legalLastName || ''} onChange={e => onChange('legalLastName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Doe" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Middle Name</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Middle Name</label>
           <input type="text" value={data.middleName || ''} onChange={e => onChange('middleName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Optional" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Preferred First Name</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Preferred First Name</label>
           <input type="text" value={data.preferredFirstName || ''} onChange={e => onChange('preferredFirstName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Optional" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Date of Birth *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Date of Birth *</label>
           <input type="date" value={data.dob || ''} onChange={e => onChange('dob', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Gender</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Gender</label>
           <select value={data.gender || ''} onChange={e => onChange('gender', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="">Select...</option>
             <option value="Male">Male</option>
@@ -677,60 +677,60 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Phone Number *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Phone Number *</label>
           <input type="tel" value={data.phone || ''} onChange={e => onChange('phone', formatPhoneNumber(e.target.value))} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="(555) 123-4567" />
         </div>
       </div>
-      {errors.legalName && <p className="text-rose-500 text-sm font-medium">{errors.legalName}</p>}
-      {errors.dob && <p className="text-rose-500 text-sm font-medium">{errors.dob}</p>}
-      {errors.phone && <p className="text-rose-500 text-sm font-medium">{errors.phone}</p>}
+      {errors.legalName && <p className="text-rose-500 text-sm font-bold">{errors.legalName}</p>}
+      {errors.dob && <p className="text-rose-500 text-sm font-bold">{errors.dob}</p>}
+      {errors.phone && <p className="text-rose-500 text-sm font-bold">{errors.phone}</p>}
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-4">Address</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Address</h3>
       <div className="grid grid-cols-1 gap-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Street Address *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Street Address *</label>
           <input type="text" value={data.address || ''} onChange={e => onChange('address', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="123 Main St" />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-medium text-zinc-600 block mb-2">City *</label>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">City *</label>
             <input type="text" value={data.city || ''} onChange={e => onChange('city', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Los Angeles" />
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-600 block mb-2">State *</label>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">State *</label>
             <input type="text" value={data.state || ''} onChange={e => onChange('state', e.target.value.toUpperCase().slice(0,2))} maxLength={2} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="CA" />
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-600 block mb-2">Zip Code *</label>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Zip Code *</label>
             <input type="text" value={data.zipCode || ''} onChange={e => onChange('zipCode', e.target.value.replace(/\D/g, '').slice(0,5))} maxLength={5} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="90001" />
           </div>
         </div>
       </div>
-      {errors.address && <p className="text-rose-500 text-sm font-medium">{errors.address}</p>}
+      {errors.address && <p className="text-rose-500 text-sm font-bold">{errors.address}</p>}
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-4">Emergency Contact</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Emergency Contact</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Contact Name *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Contact Name *</label>
           <input type="text" value={data.eContactName || ''} onChange={e => onChange('eContactName', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Jane Doe" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Relationship *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Relationship *</label>
           <input type="text" value={data.eContactRelationship || ''} onChange={e => onChange('eContactRelationship', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Spouse, Parent, etc." />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Phone Number *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Phone Number *</label>
           <input type="tel" value={data.eContactCellPhone || ''} onChange={e => onChange('eContactCellPhone', formatPhoneNumber(e.target.value))} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="(555) 123-4567" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Email (Optional)</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Email (Optional)</label>
           <input type="email" value={data.eContactEmail || ''} onChange={e => onChange('eContactEmail', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="jane@example.com" />
         </div>
       </div>
-      {errors.eContact && <p className="text-rose-500 text-sm font-medium">{errors.eContact}</p>}
-      {errors.eContactEmail && <p className="text-rose-500 text-sm font-medium">{errors.eContactEmail}</p>}
+      {errors.eContact && <p className="text-rose-500 text-sm font-bold">{errors.eContact}</p>}
+      {errors.eContactEmail && <p className="text-rose-500 text-sm font-bold">{errors.eContactEmail}</p>}
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-4">Languages Spoken</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Languages Spoken</h3>
       <p className="text-sm text-zinc-500 -mt-4">To better align you with community needs (select all that apply)</p>
       <div className="flex flex-wrap gap-3">
         {['English', 'Spanish', 'Mandarin', 'Cantonese', 'Korean', 'Vietnamese', 'Tagalog', 'Armenian', 'Farsi', 'Arabic', 'Russian', 'ASL', 'Other'].map(lang => (
@@ -741,14 +741,14 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
               const current = data.languagesSpoken || [];
               onChange('languagesSpoken', current.includes(lang) ? current.filter((l: string) => l !== lang) : [...current, lang]);
             }}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${(data.languagesSpoken || []).includes(lang) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.languagesSpoken || []).includes(lang) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
           >
             {lang}
           </button>
         ))}
       </div>
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-4">Secure Information</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Secure Information</h3>
       <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4">
         <div className="flex items-start gap-3">
           <Shield size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
@@ -759,7 +759,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
         </div>
       </div>
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-2">Social Security Number</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">Social Security Number</label>
         <input
           type="password"
           value={data.ssn || ''}
@@ -778,18 +778,18 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
 const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Background & Education</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Background & Education</h2>
       <p className="text-zinc-500">Tell us a bit about your background. This helps us match you with the right volunteer opportunities.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Are you currently a student?</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Are you currently a student?</label>
           <select value={data.isStudent ? 'yes' : 'no'} onChange={e => onChange('isStudent', e.target.value === 'yes')} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="no">No</option>
             <option value="yes">Yes</option>
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Are you currently employed?</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Are you currently employed?</label>
           <select value={data.isEmployed ? 'yes' : 'no'} onChange={e => onChange('isEmployed', e.target.value === 'yes')} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="no">No</option>
             <option value="yes">Yes</option>
@@ -798,18 +798,18 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         {data.isStudent && (
           <>
             <div>
-              <label className="text-sm font-medium text-zinc-600 block mb-2">School/University</label>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">School/University</label>
               <input type="text" value={data.school || ''} onChange={e => onChange('school', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="UCLA, USC, etc." />
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-600 block mb-2">Degree/Program</label>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">Degree/Program</label>
               <input type="text" value={data.degree || ''} onChange={e => onChange('degree', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="BS Nursing, MPH, etc." />
             </div>
           </>
         )}
       </div>
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-2">How did you hear about Health Matters Clinic?</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">How did you hear about Health Matters Clinic?</label>
         <select value={data.howDidYouHear || ''} onChange={e => onChange('howDidYouHear', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
           <option value="">Select...</option>
           <option value="Social Media">Social Media</option>
@@ -821,26 +821,26 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-2">What do you hope to gain from this volunteer experience?</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">What do you hope to gain from this volunteer experience?</label>
         <textarea value={data.gainFromExperience || ''} onChange={e => onChange('gainFromExperience', e.target.value)} rows={4} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="Share your goals and motivations..." />
       </div>
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-6">Volunteer History</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Volunteer History</h3>
       <div className="space-y-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Have you volunteered with HMC before?</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Have you volunteered with HMC before?</label>
           <div className="flex gap-4">
             <button
               type="button"
               onClick={() => onChange('isReturningVolunteer', true)}
-              className={`px-6 py-3 rounded-full text-sm font-medium transition-all ${data.isReturningVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               Yes, I'm a returning volunteer
             </button>
             <button
               type="button"
               onClick={() => onChange('isReturningVolunteer', false)}
-              className={`px-6 py-3 rounded-full text-sm font-medium transition-all ${data.isReturningVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               No, this is my first time
             </button>
@@ -850,7 +850,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         {data.isReturningVolunteer && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
             <div>
-              <label className="text-sm font-medium text-zinc-600 block mb-2">When did you previously volunteer?</label>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">When did you previously volunteer?</label>
               <input
                 type="text"
                 value={data.previousVolunteerPeriod || ''}
@@ -860,7 +860,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-600 block mb-2">What was your previous role?</label>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">What was your previous role?</label>
               <input
                 type="text"
                 value={data.previousVolunteerRole || ''}
@@ -873,23 +873,23 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         )}
       </div>
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-6">Group Volunteering</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Group Volunteering</h3>
       <div className="space-y-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Are you volunteering as part of a group?</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Are you volunteering as part of a group?</label>
           <p className="text-xs text-zinc-500 mb-4">Student organizations, corporate teams, faith groups, etc.</p>
           <div className="flex gap-4">
             <button
               type="button"
               onClick={() => onChange('isGroupVolunteer', true)}
-              className={`px-6 py-3 rounded-full text-sm font-medium transition-all ${data.isGroupVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               Yes, I'm with a group
             </button>
             <button
               type="button"
               onClick={() => onChange('isGroupVolunteer', false)}
-              className={`px-6 py-3 rounded-full text-sm font-medium transition-all ${data.isGroupVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               No, I'm volunteering individually
             </button>
@@ -899,7 +899,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         {data.isGroupVolunteer && (
           <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-4">
             <div>
-              <label className="text-sm font-medium text-zinc-600 block mb-2">Type of Group *</label>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">Type of Group *</label>
               <select
                 value={data.groupType || ''}
                 onChange={e => onChange('groupType', e.target.value)}
@@ -916,7 +916,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-zinc-600 block mb-2">Group/Organization Name *</label>
+                <label className="text-sm font-bold text-zinc-600 block mb-2">Group/Organization Name *</label>
                 <input
                   type="text"
                   value={data.groupName || ''}
@@ -926,7 +926,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-zinc-600 block mb-2">Estimated Group Size</label>
+                <label className="text-sm font-bold text-zinc-600 block mb-2">Estimated Group Size</label>
                 <input
                   type="number"
                   value={data.groupSize || ''}
@@ -938,7 +938,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-zinc-600 block mb-2">Group Contact Email (Optional)</label>
+              <label className="text-sm font-bold text-zinc-600 block mb-2">Group Contact Email (Optional)</label>
               <p className="text-xs text-zinc-500 mb-2">For coordinating group volunteer opportunities</p>
               <input
                 type="email"
@@ -952,14 +952,14 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
         )}
       </div>
 
-      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal pt-6">Demographics (Optional)</h3>
+      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Demographics (Optional)</h3>
       <div className="p-4 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-xl mb-4">
         <p className="text-[#233DFF] text-sm">This information is collected for grant reporting purposes only and helps HMC demonstrate the diversity of our volunteer workforce to funders. All responses are optional and confidential.</p>
       </div>
 
       <div className="space-y-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-4">Race/Ethnicity (select all that apply)</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-4">Race/Ethnicity (select all that apply)</label>
           <div className="flex flex-wrap gap-3">
             {['American Indian/Alaska Native', 'Asian', 'Black/African American', 'Hispanic/Latino', 'Native Hawaiian/Pacific Islander', 'White', 'Two or More Races', 'Prefer not to say'].map(race => (
               <button
@@ -969,7 +969,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
                   const current = data.demographicRace || [];
                   onChange('demographicRace', current.includes(race) ? current.filter((r: string) => r !== race) : [...current, race]);
                 }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${(data.demographicRace || []).includes(race) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.demographicRace || []).includes(race) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
               >
                 {race}
               </button>
@@ -979,7 +979,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="text-sm font-medium text-zinc-600 block mb-2">Are you a veteran?</label>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Are you a veteran?</label>
             <select value={data.veteranStatus || ''} onChange={e => onChange('veteranStatus', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
               <option value="">Prefer not to say</option>
               <option value="yes">Yes</option>
@@ -987,7 +987,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-zinc-600 block mb-2">Do you identify as having a disability?</label>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Do you identify as having a disability?</label>
             <select value={data.disabilityStatus || ''} onChange={e => onChange('disabilityStatus', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
               <option value="">Prefer not to say</option>
               <option value="yes">Yes</option>
@@ -1022,10 +1022,10 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Availability</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Availability</h2>
 
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-4">Service Preference *</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Service Preference *</label>
         <p className="text-xs text-zinc-500 mb-4 -mt-2">How would you prefer to volunteer?</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {serviceTypes.map(type => (
@@ -1035,7 +1035,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
               onClick={() => onChange('servicePreference', type.value)}
               className={`p-4 rounded-xl border-2 text-left transition-all ${data.servicePreference === type.value ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-200 hover:border-zinc-300'}`}
             >
-              <span className="font-medium text-zinc-900 block">{type.label}</span>
+              <span className="font-bold text-zinc-900 block">{type.label}</span>
               <span className="text-xs text-zinc-500">{type.desc}</span>
             </button>
           ))}
@@ -1043,10 +1043,10 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-4">Which days are you typically available? *</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Which days are you typically available? *</label>
         <div className="flex flex-wrap gap-3">
           {days.map(day => (
-            <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-5 py-3 rounded-full text-sm font-medium transition-all ${(data.availDays || []).includes(day) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+            <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.availDays || []).includes(day) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
               {day}
             </button>
           ))}
@@ -1054,10 +1054,10 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-4">Preferred time(s) of day? * <span className="font-normal text-zinc-400">(select all that apply)</span></label>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time(s) of day? * <span className="font-normal text-zinc-400">(select all that apply)</span></label>
         <div className="flex flex-wrap gap-3">
           {times.map(time => (
-            <button key={time} type="button" onClick={() => toggleTime(time)} className={`px-5 py-3 rounded-full text-sm font-medium transition-all ${(data.preferredTimes || []).includes(time) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+            <button key={time} type="button" onClick={() => toggleTime(time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.preferredTimes || []).includes(time) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
               {time}
             </button>
           ))}
@@ -1066,11 +1066,11 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">When can you start? *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">When can you start? *</label>
           <input type="date" value={data.startDate || ''} onChange={e => onChange('startDate', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Your Timezone *</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Your Timezone *</label>
           <select value={data.timezone || ''} onChange={e => onChange('timezone', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="">Select...</option>
             <option value="America/Los_Angeles">Pacific Time (PT)</option>
@@ -1085,7 +1085,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Hours per week you can commit</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Hours per week you can commit</label>
           <select value={data.hoursPerWeek || ''} onChange={e => onChange('hoursPerWeek', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="">Select...</option>
             <option value="1-4">1-4 hours</option>
@@ -1097,7 +1097,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-zinc-600 block mb-2">Any scheduling limitations we should know about?</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">Any scheduling limitations we should know about?</label>
         <textarea value={data.schedulingLimitations || ''} onChange={e => onChange('schedulingLimitations', e.target.value)} rows={3} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="e.g., unavailable on certain dates, etc." />
       </div>
     </div>
@@ -1148,22 +1148,22 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Role Selection</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Role Selection</h2>
 
       <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8">
         <div className="flex items-center gap-4 mb-4">
           <UploadCloud size={32} className="text-[#233DFF]" />
           <div>
-            <h3 className="font-medium text-zinc-900">Upload Your Resume</h3>
+            <h3 className="font-bold text-zinc-900">Upload Your Resume</h3>
             <p className="text-sm text-zinc-500">Our AI will analyze your skills and recommend the best roles</p>
           </div>
         </div>
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFileUpload} />
-        <button onClick={() => fileInputRef.current?.click()} disabled={isStepLoading} className="w-full py-4 border-2 border-dashed border-zinc-300 rounded-xl hover:border-[#233DFF] transition-colors flex items-center justify-center gap-3 text-zinc-600 font-medium">
+        <button onClick={() => fileInputRef.current?.click()} disabled={isStepLoading} className="w-full py-4 border-2 border-dashed border-zinc-300 rounded-xl hover:border-[#233DFF] transition-colors flex items-center justify-center gap-3 text-zinc-600 font-bold">
           {isStepLoading ? <Loader2 className="animate-spin" /> : data.resumeFile ? <><CheckCircle className="text-emerald-500" /> {data.resumeFile.name}</> : 'Click to upload PDF or DOC'}
         </button>
       </div>
-      {errors.resume && <p className="text-rose-500 text-sm font-medium">{errors.resume}</p>}
+      {errors.resume && <p className="text-rose-500 text-sm font-bold">{errors.resume}</p>}
 
       {analysisError && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
@@ -1177,12 +1177,12 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
 
       {aiRecommendations.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-medium text-zinc-900">AI Recommended Roles</h3>
+          <h3 className="font-bold text-zinc-900">AI Recommended Roles</h3>
           {aiRecommendations.map((rec, i) => (
             <button key={i} onClick={() => onChange('selectedRole', rec.roleName)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${data.selectedRole === rec.roleName ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-200 hover:border-zinc-300'}`}>
               <div className="flex justify-between items-center">
-                <span className="font-medium text-zinc-900">{rec.roleName}</span>
-                <span className="text-sm font-medium text-[#233DFF]">{rec.matchPercentage}% Match</span>
+                <span className="font-bold text-zinc-900">{rec.roleName}</span>
+                <span className="text-sm font-bold text-[#233DFF]">{rec.matchPercentage}% Match</span>
               </div>
               <p className="text-sm text-zinc-500 mt-2">{rec.reasoning}</p>
             </button>
@@ -1192,21 +1192,21 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
 
       {extractedSkills.length > 0 && (
         <div>
-          <h4 className="font-medium text-zinc-700 mb-3">Detected Skills</h4>
+          <h4 className="font-bold text-zinc-700 mb-3">Detected Skills</h4>
           <div className="flex flex-wrap gap-2">
             {extractedSkills.map((skill, i) => (
-              <span key={i} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">{skill}</span>
+              <span key={i} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">{skill}</span>
             ))}
           </div>
         </div>
       )}
 
       <div>
-        <h3 className="font-medium text-zinc-900 mb-4">{aiRecommendations.length > 0 ? 'Or select a different role:' : 'Select your preferred role:'}</h3>
+        <h3 className="font-bold text-zinc-900 mb-4">{aiRecommendations.length > 0 ? 'Or select a different role:' : 'Select your preferred role:'}</h3>
         <select
           value={data.selectedRole || ''}
           onChange={(e) => onChange('selectedRole', e.target.value)}
-          className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-medium text-lg focus:border-[#233DFF] focus:ring-2 focus:ring-[#233DFF]/20 outline-none transition-all appearance-none cursor-pointer"
+          className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-bold text-lg focus:border-[#233DFF] focus:ring-2 focus:ring-[#233DFF]/20 outline-none transition-all appearance-none cursor-pointer"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
         >
           <option value="" disabled>Choose a volunteer role...</option>
@@ -1215,7 +1215,7 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
           ))}
         </select>
       </div>
-      {errors.selectedRole && <p className="text-rose-500 text-sm font-medium">{errors.selectedRole}</p>}
+      {errors.selectedRole && <p className="text-rose-500 text-sm font-bold">{errors.selectedRole}</p>}
     </div>
   );
 };
@@ -1243,21 +1243,21 @@ const DetailsStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Role-Specific Questions</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Role-Specific Questions</h2>
       <p className="text-zinc-500">Please answer the following questions for the <strong>{data.selectedRole}</strong> role.</p>
       <div className="space-y-6">
         {(data.roleAssessment || []).map((item: any, index: number) => (
           <div key={index}>
-            <label className="text-sm font-medium text-zinc-600 block mb-2">{item.question}</label>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">{item.question}</label>
             <textarea value={item.answer || ''} onChange={e => handleAnswerChange(index, e.target.value)} rows={4} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg resize-none" placeholder="Your answer..." />
           </div>
         ))}
       </div>
-      {errors.details && <p className="text-rose-500 text-sm font-medium">{errors.details}</p>}
+      {errors.details && <p className="text-rose-500 text-sm font-bold">{errors.details}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">T-Shirt Size</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">T-Shirt Size</label>
           <select value={data.tshirtSize || ''} onChange={e => onChange('tshirtSize', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="">Select...</option>
             <option value="XS">XS</option>
@@ -1270,7 +1270,7 @@ const DetailsStep: React.FC<any> = ({ data, onChange, errors }) => {
           </select>
         </div>
         <div>
-          <label className="text-sm font-medium text-zinc-600 block mb-2">Expected Time Commitment</label>
+          <label className="text-sm font-bold text-zinc-600 block mb-2">Expected Time Commitment</label>
           <select value={data.timeCommitment || ''} onChange={e => onChange('timeCommitment', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg">
             <option value="">Select...</option>
             <option value="One-time event">One-time event</option>
@@ -1300,7 +1300,7 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Compliance & Consent</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Compliance & Consent</h2>
       <p className="text-zinc-500">Please review and agree to the following requirements.</p>
 
       <div className="space-y-4">
@@ -1312,17 +1312,17 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
         )}
         <ConsentCheckbox field="termsAgreed" label="I agree to the Health Matters Clinic Volunteer Terms of Service and Code of Conduct." />
       </div>
-      {errors.compliance && <p className="text-rose-500 text-sm font-medium">{errors.compliance}</p>}
+      {errors.compliance && <p className="text-rose-500 text-sm font-bold">{errors.compliance}</p>}
 
       <div className="pt-4">
-        <label className="text-sm font-medium text-zinc-600 block mb-2">Electronic Signature *</label>
+        <label className="text-sm font-bold text-zinc-600 block mb-2">Electronic Signature *</label>
         <p className="text-xs text-zinc-500 mb-3">Please type your full legal name exactly as it appears above to serve as your electronic signature.</p>
         <input type="text" value={data.signature || ''} onChange={e => onChange('signature', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder={`${data.legalFirstName || 'First'} ${data.legalLastName || 'Last'}`} />
         {data.signature && data.signature.trim().toLowerCase() === `${data.legalFirstName} ${data.legalLastName}`.trim().toLowerCase() && (
-          <p className="text-emerald-600 text-xs font-medium mt-2 flex items-center gap-2"><Check size={14} /> Signature verified</p>
+          <p className="text-emerald-600 text-xs font-bold mt-2 flex items-center gap-2"><Check size={14} /> Signature verified</p>
         )}
       </div>
-      {errors.signature && <p className="text-rose-500 text-sm font-medium">{errors.signature}</p>}
+      {errors.signature && <p className="text-rose-500 text-sm font-bold">{errors.signature}</p>}
     </div>
   );
 };
@@ -1331,14 +1331,14 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError }) => {
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-medium text-zinc-900 tracking-normal">Orientation</h2>
+      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
       <p className="text-zinc-500">Complete the following orientation modules to finalize your application.</p>
 
       <div className="space-y-4">
         <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-zinc-900">Get to Know Health Matters Clinic</h3>
-            <span className="text-xs font-medium text-zinc-500">~12 min</span>
+            <h3 className="font-bold text-zinc-900">Get to Know Health Matters Clinic</h3>
+            <span className="text-xs font-bold text-zinc-500">~12 min</span>
           </div>
           <p className="text-sm text-zinc-500 mb-4">Who we are, who we serve in Los Angeles, and how our programs work together.</p>
           <div className="aspect-video bg-zinc-900 rounded-xl mb-4 overflow-hidden">
@@ -1351,15 +1351,15 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
               style={{ border: 'none' }}
             />
           </div>
-          <button onClick={() => onChange('watchedIntro', !data.watchedIntro)} className={`w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all ${data.watchedIntro ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
+          <button onClick={() => onChange('watchedIntro', !data.watchedIntro)} className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${data.watchedIntro ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
             {data.watchedIntro ? <><CheckCircle size={18} /> Completed</> : 'Mark as Watched'}
           </button>
         </div>
 
         <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-zinc-900">Because You're a Champion</h3>
-            <span className="text-xs font-medium text-zinc-500">~6 min</span>
+            <h3 className="font-bold text-zinc-900">Because You're a Champion</h3>
+            <span className="text-xs font-bold text-zinc-500">~6 min</span>
           </div>
           <p className="text-sm text-zinc-500 mb-4">Our values, expectations, and what it means to show up for community with HMC.</p>
           <div className="aspect-video bg-zinc-900 rounded-xl mb-4 overflow-hidden">
@@ -1372,12 +1372,12 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
               style={{ border: 'none' }}
             />
           </div>
-          <button onClick={() => onChange('watchedChampion', !data.watchedChampion)} className={`w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all ${data.watchedChampion ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
+          <button onClick={() => onChange('watchedChampion', !data.watchedChampion)} className={`w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${data.watchedChampion ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}>
             {data.watchedChampion ? <><CheckCircle size={18} /> Completed</> : 'Mark as Watched'}
           </button>
         </div>
       </div>
-      {errors.orientation && <p className="text-rose-500 text-sm font-medium">{errors.orientation}</p>}
+      {errors.orientation && <p className="text-rose-500 text-sm font-bold">{errors.orientation}</p>}
 
       {submitError && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
@@ -1386,7 +1386,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
         </div>
       )}
 
-      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-medium text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl">
+      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl">
         {isLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Submit Application</>}
       </button>
     </div>

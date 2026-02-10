@@ -314,9 +314,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {showTour && <SystemTour onComplete={handleTourComplete} onClose={handleTourComplete} />}
       
       {showBetaBanner && (
-        <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-medium z-[101] md:pl-[320px] gap-4 px-12 md:px-4">
+        <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-bold z-[101] md:pl-[320px] gap-4 px-12 md:px-4">
             <ShieldAlert size={16} className="text-amber-600 shrink-0" />
-            <span className="text-center">This is a beta release. Please report any issues to <a href="mailto:dev@healthmatters.clinic" className="underline font-medium">dev@healthmatters.clinic</a>.</span>
+            <span className="text-center">This is a beta release. Please report any issues to <a href="mailto:dev@healthmatters.clinic" className="underline font-black">dev@healthmatters.clinic</a>.</span>
             <button onClick={handleDismissBetaBanner} className="p-2 rounded-full hover:bg-amber-200/50 absolute right-4 md:static">
                 <X size={16} />
             </button>
@@ -324,13 +324,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
 
       {viewingAsRole && (
-          <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-medium uppercase tracking-[0.2em] z-[101] md:pl-[320px] shadow-lg`}>
+          <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] z-[101] md:pl-[320px] shadow-lg`}>
              <Eye size={16} className="mr-3"/> Viewing as {viewingAsRole}
              <button onClick={() => setViewingAsRole(null)} className="ml-6 bg-zinc-900 text-white px-4 py-1 rounded-full text-[9px] hover:opacity-80">Return to Admin View</button>
           </div>
       )}
       
-      <div className={`absolute top-0 left-0 right-0 h-10 bg-zinc-900 text-white flex items-center justify-center text-[10px] font-medium uppercase tracking-[0.2em] z-[100] md:pl-[320px]`}>
+      <div className={`absolute top-0 left-0 right-0 h-10 bg-zinc-900 text-white flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] z-[100] md:pl-[320px]`}>
          HMC Volunteer Platform v4.1.0-PROD • <span className="text-amber-400 ml-2">Release Environment</span>
       </div>
 
@@ -343,12 +343,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center">
             <img src={APP_CONFIG.BRAND.logoUrl} className="w-5 h-5" alt="HMC" />
           </div>
-          <span className="text-sm font-medium text-zinc-900">HMC Portal</span>
+          <span className="text-sm font-black text-zinc-900">HMC Portal</span>
         </div>
         <button onClick={() => setShowNotifications(!showNotifications)} className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center relative">
           <Bell size={18} className="text-zinc-600" />
           {totalNotifications > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-rose-500 text-white text-[8px] font-medium rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
               {totalNotifications > 99 ? '99+' : totalNotifications}
             </span>
           )}
@@ -365,7 +365,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center">
                   <img src={APP_CONFIG.BRAND.logoUrl} className="w-6 h-6" alt="HMC" />
                 </div>
-                <span className="text-sm font-medium text-zinc-900">HMC Portal</span>
+                <span className="text-sm font-black text-zinc-900">HMC Portal</span>
               </div>
               <button onClick={() => setShowMobileMenu(false)} className="p-2 hover:bg-zinc-100 rounded-xl">
                 <X size={20} className="text-zinc-500" />
@@ -376,7 +376,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
                   <item.icon size={18} /> {item.label}
                   {item.badge && item.badge > 0 ? (
-                    <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-medium flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
+                    <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   ) : null}
@@ -385,7 +385,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </nav>
             <div className="mt-auto pt-4 border-t border-zinc-100 space-y-3">
               <button onClick={() => { setActiveTab('profile'); setShowMobileMenu(false); }} className="flex w-full items-center gap-3 p-3 hover:bg-zinc-50 rounded-xl">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-medium text-sm shrink-0 overflow-hidden">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
                   {displayUser.avatarUrl || displayUser.profilePhoto ? (
                     <img src={displayUser.avatarUrl || displayUser.profilePhoto} className="w-full h-full object-cover" alt="" />
                   ) : (
@@ -393,7 +393,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   )}
                 </div>
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-medium text-zinc-900 truncate">{displayUser.name}</p>
+                  <p className="text-sm font-bold text-zinc-900 truncate">{displayUser.name}</p>
                   <p className="text-[10px] text-zinc-400 truncate">{displayUser.role}</p>
                 </div>
               </button>
@@ -416,7 +416,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-0 ${activeTab === tab.id ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
-            <span className="text-[10px] font-medium truncate">{tab.label}</span>
+            <span className="text-[10px] font-bold truncate">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -428,7 +428,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />
             </div>
             <div className="flex-1">
-              <span className="text-sm font-medium text-zinc-900 tracking-normal block">HMC Portal</span>
+              <span className="text-sm font-black text-zinc-900 tracking-tight block">HMC Portal</span>
               <span className="text-[10px] font-medium text-zinc-400">Volunteer Hub</span>
             </div>
             <div className="relative">
@@ -438,7 +438,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               >
                 <Bell size={18} className="text-zinc-600" />
                 {totalNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-medium rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
                     {totalNotifications > 99 ? '99+' : totalNotifications}
                   </span>
                 )}
@@ -451,7 +451,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
                     <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                     {item.badge && item.badge > 0 ? (
-                      <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-medium flex items-center justify-center ${
+                      <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
                         activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'
                       }`}>
                         {item.badge > 99 ? '99+' : item.badge}
@@ -463,7 +463,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          <div className="mt-auto space-y-4 pt-8 border-t border-zinc-100">
             <button onClick={() => setActiveTab('profile')} className="flex w-full items-center gap-4 p-3 hover:bg-white rounded-2xl transition-all hover:shadow-sm group">
-               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-medium text-lg shadow-lg shrink-0 overflow-hidden">
+               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-lg shadow-lg shrink-0 overflow-hidden">
                  {displayUser.avatarUrl || displayUser.profilePhoto ? (
                    <img src={displayUser.avatarUrl || displayUser.profilePhoto} className="w-full h-full object-cover" alt="" />
                  ) : (
@@ -471,7 +471,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                  )}
                </div>
                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-medium text-zinc-900 truncate group-hover:text-[#233DFF] transition-colors">{displayUser.name}</p>
+                  <p className="text-sm font-bold text-zinc-900 truncate group-hover:text-[#233DFF] transition-colors">{displayUser.name}</p>
                   <p className="text-[10px] font-medium text-zinc-400 truncate">{displayUser.role}</p>
                </div>
                <ChevronRight size={16} className="text-zinc-300 group-hover:text-[#233DFF] transition-colors" />
@@ -488,10 +488,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           <div className="fixed inset-0 z-[199]" onClick={() => setShowNotifications(false)} />
           <div className="fixed right-4 top-[100px] md:left-[240px] md:right-auto md:top-[80px] w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-[200] overflow-hidden">
             <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
-              <h4 className="text-sm font-medium text-zinc-900">Notifications</h4>
+              <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
               <div className="flex items-center gap-2">
                 {totalNotifications > 0 && (
-                  <button onClick={() => { handleDismissNotifications(); setShowNotifications(false); }} className="text-[10px] font-medium text-zinc-400 hover:text-zinc-600">
+                  <button onClick={() => { handleDismissNotifications(); setShowNotifications(false); }} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-600">
                     Dismiss all
                   </button>
                 )}
@@ -517,10 +517,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                         <MessageSquare size={16} className="text-[#233DFF]" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
+                        <p className="text-sm font-bold text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
                         <p className="text-[11px] text-zinc-400">New direct messages waiting</p>
                       </div>
-                      <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">{unreadDMs}</span>
+                      <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
                     </button>
                   )}
                   {openTicketsCount > 0 && (
@@ -533,10 +533,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                           <ShieldAlert size={16} className="text-amber-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-zinc-900">{openTicketsCount} ticket{openTicketsCount > 1 ? 's' : ''}</p>
+                          <p className="text-sm font-bold text-zinc-900">{openTicketsCount} ticket{openTicketsCount > 1 ? 's' : ''}</p>
                           <p className="text-[11px] text-zinc-400">Assigned to you or submitted by you</p>
                         </div>
-                        <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                        <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
                       </button>
                       {myTickets.slice(0, 3).map(t => (
                         <button
@@ -559,10 +559,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                         <Users size={16} className="text-emerald-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-900">{newApplicantsCount} new applicant{newApplicantsCount > 1 ? 's' : ''}</p>
+                        <p className="text-sm font-bold text-zinc-900">{newApplicantsCount} new applicant{newApplicantsCount > 1 ? 's' : ''}</p>
                         <p className="text-[11px] text-zinc-400">Pending review in Directory</p>
                       </div>
-                      <span className="min-w-[20px] h-5 px-1.5 bg-emerald-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">{newApplicantsCount}</span>
+                      <span className="min-w-[20px] h-5 px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
                     </button>
                   )}
                 </div>
@@ -572,15 +572,15 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         </>
       )}
 
-      <main className={`flex-1 p-6 md:p-10 space-y-8 md:space-y-10 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
+      <main className={`flex-1 p-6 md:p-16 space-y-12 md:space-y-16 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {activeTab === 'overview' && (
            <>
-            <header className="space-y-5">
+            <header className="space-y-8">
                 {/* Personalized Greeting Section */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-4xl md:text-5xl font-normal text-zinc-900 tracking-normal leading-[1.1]">
+                    <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight leading-[1.1]">
                       {getGreeting(displayUser.name)}.
                     </h1>
                     <p className="text-lg text-zinc-500 font-medium max-w-lg">
@@ -593,27 +593,27 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   {/* Stats Card - Apple-style glass effect */}
                   <div className="flex flex-wrap bg-white/80 backdrop-blur-xl border border-zinc-200/50 p-1.5 rounded-[28px] shadow-lg shadow-zinc-200/50">
                     <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                        <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2">Hours</p>
-                        <p className="text-3xl md:text-4xl font-medium text-zinc-900 tracking-tight">{displayUser.hoursContributed}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Hours</p>
+                        <p className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">{displayUser.hoursContributed}</p>
                     </div>
                     <div className="w-px bg-zinc-100 my-4" />
                     <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                        <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2">Impact XP</p>
-                        <p className="text-3xl md:text-4xl font-medium text-[#233DFF] tracking-tight">{gamification?.currentXP ?? displayUser.points}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Impact XP</p>
+                        <p className="text-3xl md:text-4xl font-black text-[#233DFF] tracking-tight">{gamification?.currentXP ?? displayUser.points}</p>
                     </div>
                     {gamification && (
                       <>
                         <div className="w-px bg-zinc-100 my-4" />
                         <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                            <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2">Level</p>
-                            <p className="text-3xl md:text-4xl font-medium text-emerald-600 tracking-tight">{gamification.level}</p>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Level</p>
+                            <p className="text-3xl md:text-4xl font-black text-emerald-600 tracking-tight">{gamification.level}</p>
                         </div>
                         {gamification.streakDays > 0 && (
                           <>
                             <div className="w-px bg-zinc-100 my-4" />
                             <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                                <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2">Streak</p>
-                                <p className="text-3xl md:text-4xl font-medium text-amber-500 tracking-tight">{gamification.streakDays}d</p>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Streak</p>
+                                <p className="text-3xl md:text-4xl font-black text-amber-500 tracking-tight">{gamification.streakDays}d</p>
                             </div>
                           </>
                         )}
@@ -624,12 +624,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
                 {/* Status & Admin Controls Row */}
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className={`px-5 py-2.5 rounded-full border text-[10px] font-medium uppercase tracking-[0.15em] flex items-center gap-2.5 ${isOnboarding ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                  <div className={`px-5 py-2.5 rounded-full border text-[10px] font-black uppercase tracking-[0.15em] flex items-center gap-2.5 ${isOnboarding ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
                       <div className={`w-2 h-2 rounded-full animate-pulse ${isOnboarding ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                       {isOnboarding ? 'Onboarding' : 'Active Volunteer'}
                   </div>
 
-                  <div className="px-5 py-2.5 rounded-full bg-zinc-100 border border-zinc-200 text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-600">
+                  <div className="px-5 py-2.5 rounded-full bg-zinc-100 border border-zinc-200 text-[10px] font-black uppercase tracking-[0.15em] text-zinc-600">
                     {displayUser.role}
                   </div>
 
@@ -637,7 +637,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     <div className="relative ml-auto">
                       <select
                         onChange={(e) => setViewingAsRole(e.target.value)}
-                        className="bg-zinc-900 text-white border-0 rounded-full font-medium text-[10px] uppercase tracking-wide pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-lg"
+                        className="bg-zinc-900 text-white border-0 rounded-full font-black text-[10px] uppercase tracking-widest pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-lg"
                       >
                         <option value="">View as Role...</option>
                         {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
@@ -651,20 +651,20 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 {gamification && gamification.level < 10 && (
                   <div className="bg-white/80 backdrop-blur-xl border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-zinc-500">Level {gamification.level}</span>
-                      <span className="text-xs font-medium text-[#233DFF]">{gamification.xpToNext.toLocaleString()} XP to Level {gamification.level + 1}</span>
+                      <span className="text-xs font-bold text-zinc-500">Level {gamification.level}</span>
+                      <span className="text-xs font-bold text-[#233DFF]">{gamification.xpToNext.toLocaleString()} XP to Level {gamification.level + 1}</span>
                     </div>
                     <div className="w-full h-3 bg-zinc-100 rounded-full overflow-hidden">
                       <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700" style={{ width: `${gamification.levelProgress}%` }} />
                     </div>
                     {gamification.levelProgress >= 75 && (
-                      <p className="text-[10px] font-medium text-emerald-600 mt-2">Almost there! Keep going!</p>
+                      <p className="text-[10px] font-bold text-emerald-600 mt-2">Almost there! Keep going!</p>
                     )}
                   </div>
                 )}
                 {gamification && gamification.level >= 10 && (
                   <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-5 shadow-sm text-center">
-                    <p className="text-sm font-medium text-amber-700">Max Level Reached — Volunteer Legend</p>
+                    <p className="text-sm font-black text-amber-700">Max Level Reached — Volunteer Legend</p>
                   </div>
                 )}
             </header>
@@ -727,20 +727,20 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
           {/* Hero Card - Glass morphism style */}
           <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-[40px] p-10 md:p-12 text-white shadow-2xl shadow-[#233DFF]/20 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-              <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
+              <div className="relative z-10 flex flex-col justify-between min-h-[280px]">
                 <div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-[11px] font-medium uppercase tracking-wide mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-widest mb-8">
                       <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
                       Getting Started
                     </div>
-                    <h3 className="text-4xl md:text-5xl font-medium tracking-normal leading-[1.1] mb-6">
+                    <h3 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1] mb-6">
                       Welcome to the team, {user.name?.split(' ')[0]}.
                     </h3>
                     <p className="text-lg font-medium text-white/80 max-w-lg leading-relaxed">
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#233DFF] rounded-2xl font-medium text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#233DFF] rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
                     <div className="w-2 h-2 rounded-full bg-[#233DFF]" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -754,7 +754,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
           {/* Profile Status Card - Glass effect */}
           <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-zinc-200/50 shadow-lg shadow-zinc-200/30 space-y-6">
               <div className="flex items-center justify-between">
-                <h4 className="text-lg font-medium text-zinc-900 tracking-tight">Profile Status</h4>
+                <h4 className="text-lg font-bold text-zinc-900 tracking-tight">Profile Status</h4>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
                   <ShieldCheck size={18} className="text-white" />
                 </div>
@@ -768,7 +768,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                         <div className="min-w-0 flex-1">
                             <p className={`text-sm font-semibold transition-colors ${step.status === 'completed' || step.status === 'verified' ? 'text-zinc-900' : 'text-zinc-400'}`}>{step.label}</p>
                         </div>
-                        <span className={`text-[10px] font-medium uppercase tracking-wide px-2 py-1 rounded-full ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-400'}`}>
+                        <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-400'}`}>
                           {step.status}
                         </span>
                       </div>
@@ -824,7 +824,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                   <GraduationCap size={28} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-medium text-amber-900 tracking-normal mb-2">
+                  <h3 className="text-2xl font-bold text-amber-900 tracking-tight mb-2">
                     {trainingDone && !roleApproved ? 'Awaiting Role Approval' : 'Complete Your Training'}
                   </h3>
                   <p className="text-amber-700 font-medium">
@@ -869,7 +869,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                 })}
               </div>
 
-              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-medium text-sm shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-white" />
                 Continue Training
                 <ArrowRight size={18} />
@@ -879,13 +879,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         </div>
         <div className="space-y-10">
           <div className="bg-zinc-50 p-12 rounded-[56px] border border-zinc-100 shadow-inner space-y-10">
-            <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
+            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-black text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-black text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
           </div>
@@ -897,13 +897,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
       <div className="xl:col-span-2 bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm space-y-10">
-        <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Mission Command</h3>
+        <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Mission Command</h3>
         {hasUpcomingMission ? (
           <div className="bg-zinc-50 p-10 rounded-[40px] border border-zinc-100">
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-[0.2em]">Next Mission</p>
+            <p className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Next Mission</p>
             {nextShift ? (
               <>
-                <h4 className="text-4xl font-medium text-zinc-900 tracking-normal mt-4">{nextShiftOpp?.title || nextShift.roleType}</h4>
+                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextShiftOpp?.title || nextShift.roleType}</h4>
                 <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
                   <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextShift.startTime).toLocaleDateString()}</span>
                   <span className="flex items-center gap-2"><Clock size={16}/> {new Date(nextShift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -912,7 +912,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
               </>
             ) : nextRsvpedEvent && (
               <>
-                <h4 className="text-4xl font-medium text-zinc-900 tracking-normal mt-4">{nextRsvpedEvent.title}</h4>
+                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextRsvpedEvent.title}</h4>
                 <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
                   <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextRsvpedEvent.date).toLocaleDateString()}</span>
                   <span className="flex items-center gap-2"><MapPin size={16}/> {nextRsvpedEvent.serviceLocation}</span>
@@ -922,59 +922,59 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           </div>
         ) : (
           <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 text-center">
-            <p className="text-lg font-medium text-zinc-400">No upcoming missions.</p>
-            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-zinc-900 text-white rounded-full font-medium text-xs uppercase tracking-wide">Find a Mission</button>
+            <p className="text-lg font-bold text-zinc-400">No upcoming missions.</p>
+            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest">Find a Mission</button>
           </div>
         )}
 
         <div>
-          <h4 className="text-lg font-medium text-zinc-900 mb-4 px-2">Action Items</h4>
+          <h4 className="text-lg font-black text-zinc-900 mb-4 px-2">Action Items</h4>
           <div className="space-y-3">
              {!hasCompletedCoreTraining && (
                 <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-amber-400 text-white flex items-center justify-center"><GraduationCap size={16} /></div>
-                    <p className="font-medium text-amber-800 text-sm">Complete orientation training</p>
+                    <p className="font-bold text-amber-800 text-sm">Complete orientation training</p>
                   </div>
-                  <button onClick={() => onNavigate('academy')} className="text-xs font-medium text-amber-600 hover:text-amber-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
+                  <button onClick={() => onNavigate('academy')} className="text-xs font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
                 </div>
              )}
              {!user.completedHIPAATraining && hasCompletedCoreTraining && (
                 <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-rose-400 text-white flex items-center justify-center"><ShieldCheck size={16} /></div>
-                    <p className="font-medium text-rose-800 text-sm">Complete HIPAA training</p>
+                    <p className="font-bold text-rose-800 text-sm">Complete HIPAA training</p>
                   </div>
-                  <button onClick={() => onNavigate('academy')} className="text-xs font-medium text-rose-600 hover:text-rose-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
+                  <button onClick={() => onNavigate('academy')} className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
                 </div>
              )}
              {hasCompletedCoreTraining && !hasUpcomingMission && (
                 <div className="p-5 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[#233DFF] text-white flex items-center justify-center"><Calendar size={16} /></div>
-                    <p className="font-medium text-[#233DFF] text-sm">Sign up for a mission</p>
+                    <p className="font-bold text-[#233DFF] text-sm">Sign up for a mission</p>
                   </div>
-                  <button onClick={() => onNavigate('missions')} className="text-xs font-medium text-[#233DFF] hover:text-[#1a2fbf] flex items-center gap-1">Browse <ChevronRight size={14} /></button>
+                  <button onClick={() => onNavigate('missions')} className="text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] flex items-center gap-1">Browse <ChevronRight size={14} /></button>
                 </div>
              )}
              {hasCompletedCoreTraining && hasUpcomingMission && user.completedHIPAATraining && (
-                <p className="text-sm text-emerald-600 font-medium italic px-2 flex items-center gap-2"><CheckCircle size={16} /> You're all caught up!</p>
+                <p className="text-sm text-emerald-600 font-bold italic px-2 flex items-center gap-2"><CheckCircle size={16} /> You're all caught up!</p>
              )}
           </div>
         </div>
       </div>
       <div className="space-y-10">
         <div className="bg-zinc-50 p-12 rounded-[56px] border border-zinc-100 shadow-inner space-y-10">
-            <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
+            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-black text-zinc-800">Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
                <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-black text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
                <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-black text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
         </div>

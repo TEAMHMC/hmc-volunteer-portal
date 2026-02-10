@@ -38,16 +38,16 @@ const AutomatedWorkflows: React.FC = () => {
             {showToast && (
                 <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-2xl flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
                    <div className="p-2 rounded-lg bg-emerald-500"><CheckCircle size={16} /></div>
-                   <span className="text-sm font-medium uppercase tracking-wide">Workflow settings updated.</span>
+                   <span className="text-sm font-black uppercase tracking-widest">Workflow settings updated.</span>
                 </div>
             )}
             <header>
-                <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Automated Workflows</h1>
+                <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Automated Workflows</h1>
                 <p className="text-zinc-500 mt-2 font-medium text-lg">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
             </header>
 
             <div className="bg-white p-12 rounded-[48px] border border-zinc-100 shadow-sm">
-                <h3 className="text-lg font-medium text-zinc-900 mb-8 tracking-wide">Active & Inactive Workflows</h3>
+                <h3 className="text-lg font-black text-zinc-900 mb-8 uppercase tracking-widest">Active & Inactive Workflows</h3>
                 <div className="divide-y divide-zinc-100">
                     {workflows.map(wf => (
                         <div key={wf.id} className="py-6 flex items-center justify-between">
@@ -56,7 +56,7 @@ const AutomatedWorkflows: React.FC = () => {
                                     <wf.icon size={24} />
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-zinc-900">{wf.title}</h4>
+                                    <h4 className="font-black text-zinc-900">{wf.title}</h4>
                                     <p className="text-sm text-zinc-500">{wf.description}</p>
                                 </div>
                             </div>
@@ -71,7 +71,7 @@ const AutomatedWorkflows: React.FC = () => {
                 </div>
                 {hasChanges && (
                     <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-end">
-                        <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg disabled:opacity-50">
+                        <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50">
                            {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                         </button>
                     </div>

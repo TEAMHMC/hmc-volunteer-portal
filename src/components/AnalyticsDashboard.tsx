@@ -39,13 +39,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       <header>
-        <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Analytics Dashboard</h1>
+        <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Analytics Dashboard</h1>
         <p className="text-zinc-500 mt-2 font-medium text-lg">Program-wide volunteer operations and experience overview.</p>
       </header>
 
       <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-sm w-fit">
-          <button onClick={() => setActiveTab('operations')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-medium uppercase tracking-wide transition-all ${activeTab === 'operations' ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Operations</button>
-          <button onClick={() => setActiveTab('experience')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-medium uppercase tracking-wide transition-all ${activeTab === 'experience' ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}><MessageSquare size={16} /> Volunteer Experience</button>
+          <button onClick={() => setActiveTab('operations')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'operations' ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Operations</button>
+          <button onClick={() => setActiveTab('experience')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'experience' ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}><MessageSquare size={16} /> Volunteer Experience</button>
       </div>
       
       {activeTab === 'operations' && (
@@ -58,7 +58,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
 
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
             <div className="xl:col-span-3 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
-              <h3 className="text-lg font-medium text-zinc-900 mb-6 tracking-wide flex items-center gap-3"><BarChart3 size={20} /> Volunteer Hours by Role</h3>
+              <h3 className="text-lg font-black text-zinc-900 mb-6 uppercase tracking-widest flex items-center gap-3"><BarChart3 size={20} /> Volunteer Hours by Role</h3>
               <div style={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
                   <BarChart data={hoursByRole} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -72,7 +72,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
             </div>
 
             <div className="xl:col-span-2 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
-              <h3 className="text-lg font-medium text-zinc-900 mb-6 tracking-wide">Volunteer Distribution</h3>
+              <h3 className="text-lg font-black text-zinc-900 mb-6 uppercase tracking-widest">Volunteer Distribution</h3>
                <div style={{ width: '100%', height: 300 }}>
                  <ResponsiveContainer>
                     <PieChart>
@@ -100,8 +100,8 @@ const StatCard: React.FC<{title: string, value: number | string, icon: React.Ele
         <div className="flex items-center justify-center w-12 h-12 bg-zinc-50 rounded-2xl text-zinc-500 mb-4">
             <Icon size={24} />
         </div>
-        <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">{title}</p>
-        <p className="text-4xl font-medium text-zinc-900 mt-1">{value}{unit && <span className="text-2xl text-zinc-300 ml-1">{unit}</span>}</p>
+        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">{title}</p>
+        <p className="text-4xl font-black text-zinc-900 mt-1">{value}{unit && <span className="text-2xl text-zinc-300 ml-1">{unit}</span>}</p>
     </div>
 );
 
@@ -191,7 +191,7 @@ const VolunteerExperienceView = () => {
         {/* Responses Over Time Chart */}
         {surveyStats?.responsesOverTime && surveyStats.responsesOverTime.length > 0 && (
           <div className="bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
-            <h3 className="text-lg font-medium text-zinc-900 mb-6 tracking-wide">Survey Collection Trend</h3>
+            <h3 className="text-lg font-black text-zinc-900 mb-6 uppercase tracking-widest">Survey Collection Trend</h3>
             <div style={{ width: '100%', height: 250 }}>
               <ResponsiveContainer>
                 <LineChart data={surveyStats.responsesOverTime.slice(-30)} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -209,7 +209,7 @@ const VolunteerExperienceView = () => {
           <>
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
                 <div className="xl:col-span-3 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
-                    <h3 className="text-lg font-medium text-zinc-900 mb-6 tracking-wide">Satisfaction by Role</h3>
+                    <h3 className="text-lg font-black text-zinc-900 mb-6 uppercase tracking-widest">Satisfaction by Role</h3>
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
                             <BarChart data={satisfactionByRole} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
@@ -222,7 +222,7 @@ const VolunteerExperienceView = () => {
                     </div>
                 </div>
                  <div className="xl:col-span-2 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm">
-                    <h3 className="text-lg font-medium text-zinc-900 mb-4 tracking-wide flex items-center gap-3"><Sparkles size={20} className="text-[#233DFF]"/> Feedback Summary</h3>
+                    <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest flex items-center gap-3"><Sparkles size={20} className="text-[#233DFF]"/> Feedback Summary</h3>
                     {isLoadingSummary ? (
                         <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-[#233DFF]" /></div>
                     ) : aiSummary ? (
@@ -239,7 +239,7 @@ const VolunteerExperienceView = () => {
         ) : (
             <div className="text-center py-20 bg-zinc-50 rounded-[48px] border border-dashed">
                 <MessageSquare size={48} className="mx-auto text-zinc-300 mb-4" />
-                <h3 className="font-medium text-zinc-500">No feedback data available.</h3>
+                <h3 className="font-bold text-zinc-500">No feedback data available.</h3>
                 <p className="text-sm text-zinc-400">Collect surveys at events to start seeing insights here.</p>
             </div>
         )}

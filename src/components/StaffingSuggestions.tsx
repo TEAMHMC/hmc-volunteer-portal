@@ -100,8 +100,8 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                 <header className="p-6 border-b border-zinc-100 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-lg font-medium">Find Volunteer</h2>
-                            <p className="text-sm text-zinc-500">Assign a volunteer to <span className="font-medium text-black">{role}</span> on {eventDate}</p>
+                            <h2 className="text-lg font-bold">Find Volunteer</h2>
+                            <p className="text-sm text-zinc-500">Assign a volunteer to <span className="font-bold text-black">{role}</span> on {eventDate}</p>
                         </div>
                         <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-700"><X size={20}/></button>
                     </div>
@@ -117,8 +117,8 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             />
                         </div>
                         <div className="flex bg-zinc-100 rounded-lg p-0.5">
-                            <button onClick={() => setFilterMode('all')} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${filterMode === 'all' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>All</button>
-                            <button onClick={() => setFilterMode('recommended')} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${filterMode === 'recommended' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>Recommended</button>
+                            <button onClick={() => setFilterMode('all')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterMode === 'all' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>All</button>
+                            <button onClick={() => setFilterMode('recommended')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterMode === 'recommended' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>Recommended</button>
                         </div>
                     </div>
                 </header>
@@ -127,7 +127,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                     {displayList.length === 0 ? (
                         <div className="text-center py-10">
                             <p className="text-zinc-500">{filterMode === 'recommended' ? 'No recommended volunteers found.' : 'No volunteers match your search.'}</p>
-                            {filterMode === 'recommended' && <button onClick={() => setFilterMode('all')} className="mt-2 text-sm text-[#233DFF] font-medium">Show all volunteers</button>}
+                            {filterMode === 'recommended' && <button onClick={() => setFilterMode('all')} className="mt-2 text-sm text-[#233DFF] font-bold">Show all volunteers</button>}
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -137,16 +137,16 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                 return (
                                     <div key={v.id} className={`p-4 rounded-xl flex items-center justify-between ${isRecommended ? 'bg-emerald-50 border border-emerald-200' : 'bg-zinc-50 border border-zinc-100'}`}>
                                         <div className="flex items-center gap-4 min-w-0">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm shrink-0 ${isRecommended ? 'bg-emerald-200 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}>{v.name.charAt(0)}</div>
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isRecommended ? 'bg-emerald-200 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}>{v.name.charAt(0)}</div>
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <p className="font-medium text-zinc-800 truncate">{v.name}</p>
+                                                    <p className="font-bold text-zinc-800 truncate">{v.name}</p>
                                                     {isRecommended && <Star size={12} className="text-emerald-600 fill-emerald-600 shrink-0" />}
                                                 </div>
                                                 <p className="text-xs text-zinc-500">{v.role} · {v.hoursContributed || 0} hrs{isRoleMatch && !isRecommended ? ' · Role match' : ''}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-[#233DFF] text-white text-xs font-medium rounded-lg flex items-center gap-2 shrink-0">
+                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-[#233DFF] text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0">
                                             <UserPlus size={14} /> Assign
                                         </button>
                                     </div>
@@ -159,12 +159,12 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                     <div className="mt-6 pt-6 border-t border-zinc-200">
                         <div className="flex items-center gap-2 mb-3">
                             <Mail size={16} className="text-zinc-400" />
-                            <p className="text-sm font-medium text-zinc-700">Don't see who you're looking for?</p>
+                            <p className="text-sm font-bold text-zinc-700">Don't see who you're looking for?</p>
                         </div>
                         <p className="text-xs text-zinc-400 mb-4">Invite someone who hasn't created a portal account yet. They'll receive an email with a link to register.</p>
                         <div className="flex items-end gap-2">
                             <div className="flex-1">
-                                <label className="block text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1">Name</label>
+                                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Name</label>
                                 <input
                                     type="text"
                                     value={inviteName}
@@ -174,7 +174,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                 />
                             </div>
                             <div className="flex-1">
-                                <label className="block text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1">Email</label>
+                                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Email</label>
                                 <input
                                     type="email"
                                     value={inviteEmail}
@@ -186,7 +186,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             <button
                                 onClick={handleSendInvite}
                                 disabled={inviteSending || !inviteName.trim() || !inviteEmail.trim()}
-                                className="px-4 py-2.5 bg-zinc-900 text-white text-xs font-medium rounded-lg flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-zinc-800 transition-colors"
+                                className="px-4 py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-zinc-800 transition-colors"
                             >
                                 {inviteSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                 Send Invite

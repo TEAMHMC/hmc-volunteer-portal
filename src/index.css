@@ -4,7 +4,8 @@
 @tailwind utilities;
 
 /* Global CSS for HMC Volunteer Portal */
-/* Fonts loaded via <link> in index.html: Questrial, Inter, Lato */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 * {
   margin: 0;
