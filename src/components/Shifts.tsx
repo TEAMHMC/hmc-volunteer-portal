@@ -4,6 +4,7 @@ import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
 import { Clock, Check, Calendar, MapPin, Search, ChevronLeft, ChevronRight, UserPlus, XCircle, Mail, Sparkles, Info, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { EVENT_CATEGORIES } from '../constants';
+import { APP_CONFIG } from '../config';
 import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
@@ -218,11 +219,31 @@ const EditEventModal: React.FC<{
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('14:00');
   const [estimatedAttendees, setEstimatedAttendees] = useState(event.estimatedAttendees || 100);
+  const [quotas, setQuotas] = useState<{ role: string; count: number; filled: number }[]>(
+    event.staffingQuotas?.length ? event.staffingQuotas.map(q => ({ ...q })) : []
+  );
   const [isSaving, setIsSaving] = useState(false);
+
+  const roleOptions = APP_CONFIG.HMC_ROLES.map(r => r.label);
+
+  const handleAddQuota = () => {
+    const usedRoles = quotas.map(q => q.role);
+    const nextRole = roleOptions.find(r => !usedRoles.includes(r)) || roleOptions[0];
+    setQuotas(prev => [...prev, { role: nextRole, count: 1, filled: 0 }]);
+  };
+
+  const handleRemoveQuota = (idx: number) => {
+    setQuotas(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleQuotaChange = (idx: number, field: 'role' | 'count', value: string | number) => {
+    setQuotas(prev => prev.map((q, i) => i === idx ? { ...q, [field]: field === 'count' ? Math.max(0, Number(value)) : value } : q));
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, estimatedAttendees });
+    const slotsTotal = quotas.reduce((sum, q) => sum + q.count, 0);
+    await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, estimatedAttendees, staffingQuotas: quotas, slotsTotal });
     setIsSaving(false);
   };
 
@@ -271,6 +292,48 @@ const EditEventModal: React.FC<{
           <div>
             <label className="block text-xs font-bold text-zinc-500 mb-1">Estimated Attendees</label>
             <input type="number" value={estimatedAttendees} onChange={e => setEstimatedAttendees(parseInt(e.target.value) || 0)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg" />
+          </div>
+
+          {/* Staffing Quotas */}
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 mb-2">Volunteer Staffing</label>
+            <div className="space-y-2">
+              {quotas.map((q, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={q.role}
+                    onChange={e => handleQuotaChange(idx, 'role', e.target.value)}
+                    className="flex-1 p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm"
+                  >
+                    {roleOptions.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <input
+                    type="number"
+                    min={Math.max(q.filled, 0)}
+                    value={q.count}
+                    onChange={e => handleQuotaChange(idx, 'count', e.target.value)}
+                    className="w-20 p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm text-center"
+                  />
+                  <span className="text-xs text-zinc-400 shrink-0">slots</span>
+                  {q.filled > 0 && (
+                    <span className="text-[10px] font-bold text-emerald-600 shrink-0">{q.filled} filled</span>
+                  )}
+                  <button
+                    onClick={() => handleRemoveQuota(idx)}
+                    className="p-1.5 text-zinc-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                    title={q.filled > 0 ? 'Has assigned volunteers' : 'Remove role'}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleAddQuota}
+              className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] transition-colors"
+            >
+              <Plus size={14} /> Add Role
+            </button>
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3">
@@ -580,7 +643,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            }}
          />
        )}
-       {showStaffingModal && <StaffingSuggestions role={showStaffingModal.role} eventDate={showStaffingModal.eventDate} allVolunteers={allVolunteers} assignedVolunteerIds={shifts.find(s => s.opportunityId === showStaffingModal.eventId && s.roleType === showStaffingModal.role)?.assignedVolunteerIds || []} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
+       {showStaffingModal && <StaffingSuggestions role={showStaffingModal.role} eventDate={showStaffingModal.eventDate} eventId={showStaffingModal.eventId} eventTitle={showStaffingModal.eventTitle} allVolunteers={allVolunteers} assignedVolunteerIds={shifts.find(s => s.opportunityId === showStaffingModal.eventId && s.roleType === showStaffingModal.role)?.assignedVolunteerIds || []} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
        {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
@@ -685,16 +748,47 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         {opp.approvalStatus || 'Published'}
                       </span>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2 flex-1">
-                      {opp.staffingQuotas.map(q => (
-                        <div key={q.role} className="flex justify-between items-center text-sm">
-                          <span className="font-bold">{q.role}</span>
-                          <div className="flex items-center gap-2">
-                             <span className={`${q.filled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{q.filled} / {q.count} Filled</span>
-                             {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
+                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3 flex-1">
+                      {opp.staffingQuotas.map(q => {
+                        const matchingShift = shifts.find(s => s.opportunityId === opp.id && s.roleType === q.role);
+                        const assignedIds = matchingShift?.assignedVolunteerIds || [];
+                        const assignedVols = assignedIds.map(id => allVolunteers.find(v => v.id === id)).filter(Boolean) as Volunteer[];
+                        return (
+                          <div key={q.role}>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="font-bold">{q.role}</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`${q.filled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{q.filled} / {q.count} Filled</span>
+                                {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
+                              </div>
+                            </div>
+                            {assignedVols.length > 0 && (
+                              <div className="mt-1.5 ml-1 space-y-1">
+                                {assignedVols.map(v => (
+                                  <div key={v.id} className="flex items-center gap-2 group">
+                                    <div className="w-5 h-5 rounded-full bg-zinc-200 text-zinc-600 flex items-center justify-center text-[9px] font-bold shrink-0">{v.name.charAt(0)}</div>
+                                    <span className="text-xs text-zinc-600 truncate">{v.name}</span>
+                                    <button
+                                      onClick={async () => {
+                                        if (!matchingShift) return;
+                                        try {
+                                          await apiService.post('/api/events/unregister', { volunteerId: v.id, eventId: opp.id, shiftId: matchingShift.id });
+                                          setShifts(prev => prev.map(s => s.id === matchingShift.id ? { ...s, slotsFilled: s.slotsFilled - 1, assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== v.id) } : s));
+                                          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, staffingQuotas: o.staffingQuotas.map(sq => sq.role === q.role ? { ...sq, filled: Math.max(0, (sq.filled || 0) - 1) } : sq) } : o));
+                                        } catch (e) { console.error('Failed to unassign', e); }
+                                      }}
+                                      className="ml-auto p-0.5 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                      title="Remove volunteer"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center gap-2">
                       <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold transition-colors">

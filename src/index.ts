@@ -910,6 +910,25 @@ const EmailTemplates = {
     text: `Hi ${data.rsvpName}, thanks for RSVPing to ${data.eventTitle}! Want to join our volunteer team? Apply here: ${EMAIL_CONFIG.WEBSITE_URL}/apply`
   }),
 
+  // Event-based volunteer invite (sent by coordinator/admin to recruit new volunteers)
+  event_volunteer_invite: (data: EmailTemplateData) => ({
+    subject: `You're Invited to Volunteer with Health Matters Clinic!`,
+    html: `${emailHeader("You're Invited to Volunteer!")}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Thanks for your interest in volunteering with <strong>Health Matters Clinic</strong>! You've been invited to help at <strong>${data.eventTitle}</strong> on <strong>${data.eventDate}</strong>.</p>
+      <p>To get started, create your account on our volunteer portal. Once registered, you'll be able to:</p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">Sign up for upcoming community health events</li>
+        <li style="margin: 8px 0;">Complete required training modules</li>
+        <li style="margin: 8px 0;">Track your volunteer hours and impact</li>
+        <li style="margin: 8px 0;">Connect with the volunteer team</li>
+      </ul>
+      ${actionButton('Create Your Account', `${EMAIL_CONFIG.WEBSITE_URL}/apply`)}
+      <p style="color: #6b7280;">We're excited to have you on the team!</p>
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, you're invited to volunteer at ${data.eventTitle} on ${data.eventDate}! Create your account here: ${EMAIL_CONFIG.WEBSITE_URL}/apply`
+  }),
+
   // Coordinator: Public RSVP Name Match (needs manual review)
   coordinator_public_rsvp_name_match: (data: EmailTemplateData) => ({
     subject: `Review Needed: Possible Volunteer Match for RSVP`,
@@ -3612,6 +3631,42 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             await batch.commit();
         }
 
+        // If staffingQuotas changed, sync shift documents
+        if (sanitizedUpdates.staffingQuotas) {
+            const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', id).get();
+            const existingShiftsByRole: Record<string, any> = {};
+            shiftsSnap.docs.forEach(doc => { existingShiftsByRole[doc.data().roleType] = { id: doc.id, ref: doc.ref, ...doc.data() }; });
+
+            const oppDoc = await db.collection('opportunities').doc(id).get();
+            const oppData = oppDoc.data() || {};
+            const eventDate = sanitizedUpdates.date || oppData.date || '';
+            const defaultStart = `${eventDate}T09:00:00`;
+            const defaultEnd = `${eventDate}T14:00:00`;
+
+            for (const quota of sanitizedUpdates.staffingQuotas) {
+                const existing = existingShiftsByRole[quota.role];
+                if (existing) {
+                    // Update slotsTotal if count changed
+                    if (existing.slotsTotal !== quota.count) {
+                        await existing.ref.update({ slotsTotal: quota.count });
+                    }
+                } else {
+                    // Create new shift for this role
+                    await db.collection('shifts').add({
+                        tenantId: oppData.tenantId || 'hmc-health',
+                        opportunityId: id,
+                        roleType: quota.role,
+                        slotsTotal: quota.count,
+                        slotsFilled: 0,
+                        assignedVolunteerIds: [],
+                        startTime: defaultStart,
+                        endTime: defaultEnd,
+                    });
+                }
+            }
+            console.log(`[EVENTS] Synced shifts for opportunity ${id} with updated quotas`);
+        }
+
         // Fetch and return the updated document
         const updatedDoc = await db.collection('opportunities').doc(id).get();
         const updatedData = { id: updatedDoc.id, ...updatedDoc.data() };
@@ -3947,6 +4002,115 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
         console.error('[SYNC] Event Finder sync failed:', error);
         res.status(500).json({ error: error.message || 'Failed to sync events' });
     }
+});
+
+// Invite a non-portal volunteer to register via email
+app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const callerUser = (req as any).user;
+    const callerData = (await db.collection('volunteers').doc(callerUser.uid).get()).data();
+    const allowedRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+    if (!callerData?.isAdmin && !allowedRoles.includes(callerData?.role)) {
+      return res.status(403).json({ error: 'Only admins, coordinators, and leads can invite volunteers' });
+    }
+
+    const { email, name, eventId, eventTitle, eventDate } = req.body;
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    // Check if email already exists in volunteers collection
+    const existingSnap = await db.collection('volunteers')
+      .where('email', '==', email.toLowerCase())
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty) {
+      const existing = existingSnap.docs[0];
+      return res.json({ alreadyRegistered: true, volunteerId: existing.id, volunteerName: existing.data().name });
+    }
+
+    // Store invite record
+    const inviteData = {
+      email: email.toLowerCase(),
+      name,
+      eventId: eventId || null,
+      eventTitle: eventTitle || null,
+      eventDate: eventDate || null,
+      invitedBy: callerUser.uid,
+      invitedAt: new Date().toISOString(),
+      status: 'pending',
+    };
+    const inviteRef = await db.collection('event_invites').add(inviteData);
+
+    // Send invite email
+    await EmailService.send('event_volunteer_invite', {
+      toEmail: email.toLowerCase(),
+      volunteerName: name,
+      eventTitle: eventTitle || 'a community event',
+      eventDate: eventDate || 'an upcoming date',
+    });
+
+    console.log(`[INVITE] Volunteer invite sent to ${email} for event ${eventTitle || eventId}`);
+    res.json({ sent: true, inviteId: inviteRef.id });
+  } catch (error: any) {
+    console.error('[INVITE] Failed to send volunteer invite:', error);
+    res.status(500).json({ error: error.message || 'Failed to send invite' });
+  }
+});
+
+// Admin unregister a volunteer from an event shift
+app.post('/api/events/unregister', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { volunteerId, eventId, shiftId } = req.body;
+    if (!volunteerId || !shiftId) {
+      return res.status(400).json({ error: 'volunteerId and shiftId are required' });
+    }
+
+    // Update shift: remove volunteer and decrement count
+    const shiftRef = db.collection('shifts').doc(shiftId);
+    const shiftDoc = await shiftRef.get();
+    if (!shiftDoc.exists) {
+      return res.status(404).json({ error: 'Shift not found' });
+    }
+    const shiftData = shiftDoc.data()!;
+    await shiftRef.update({
+      slotsFilled: Math.max(0, (shiftData.slotsFilled || 0) - 1),
+      assignedVolunteerIds: (shiftData.assignedVolunteerIds || []).filter((id: string) => id !== volunteerId),
+    });
+
+    // Update opportunity staffingQuotas
+    if (eventId) {
+      const oppRef = db.collection('opportunities').doc(eventId);
+      const oppDoc = await oppRef.get();
+      if (oppDoc.exists) {
+        const oppData = oppDoc.data()!;
+        const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
+          q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
+        );
+        await oppRef.update({
+          staffingQuotas: updatedQuotas,
+          slotsFilled: Math.max(0, (oppData.slotsFilled || 0) - 1),
+        });
+      }
+    }
+
+    // Remove shift from volunteer's assignedShiftIds
+    const volRef = db.collection('volunteers').doc(volunteerId);
+    const volDoc = await volRef.get();
+    if (volDoc.exists) {
+      const volData = volDoc.data()!;
+      await volRef.update({
+        assignedShiftIds: (volData.assignedShiftIds || []).filter((id: string) => id !== shiftId),
+      });
+    }
+
+    console.log(`[EVENTS] Unregistered volunteer ${volunteerId} from shift ${shiftId}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[EVENTS] Failed to unregister volunteer:', error);
+    res.status(500).json({ error: error.message || 'Failed to unregister' });
+  }
 });
 
 // Event registration endpoint - registers volunteer for event and sends confirmation email

@@ -1,19 +1,28 @@
 import React, { useMemo, useState } from 'react';
 import { Volunteer } from '../types';
-import { X, UserPlus, CheckCircle, Search, Star } from 'lucide-react';
+import { X, UserPlus, CheckCircle, Search, Star, Mail, Loader2, Send } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 interface StaffingSuggestionsProps {
     role: string;
     eventDate: string;
+    eventId?: string;
+    eventTitle?: string;
     allVolunteers: Volunteer[];
     assignedVolunteerIds: string[];
     onClose: () => void;
     onAssign: (volunteerId: string) => void;
 }
 
-const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDate, allVolunteers, assignedVolunteerIds, onClose, onAssign }) => {
+const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDate, eventId, eventTitle, allVolunteers, assignedVolunteerIds, onClose, onAssign }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterMode, setFilterMode] = useState<'recommended' | 'all'>('all');
+
+    // Invite state
+    const [inviteName, setInviteName] = useState('');
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteSending, setInviteSending] = useState(false);
+    const [inviteResult, setInviteResult] = useState<{ type: 'success' | 'error' | 'exists'; message: string } | null>(null);
 
     const eventDay = useMemo(() => {
         try { return new Date(eventDate + 'T00:00:00').toLocaleString('en-US', { weekday: 'short' }); }
@@ -54,6 +63,32 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
     }, [role, eventDate, eventDay, allVolunteers, assignedVolunteerIds, searchQuery]);
 
     const displayList = filterMode === 'recommended' ? recommended : [...recommended, ...others];
+
+    const handleSendInvite = async () => {
+        if (!inviteName.trim() || !inviteEmail.trim()) return;
+        setInviteSending(true);
+        setInviteResult(null);
+        try {
+            const result = await apiService.post('/api/events/invite-volunteer', {
+                name: inviteName.trim(),
+                email: inviteEmail.trim(),
+                eventId,
+                eventTitle,
+                eventDate,
+            });
+            if (result.alreadyRegistered) {
+                setInviteResult({ type: 'exists', message: `${result.volunteerName || inviteEmail} already has an account. Use the search above to find and assign them.` });
+            } else {
+                setInviteResult({ type: 'success', message: `Invite sent to ${inviteEmail}!` });
+                setInviteName('');
+                setInviteEmail('');
+            }
+        } catch (err: any) {
+            setInviteResult({ type: 'error', message: err?.message || 'Failed to send invite.' });
+        } finally {
+            setInviteSending(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
@@ -115,6 +150,55 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             })}
                         </div>
                     )}
+
+                    {/* Invite New Volunteer Section */}
+                    <div className="mt-6 pt-6 border-t border-zinc-200">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Mail size={16} className="text-zinc-400" />
+                            <p className="text-sm font-bold text-zinc-700">Don't see who you're looking for?</p>
+                        </div>
+                        <p className="text-xs text-zinc-400 mb-4">Invite someone who hasn't created a portal account yet. They'll receive an email with a link to register.</p>
+                        <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    value={inviteName}
+                                    onChange={e => setInviteName(e.target.value)}
+                                    placeholder="Full name"
+                                    className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:border-[#233DFF]/50"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={inviteEmail}
+                                    onChange={e => setInviteEmail(e.target.value)}
+                                    placeholder="email@example.com"
+                                    className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:border-[#233DFF]/50"
+                                />
+                            </div>
+                            <button
+                                onClick={handleSendInvite}
+                                disabled={inviteSending || !inviteName.trim() || !inviteEmail.trim()}
+                                className="px-4 py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-zinc-800 transition-colors"
+                            >
+                                {inviteSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                Send Invite
+                            </button>
+                        </div>
+                        {inviteResult && (
+                            <div className={`mt-3 p-3 rounded-lg text-xs font-medium ${
+                                inviteResult.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                inviteResult.type === 'exists' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                                'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}>
+                                {inviteResult.type === 'success' && <CheckCircle size={14} className="inline mr-1.5" />}
+                                {inviteResult.message}
+                            </div>
+                        )}
+                    </div>
                 </main>
 
                 <footer className="p-4 border-t border-zinc-100 text-center">
