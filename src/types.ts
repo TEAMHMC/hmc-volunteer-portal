@@ -263,10 +263,11 @@ export interface Volunteer {
   // ============================================================
   availability: {
     days: string[]; // Mon, Tue, Wed, etc.
-    preferredTime: string; // Morning, Afternoon, Evening
+    preferredTime: string; // Legacy: Morning, Afternoon, Evening
+    dayTimeSlots?: Record<string, { start: string; end: string }>; // Per-day hours e.g. { "Mon": { start: "09:00", end: "14:00" } }
+    timezone?: string; // e.g. "America/Los_Angeles"
     startDate: string; // When volunteer can start
     servicePreference?: 'in-person' | 'hybrid' | 'virtual';
-    timezone?: string;
     unavailableDates?: string[]; // Dates they cannot volunteer
     notes?: string;
     hoursPerWeek?: string; // Expected hours per week

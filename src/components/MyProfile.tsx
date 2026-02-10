@@ -16,6 +16,8 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
     ...currentUser,
     availDays: currentUser.availability?.days || [],
     preferredTime: currentUser.availability?.preferredTime || 'Morning',
+    dayTimeSlots: currentUser.availability?.dayTimeSlots || {} as Record<string, { start: string; end: string }>,
+    timezone: currentUser.availability?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     startDate: currentUser.availability?.startDate || currentUser.joinedDate,
     unavailableDates: currentUser.availability?.unavailableDates || [],
     notificationPrefs: currentUser.notificationPrefs || {
@@ -28,12 +30,14 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
   });
 
   const [newUnavailableDate, setNewUnavailableDate] = useState('');
-  
+
   useEffect(() => {
     setProfileData({
       ...currentUser,
       availDays: currentUser.availability?.days || [],
       preferredTime: currentUser.availability?.preferredTime || 'Morning',
+      dayTimeSlots: currentUser.availability?.dayTimeSlots || {} as Record<string, { start: string; end: string }>,
+      timezone: currentUser.availability?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       startDate: currentUser.availability?.startDate || currentUser.joinedDate,
       unavailableDates: currentUser.availability?.unavailableDates || [],
       notificationPrefs: currentUser.notificationPrefs || {
@@ -58,6 +62,8 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         ...currentUser.availability,
         days: profileData.availDays,
         preferredTime: profileData.preferredTime,
+        dayTimeSlots: profileData.dayTimeSlots,
+        timezone: profileData.timezone,
         startDate: profileData.startDate,
         unavailableDates: profileData.unavailableDates,
         lastUpdated: new Date().toISOString(),
@@ -95,11 +101,23 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
   };
 
   const toggleDay = (day: string) => {
+    setProfileData(prev => {
+      const isRemoving = prev.availDays.includes(day);
+      const newDays = isRemoving ? prev.availDays.filter(d => d !== day) : [...prev.availDays, day];
+      const newSlots = { ...prev.dayTimeSlots };
+      if (isRemoving) {
+        delete newSlots[day];
+      } else if (!newSlots[day]) {
+        newSlots[day] = { start: '09:00', end: '17:00' };
+      }
+      return { ...prev, availDays: newDays, dayTimeSlots: newSlots };
+    });
+  };
+
+  const updateDayTime = (day: string, field: 'start' | 'end', value: string) => {
     setProfileData(prev => ({
       ...prev,
-      availDays: prev.availDays.includes(day) 
-        ? prev.availDays.filter(d => d !== day) 
-        : [...prev.availDays, day]
+      dayTimeSlots: { ...prev.dayTimeSlots, [day]: { ...prev.dayTimeSlots[day], [field]: value } }
     }));
   };
 
@@ -238,10 +256,33 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             {isEditing ? (
                  <div className="space-y-6">
                     <div>
-                        <label className="text-sm font-bold text-zinc-600 mb-3 block">General Availability</label>
-                        <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
+                        <label className="text-sm font-bold text-zinc-600 mb-3 block">Available Days & Hours</label>
+                        <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`py-4 rounded-xl text-[10px] font-black border transition-all ${profileData.availDays?.includes(day) ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200'}`}>{day}</button>)}
                         </div>
+                        {profileData.availDays.length > 0 && (
+                          <div className="space-y-3">
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].filter(d => profileData.availDays.includes(d)).map(day => (
+                              <div key={day} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                                <span className="text-xs font-black text-zinc-700 w-10 shrink-0">{day}</span>
+                                <input type="time" value={profileData.dayTimeSlots[day]?.start || '09:00'} onChange={e => updateDayTime(day, 'start', e.target.value)} className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm font-bold text-zinc-700 w-32" />
+                                <span className="text-xs text-zinc-400 font-bold">to</span>
+                                <input type="time" value={profileData.dayTimeSlots[day]?.end || '17:00'} onChange={e => updateDayTime(day, 'end', e.target.value)} className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm font-bold text-zinc-700 w-32" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                    <div>
+                        <label className="text-sm font-bold text-zinc-600 mb-3 block">Timezone</label>
+                        <select value={profileData.timezone} onChange={e => setProfileData(prev => ({ ...prev, timezone: e.target.value }))} className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-bold text-zinc-700">
+                          <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+                          <option value="America/Denver">Mountain (Denver)</option>
+                          <option value="America/Chicago">Central (Chicago)</option>
+                          <option value="America/New_York">Eastern (New York)</option>
+                          <option value="America/Anchorage">Alaska</option>
+                          <option value="Pacific/Honolulu">Hawaii</option>
+                        </select>
                     </div>
                      <div>
                         <label className="text-sm font-bold text-zinc-600 mb-3 block">Time Off / Unavailable Dates</label>
@@ -257,11 +298,38 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                     </div>
                 </div>
             ) : (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                 <div className="space-y-6">
                     <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2 mb-2 block">General Availability</label>
-                        <div className="flex flex-wrap gap-2">{profileData.availDays.map(d => <span key={d} className="px-3 py-1 bg-zinc-100 text-zinc-700 rounded-full font-bold text-xs">{d}</span>)}</div>
-                        <p className="text-sm font-bold text-zinc-700 mt-2">{profileData.preferredTime}</p>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2 mb-3 block">Weekly Schedule</label>
+                        {profileData.availDays.length > 0 ? (
+                          <div className="space-y-2">
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].filter(d => profileData.availDays.includes(d)).map(day => {
+                              const slot = profileData.dayTimeSlots[day];
+                              const formatTime = (t: string) => {
+                                if (!t) return '';
+                                const [h, m] = t.split(':');
+                                const hour = parseInt(h);
+                                const ampm = hour >= 12 ? 'PM' : 'AM';
+                                const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                return `${h12}:${m} ${ampm}`;
+                              };
+                              return (
+                                <div key={day} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                                  <span className="text-xs font-black text-zinc-900 w-10">{day}</span>
+                                  <span className="text-sm font-bold text-zinc-600 flex items-center gap-1.5">
+                                    <Clock size={12} className="text-zinc-400" />
+                                    {slot ? `${formatTime(slot.start)} – ${formatTime(slot.end)}` : 'All day'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-zinc-400 italic">No days selected.</p>
+                        )}
+                        {profileData.timezone && (
+                          <p className="text-[10px] text-zinc-400 font-bold mt-3 flex items-center gap-1.5"><Globe size={12} /> {profileData.timezone.replace('_', ' ')}</p>
+                        )}
                     </div>
                     <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2 mb-2 block">Upcoming Time Off</label>
