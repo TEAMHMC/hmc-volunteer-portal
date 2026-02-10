@@ -43,7 +43,7 @@ const FormatBadge: React.FC<{ format: TrainingModule['format'] }> = ({ format })
   }[format];
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${config.color}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-medium uppercase tracking-wider border ${config.color}`}>
       <config.icon size={10} /> {config.label}
     </span>
   );
@@ -388,30 +388,30 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
             <div className="flex flex-col items-end gap-2">
               <FormatBadge format={m.format} />
-              {m.req && !isCompleted && !isLocked && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
-              {isCompleted && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>}
-              {isLocked && <span className="px-3 py-1 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">Locked</span>}
+              {m.req && !isCompleted && !isLocked && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-medium uppercase tracking-wide border border-rose-100">Required</span>}
+              {isCompleted && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-medium uppercase tracking-wide border border-emerald-100">Completed</span>}
+              {isLocked && <span className="px-3 py-1 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-medium uppercase tracking-wide border border-zinc-200">Locked</span>}
             </div>
           </div>
-          <h4 className={`text-xl font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">
+          <h4 className={`text-xl font-medium leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
+          <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mt-1">
             {m.dur} MIN {m.isAIGenerated && '• AI-GENERATED'}
           </p>
           <p className={`text-sm mt-4 font-medium leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
         </div>
         <div className="mt-8">
           {!isCompleted && !isLocked && (
-            <button onClick={() => startQuiz(m)} className="w-full py-5 bg-zinc-900 text-white rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:scale-[1.02] shadow-xl">
+            <button onClick={() => startQuiz(m)} className="w-full py-5 bg-zinc-900 text-white rounded-full font-medium text-[11px] uppercase tracking-wide transition-all hover:scale-[1.02] shadow-xl">
               {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Mastery Assessment'}
             </button>
           )}
           {isCompleted && (
-            <button onClick={() => startReview(m)} className="w-full py-5 bg-white border-2 border-zinc-200 text-zinc-600 rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:border-[#233DFF] hover:text-[#233DFF] hover:scale-[1.02] flex items-center justify-center gap-2">
+            <button onClick={() => startReview(m)} className="w-full py-5 bg-white border-2 border-zinc-200 text-zinc-600 rounded-full font-medium text-[11px] uppercase tracking-wide transition-all hover:border-[#233DFF] hover:text-[#233DFF] hover:scale-[1.02] flex items-center justify-center gap-2">
               <BookOpen size={14} /> Review Module
             </button>
           )}
           {isLocked && (
-            <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-black text-[11px] uppercase tracking-widest text-center flex items-center justify-center gap-2">
+            <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-medium text-[11px] uppercase tracking-wide text-center flex items-center justify-center gap-2">
               <Lock size={14} /> Complete Previous Tier to Unlock
             </div>
           )}
@@ -428,7 +428,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         <div className={`${reviewMode ? 'bg-[#233DFF]/5 border-[#233DFF]/20' : 'bg-amber-50 border-amber-200'} border rounded-[24px] p-6 flex items-center gap-4`}>
           <FileCheck size={24} className={reviewMode ? 'text-[#233DFF] shrink-0' : 'text-amber-600 shrink-0'} />
           <div>
-            <p className={`font-bold text-sm ${reviewMode ? 'text-[#233DFF]' : 'text-amber-900'}`}>
+            <p className={`font-medium text-sm ${reviewMode ? 'text-[#233DFF]' : 'text-amber-900'}`}>
               {reviewMode ? 'Reviewing Completed Module' : 'Read & Acknowledge Module'}
             </p>
             <p className={`text-xs mt-1 ${reviewMode ? 'text-[#233DFF]/70' : 'text-amber-700'}`}>
@@ -438,12 +438,12 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
 
         <div className="bg-zinc-50 border border-zinc-200 rounded-[24px] p-8 space-y-6 max-h-[500px] overflow-y-auto">
-          <h4 className="text-lg font-black text-zinc-900">{activeSession.title}</h4>
+          <h4 className="text-lg font-medium text-zinc-900">{activeSession.title}</h4>
 
           {loadingContent ? (
             <div className="py-12 flex flex-col items-center gap-4">
               <Loader2 size={36} className="text-[#233DFF] animate-spin" />
-              <p className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">
+              <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide animate-pulse">
                 Generating content for your role...
               </p>
             </div>
@@ -454,7 +454,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               )}
               {moduleContent.sections.map((section, idx) => (
                 <div key={idx} className="space-y-2">
-                  <h5 className="text-sm font-black text-zinc-800 uppercase tracking-wide">{section.heading}</h5>
+                  <h5 className="text-sm font-medium text-zinc-800 uppercase tracking-wide">{section.heading}</h5>
                   <div className="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">{section.body}</div>
                 </div>
               ))}
@@ -479,16 +479,16 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               <div className="bg-emerald-50 border border-emerald-200 rounded-[24px] p-6 flex items-center gap-4">
                 <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-emerald-900">Signed Document</p>
+                  <p className="text-sm font-medium text-emerald-900">Signed Document</p>
                   <p className="text-xs text-emerald-700 mt-0.5">
-                    Signed by <span style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.1rem' }} className="font-bold">{user.trainingSignatures[activeSession.id].fullName}</span> on {new Date(user.trainingSignatures[activeSession.id].signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    Signed by <span style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.1rem' }} className="font-medium">{user.trainingSignatures[activeSession.id].fullName}</span> on {new Date(user.trainingSignatures[activeSession.id].signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                 </div>
               </div>
             )}
             <button
               onClick={() => { setQuizMode(false); setActiveSession(null); }}
-              className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="w-full py-6 bg-zinc-900 text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               Done Reviewing
             </button>
@@ -515,7 +515,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 <div className="flex items-center gap-3">
                   <PenLine size={18} className="text-[#233DFF] shrink-0" />
                   <div>
-                    <p className="text-sm font-bold text-zinc-900">Digital Signature Required</p>
+                    <p className="text-sm font-medium text-zinc-900">Digital Signature Required</p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       Type your full legal name below to sign this document.
                     </p>
@@ -531,7 +531,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     className="w-full px-4 py-3 border-b-2 border-zinc-300 focus:border-[#233DFF] bg-zinc-50 rounded-t-lg text-lg outline-none transition-colors"
                     style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.5rem' }}
                   />
-                  <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider font-bold">
+                  <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider font-medium">
                     Signed electronically on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                 </div>
@@ -545,7 +545,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 }
               }}
               disabled={quizResponse !== 'acknowledged' || loadingContent || (activeSession && requiresSignature(activeSession) && signatureName.trim().length < 2)}
-              className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+              className="w-full py-6 bg-emerald-500 text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
             >
               {activeSession && requiresSignature(activeSession) ? (
                 <><PenLine size={18} /> Sign & Complete Module</>
@@ -599,7 +599,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <CheckCircle2 size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-[#233DFF]">Orientation Complete!</h4>
+            <h4 className="text-lg font-medium text-[#233DFF]">Orientation Complete!</h4>
             <p className="text-[#233DFF] font-medium">Welcome to HMC! Continue with Baseline Training below to unlock My Missions.</p>
           </div>
         </div>
@@ -612,7 +612,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <Award size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Baseline Training Complete'}</h4>
+            <h4 className="text-lg font-medium text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Baseline Training Complete'}</h4>
             <p className="text-emerald-700 font-medium">
               {isGovernanceRole
                 ? 'Complete your role-specific governance training below.'
@@ -625,14 +625,14 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* Header with progress */}
       <div className="bg-white border border-zinc-100 p-12 rounded-[56px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
-          <div className="inline-flex items-center gap-3 px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-10">
+          <div className="inline-flex items-center gap-3 px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-medium uppercase tracking-[0.2em] mb-10">
              TRAINING ACADEMY
           </div>
-          <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">HMC Training</h2>
-          <p className="text-zinc-500 text-lg font-medium leading-relaxed italic">
+          <h2 className="text-6xl font-medium text-zinc-900 tracking-normal leading-none mb-6">HMC Training</h2>
+          <p className="text-zinc-500 text-lg font-medium leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
-              <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
+              <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-medium">{roleDisplayName}</span></span>
             )}
           </p>
         </div>
@@ -645,10 +645,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier1Progress}%</div>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-zinc-900">{tier1Progress}%</div>
             </div>
             <div>
-              <p className="text-xs font-black text-zinc-700">Tier 1: Orientation</p>
+              <p className="text-xs font-medium text-zinc-700">Tier 1: Orientation</p>
               <p className="text-[10px] text-zinc-400">{tier1CompletedCount}/{TIER_1_MODULES.length} videos</p>
             </div>
           </div>
@@ -661,10 +661,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2CoreProgress) / 100} className="text-[#233DFF] transition-all duration-1000" />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2CoreProgress}%</div>
+                <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-zinc-900">{tier2CoreProgress}%</div>
               </div>
               <div>
-                <p className="text-xs font-black text-zinc-700">Tier 2: Baseline</p>
+                <p className="text-xs font-medium text-zinc-700">Tier 2: Baseline</p>
                 <p className="text-[10px] text-zinc-400">{tier2CoreCompletedCount}/{TIER_2_CORE_MODULES.length} modules</p>
               </div>
             </div>
@@ -675,10 +675,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* ===== TIER 1: ORIENTATION ===== */}
       <div>
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center text-sm font-black">1</div>
-          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
+          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center text-sm font-medium">1</div>
+          <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Orientation</h3>
           {tier1Complete && (
-            <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+            <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium uppercase tracking-wide">Complete</span>
           )}
         </div>
         <p className="text-zinc-500 font-medium mb-8 -mt-4">Start here! These two videos introduce you to Health Matters Clinic and what it means to volunteer with HMC.</p>
@@ -696,11 +696,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             onClick={() => setShowFieldAccess(!showFieldAccess)}
             className="w-full flex items-center gap-4 mb-4 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-medium">
               <Calendar size={20} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+              <h3 className="text-xl font-medium text-zinc-900 tracking-tight">
                 {governanceTier2Complete ? 'Field Access Training' : 'Want to Support In-Person Events?'}
               </h3>
               <p className="text-zinc-500 font-medium text-sm mt-1">
@@ -710,9 +710,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               </p>
             </div>
             {governanceTier2Complete ? (
-              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">Unlocked</span>
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium uppercase tracking-wide shrink-0">Unlocked</span>
             ) : (
-              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">{tier2CompletedCount}/{TIER_2_MODULES.length}</span>
+              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-medium uppercase tracking-wide shrink-0">{tier2CompletedCount}/{TIER_2_MODULES.length}</span>
             )}
             <ChevronDown size={20} className={`text-zinc-400 transition-transform ${showFieldAccess ? 'rotate-180' : ''}`} />
           </button>
@@ -729,10 +729,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {!isGovernanceRole && tier1Complete && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black">2</div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
+            <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-medium">2</div>
+            <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Baseline Training</h3>
             {tier2CoreComplete && (
-              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium uppercase tracking-wide">Complete</span>
             )}
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">Required for all operational volunteers. Complete these to unlock My Missions and event registration.</p>
@@ -749,11 +749,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             onClick={() => setShowFieldAccess(!showFieldAccess)}
             className="w-full flex items-center gap-4 mb-4 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-medium">
               <Calendar size={20} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+              <h3 className="text-xl font-medium text-zinc-900 tracking-tight">
                 {tier2FieldComplete ? 'Field Readiness Training' : 'Want to Attend In-Person Events?'}
               </h3>
               <p className="text-zinc-500 font-medium text-sm mt-1">
@@ -763,9 +763,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               </p>
             </div>
             {tier2FieldComplete ? (
-              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">Complete</span>
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium uppercase tracking-wide shrink-0">Complete</span>
             ) : (
-              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0">{tier2FieldCompletedCount}/{TIER_2_FIELD_MODULES.length}</span>
+              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-medium uppercase tracking-wide shrink-0">{tier2FieldCompletedCount}/{TIER_2_FIELD_MODULES.length}</span>
             )}
             <ChevronDown size={20} className={`text-zinc-400 transition-transform ${showFieldAccess ? 'rotate-180' : ''}`} />
           </button>
@@ -783,8 +783,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {tier2CoreComplete && !isGovernanceRole && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black">3</div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
+            <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-medium">3</div>
+            <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Program Clearance</h3>
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">Complete program-specific training to unlock specialized event types. Each program has its own requirements.</p>
 
@@ -795,11 +795,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             return (
               <div key={section.program} className="mb-12">
                 <div className="flex items-center gap-4 mb-6">
-                  <h4 className="text-lg font-black text-zinc-800">{section.title}</h4>
+                  <h4 className="text-lg font-medium text-zinc-800">{section.title}</h4>
                   {sectionComplete ? (
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest">Cleared</span>
+                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-medium uppercase tracking-wide">Cleared</span>
                   ) : (
-                    <span className="px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest">{sectionCompletedCount}/{section.modules.length}</span>
+                    <span className="px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[9px] font-medium uppercase tracking-wide">{sectionCompletedCount}/{section.modules.length}</span>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -815,7 +815,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {roleModules.length > 0 && tier1Complete && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
+            <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Role Training: {roleDisplayName}</h3>
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">Additional training specific to your assigned role.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -828,9 +828,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {tier2CoreComplete && !isGovernanceRole && (
         <div>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black">4</div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
-            <span className="px-4 py-1.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200">30-Day Deadline</span>
+            <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-medium">4</div>
+            <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Recommended</h3>
+            <span className="px-4 py-1.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-medium uppercase tracking-wide border border-amber-200">30-Day Deadline</span>
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">These modules provide important context. Complete within 30 days of becoming operational to maintain access to advanced missions.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -847,12 +847,12 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center">
               <Stethoscope size={20} />
             </div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Clinical Onboarding</h3>
+            <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Clinical Onboarding</h3>
             {user.clinicalOnboarding?.completed && (
-              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-medium uppercase tracking-wide">Complete</span>
             )}
             {!tier1Complete && (
-              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">Complete Orientation First</span>
+              <span className="px-4 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-medium uppercase tracking-wide">Complete Orientation First</span>
             )}
           </div>
           <p className="text-zinc-500 font-medium mb-8 -mt-4">
@@ -874,7 +874,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
            <div className="bg-white p-12 rounded-[56px] max-w-5xl w-full space-y-10 shadow-2xl border border-zinc-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-4">
-                   <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
+                   <h4 className="text-2xl font-medium text-zinc-900 tracking-normal">{activeSession.title}</h4>
                    <FormatBadge format={activeSession.format} />
                  </div>
                  <button onClick={() => { setQuizMode(false); setActiveSession(null); }} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-300 hover:text-zinc-900"><X size={24} /></button>
@@ -896,14 +896,14 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     {videoError ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
                         <AlertCircle size={48} className="text-amber-400 mb-4" />
-                        <p className="text-lg font-bold mb-2">Video couldn't load</p>
+                        <p className="text-lg font-medium mb-2">Video couldn't load</p>
                         <p className="text-zinc-400 text-sm mb-6 max-w-md text-center">
                           The video player encountered an error. You can try refreshing or proceed directly to the assessment.
                         </p>
                         <div className="flex gap-4">
                           <button
                             onClick={() => { setVideoError(false); setVideoLoading(true); }}
-                            className="px-6 py-3 bg-zinc-800 text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-zinc-700"
+                            className="px-6 py-3 bg-zinc-800 text-white rounded-full font-medium text-sm flex items-center gap-2 hover:bg-zinc-700"
                           >
                             <RefreshCw size={16} /> Try Again
                           </button>
@@ -911,7 +911,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                             href={activeSession.embed.includes('youtube') ? activeSession.embed.replace('/embed/', '/watch?v=') : activeSession.embed}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-6 py-3 bg-white text-zinc-900 rounded-full font-bold text-sm flex items-center gap-2"
+                            className="px-6 py-3 bg-white text-zinc-900 rounded-full font-medium text-sm flex items-center gap-2"
                           >
                             <Video size={16} /> Open in New Tab
                           </a>
@@ -936,7 +936,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-medium text-center">Reviewing completed module. Watch the video above as needed.</p>
                       <button
                         onClick={() => { setQuizMode(false); setActiveSession(null); }}
-                        className="w-full py-6 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-zinc-900 text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         Done Reviewing
                       </button>
@@ -946,7 +946,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-medium text-center">Complete the built-in quiz in the video, then mark as complete below.</p>
                       <button
                         onClick={() => handleCompleteModule(activeSession.id, activeSession.title)}
-                        className="w-full py-6 bg-emerald-500 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-emerald-500 text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         <Check size={18} /> I've Completed This Training
                       </button>
@@ -956,7 +956,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-medium text-center">Watch the video above, then proceed to the assessment.</p>
                       <button
                         onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
-                        className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         <div className="w-2 h-2 rounded-full bg-white" />
                         I've Watched This - Continue to Assessment <ArrowRight size={18} />
@@ -967,22 +967,22 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               ) : quizStage !== 'read_ack' && loadingQuiz ? (
                 <div className="py-20 flex flex-col items-center gap-6">
                    <Loader2 size={48} className="text-[#233DFF] animate-spin" />
-                   <p className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">Generating Assessment...</p>
+                   <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide animate-pulse">Generating Assessment...</p>
                 </div>
               ) : quizStage === 'concepts' ? (
                 <div className="space-y-8 animate-in fade-in">
-                  <h5 className="text-lg font-black text-zinc-900">Learning Objective:</h5>
-                  <p className="text-zinc-600 font-medium italic">"{quizData?.learningObjective}"</p>
-                  <h5 className="text-lg font-black text-zinc-900 pt-4 border-t">Key Concepts to Review:</h5>
+                  <h5 className="text-lg font-medium text-zinc-900">Learning Objective:</h5>
+                  <p className="text-zinc-600 font-medium">"{quizData?.learningObjective}"</p>
+                  <h5 className="text-lg font-medium text-zinc-900 pt-4 border-t">Key Concepts to Review:</h5>
                   <div className="space-y-4">
                     {quizData?.keyConcepts?.map((item: { concept: string, description: string }, i: number) => (
                       <div key={i} className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                        <p className="font-black text-zinc-800 text-sm">{item.concept}</p>
+                        <p className="font-medium text-zinc-800 text-sm">{item.concept}</p>
                         <p className="text-sm text-zinc-500 mt-1">{item.description}</p>
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                     <div className="w-2 h-2 rounded-full bg-white" />
                     Proceed to Question
                   </button>
@@ -990,11 +990,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               ) : quizStage === 'question' ? (
                 <div className="animate-in fade-in">
                   <div className="space-y-4 bg-zinc-50 p-8 rounded-[32px] border border-zinc-100 shadow-inner">
-                     <p className="text-zinc-900 font-black text-xl leading-tight">"{quizData?.question}"</p>
+                     <p className="text-zinc-900 font-medium text-xl leading-tight">"{quizData?.question}"</p>
                   </div>
                   <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border border-zinc-100 rounded-[32px] p-6 font-medium outline-none mt-6" placeholder="Your response..." />
-                  {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-bold">{submitError}</p>}
-                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-xs uppercase tracking-widest shadow-2xl disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-medium">{submitError}</p>}
+                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-medium text-xs uppercase tracking-wide shadow-2xl disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                      {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <div className="w-2 h-2 rounded-full bg-white" />}
                      Submit & Complete Module
                   </button>
@@ -1011,7 +1011,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <div className="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-8 shadow-xl">
               <Award size={48} />
             </div>
-            <h3 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">
+            <h3 className="text-4xl font-medium text-zinc-900 tracking-normal mb-4">
               {isGovernanceRole ? 'Orientation Training Complete' : 'Baseline Training Complete'}
             </h3>
             <p className="text-xl text-zinc-600 font-medium leading-relaxed mb-8">
@@ -1019,13 +1019,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 ? `You've completed your orientation as a ${roleDisplayName}. Continue to your role-specific training below.`
                 : "You've completed all baseline training. You're now eligible to sign up for community-based events through My Missions."}
             </p>
-            <div className="flex items-center justify-center gap-3 text-emerald-600 font-bold text-sm mb-8">
+            <div className="flex items-center justify-center gap-3 text-emerald-600 font-medium text-sm mb-8">
               <Calendar size={18} />
               <span>Completed on {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
             <button
               onClick={() => setShowCompletionMessage(false)}
-              className="px-12 py-5 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 mx-auto"
+              className="px-12 py-5 bg-[#233DFF] border border-black text-white rounded-full font-medium text-sm uppercase tracking-wide shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 mx-auto"
             >
               <div className="w-2 h-2 rounded-full bg-white" />
               Continue to Dashboard

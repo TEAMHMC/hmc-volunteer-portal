@@ -63,18 +63,18 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
 
     return (
         <div className="animate-in fade-in duration-500">
-            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Health Screenings</h2>
+            <h2 className="text-2xl font-medium text-zinc-900 tracking-normal mb-8">Health Screenings</h2>
 
             {view === 'search' && (
                 <div className="max-w-xl mx-auto space-y-6">
                     <form onSubmit={handleSearch}>
                         <div className="flex bg-zinc-100 p-1 rounded-full">
-                            <button type="button" onClick={() => setSearchBy('phone')} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'phone' ? 'bg-white shadow' : ''}`}>By Phone</button>
-                            <button type="button" onClick={() => setSearchBy('email')} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'email' ? 'bg-white shadow' : ''}`}>By Email</button>
+                            <button type="button" onClick={() => setSearchBy('phone')} className={`flex-1 p-2 text-xs font-medium rounded-full ${searchBy === 'phone' ? 'bg-white shadow' : ''}`}>By Phone</button>
+                            <button type="button" onClick={() => setSearchBy('email')} className={`flex-1 p-2 text-xs font-medium rounded-full ${searchBy === 'email' ? 'bg-white shadow' : ''}`}>By Email</button>
                         </div>
                         <div className="relative mt-4">
                             <input type={searchBy === 'phone' ? 'tel' : 'email'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Enter client ${searchBy}...`} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-[#233DFF] font-medium" />
-                            <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-zinc-900 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                            <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-zinc-900 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
                         </div>
@@ -82,18 +82,18 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
 
                     {searchResult === 'not_found' && (
                         <div className="text-center p-8 bg-amber-50 rounded-xl border border-amber-200">
-                            <p className="font-bold text-amber-800">Client not found.</p>
+                            <p className="font-medium text-amber-800">Client not found.</p>
                             <p className="text-sm text-amber-700">Please verify the information or register them as a new client.</p>
-                            <button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button>
+                            <button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-medium flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button>
                         </div>
                     )}
 
                     {searchResult && searchResult !== 'not_found' && (
                         <div className="p-8 bg-emerald-50 rounded-xl border border-emerald-200">
-                            <p className="text-xs font-bold text-emerald-800">Client Found</p>
-                            <p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
+                            <p className="text-xs font-medium text-emerald-800">Client Found</p>
+                            <p className="text-xl font-medium text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
                             <p className="text-sm text-emerald-800">DOB: {searchResult.dob}</p>
-                            <button onClick={() => handleStartScreening(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2"><HeartPulse size={14}/> Start Screening</button>
+                            <button onClick={() => handleStartScreening(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium flex items-center gap-2"><HeartPulse size={14}/> Start Screening</button>
                         </div>
                     )}
                 </div>
@@ -127,7 +127,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
 
     return (
         <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
-            <h3 className="text-lg font-black text-zinc-900">Register New Client</h3>
+            <h3 className="text-lg font-medium text-zinc-900">Register New Client</h3>
             <form onSubmit={handleSave} className="space-y-4">
                 <input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
                 <input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
@@ -135,8 +135,8 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                 <input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
                 <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
                 <div className="flex gap-4">
-                    <button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-bold">Cancel</button>
-                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-zinc-900 text-white rounded-lg text-sm font-bold disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                    <button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-zinc-900 text-white rounded-lg text-sm font-medium disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
                 </div>
             </form>
         </div>
@@ -237,14 +237,14 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
     };
 
     const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-[#233DFF] font-medium";
-    const labelClass = "block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2";
+    const labelClass = "block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2";
 
     return (
         <div className="space-y-6 animate-in fade-in max-w-2xl mx-auto">
             <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-100 flex items-center justify-between">
                 <div>
-                    <p className="text-xs font-bold text-zinc-500">Screening for:</p>
-                    <p className="text-lg font-bold">{client.firstName} {client.lastName}</p>
+                    <p className="text-xs font-medium text-zinc-500">Screening for:</p>
+                    <p className="text-lg font-medium">{client.firstName} {client.lastName}</p>
                     <p className="text-sm text-zinc-500">DOB: {client.dob}</p>
                 </div>
                 <button onClick={() => onComplete()} className="p-2 hover:bg-zinc-200 rounded-lg"><X size={20} /></button>
@@ -254,9 +254,9 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 {/* Blood Pressure */}
                 <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
                     <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-zinc-900">Blood Pressure</h4>
+                        <h4 className="font-medium text-zinc-900">Blood Pressure</h4>
                         {bpFlag && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${bpFlag.color}-100 text-${bpFlag.color}-700 flex items-center gap-1`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${bpFlag.color}-100 text-${bpFlag.color}-700 flex items-center gap-1`}>
                                 {bpFlag.level !== 'normal' && <AlertTriangle size={12} />}
                                 {bpFlag.label}
                             </span>
@@ -282,9 +282,9 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 {/* Glucose */}
                 <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
                     <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-zinc-900">Blood Glucose</h4>
+                        <h4 className="font-medium text-zinc-900">Blood Glucose</h4>
                         {glucoseFlag && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${glucoseFlag.color}-100 text-${glucoseFlag.color}-700 flex items-center gap-1`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${glucoseFlag.color}-100 text-${glucoseFlag.color}-700 flex items-center gap-1`}>
                                 {glucoseFlag.level !== 'normal' && <AlertTriangle size={12} />}
                                 {glucoseFlag.label}
                             </span>
@@ -303,7 +303,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
                 {/* Other Vitals */}
                 <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
-                    <h4 className="font-bold text-zinc-900">Additional Vitals</h4>
+                    <h4 className="font-medium text-zinc-900">Additional Vitals</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className={labelClass}>Heart Rate (BPM)</label>
@@ -326,7 +326,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
                 {/* Notes & Follow-up */}
                 <div className="p-6 bg-white border border-zinc-200 rounded-2xl space-y-4">
-                    <h4 className="font-bold text-zinc-900">Notes & Follow-up</h4>
+                    <h4 className="font-medium text-zinc-900">Notes & Follow-up</h4>
                     <div>
                         <label className={labelClass}>Clinical Notes</label>
                         <textarea rows={3} placeholder="Any observations, client concerns, or recommendations..." value={vitals.notes} onChange={e => setVitals({...vitals, notes: e.target.value})} className={inputClass} />
@@ -334,7 +334,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" checked={vitals.followUpNeeded || hasFlags} onChange={e => setVitals({...vitals, followUpNeeded: e.target.checked})} className="w-5 h-5 rounded" />
                         <span className="font-medium text-zinc-700">Follow-up needed</span>
-                        {hasFlags && <span className="text-xs text-amber-600 font-bold">(Auto-flagged due to abnormal vitals)</span>}
+                        {hasFlags && <span className="text-xs text-amber-600 font-medium">(Auto-flagged due to abnormal vitals)</span>}
                     </label>
                     {(vitals.followUpNeeded || hasFlags) && (
                         <input type="text" placeholder="Reason for follow-up..." value={vitals.followUpReason} onChange={e => setVitals({...vitals, followUpReason: e.target.value})} className={inputClass} />
@@ -343,8 +343,8 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
                 {/* Actions */}
                 <div className="flex gap-4">
-                    <button type="button" onClick={() => onComplete()} className="flex-1 py-4 border-2 border-zinc-200 rounded-xl text-sm font-bold hover:bg-zinc-50">Cancel</button>
-                    <button type="submit" disabled={isSaving || (!vitals.systolic && !vitals.glucose)} className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => onComplete()} className="flex-1 py-4 border-2 border-zinc-200 rounded-xl text-sm font-medium hover:bg-zinc-50">Cancel</button>
+                    <button type="submit" disabled={isSaving || (!vitals.systolic && !vitals.glucose)} className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-medium text-sm disabled:opacity-50 flex items-center justify-center gap-2">
                         {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : <><CheckCircle size={16} /> Save Screening</>}
                     </button>
                 </div>
@@ -358,7 +358,7 @@ const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }
         <div className="p-6 bg-rose-100 rounded-full text-rose-600 mb-6 border-4 border-rose-200">
             <HeartPulse size={48} />
         </div>
-        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Access Denied</h3>
+        <h3 className="text-xl font-medium text-zinc-900 tracking-normal">Access Denied</h3>
         <p className="text-zinc-500 max-w-sm mt-2">Your current profile does not have the required training clearances for this station. Please complete the "{requiredTraining}" module in the Training Academy.</p>
     </div>
 );

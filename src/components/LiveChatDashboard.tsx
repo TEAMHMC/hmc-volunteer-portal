@@ -197,7 +197,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Live Chat Support</h2>
+          <h2 className="text-2xl font-medium text-slate-900">Live Chat Support</h2>
           <p className="text-sm text-slate-500 mt-1">
             Help visitors find resources through real-time chat
           </p>
@@ -235,7 +235,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-amber-800 mb-2">Live Chat is Currently Offline</h3>
+          <h3 className="text-lg font-medium text-amber-800 mb-2">Live Chat is Currently Offline</h3>
           <p className="text-sm text-amber-600 mb-1">
             Live chat support is available <strong>Monday – Friday, 10:00 AM – 6:00 PM Pacific Time</strong>.
           </p>
@@ -475,7 +475,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{pendingSessions.length}</p>
+              <p className="text-2xl font-medium text-slate-900">{pendingSessions.length}</p>
               <p className="text-sm text-slate-500">Waiting</p>
             </div>
           </div>
@@ -488,7 +488,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{activeSessions.length}</p>
+              <p className="text-2xl font-medium text-slate-900">{activeSessions.length}</p>
               <p className="text-sm text-slate-500">Active Chats</p>
             </div>
           </div>
@@ -501,7 +501,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">{closedSessions.length}</p>
+              <p className="text-2xl font-medium text-slate-900">{closedSessions.length}</p>
               <p className="text-sm text-slate-500">Resolved Today</p>
             </div>
           </div>

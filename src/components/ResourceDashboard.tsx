@@ -28,20 +28,20 @@ const ResourceDashboard: React.FC = () => {
     }, []);
 
     if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-[#233DFF]" size={48} /></div>;
-    if (error) return <div className="text-center text-rose-500 font-bold">{error}</div>;
+    if (error) return <div className="text-center text-rose-500 font-medium">{error}</div>;
 
     return (
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Resource Directory</h1>
+                    <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Resource Directory</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage community referral resources.</p>
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-black uppercase tracking-widest shadow-sm hover:bg-zinc-50 transition-colors">
+                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-medium uppercase tracking-wide shadow-sm hover:bg-zinc-50 transition-colors">
                         <UploadCloud size={16} /> Bulk Upload
                     </button>
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 transition-colors">
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg hover:bg-[#233DFF]/90 transition-colors">
                         <Plus size={16} /> Add Resource
                     </button>
                 </div>
@@ -51,16 +51,16 @@ const ResourceDashboard: React.FC = () => {
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Resource Name</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Service Category</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">SPA</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Contact</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Resource Name</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Service Category</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">SPA</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Contact</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                         {resources.map((r, i) => (
                             <tr key={i} className="hover:bg-zinc-50">
-                                <td className="px-6 py-4 font-bold">{r['Resource Name']}</td>
+                                <td className="px-6 py-4 font-medium">{r['Resource Name']}</td>
                                 <td className="px-6 py-4 text-sm text-zinc-600">{r['Service Category']}</td>
                                 <td className="px-6 py-4 text-sm text-zinc-600">{r['SPA']}</td>
                                 <td className="px-6 py-4 text-sm text-zinc-600">{r['Contact Phone'] || r['Contact Email']}</td>
@@ -122,7 +122,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
         <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
             <div className="bg-white max-w-2xl w-full rounded-[40px] shadow-2xl border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Upload Resources</h2>
+                    <h2 className="text-2xl font-medium text-zinc-900 tracking-tight">Bulk Upload Resources</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
                         <X size={20} />
                     </button>
@@ -131,16 +131,16 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                 <p className="text-zinc-500">Upload a CSV file to import multiple referral resources at once.</p>
 
                 <div className="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-xs text-zinc-500">
-                    <p className="font-bold mb-2">Required CSV Headers:</p>
+                    <p className="font-medium mb-2">Required CSV Headers:</p>
                     <code className="font-mono text-[10px] block overflow-x-auto">Resource Name,Service Category,Key Offerings,Contact Phone,Contact Email,Address,Website,SPA,Operation Hours</code>
                 </div>
 
                 {successCount !== null ? (
                     <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
-                        <h3 className="font-black text-emerald-800">Import Successful</h3>
+                        <h3 className="font-medium text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} resources have been imported.</p>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-medium rounded-lg">Done</button>
                     </div>
                 ) : (
                     <>
@@ -151,11 +151,11 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                             onChange={handleFileChange}
                             className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#233DFF]/5 file:text-[#233DFF] hover:file:bg-[#233DFF]/10"
                         />
-                        {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
+                        {error && <p className="text-rose-500 text-sm text-center font-medium">{error}</p>}
                         <button
                             onClick={handleUpload}
                             disabled={isUploading || !file}
-                            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-medium text-sm uppercase tracking-wide flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isUploading ? <Loader2 className="animate-spin" size={18} /> : <><UploadCloud size={18} /> Import Resources</>}
                         </button>
@@ -170,7 +170,7 @@ const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }
     <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={onClose}>
         <div className="bg-white max-w-4xl w-full rounded-[40px] shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
-                <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Resource</h2>
+                <h2 className="text-2xl font-medium text-zinc-900 tracking-tight">Add New Resource</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
             </header>
             <main className="p-8 overflow-y-auto">
@@ -182,7 +182,7 @@ const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }
 
 const FormField: React.FC<React.PropsWithChildren<{ label: string, required?: boolean }>> = ({ label, required, children }) => (
     <div>
-        <label className="text-xs font-bold text-zinc-500 mb-2 block">{label} {required && <span className="text-rose-500">*</span>}</label>
+        <label className="text-xs font-medium text-zinc-500 mb-2 block">{label} {required && <span className="text-rose-500">*</span>}</label>
         {React.Children.map(children, child =>
             React.isValidElement(child)
                 ? React.cloneElement(child as React.ReactElement<any>, {
@@ -217,7 +217,7 @@ const NewResourceForm: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
     };
     
     if (isSuccess) {
-        return <div className="text-center py-20 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500 mb-4" /><h3 className="font-bold text-lg">Resource Added!</h3></div>;
+        return <div className="text-center py-20 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500 mb-4" /><h3 className="font-medium text-lg">Resource Added!</h3></div>;
     }
 
     return (
@@ -238,7 +238,7 @@ const NewResourceForm: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
                 <FormField label="SPA (Service Planning Area)"><input type="text" value={formData['SPA'] || ''} onChange={e => handleChange('SPA', e.target.value)} /></FormField>
              </div>
              <div className="flex justify-end pt-6 border-t border-zinc-100">
-                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
+                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Resource</>}
                 </button>
              </div>

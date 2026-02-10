@@ -74,12 +74,12 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Referral Management</h1>
+          <h1 className="text-4xl font-medium text-zinc-900 tracking-tight">Referral Management</h1>
           <p className="text-zinc-500 mt-1">Client intake, referrals, and service coordination</p>
         </div>
         <button
           onClick={fetchAllData}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-bold hover:bg-zinc-200"
+          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-medium hover:bg-zinc-200"
         >
           <RefreshCw size={16} /> Refresh Data
         </button>
@@ -91,7 +91,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
               activeTab === tab.id
                 ? 'bg-[#233DFF] text-white shadow-lg'
                 : 'bg-white text-zinc-600 border border-zinc-200 hover:border-[#233DFF]'
@@ -172,7 +172,7 @@ const DashboardView: React.FC<{
             <div className={`w-12 h-12 rounded-xl bg-${kpi.color}-100 text-${kpi.color}-600 flex items-center justify-center mb-4`}>
               {kpi.icon}
             </div>
-            <p className="text-3xl font-black text-zinc-900">{kpi.value}</p>
+            <p className="text-3xl font-medium text-zinc-900">{kpi.value}</p>
             <p className="text-sm text-zinc-500 font-medium">{kpi.label}</p>
           </div>
         ))}
@@ -181,24 +181,24 @@ const DashboardView: React.FC<{
       {/* SLA Report */}
       {slaReport && (
         <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
-          <h3 className="font-bold text-zinc-900 mb-4 flex items-center gap-2">
+          <h3 className="font-medium text-zinc-900 mb-4 flex items-center gap-2">
             <Clock size={20} /> 72-Hour SLA Compliance
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <p className="text-2xl font-black text-emerald-600">{slaReport.compliant}</p>
+              <p className="text-2xl font-medium text-emerald-600">{slaReport.compliant}</p>
               <p className="text-xs text-zinc-500">Compliant</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-black text-rose-600">{slaReport.nonCompliant}</p>
+              <p className="text-2xl font-medium text-rose-600">{slaReport.nonCompliant}</p>
               <p className="text-xs text-zinc-500">Non-Compliant</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-black text-amber-600">{slaReport.onTrack}</p>
+              <p className="text-2xl font-medium text-amber-600">{slaReport.onTrack}</p>
               <p className="text-xs text-zinc-500">On Track</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-black text-[#233DFF]">{slaReport.avgResponseTimeHours}h</p>
+              <p className="text-2xl font-medium text-[#233DFF]">{slaReport.avgResponseTimeHours}h</p>
               <p className="text-xs text-zinc-500">Avg Response</p>
             </div>
           </div>
@@ -208,17 +208,17 @@ const DashboardView: React.FC<{
       {/* Urgent Referrals */}
       {urgentReferrals.length > 0 && (
         <div className="p-6 bg-rose-50 rounded-2xl border border-rose-200">
-          <h3 className="font-bold text-rose-800 mb-4 flex items-center gap-2">
+          <h3 className="font-medium text-rose-800 mb-4 flex items-center gap-2">
             <AlertTriangle size={20} /> Urgent/Emergency Referrals ({urgentReferrals.length})
           </h3>
           <div className="space-y-3">
             {urgentReferrals.slice(0, 5).map(r => (
               <div key={r.id} className="p-4 bg-white rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-zinc-900">{r.clientName}</p>
+                  <p className="font-medium text-zinc-900">{r.clientName}</p>
                   <p className="text-sm text-zinc-500">{r.serviceNeeded}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                   r.urgency === 'Emergency' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
                 }`}>
                   {r.urgency}
@@ -231,12 +231,12 @@ const DashboardView: React.FC<{
 
       {/* Recent Activity */}
       <div>
-        <h3 className="font-bold text-zinc-900 mb-4">Recent Referrals</h3>
+        <h3 className="font-medium text-zinc-900 mb-4">Recent Referrals</h3>
         <div className="space-y-3">
           {referrals.slice(0, 10).map(r => (
             <div key={r.id} className="p-4 bg-zinc-50 rounded-xl flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
                   r.status === 'Completed' ? 'bg-emerald-500' :
                   r.status === 'In Progress' ? 'bg-[#233DFF]/50' :
                   r.status === 'Pending' ? 'bg-amber-500' : 'bg-zinc-400'
@@ -244,12 +244,12 @@ const DashboardView: React.FC<{
                   {r.clientName.charAt(0)}
                 </div>
                 <div>
-                  <p className="font-bold text-zinc-900">{r.clientName}</p>
+                  <p className="font-medium text-zinc-900">{r.clientName}</p>
                   <p className="text-sm text-zinc-500">{r.serviceNeeded} → {r.referredTo}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className={`text-xs font-bold ${
+                <p className={`text-xs font-medium ${
                   r.status === 'Completed' ? 'text-emerald-600' :
                   r.status === 'In Progress' ? 'text-[#233DFF]' :
                   r.status === 'Pending' ? 'text-amber-600' : 'text-zinc-400'
@@ -292,7 +292,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
         </div>
         <button
           onClick={() => setShowNewClient(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm"
+          className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-medium text-sm"
         >
           <Plus size={18} /> New Client
         </button>
@@ -302,19 +302,19 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
         <table className="w-full">
           <thead className="bg-zinc-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Contact</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Language</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">SPA</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Intake Date</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Name</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Contact</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Language</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">SPA</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Intake Date</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {filteredClients.map(client => (
               <tr key={client.id} className="hover:bg-zinc-50 cursor-pointer">
                 <td className="px-4 py-4">
-                  <p className="font-bold text-zinc-900">{client.firstName} {client.lastName}</p>
+                  <p className="font-medium text-zinc-900">{client.firstName} {client.lastName}</p>
                 </td>
                 <td className="px-4 py-4">
                   <p className="text-sm text-zinc-600">{client.phone}</p>
@@ -323,7 +323,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
                 <td className="px-4 py-4 text-sm text-zinc-600">{client.primaryLanguage || 'English'}</td>
                 <td className="px-4 py-4 text-sm text-zinc-600">{client.spa || '-'}</td>
                 <td className="px-4 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     client.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-600'
                   }`}>
                     {client.status || 'Active'}
@@ -374,7 +374,7 @@ const ReferralsView: React.FC<{
             <button
               key={f}
               onClick={() => setFilter(f as any)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold capitalize ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${
                 filter === f ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600'
               }`}
             >
@@ -432,8 +432,8 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h3 className="font-bold text-lg text-zinc-900">{referral.clientName}</h3>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+            <h3 className="font-medium text-lg text-zinc-900">{referral.clientName}</h3>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
               referral.urgency === 'Emergency' ? 'bg-rose-100 text-rose-700' :
               referral.urgency === 'Urgent' ? 'bg-amber-100 text-amber-700' :
               'bg-zinc-100 text-zinc-600'
@@ -443,7 +443,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
           </div>
           <p className="text-zinc-500">{referral.serviceNeeded}</p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
           referral.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
           referral.status === 'In Progress' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
           referral.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
@@ -457,7 +457,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
         <span>Referred to: <strong className="text-zinc-700">{referral.referredTo}</strong></span>
         <span>Created: {new Date(referral.createdAt).toLocaleDateString()}</span>
         {referral.status === 'Pending' && (
-          <span className={isOverdue ? 'text-rose-600 font-bold' : ''}>
+          <span className={isOverdue ? 'text-rose-600 font-medium' : ''}>
             {isOverdue ? 'OVERDUE' : `${Math.round(hoursRemaining)}h remaining`}
           </span>
         )}
@@ -468,14 +468,14 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
           <button
             onClick={() => updateStatus('In Progress')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-[#233DFF] text-white rounded-lg text-sm font-bold hover:bg-[#233DFF]/90 disabled:opacity-50"
+            className="px-4 py-2 bg-[#233DFF] text-white rounded-lg text-sm font-medium hover:bg-[#233DFF]/90 disabled:opacity-50"
           >
             Mark In Progress
           </button>
           <button
             onClick={() => updateStatus('Completed')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
           >
             Mark Completed
           </button>
@@ -513,11 +513,11 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
         {filteredResources.map((resource, i) => (
           <div key={i} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 hover:border-[#233DFF]/20 transition-colors">
             <div className="flex items-start justify-between mb-3">
-              <h3 className="font-bold text-zinc-900">{resource['Resource Name']}</h3>
+              <h3 className="font-medium text-zinc-900">{resource['Resource Name']}</h3>
               {resource.averageRating && (
                 <div className="flex items-center gap-1 text-amber-500">
                   <Star size={14} fill="currentColor" />
-                  <span className="text-sm font-bold">{resource.averageRating}</span>
+                  <span className="text-sm font-medium">{resource.averageRating}</span>
                 </div>
               )}
             </div>
@@ -553,7 +553,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowNewPartner(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm"
+          className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-medium text-sm"
         >
           <Plus size={18} /> Add Partner
         </button>
@@ -563,8 +563,8 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
         {partners.map(partner => (
           <div key={partner.id} className="p-6 bg-white rounded-2xl border border-zinc-100">
             <div className="flex items-start justify-between mb-3">
-              <h3 className="font-bold text-zinc-900">{partner.name}</h3>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              <h3 className="font-medium text-zinc-900">{partner.name}</h3>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                 partner.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'
               }`}>
                 {partner.status}
@@ -590,7 +590,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
                       style={{ width: `${partner.performanceScore}%` }}
                     />
                   </div>
-                  <span className="text-sm font-bold text-zinc-700">{partner.performanceScore}%</span>
+                  <span className="text-sm font-medium text-zinc-700">{partner.performanceScore}%</span>
                 </div>
               </div>
             )}
@@ -622,17 +622,17 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 text-center">
           <Star size={32} className="mx-auto text-amber-500 mb-2" />
-          <p className="text-3xl font-black text-zinc-900">{avgRating}</p>
+          <p className="text-3xl font-medium text-zinc-900">{avgRating}</p>
           <p className="text-sm text-zinc-500">Average Rating</p>
         </div>
         <div className="p-6 bg-[#233DFF]/5 rounded-2xl border border-[#233DFF]/10 text-center">
           <FileText size={32} className="mx-auto text-[#233DFF] mb-2" />
-          <p className="text-3xl font-black text-zinc-900">{feedback.length}</p>
+          <p className="text-3xl font-medium text-zinc-900">{feedback.length}</p>
           <p className="text-sm text-zinc-500">Total Feedback</p>
         </div>
         <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
           <TrendingUp size={32} className="mx-auto text-emerald-500 mb-2" />
-          <p className="text-3xl font-black text-zinc-900">
+          <p className="text-3xl font-medium text-zinc-900">
             {feedback.filter(f => f.wouldRecommend).length}
           </p>
           <p className="text-sm text-zinc-500">Would Recommend</p>
@@ -644,7 +644,7 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
           <div key={f.id} className="p-6 bg-zinc-50 rounded-2xl">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <p className="font-bold text-zinc-900">{f.resourceName || 'Service Feedback'}</p>
+                <p className="font-medium text-zinc-900">{f.resourceName || 'Service Feedback'}</p>
                 <p className="text-sm text-zinc-500">{new Date(f.submittedAt).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-1">
@@ -694,13 +694,13 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-2xl w-full rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-xl font-bold">New Client Intake</h2>
+          <h2 className="text-xl font-medium">New Client Intake</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">First Name *</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">First Name *</label>
               <input
                 required
                 type="text"
@@ -710,7 +710,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Last Name *</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Last Name *</label>
               <input
                 required
                 type="text"
@@ -722,7 +722,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Phone *</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Phone *</label>
               <input
                 required
                 type="tel"
@@ -732,7 +732,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Email</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Email</label>
               <input
                 type="email"
                 value={formData.email || ''}
@@ -743,7 +743,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Date of Birth</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Date of Birth</label>
               <input
                 type="date"
                 value={formData.dob || ''}
@@ -752,7 +752,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Primary Language</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Primary Language</label>
               <select
                 value={formData.primaryLanguage || 'English'}
                 onChange={e => setFormData({ ...formData, primaryLanguage: e.target.value })}
@@ -770,7 +770,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">SPA (Service Planning Area)</label>
+            <label className="text-xs font-medium text-zinc-500 block mb-1">SPA (Service Planning Area)</label>
             <select
               value={formData.spa || ''}
               onChange={e => setFormData({ ...formData, spa: e.target.value })}
@@ -783,10 +783,10 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             </select>
           </div>
           <div className="flex justify-end gap-4 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-bold">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-medium">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-lg font-bold disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-lg font-medium disabled:opacity-50">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Create Client'}
             </button>
           </div>
@@ -818,12 +818,12 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-2xl w-full rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Add Partner Agency</h2>
+          <h2 className="text-xl font-medium">Add Partner Agency</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">Agency Name *</label>
+            <label className="text-xs font-medium text-zinc-500 block mb-1">Agency Name *</label>
             <input
               required
               type="text"
@@ -833,7 +833,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">Type</label>
+            <label className="text-xs font-medium text-zinc-500 block mb-1">Type</label>
             <select
               value={formData.type || 'Other'}
               onChange={e => setFormData({ ...formData, type: e.target.value as any })}
@@ -850,7 +850,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Contact Name</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Contact Name</label>
               <input
                 type="text"
                 value={formData.contactName || ''}
@@ -859,7 +859,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Contact Email</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1">Contact Email</label>
               <input
                 type="email"
                 value={formData.contactEmail || ''}
@@ -869,7 +869,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">Contact Phone</label>
+            <label className="text-xs font-medium text-zinc-500 block mb-1">Contact Phone</label>
             <input
               type="tel"
               value={formData.contactPhone || ''}
@@ -878,10 +878,10 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             />
           </div>
           <div className="flex justify-end gap-4 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-bold">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-medium">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-lg font-bold disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-lg font-medium disabled:opacity-50">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Add Partner'}
             </button>
           </div>

@@ -43,14 +43,14 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
       <nav className="max-w-[1200px] mx-auto w-full px-6 py-8 flex justify-between items-center">
         <div className="flex items-center gap-4 cursor-pointer" onClick={onBackToLanding}>
           <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-10 h-10" />
-          <span className="text-xs font-black text-zinc-900 uppercase tracking-widest">Health Matters Clinic</span>
+          <span className="text-xs font-medium text-zinc-900 uppercase tracking-wide">Health Matters Clinic</span>
         </div>
-        <button onClick={onBackToLanding} className="text-xs font-bold text-zinc-500 hover:text-zinc-900">Return to Home</button>
+        <button onClick={onBackToLanding} className="text-xs font-medium text-zinc-500 hover:text-zinc-900">Return to Home</button>
       </nav>
 
       <main className="max-w-[1200px] mx-auto w-full px-6 py-16">
         <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Community Events</h1>
+          <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Community Events</h1>
           <p className="text-lg text-zinc-500 mt-4">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
         </div>
 
@@ -60,7 +60,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {opportunities.map(opp => (
               <div key={opp.id} className="bg-white p-8 rounded-3xl border border-zinc-100 shadow-sm flex flex-col">
-                <h3 className="text-xl font-bold text-zinc-800">{opp.title}</h3>
+                <h3 className="text-xl font-medium text-zinc-800">{opp.title}</h3>
                 <p className="text-sm text-zinc-400 font-medium mt-1">{opp.category}</p>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 my-4">
                   <Calendar size={14}/> {opp.date}
@@ -69,7 +69,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
                   <MapPin size={14}/> {opp.serviceLocation}
                 </div>
                 <div className="mt-auto pt-6">
-                  <button onClick={() => setSelectedOpp(opp)} className="w-full py-3 bg-[#233DFF] text-white font-bold rounded-lg hover:bg-[#233DFF]/90">RSVP Now</button>
+                  <button onClick={() => setSelectedOpp(opp)} className="w-full py-3 bg-[#233DFF] text-white font-medium rounded-lg hover:bg-[#233DFF]/90">RSVP Now</button>
                 </div>
               </div>
             ))}
@@ -108,7 +108,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
       <div className="bg-white max-w-md w-full rounded-2xl shadow-lg p-8" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-xl font-bold">RSVP for {opportunity.title}</h2>
+            <h2 className="text-xl font-medium">RSVP for {opportunity.title}</h2>
             <p className="text-sm text-zinc-500">{opportunity.date}</p>
           </div>
           <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-700"><X size={20}/></button>
@@ -117,7 +117,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
         {isSuccess ? (
           <div className="text-center py-12">
             <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
-            <h3 className="font-bold text-lg">You're on the list!</h3>
+            <h3 className="font-medium text-lg">You're on the list!</h3>
             <p className="text-zinc-600">We look forward to seeing you at the event.</p>
           </div>
         ) : (
@@ -128,7 +128,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
             <input required type="tel" placeholder="Phone" onChange={e => setFormData(p => ({...p, phone: e.target.value}))} className="w-full p-3 border rounded-lg"/>
             <input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setFormData(p => ({...p, dob: e.target.value}))} className="w-full p-3 border rounded-lg"/>
             {error && <p className="text-rose-500 text-sm">{error}</p>}
-            <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-[#233DFF] text-white font-bold rounded-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-[#233DFF] text-white font-medium rounded-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
               {isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : 'Confirm RSVP'}
             </button>
           </form>

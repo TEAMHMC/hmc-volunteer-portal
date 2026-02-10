@@ -113,16 +113,16 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   return (
     <div className="animate-in fade-in duration-500 pb-32">
       <header className="space-y-4 mb-8 md:mb-12 px-2">
-        <button onClick={onBack} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-zinc-400 hover:text-zinc-900 transition-colors">
           <ArrowLeft size={14} /> Back to Schedule
         </button>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <span className="px-3 py-1 bg-zinc-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">{opportunity.category}</span>
-            <h1 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tighter uppercase leading-tight mt-3 italic">{opportunity.title}</h1>
-            <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] mt-1">{opportunity.date} • {opportunity.serviceLocation}</p>
+            <span className="px-3 py-1 bg-zinc-900 text-white rounded-lg text-[9px] font-medium uppercase tracking-wide">{opportunity.category}</span>
+            <h1 className="text-3xl md:text-5xl font-medium text-zinc-900 tracking-normal leading-tight mt-3">{opportunity.title}</h1>
+            <p className="text-zinc-400 font-medium uppercase tracking-wide text-[10px] mt-1">{opportunity.date} • {opportunity.serviceLocation}</p>
           </div>
-          <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+          <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-medium uppercase tracking-wide border border-emerald-100">
              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Mission Active
           </div>
         </div>
@@ -134,7 +134,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
               <button 
                 key={tab.id} 
                 onClick={() => setActiveTab(tab.id as any)} 
-                className={`flex-1 min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-3 px-6 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
+                className={`flex-1 min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-3 px-6 py-4 rounded-3xl text-[10px] font-medium uppercase tracking-wide transition-all ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
               >
                 <tab.icon size={16} /> <span className="whitespace-nowrap">{tab.label}</span>
               </button>
@@ -158,14 +158,14 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
 
 const OverviewTab: React.FC<{ user: Volunteer }> = ({ user }) => (
     <div className="space-y-8 animate-in fade-in">
-        <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Operational Brief</h2>
+        <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Operational Brief</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Duty Assignment</p>
-                <p className="text-2xl font-black text-zinc-900 leading-tight italic uppercase">{user.role}</p>
+                <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2">Duty Assignment</p>
+                <p className="text-2xl font-medium text-zinc-900 leading-tight">{user.role}</p>
             </div>
             <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner flex flex-col justify-between">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Training Clearances</p>
+                <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-4">Training Clearances</p>
                 <div className="space-y-4">
                     <GateCheck label="Survey Kiosk" isMet={!!user.trainingFlags?.surveySOPComplete} />
                     <GateCheck label="Intake & Referrals" isMet={!!user.trainingFlags?.clientPortalOrientationComplete} />
@@ -179,7 +179,7 @@ const OverviewTab: React.FC<{ user: Volunteer }> = ({ user }) => (
 const GateCheck: React.FC<{ label: string; isMet: boolean }> = ({ label, isMet }) => (
     <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${isMet ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 opacity-60 text-rose-800'}`}>
         {isMet ? <CheckCircle size={18} className="text-emerald-500" /> : <Lock size={18} className="text-rose-500" />}
-        <span className="font-black uppercase tracking-widest text-[9px]">{label}</span>
+        <span className="font-medium uppercase tracking-wide text-[9px]">{label}</span>
     </div>
 );
 
@@ -208,16 +208,16 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
     return (
         <div className="space-y-10 animate-in fade-in">
             <header className="flex items-center justify-between">
-                <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Incident Engine</h2>
-                <button onClick={() => setIsReporting(true)} className="px-6 py-3 bg-rose-500 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-rose-600 transition-all flex items-center gap-2"><Plus size={16}/> New Incident</button>
+                <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Incident Engine</h2>
+                <button onClick={() => setIsReporting(true)} className="px-6 py-3 bg-rose-500 text-white rounded-full font-medium text-[10px] uppercase tracking-wide shadow-lg hover:bg-rose-600 transition-all flex items-center gap-2"><Plus size={16}/> New Incident</button>
             </header>
 
             {isReporting && (
                 <form onSubmit={handleSubmit} className="p-10 bg-zinc-50 border-2 border-rose-100 rounded-[48px] space-y-6 animate-in slide-in-from-top-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Incident Type</label>
-                            <select value={form.type} onChange={e => setForm({...form, type: e.target.value as any})} className="w-full p-4 bg-white border border-rose-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-rose-500/5">
+                            <label className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide px-2">Incident Type</label>
+                            <select value={form.type} onChange={e => setForm({...form, type: e.target.value as any})} className="w-full p-4 bg-white border border-rose-200 rounded-2xl font-medium outline-none focus:ring-4 focus:ring-rose-500/5">
                                 <option>EMS activation</option>
                                 <option>Exposure incident</option>
                                 <option>Safety/security issue</option>
@@ -225,25 +225,25 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Personnel Notified</label>
-                            <input placeholder="Name/Role of Lead" value={form.whoNotified} onChange={e => setForm({...form, whoNotified: e.target.value})} className="w-full p-4 bg-white border border-rose-200 rounded-2xl font-bold outline-none" />
+                            <label className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide px-2">Personnel Notified</label>
+                            <input placeholder="Name/Role of Lead" value={form.whoNotified} onChange={e => setForm({...form, whoNotified: e.target.value})} className="w-full p-4 bg-white border border-rose-200 rounded-2xl font-medium outline-none" />
                         </div>
                     </div>
                     <textarea placeholder="Event description..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full h-32 p-6 bg-white border border-rose-200 rounded-3xl outline-none font-medium resize-none" />
                     <textarea placeholder="Actions taken in field..." value={form.actionsTaken} onChange={e => setForm({...form, actionsTaken: e.target.value})} className="w-full h-24 p-6 bg-white border border-rose-200 rounded-3xl outline-none font-medium resize-none" />
                     <div className="flex gap-4">
-                        <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 border border-rose-200 rounded-full font-black text-[10px] uppercase text-rose-500">Discard</button>
-                        <button type="submit" className="flex-[2] py-4 bg-rose-500 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl">Transmit Report</button>
+                        <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 border border-rose-200 rounded-full font-medium text-[10px] uppercase text-rose-500">Discard</button>
+                        <button type="submit" className="flex-[2] py-4 bg-rose-500 text-white rounded-full font-medium text-[10px] uppercase tracking-wide shadow-xl">Transmit Report</button>
                     </div>
                 </form>
             )}
 
             <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Active Ledger</h3>
+                <h3 className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide px-2">Active Ledger</h3>
                 {incidents.length === 0 ? (
                     <div className="p-20 bg-zinc-50/50 rounded-[40px] border border-zinc-100 border-dashed text-center">
                         <Shield size={32} className="mx-auto text-zinc-200 mb-4" />
-                        <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">No incidents recorded this shift</p>
+                        <p className="text-[10px] font-medium text-zinc-300 uppercase tracking-wide">No incidents recorded this shift</p>
                     </div>
                 ) : (
                     incidents.map(i => (
@@ -251,11 +251,11 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
                             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shrink-0 border border-rose-100"><AlertTriangle size={24}/></div>
                             <div className="flex-1">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-lg font-black text-zinc-900 uppercase italic">{i.type}</h4>
-                                    <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest">{new Date(i.timestamp).toLocaleTimeString()}</span>
+                                    <h4 className="text-lg font-medium text-zinc-900">{i.type}</h4>
+                                    <span className="text-[9px] font-medium text-zinc-300 uppercase tracking-wide">{new Date(i.timestamp).toLocaleTimeString()}</span>
                                 </div>
                                 <p className="text-sm text-zinc-500 mt-2 font-medium leading-relaxed">{i.description}</p>
-                                <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center gap-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                                <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center gap-4 text-[9px] font-medium text-zinc-400 uppercase tracking-wide">
                                     <span className="flex items-center gap-1.5"><UserCheck size={12}/> {i.whoNotified}</span>
                                     <span className={`px-2 py-0.5 rounded ${i.status === 'reported' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>{i.status}</span>
                                 </div>
@@ -270,13 +270,13 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
 
 const ChecklistsView: React.FC<{template: ChecklistTemplate, completedItems: string[], onCheckItem: (id: string) => void}> = ({ template, completedItems, onCheckItem }) => (
   <div className="space-y-12 animate-in fade-in">
-    <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">{template.name}</h2>
+    <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">{template.name}</h2>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {Object.keys(template.stages).map((key) => {
             const stage = template.stages[key];
             return (
                 <div key={key} className="space-y-6">
-                    <h3 className="text-[10px] font-black text-[#233DFF] uppercase tracking-[0.2em] pb-3 border-b-2 border-[#233DFF]/10">{stage.title}</h3>
+                    <h3 className="text-[10px] font-medium text-[#233DFF] uppercase tracking-[0.2em] pb-3 border-b-2 border-[#233DFF]/10">{stage.title}</h3>
                     <div className="space-y-3">
                     {stage.items.map(item => {
                         const isCompleted = completedItems.includes(item.id);
@@ -285,7 +285,7 @@ const ChecklistsView: React.FC<{template: ChecklistTemplate, completedItems: str
                             <div className="shrink-0 mt-1">
                                 {isCompleted ? <CheckSquare size={20} className="text-[#233DFF]" /> : <Square size={20} className="text-zinc-200" />}
                             </div>
-                            <span className={`text-xs font-black uppercase tracking-tight leading-tight ${isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-600'}`}>{item.text}</span>
+                            <span className={`text-xs font-medium uppercase tracking-normal leading-tight ${isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-600'}`}>{item.text}</span>
                         </label>
                         )
                     })}
@@ -351,33 +351,33 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     if(isSubmitted) return (
         <div className="text-center py-32 animate-in fade-in scale-110">
             <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-emerald-100"><CheckCircle size={40} className="text-emerald-500" /></div>
-            <h3 className="font-black text-2xl uppercase italic tracking-tight">Sync Complete</h3>
-            <p className="text-zinc-400 text-sm mt-2 font-medium italic">Data transmitted to Registry Cloud.</p>
-            <p className="text-emerald-600 text-sm font-bold mt-4">{responseCount} surveys collected this session</p>
-            <button onClick={resetForm} className="mt-12 px-10 py-4 bg-zinc-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">Next Participant</button>
+            <h3 className="font-medium text-2xl tracking-tight">Sync Complete</h3>
+            <p className="text-zinc-400 text-sm mt-2 font-medium">Data transmitted to Registry Cloud.</p>
+            <p className="text-emerald-600 text-sm font-medium mt-4">{responseCount} surveys collected this session</p>
+            <button onClick={resetForm} className="mt-12 px-10 py-4 bg-zinc-900 text-white rounded-full text-[10px] font-medium uppercase tracking-wide shadow-xl">Next Participant</button>
         </div>
     );
 
     return (
         <div className="space-y-12 animate-in fade-in">
             <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Survey Kiosk</h2>
+                <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Survey Kiosk</h2>
                 <div className="px-4 py-2 bg-emerald-50 rounded-full">
-                    <span className="text-xs font-bold text-emerald-700">{responseCount} collected</span>
+                    <span className="text-xs font-medium text-emerald-700">{responseCount} collected</span>
                 </div>
             </div>
             <div className="p-10 bg-zinc-50 rounded-[48px] border border-zinc-100 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#233DFF]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#233DFF]/10 transition-all" />
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Smartphone size={14}/> Approved Script</h3>
+                    <h3 className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide flex items-center gap-2"><Smartphone size={14}/> Approved Script</h3>
                 </div>
-                <p className="text-lg font-medium text-zinc-700 leading-relaxed italic">{surveyKit.volunteerScript.en}</p>
+                <p className="text-lg font-medium text-zinc-700 leading-relaxed">{surveyKit.volunteerScript.en}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Client Info Section */}
                 <div className="p-6 bg-[#233DFF]/5 rounded-3xl border border-[#233DFF]/10 space-y-4">
-                    <h4 className="text-xs font-black text-[#233DFF] uppercase tracking-widest">Participant Info (Optional)</h4>
+                    <h4 className="text-xs font-medium text-[#233DFF] uppercase tracking-wide">Participant Info (Optional)</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <input
                             type="text"
@@ -405,12 +405,12 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
 
                 {surveyKit.formStructure.map(field => (
                     <div key={field.id} className="space-y-4">
-                        <label className="text-sm font-black text-zinc-900 leading-tight flex items-center gap-3">
+                        <label className="text-sm font-medium text-zinc-900 leading-tight flex items-center gap-3">
                             <div className="w-6 h-6 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-[9px] italic shrink-0 shadow-lg">?</div>
                             {field.question} {field.required && <span className="text-rose-500">*</span>}
                         </label>
                         {field.type === 'Short Text' && <textarea value={submission[field.id] || ''} onChange={e => setSubmission({...submission, [field.id]: e.target.value})} className="w-full p-6 bg-zinc-50 border-2 border-zinc-100 rounded-3xl text-sm font-medium focus:bg-white focus:border-[#233DFF]/20 outline-none transition-all" rows={3} />}
-                        {field.type === 'Rating' && <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-14 h-14 rounded-2xl shrink-0 font-black transition-all border-2 ${submission[field.id] === opt ? 'bg-[#233DFF] text-white border-[#233DFF] shadow-xl scale-110' : 'bg-white text-zinc-300 border-zinc-100 hover:border-zinc-200'}`}>{opt}</button>)}</div>}
+                        {field.type === 'Rating' && <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-14 h-14 rounded-2xl shrink-0 font-medium transition-all border-2 ${submission[field.id] === opt ? 'bg-[#233DFF] text-white border-[#233DFF] shadow-xl scale-110' : 'bg-white text-zinc-300 border-zinc-100 hover:border-zinc-200'}`}>{opt}</button>)}</div>}
                         {field.type === 'Multiple Choice' && <div className="space-y-2">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-full p-4 rounded-2xl text-left text-sm font-medium transition-all border-2 ${submission[field.id] === opt ? 'bg-[#233DFF]/5 border-[#233DFF] text-[#233DFF]' : 'bg-zinc-50 border-zinc-100 hover:border-zinc-200'}`}>{opt}</button>)}</div>}
                         {field.type === 'Checkboxes' && <div className="space-y-2">{field.options?.map(opt => {
                             const selected = (submission[field.id] || []).includes(opt);
@@ -446,7 +446,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                 <button
                     type="submit"
                     disabled={isSubmitting || !consentGiven}
-                    className="w-full py-6 bg-[#233DFF] text-white font-black uppercase tracking-[0.3em] text-[11px] rounded-full shadow-[0_20px_50px_rgba(35,61,255,0.3)] hover:scale-[1.02] transition-all active:scale-95 mt-10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    className="w-full py-6 bg-[#233DFF] text-white font-medium uppercase tracking-[0.3em] text-[11px] rounded-full shadow-[0_20px_50px_rgba(35,61,255,0.3)] hover:scale-[1.02] transition-all active:scale-95 mt-10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                     {isSubmitting ? <><Loader2 className="animate-spin" size={18} /> Syncing...</> : 'Sync Entry'}
                 </button>
@@ -472,21 +472,21 @@ const SignoffView: React.FC<{shift: Shift, opsRun: MissionOpsRun | null, onSigno
                 <UserCheck size={48} />
             </div>
             <div className="space-y-4">
-                <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Mission Termination</h2>
+                <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Mission Termination</h2>
                 <p className="text-zinc-500 text-base font-medium italic px-6">Verify all station interactions have been successfully synced to HMC Core before finalizing your shift session.</p>
             </div>
             
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Digital Endorsement</label>
-                    <button onClick={() => sigPadRef.current?.clear()} className="text-[9px] font-black text-[#233DFF] uppercase tracking-widest border-b border-[#233DFF]">Clear Ink</button>
+                    <label className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Digital Endorsement</label>
+                    <button onClick={() => sigPadRef.current?.clear()} className="text-[9px] font-medium text-[#233DFF] uppercase tracking-wide border-b border-[#233DFF]">Clear Ink</button>
                 </div>
                 <div className="aspect-[2/1] w-full border-4 border-dashed border-zinc-100 rounded-[40px] overflow-hidden bg-zinc-50 shadow-inner">
                     <SignaturePad ref={sigPadRef} width={500} height={250} />
                 </div>
             </div>
 
-            <button onClick={handleConfirm} disabled={signing} className="w-full py-7 bg-zinc-900 text-white rounded-full font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4">
+            <button onClick={handleConfirm} disabled={signing} className="w-full py-7 bg-zinc-900 text-white rounded-full font-medium uppercase tracking-[0.3em] text-xs shadow-2xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4">
                 {signing ? <Loader2 className="animate-spin" /> : <>Commit Record & End Session <Send size={18}/></>}
             </button>
         </div>
@@ -497,21 +497,21 @@ const AuditTrailView: React.FC<{auditLogs: AuditLog[]}> = ({ auditLogs }) => (
     <div className="space-y-8 animate-in fade-in">
         <div className="flex items-center gap-4 border-b border-zinc-50 pb-6">
             <div className="w-12 h-12 bg-zinc-900 text-white rounded-2xl flex items-center justify-center shadow-lg"><Shield size={24}/></div>
-            <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Ops Audit Ledger</h2>
+            <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Ops Audit Ledger</h2>
         </div>
         <div className="space-y-4">
             {auditLogs.length === 0 ? (
                 <div className="py-32 text-center">
                     <FileClock size={48} className="mx-auto text-zinc-100 mb-6" />
-                    <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">No auditable transactions recorded</p>
+                    <p className="text-[10px] font-medium text-zinc-300 uppercase tracking-wide">No auditable transactions recorded</p>
                 </div>
             ) : (
                 auditLogs.map(log => (
                     <div key={log.id} className="p-6 bg-zinc-50/50 rounded-[32px] border border-zinc-100 flex items-start gap-6 hover:bg-zinc-50 transition-all group">
                         <div className="w-10 h-10 rounded-xl bg-white border border-zinc-100 flex items-center justify-center shrink-0 text-[#233DFF] shadow-sm group-hover:scale-110 transition-transform"><FileClock size={20}/></div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-zinc-800 tracking-tight leading-tight">{log.summary}</p>
-                            <div className="mt-2 flex items-center gap-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                            <p className="text-sm font-medium text-zinc-800 tracking-normal leading-tight">{log.summary}</p>
+                            <div className="mt-2 flex items-center gap-4 text-[9px] font-medium text-zinc-400 uppercase tracking-wide">
                                 <span className="bg-white px-2 py-0.5 rounded border border-zinc-100">{log.actionType}</span>
                                 <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
                             </div>
@@ -528,8 +528,8 @@ const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }
         <div className="p-10 bg-rose-50 rounded-full text-rose-500 mb-10 border-4 border-rose-100 shadow-inner">
             <Lock size={56} className="animate-pulse" />
         </div>
-        <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase italic">Access Restrained</h3>
-        <p className="text-zinc-500 text-base mt-4 max-w-sm mx-auto leading-relaxed font-medium italic">Required personnel clearance missing: <span className="font-black text-zinc-900 italic underline">"{requiredTraining}"</span>. Visit the Registry Academy to unlock this clinical module.</p>
+        <h3 className="text-2xl font-medium text-zinc-900 tracking-tight">Access Restrained</h3>
+        <p className="text-zinc-500 text-base mt-4 max-w-sm mx-auto leading-relaxed font-medium">Required personnel clearance missing: <span className="font-medium text-zinc-900 italic underline">"{requiredTraining}"</span>. Visit the Registry Academy to unlock this clinical module.</p>
     </div>
 );
 

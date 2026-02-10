@@ -66,16 +66,16 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
     };
     
     if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-[#233DFF]" size={48} /></div>;
-    if (error) return <div className="text-center text-rose-500 font-bold">{error}</div>;
+    if (error) return <div className="text-center text-rose-500 font-medium">{error}</div>;
 
     return (
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Referral Dashboard</h1>
+                    <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Referral Dashboard</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage and track all client referrals and SLA compliance.</p>
                 </div>
-                <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 transition-colors">
+                <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg hover:bg-[#233DFF]/90 transition-colors">
                     <Plus size={16} /> New Referral
                 </button>
             </header>
@@ -84,12 +84,12 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Client</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Service Needed</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Status</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Urgency</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Assigned To</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">SLA</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Client</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Service Needed</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Status</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Urgency</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">Assigned To</th>
+                            <th className="px-6 py-4 text-xs font-medium text-zinc-500 uppercase">SLA</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -98,12 +98,12 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                             const assigned = allVolunteers.find(v => v.id === r.referredBy);
                             return (
                                 <tr key={r.id} onClick={() => setSelectedReferral(r)} className="hover:bg-zinc-50 cursor-pointer">
-                                    <td className="px-6 py-4 font-bold">{r.clientName}</td>
+                                    <td className="px-6 py-4 font-medium">{r.clientName}</td>
                                     <td className="px-6 py-4 text-sm text-zinc-600">{r.serviceNeeded}</td>
-                                    <td className="px-6 py-4"><span className="px-2 py-1 text-xs font-bold rounded bg-zinc-100 text-zinc-600">{r.status}</span></td>
-                                    <td className="px-6 py-4"><span className={`font-bold text-sm ${r.urgency === 'Urgent' ? 'text-amber-600' : r.urgency === 'Emergency' ? 'text-rose-600' : 'text-zinc-600'}`}>{r.urgency}</span></td>
+                                    <td className="px-6 py-4"><span className="px-2 py-1 text-xs font-medium rounded bg-zinc-100 text-zinc-600">{r.status}</span></td>
+                                    <td className="px-6 py-4"><span className={`font-medium text-sm ${r.urgency === 'Urgent' ? 'text-amber-600' : r.urgency === 'Emergency' ? 'text-rose-600' : 'text-zinc-600'}`}>{r.urgency}</span></td>
                                     <td className="px-6 py-4 text-sm">{assigned?.name || 'Unassigned'}</td>
-                                    <td className="px-6 py-4"><div className="flex items-center gap-2 text-xs font-bold"><div className={`w-2 h-2 rounded-full ${sla.color}`} />{sla.status}</div></td>
+                                    <td className="px-6 py-4"><div className="flex items-center gap-2 text-xs font-medium"><div className={`w-2 h-2 rounded-full ${sla.color}`} />{sla.status}</div></td>
                                 </tr>
                             )
                         })}
@@ -145,33 +145,33 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
         <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={onClose}>
             <div className="bg-white max-w-4xl w-full rounded-[40px] shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{isNew ? 'New Referral' : `Referral for ${formData.clientName}`}</h2>
+                    <h2 className="text-2xl font-medium text-zinc-900 tracking-tight">{isNew ? 'New Referral' : `Referral for ${formData.clientName}`}</h2>
                     <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
                 </header>
                 <main className="p-8 space-y-6 overflow-y-auto">
                     {/* Client Info */}
                     <div className="grid grid-cols-2 gap-6">
-                         <div><label className="text-xs font-bold text-zinc-500">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
-                         <div><label className="text-xs font-bold text-zinc-500">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                         <div><label className="text-xs font-medium text-zinc-500">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                         <div><label className="text-xs font-medium text-zinc-500">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
                     </div>
                      {/* Status & Urgency */}
                      <div className="grid grid-cols-2 gap-6">
-                         <div><label className="text-xs font-bold text-zinc-500">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
-                         <div><label className="text-xs font-bold text-zinc-500">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
+                         <div><label className="text-xs font-medium text-zinc-500">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
+                         <div><label className="text-xs font-medium text-zinc-500">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
                      </div>
                       {/* Service Needed */}
-                     <div><label className="text-xs font-bold text-zinc-500">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full mt-1 p-3 h-20 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                     <div><label className="text-xs font-medium text-zinc-500">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full mt-1 p-3 h-20 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
                      
                      {/* AI Matching */}
                      <AIResourceMatcher serviceNeed={formData.serviceNeeded || ''} onSelect={(resource) => setFormData({...formData, referredTo: resource['Resource Name']})} />
                      
                      {/* Final Resource & Notes */}
-                     <div><label className="text-xs font-bold text-zinc-500">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
-                     <div><label className="text-xs font-bold text-zinc-500">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full mt-1 p-3 h-24 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                     <div><label className="text-xs font-medium text-zinc-500">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                     <div><label className="text-xs font-medium text-zinc-500">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full mt-1 p-3 h-24 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
 
                 </main>
                 <footer className="p-8 border-t border-zinc-100 flex justify-end">
-                    <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
+                    <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Referral</>}
                     </button>
                 </footer>
@@ -198,8 +198,8 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
     return (
         <div className="p-4 bg-[#233DFF]/5 rounded-2xl border border-[#233DFF]/10 space-y-4">
             <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-[#233DFF] uppercase flex items-center gap-2"><Sparkles size={14}/> AI Matching Assistant</h4>
-                <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="px-3 py-1 bg-white border border-[#233DFF]/20 text-[#233DFF] text-xs font-bold rounded-lg disabled:opacity-50">
+                <h4 className="text-xs font-medium text-[#233DFF] uppercase flex items-center gap-2"><Sparkles size={14}/> AI Matching Assistant</h4>
+                <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="px-3 py-1 bg-white border border-[#233DFF]/20 text-[#233DFF] text-xs font-medium rounded-lg disabled:opacity-50">
                     {isLoading ? <Loader2 size={14} className="animate-spin"/> : 'Find Matches'}
                 </button>
             </div>
@@ -210,9 +210,9 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
                          if (!resource) return null;
                          return (
                              <div key={i} className="p-3 bg-white/50 rounded-lg border border-[#233DFF]/10">
-                                 <h5 className="font-bold text-sm text-zinc-800">{rec["Resource Name"]}</h5>
+                                 <h5 className="font-medium text-sm text-zinc-800">{rec["Resource Name"]}</h5>
                                  <p className="text-xs italic text-zinc-500 my-1">"{rec.reasoning}"</p>
-                                 <button onClick={() => onSelect(resource)} className="text-xs font-bold text-[#233DFF] hover:underline">Select</button>
+                                 <button onClick={() => onSelect(resource)} className="text-xs font-medium text-[#233DFF] hover:underline">Select</button>
                              </div>
                          )
                     })}

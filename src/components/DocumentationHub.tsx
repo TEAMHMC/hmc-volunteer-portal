@@ -80,13 +80,13 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
             <header className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Documentation Hub</h1>
+                    <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Documentation Hub</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
                 {canEdit && (
                     <button
                         onClick={() => setShowNewArticleModal(true)}
-                        className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
+                        className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg hover:scale-105 transition-transform"
                     >
                         <Plus size={16} /> New Document
                     </button>
@@ -110,7 +110,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     return (
                     <div key={category} className="bg-white border border-zinc-100 rounded-[32px] overflow-hidden">
                         <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-6">
-                            <h2 className="text-xl font-bold text-zinc-800">{category}</h2>
+                            <h2 className="text-xl font-medium text-zinc-800">{category}</h2>
                             <ChevronDown className={`transition-transform ${expandedCategories.includes(category) ? 'rotate-180' : ''}`} />
                         </button>
                         {expandedCategories.includes(category) && (
@@ -170,8 +170,8 @@ const ArticleModal: React.FC<{
         // First escape all HTML, then apply safe markdown-like formatting
         const escaped = escapeHtml(content);
         return escaped
-            .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-6 mb-2">$1</h2>')
-            .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-medium mt-6 mb-2">$1</h2>')
+            .replace(/^### (.*$)/gim, '<h3 class="text-xl font-medium mt-4 mb-2">$1</h3>')
             .replace(/\n/g, '<br />');
     };
 
@@ -180,8 +180,8 @@ const ArticleModal: React.FC<{
             <div className="bg-white max-w-3xl w-full rounded-2xl shadow-lg flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-6 border-b border-zinc-100 flex items-start justify-between">
                     <div>
-                        <p className="text-xs font-bold text-[#233DFF] uppercase">{article.category}</p>
-                        <h2 className="text-2xl font-bold text-zinc-900">{article.title}</h2>
+                        <p className="text-xs font-medium text-[#233DFF] uppercase">{article.category}</p>
+                        <h2 className="text-2xl font-medium text-zinc-900">{article.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">
                         {canEdit && (
@@ -282,11 +282,11 @@ const ArticleEditorModal: React.FC<{
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white max-w-5xl w-full rounded-[32px] shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-zinc-900">{article ? 'Edit Document' : 'New Document'}</h2>
+                    <h2 className="text-2xl font-medium text-zinc-900">{article ? 'Edit Document' : 'New Document'}</h2>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowAiPanel(!showAiPanel)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all ${showAiPanel ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-600 hover:bg-purple-50 hover:text-purple-600'}`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all ${showAiPanel ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-600 hover:bg-purple-50 hover:text-purple-600'}`}
                         >
                             <Sparkles size={14} /> AI Assistant
                         </button>
@@ -297,7 +297,7 @@ const ArticleEditorModal: React.FC<{
                 <div className="flex flex-1 overflow-hidden">
                     <main className={`p-8 space-y-6 overflow-y-auto ${showAiPanel ? 'w-2/3' : 'w-full'}`}>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Title</label>
+                            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Title</label>
                             <input
                                 type="text"
                                 value={title}
@@ -308,7 +308,7 @@ const ArticleEditorModal: React.FC<{
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Category</label>
+                                <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Category</label>
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
@@ -320,7 +320,7 @@ const ArticleEditorModal: React.FC<{
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Or Create New Category</label>
+                                <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Or Create New Category</label>
                                 <input
                                     type="text"
                                     value={newCategory}
@@ -332,12 +332,12 @@ const ArticleEditorModal: React.FC<{
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide">Content (Markdown supported)</label>
+                                <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">Content (Markdown supported)</label>
                                 {content && (
                                     <button
                                         onClick={handleAiImprove}
                                         disabled={isGenerating}
-                                        className="flex items-center gap-1 text-xs font-bold text-purple-600 hover:text-purple-700 disabled:opacity-50"
+                                        className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50"
                                     >
                                         {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
                                         Improve with AI
@@ -352,7 +352,7 @@ const ArticleEditorModal: React.FC<{
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Tags (comma-separated)</label>
+                            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Tags (comma-separated)</label>
                             <input
                                 type="text"
                                 value={tags}
@@ -362,7 +362,7 @@ const ArticleEditorModal: React.FC<{
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                            <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">
                                 <Eye size={12} className="inline mr-1" />
                                 Visible To (leave empty for all roles)
                             </label>
@@ -374,7 +374,7 @@ const ArticleEditorModal: React.FC<{
                                         onClick={() => setVisibleTo(prev =>
                                             prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
                                         )}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                                             visibleTo.includes(role)
                                                 ? 'bg-[#233DFF] text-white'
                                                 : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
@@ -396,12 +396,12 @@ const ArticleEditorModal: React.FC<{
                         <aside className="w-1/3 border-l border-zinc-100 p-6 bg-gradient-to-b from-purple-50 to-white overflow-y-auto">
                             <div className="flex items-center gap-2 mb-6">
                                 <Sparkles size={20} className="text-purple-600" />
-                                <h3 className="text-lg font-black text-zinc-900">AI Document Assistant</h3>
+                                <h3 className="text-lg font-medium text-zinc-900">AI Document Assistant</h3>
                             </div>
 
                             <div className="space-y-4">
                                 <div className="bg-white p-4 rounded-xl border border-purple-100">
-                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Generate Content</p>
+                                    <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Generate Content</p>
                                     <p className="text-xs text-zinc-400 mb-3">Describe what you want to write about and AI will help draft the content.</p>
                                     <textarea
                                         value={aiPrompt}
@@ -412,7 +412,7 @@ const ArticleEditorModal: React.FC<{
                                     <button
                                         onClick={handleAiGenerate}
                                         disabled={!aiPrompt.trim() || isGenerating}
-                                        className="mt-3 w-full py-2 bg-purple-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-purple-700 transition-colors"
+                                        className="mt-3 w-full py-2 bg-purple-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-purple-700 transition-colors"
                                     >
                                         {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                         Generate
@@ -420,7 +420,7 @@ const ArticleEditorModal: React.FC<{
                                 </div>
 
                                 <div className="bg-white p-4 rounded-xl border border-zinc-100">
-                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-3">Quick Prompts</p>
+                                    <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">Quick Prompts</p>
                                     <div className="space-y-2">
                                         {[
                                             'Write a standard operating procedure for...',
@@ -449,12 +449,12 @@ const ArticleEditorModal: React.FC<{
                 </div>
 
                 <footer className="p-8 border-t border-zinc-100 flex justify-end gap-4">
-                    <button onClick={onClose} className="px-6 py-3 border border-zinc-200 rounded-full font-bold text-sm hover:bg-zinc-50">
+                    <button onClick={onClose} className="px-6 py-3 border border-zinc-200 rounded-full font-medium text-sm hover:bg-zinc-50">
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-8 py-3 bg-[#233DFF] text-white rounded-full font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"
+                        className="px-8 py-3 bg-[#233DFF] text-white rounded-full font-medium text-sm flex items-center gap-2 hover:scale-105 transition-transform"
                     >
                         <Save size={16} /> Save Document
                     </button>

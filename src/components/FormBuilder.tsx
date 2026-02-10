@@ -185,13 +185,13 @@ const FormBuilder: React.FC = () => {
             <div className="space-y-8 animate-in fade-in duration-500 pb-20">
                 <header className="flex items-center justify-between">
                     <div>
-                        <button onClick={() => setViewingResponses(null)} className="text-sm font-bold text-zinc-500 mb-2">← Back to Forms</button>
-                        <h1 className="text-4xl font-black text-zinc-900 tracking-tighter">Survey Responses</h1>
+                        <button onClick={() => setViewingResponses(null)} className="text-sm font-medium text-zinc-500 mb-2">← Back to Forms</button>
+                        <h1 className="text-4xl font-medium text-zinc-900 tracking-normal">Survey Responses</h1>
                         <p className="text-zinc-500 mt-1">{viewingResponses.responses.length} responses collected</p>
                     </div>
                     <button
                         onClick={() => handleExportResponses(viewingResponses.responses)}
-                        className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-xs font-black uppercase tracking-widest"
+                        className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-xs font-medium uppercase tracking-wide"
                     >
                         <Download size={16} /> Export CSV
                     </button>
@@ -207,10 +207,10 @@ const FormBuilder: React.FC = () => {
                         {viewingResponses.responses.map((response, idx) => (
                             <div key={response.id || idx} className="bg-white p-6 rounded-2xl border border-zinc-100">
                                 <div className="flex items-center justify-between mb-4">
-                                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                                    <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
                                         {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'Unknown date'}
                                     </span>
-                                    <span className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] text-xs font-bold rounded-full">
+                                    <span className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] text-xs font-medium rounded-full">
                                         {response.respondentType}
                                     </span>
                                 </div>
@@ -238,12 +238,12 @@ const FormBuilder: React.FC = () => {
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
             <header className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Forms Dashboard</h1>
+                    <h1 className="text-5xl font-medium text-zinc-900 tracking-normal">Forms Dashboard</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage data collection forms for surveys, applications, and feedback.</p>
                 </div>
                 <button
                     onClick={handleCreateNewForm}
-                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
+                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg hover:scale-105 transition-transform"
                 >
                     <Plus size={16} /> New Form
                 </button>
@@ -258,27 +258,27 @@ const FormBuilder: React.FC = () => {
                             {responseCounts[form.id!] > 0 && (
                               <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
                                 <BarChart3 size={14} className="text-green-600" />
-                                <span className="text-xs font-bold text-green-700">{responseCounts[form.id!]} responses</span>
+                                <span className="text-xs font-medium text-green-700">{responseCounts[form.id!]} responses</span>
                               </div>
                             )}
                           </div>
-                          <h3 className="text-lg font-black text-zinc-900">{form.title}</h3>
+                          <h3 className="text-lg font-medium text-zinc-900">{form.title}</h3>
                           <p className="text-sm text-zinc-500 mt-2">{form.description}</p>
                           <div className="mt-3">
-                            <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-bold uppercase tracking-wider rounded">
+                            <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-medium uppercase tracking-wider rounded">
                               {form.category || 'custom'}
                             </span>
                           </div>
                         </div>
                         <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-between gap-3">
-                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#233DFF] hover:bg-[#233DFF]/5 px-4 py-3 rounded-xl">
+                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[#233DFF] hover:bg-[#233DFF]/5 px-4 py-3 rounded-xl">
                                 <BarChart3 size={14} /> Responses
                             </button>
                             <div className="flex gap-2">
-                                <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl">
+                                <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl">
                                     <Trash2 size={14} />
                                 </button>
-                                <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl hover:bg-zinc-200">
+                                <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl hover:bg-zinc-200">
                                     Edit Form
                                 </button>
                             </div>
@@ -333,11 +333,11 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
-                <button onClick={onBack} className="text-sm font-bold text-zinc-500">← Back to Forms</button>
+                <button onClick={onBack} className="text-sm font-medium text-zinc-500">← Back to Forms</button>
                 <button
                     onClick={() => onSave({ ...form, title: formTitle, fields })}
                     disabled={isSaving}
-                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-medium uppercase tracking-wide shadow-lg disabled:opacity-50"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
@@ -346,11 +346,11 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
 
             <div className="grid grid-cols-12 gap-8 items-start">
                 <div className="col-span-8 bg-white p-12 rounded-[48px] border border-zinc-100 shadow-sm space-y-8">
-                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-black text-zinc-900 outline-none p-2 -ml-2 rounded-lg focus:bg-zinc-50" />
+                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-medium text-zinc-900 outline-none p-2 -ml-2 rounded-lg focus:bg-zinc-50" />
                     {fields.map(field => (
                         <div key={field.id} className="p-6 bg-zinc-50 border border-zinc-100 rounded-2xl relative group">
                             <button onClick={() => removeField(field.id)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-zinc-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                            <input value={field.question} onChange={e => updateField(field.id, 'question', e.target.value)} className="font-bold text-zinc-700 w-full bg-transparent outline-none p-1 rounded focus:bg-white" />
+                            <input value={field.question} onChange={e => updateField(field.id, 'question', e.target.value)} className="font-medium text-zinc-700 w-full bg-transparent outline-none p-1 rounded focus:bg-white" />
                             
                             {(field.type === 'Multiple Choice' || field.type === 'Checkboxes') && (
                                 <div className="space-y-2 mt-4">
@@ -361,18 +361,18 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                                             <button onClick={() => removeOption(field.id, i)} className="text-zinc-300 hover:text-rose-500 opacity-0 group-hover/option:opacity-100"><X size={14}/></button>
                                         </div>
                                     ))}
-                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-[#233DFF] mt-2 p-1 hover:bg-[#233DFF]/5 rounded"><PlusCircle size={14} /> Add Option</button>
+                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-medium text-[#233DFF] mt-2 p-1 hover:bg-[#233DFF]/5 rounded"><PlusCircle size={14} /> Add Option</button>
                                 </div>
                             )}
                         </div>
                     ))}
                 </div>
                 <div className="col-span-4 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm space-y-4">
-                     <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest">Add Field</h3>
+                     <h3 className="text-lg font-medium text-zinc-900 mb-4 tracking-wide">Add Field</h3>
                      {fieldTypes.map(field => (
                          <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-[#233DFF]/30 hover:bg-[#233DFF]/5">
                             <field.icon className="text-zinc-400" />
-                            <span className="font-bold text-zinc-700">{field.name}</span>
+                            <span className="font-medium text-zinc-700">{field.name}</span>
                          </button>
                      ))}
                 </div>

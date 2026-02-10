@@ -100,7 +100,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             <div className="w-24 h-24 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto mb-10 border border-rose-100">
               <AlertTriangle className="text-rose-500" size={48} />
             </div>
-            <h1 className="text-5xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none mb-6">System<br/>Interruption</h1>
+            <h1 className="text-5xl font-medium text-zinc-900 tracking-normal leading-none mb-6">System<br/>Interruption</h1>
             <p className="text-zinc-500 text-lg font-medium leading-relaxed mb-12">
               The platform encountered a critical initialization error. 
               <span className="block mt-4 text-xs font-mono text-zinc-400 bg-zinc-50 p-4 rounded-2xl border border-zinc-100 overflow-hidden text-ellipsis">
@@ -110,13 +110,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <button 
                 onClick={() => window.location.reload()} 
-                className="w-full sm:flex-1 px-10 py-6 bg-zinc-900 text-white font-black rounded-full text-[11px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3"
+                className="w-full sm:flex-1 px-10 py-6 bg-zinc-900 text-white font-medium rounded-full text-[11px] uppercase tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3"
               >
                 <RotateCcw size={16} /> Reload Platform
               </button>
               <button 
                 onClick={this.handleReset} 
-                className="w-full sm:flex-1 px-10 py-6 bg-zinc-50 text-zinc-400 font-black rounded-full text-[11px] uppercase tracking-widest hover:text-zinc-900 transition-all border border-zinc-100"
+                className="w-full sm:flex-1 px-10 py-6 bg-zinc-50 text-zinc-400 font-medium rounded-full text-[11px] uppercase tracking-wide hover:text-zinc-900 transition-all border border-zinc-100"
               >
                 Clear Cache
               </button>
