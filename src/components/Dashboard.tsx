@@ -50,6 +50,17 @@ interface DashboardProps {
   setAnnouncements: React.Dispatch<React.SetStateAction<Announcement[]>>;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  gamification?: {
+    currentXP: number;
+    level: number;
+    xpToNext: number;
+    levelProgress: number;
+    streakDays: number;
+    achievementIds: string[];
+    volunteerType: string;
+    referralCode: string;
+    referralCount: number;
+  } | null;
 }
 
 // Helper to get personalized greeting based on time of day
@@ -75,7 +86,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const {
     user: initialUser, allVolunteers, setAllVolunteers, onLogout, onUpdateUser,
     opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
-    announcements, setAnnouncements, messages, setMessages
+    announcements, setAnnouncements, messages, setMessages, gamification
   } = props;
 
   const [user, setUser] = useState(initialUser);
@@ -161,8 +172,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   // Legacy alias
   const canAccessOperationalTools = isOperationalEligible;
 
-  // My Missions: requires coreVolunteerStatus (set after Tier 1 + Tier 2 Core) or admin
-  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true);
+  // My Missions: requires coreVolunteerStatus AND HIPAA training (or admin)
+  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && displayUser.completedHIPAATraining === true);
 
   // Notification counts
   const [dismissedNotifTs, setDismissedNotifTs] = useState<string>(
@@ -177,15 +188,23 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }).length;
   }, [messages, displayUser.id, dismissedNotifTs]);
 
-  const isCoordinatorOrLead = displayUser.role.includes('Coordinator') || displayUser.role.includes('Lead');
+  const COORDINATOR_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+  const isCoordinatorOrLead = COORDINATOR_LEAD_ROLES.includes(displayUser.role);
   const myTickets = useMemo(() => {
     return supportTickets.filter(t => {
       if (t.status === 'closed') return false;
       // Only show tickets assigned to you, submitted by you, or (admin sees all)
-      if (displayUser.isAdmin) return t.assignedTo === displayUser.id || t.submittedBy === displayUser.id || t.status === 'open';
-      return t.submittedBy === displayUser.id || t.assignedTo === displayUser.id;
+      const isMyTicket = t.submittedBy === displayUser.id || t.assignedTo === displayUser.id;
+      if (!displayUser.isAdmin && !isMyTicket) return false;
+      if (displayUser.isAdmin && !isMyTicket && t.status !== 'open') return false;
+      // Respect dismissal — only re-show if there's new activity since dismiss
+      if (dismissedNotifTs) {
+        const lastActivity = t.updatedAt || t.createdAt;
+        if (lastActivity && lastActivity <= dismissedNotifTs) return false;
+      }
+      return true;
     });
-  }, [supportTickets, displayUser.id, displayUser.isAdmin]);
+  }, [supportTickets, displayUser.id, displayUser.isAdmin, dismissedNotifTs]);
   const openTicketsCount = myTickets.length;
 
   const newApplicantsCount = useMemo(() => {
@@ -251,19 +270,18 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }
 
     // Add governance tab for Board Members and CAB
-    if (['Board Member', 'Community Advisory Board'].includes(displayUser.role)) {
+    const BOARD_ROLES = ['Board Member', 'Community Advisory Board'];
+    if (BOARD_ROLES.includes(displayUser.role)) {
         items.push({ id: 'governance', label: 'Governance', icon: Briefcase });
     }
 
     // Add meetings tab for coordinators and leads
-    const meetingRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-    if (canAccessOperationalTools && meetingRoles.includes(displayUser.role)) {
+    if (canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
         items.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
     }
 
     // Coordinators and leads get access to Forms for internal surveys
-    const formRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-    if (!displayUser.isAdmin && canAccessOperationalTools && formRoles.includes(displayUser.role)) {
+    if (!displayUser.isAdmin && canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
         items.push({ id: 'forms', label: 'Forms', icon: FileText });
     }
 
@@ -282,6 +300,14 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, canAccessMissions, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
 
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
+
+  // Redirect to overview if current tab is no longer accessible (e.g., role changed)
+  useEffect(() => {
+    const validTabIds = navItems.map(n => n.id);
+    if (activeTab !== 'overview' && !validTabIds.includes(activeTab)) {
+      setActiveTab('overview');
+    }
+  }, [navItems, activeTab]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100/50 flex flex-col md:flex-row font-['Inter'] relative">
@@ -565,16 +591,34 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   </div>
 
                   {/* Stats Card - Apple-style glass effect */}
-                  <div className="flex bg-white/80 backdrop-blur-xl border border-zinc-200/50 p-1.5 rounded-[28px] shadow-lg shadow-zinc-200/50">
-                    <div className="px-8 py-6 text-center">
+                  <div className="flex flex-wrap bg-white/80 backdrop-blur-xl border border-zinc-200/50 p-1.5 rounded-[28px] shadow-lg shadow-zinc-200/50">
+                    <div className="px-6 md:px-8 py-5 md:py-6 text-center">
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Hours</p>
-                        <p className="text-4xl font-black text-zinc-900 tracking-tight">{displayUser.hoursContributed}</p>
+                        <p className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">{displayUser.hoursContributed}</p>
                     </div>
                     <div className="w-px bg-zinc-100 my-4" />
-                    <div className="px-8 py-6 text-center">
+                    <div className="px-6 md:px-8 py-5 md:py-6 text-center">
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Impact XP</p>
-                        <p className="text-4xl font-black text-[#233DFF] tracking-tight">{displayUser.points}</p>
+                        <p className="text-3xl md:text-4xl font-black text-[#233DFF] tracking-tight">{gamification?.currentXP ?? displayUser.points}</p>
                     </div>
+                    {gamification && (
+                      <>
+                        <div className="w-px bg-zinc-100 my-4" />
+                        <div className="px-6 md:px-8 py-5 md:py-6 text-center">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Level</p>
+                            <p className="text-3xl md:text-4xl font-black text-emerald-600 tracking-tight">{gamification.level}</p>
+                        </div>
+                        {gamification.streakDays > 0 && (
+                          <>
+                            <div className="w-px bg-zinc-100 my-4" />
+                            <div className="px-6 md:px-8 py-5 md:py-6 text-center">
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Streak</p>
+                                <p className="text-3xl md:text-4xl font-black text-amber-500 tracking-tight">{gamification.streakDays}d</p>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -602,17 +646,38 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     </div>
                   )}
                 </div>
+
+                {/* Level Progress Bar */}
+                {gamification && gamification.level < 10 && (
+                  <div className="bg-white/80 backdrop-blur-xl border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-zinc-500">Level {gamification.level}</span>
+                      <span className="text-xs font-bold text-[#233DFF]">{gamification.xpToNext.toLocaleString()} XP to Level {gamification.level + 1}</span>
+                    </div>
+                    <div className="w-full h-3 bg-zinc-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700" style={{ width: `${gamification.levelProgress}%` }} />
+                    </div>
+                    {gamification.levelProgress >= 75 && (
+                      <p className="text-[10px] font-bold text-emerald-600 mt-2">Almost there! Keep going!</p>
+                    )}
+                  </div>
+                )}
+                {gamification && gamification.level >= 10 && (
+                  <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-5 shadow-sm text-center">
+                    <p className="text-sm font-black text-amber-700">Max Level Reached — Volunteer Legend</p>
+                  </div>
+                )}
             </header>
             {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} />}
             <div className="pt-8 border-t border-zinc-100">
-               <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessOperationalTools} shifts={shifts} setShifts={setShifts} />
+               <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessMissions} shifts={shifts} setShifts={setShifts} />
             </div>
            </>
          )}
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
-         {activeTab === 'event-management' && canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
+         {activeTab === 'event-management' && canAccessOperationalTools && (displayUser.isAdmin || COORDINATOR_LEAD_ROLES.includes(displayUser.role)) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}

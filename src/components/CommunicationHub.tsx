@@ -39,7 +39,8 @@ const BroadcastsView: React.FC<{
   const [isSent, setIsSent] = useState(false);
   const [filters, setFilters] = useState({ role: 'All', status: 'All', skill: '' });
 
-  const canBroadcast = user.isAdmin || user.role.includes('Coordinator') || user.role.includes('Lead');
+  const BROADCAST_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+  const canBroadcast = user.isAdmin || BROADCAST_ROLES.includes(user.role);
 
   const handleFilterChange = (type: 'role' | 'status' | 'skill', value: string) => {
     setFilters(prev => ({ ...prev, [type]: value }));
@@ -1526,7 +1527,8 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
     messages, setMessages, supportTickets, setSupportTickets, initialTab
   } = props;
 
-  const canBroadcast = user.isAdmin || user.role.includes('Coordinator') || user.role.includes('Lead');
+  const BROADCAST_ROLES_HUB = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+  const canBroadcast = user.isAdmin || BROADCAST_ROLES_HUB.includes(user.role);
 
   const [activeTab, setActiveTab] = useState<'broadcasts' | 'briefing' | 'support'>(
     initialTab || 'broadcasts'

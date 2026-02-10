@@ -21,10 +21,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [gamification, setGamification] = useState<any>(null);
 
   const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'migration' | 'clientPortal'>('landing');
   const [loading, setLoading] = useState(true);
-  
+
   const setAppData = (data: any) => {
       setCurrentUser(data.user);
       setAllVolunteers(data.volunteers || []);
@@ -33,6 +34,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       setSupportTickets(data.supportTickets || []);
       setAnnouncements(data.announcements || []);
       setMessages(data.messages || []);
+      if (data.gamification) setGamification(data.gamification);
   }
 
   useEffect(() => {
@@ -59,6 +61,23 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     };
     checkAuth();
   }, []);
+
+  // Periodic session revalidation every 15 minutes
+  useEffect(() => {
+    if (view !== 'dashboard' && view !== 'migration') return;
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) { handleLogout(); return; }
+      try {
+        await apiService.get('/auth/me');
+      } catch {
+        localStorage.removeItem('authToken');
+        setCurrentUser(null);
+        setView('landing');
+      }
+    }, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [view]);
 
   const handleLogin = async (email: string, password: string, isAdmin: boolean) => {
     const data = await apiService.post('/auth/login', { email, password, isAdmin });
@@ -159,7 +178,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     const dashboardProps = {
         user: currentUser, allVolunteers, setAllVolunteers, onLogout: handleLogout, onUpdateUser: handleUpdateUser,
         opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
-        announcements, setAnnouncements, messages, setMessages
+        announcements, setAnnouncements, messages, setMessages, gamification
     };
     return <Dashboard {...dashboardProps} />;
   }

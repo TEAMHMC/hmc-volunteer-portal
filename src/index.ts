@@ -1384,6 +1384,15 @@ const createSession = async (uid: string, res: Response) => {
     res.json({ token: sessionToken, user: { ...user, id: uid } });
 };
 
+// ═══════════════════════════════════════════════════════════════
+// SHARED ROLE CONSTANTS — Single source of truth for all role checks
+// ═══════════════════════════════════════════════════════════════
+const EVENT_MANAGEMENT_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+const BOARD_ROLES = ['Board Member', 'Community Advisory Board'];
+const COORDINATOR_AND_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+const REGISTRATION_MANAGEMENT_ROLES = EVENT_MANAGEMENT_ROLES; // roles that can register/unregister others
+const ORG_CALENDAR_ROLES = [...COORDINATOR_AND_LEAD_ROLES, 'Board Member'];
+
 // --- AUTHENTICATION ROUTES ---
 
 app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Response) => {
@@ -1975,8 +1984,34 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             };
         });
 
+        // Fetch gamification profile
+        let gamification = null;
+        try {
+            const gpDoc = await db.collection('volunteer_profiles').doc(userId).get();
+            if (gpDoc.exists) {
+                const gp = gpDoc.data()!;
+                const currentXP = gp.currentXP || 0;
+                const level = GamificationService.calculateLevel(currentXP);
+                const xpToNext = GamificationService.getXPToNextLevel(currentXP);
+                const nextThreshold = level < LEVEL_THRESHOLDS.length ? LEVEL_THRESHOLDS[level] : LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+                const prevThreshold = level > 1 ? LEVEL_THRESHOLDS[level - 1] : 0;
+                const levelProgress = nextThreshold > prevThreshold ? Math.round(((currentXP - prevThreshold) / (nextThreshold - prevThreshold)) * 100) : 100;
+                gamification = {
+                    currentXP, level, xpToNext, levelProgress,
+                    streakDays: gp.streakDays || 0,
+                    achievementIds: gp.achievementIds || [],
+                    volunteerType: gp.volunteerType || 'flexible',
+                    referralCode: gp.referralCode || '',
+                    referralCount: gp.referralCount || 0,
+                };
+            }
+        } catch (gpErr) {
+            console.warn('[AUTH/ME] Gamification profile fetch failed:', gpErr);
+        }
+
         res.json({
             user: userProfile,
+            gamification,
             volunteers: volunteersWithOnlineStatus,
             opportunities: opportunitiesSnap.docs.map(d => ({...d.data(), id: d.id })),
             shifts: shiftsSnap.docs.map(d => ({...d.data(), id: d.id })),
@@ -2526,7 +2561,7 @@ app.post('/api/gemini/draft-announcement', async (req: Request, res: Response) =
 });
 
 // --- DATA & OPS ROUTES ---
-app.get('/api/resources', async (req: Request, res: Response) => {
+app.get('/api/resources', verifyToken, async (req: Request, res: Response) => {
     const snap = await db.collection('referral_resources').get();
     res.json(snap.docs.map(d => d.data()));
 });
@@ -2598,7 +2633,7 @@ app.put('/api/referrals/:id', verifyToken, async (req: Request, res: Response) =
     await db.collection('referrals').doc(req.params.id).update(req.body.referral);
     res.json({ id: req.params.id, ...req.body.referral });
 });
-app.post('/api/clients/search', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/clients/search', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     const { phone, email } = req.body;
     let query: admin.firestore.Query = db.collection('clients');
     if (phone) query = query.where('phone', '==', phone);
@@ -2619,7 +2654,7 @@ app.post('/api/clients/create', verifyToken, requireAdmin, async (req: Request, 
 });
 
 // Get all clients (admin)
-app.get('/api/clients', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/clients', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const snap = await db.collection('clients').orderBy('createdAt', 'desc').get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -2630,7 +2665,7 @@ app.get('/api/clients', verifyToken, async (req: Request, res: Response) => {
 });
 
 // Get single client
-app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const doc = await db.collection('clients').doc(req.params.id).get();
         if (!doc.exists) return res.status(404).json({ error: 'Client not found' });
@@ -2641,7 +2676,7 @@ app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => 
 });
 
 // Update client
-app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
+app.put('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const updates = { ...req.body.client, updatedAt: new Date().toISOString() };
         await db.collection('clients').doc(req.params.id).update(updates);
@@ -2652,7 +2687,7 @@ app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => 
 });
 
 // Get client referral history
-app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/clients/:id/referrals', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const snap = await db.collection('referrals').where('clientId', '==', req.params.id).orderBy('createdAt', 'desc').get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -2777,7 +2812,7 @@ const processVolunteerMatch = async (
 
           // Notify coordinators
           const coordinatorsSnap = await db.collection('volunteers')
-            .where('role', 'in', ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'])
+            .where('role', 'in', EVENT_MANAGEMENT_ROLES)
             .where('status', '==', 'active')
             .get();
 
@@ -3039,8 +3074,7 @@ app.post('/api/public/checkin', rateLimit(20, 60000), async (req: Request, res: 
 // GET /api/events/:id/rsvp-stats - Protected endpoint for admins/coordinators to see RSVP stats
 app.get('/api/events/:id/rsvp-stats', verifyToken, async (req: Request, res: Response) => {
     const userProfile = (req as any).user?.profile;
-    const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-    if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+    if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
         return res.status(403).json({ error: 'Only admins and event coordinators can view RSVP stats' });
     }
     try {
@@ -3539,8 +3573,7 @@ app.delete('/api/messages/:messageId', verifyToken, requireAdmin, async (req: Re
 app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) => {
     try {
         const userProfile = (req as any).user?.profile;
-        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+        if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and event management roles can create events' });
         }
         const { opportunity } = req.body;
@@ -3601,8 +3634,7 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
 app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Response) => {
     try {
         const userProfile = (req as any).user?.profile;
-        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+        if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and event management roles can update events' });
         }
         const { id } = req.params;
@@ -3701,8 +3733,7 @@ app.delete('/api/opportunities/:id', verifyToken, async (req: Request, res: Resp
     try {
         const { id } = req.params;
         const userProfile = (req as any).user?.profile;
-        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'];
-        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+        if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and event management roles can delete events' });
         }
 
@@ -3725,8 +3756,7 @@ app.delete('/api/opportunities/:id', verifyToken, async (req: Request, res: Resp
 app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Response) => {
     try {
         const userProfile = (req as any).user?.profile;
-        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+        if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and event management roles can import events' });
         }
         const { csvData } = req.body;
@@ -3893,18 +3923,29 @@ const parseEventTime = (timeStr: string | undefined): { startTime: string; endTi
 app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: Response) => {
     try {
         const userProfile = (req as any).user?.profile;
-        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'];
-        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+        if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and event management roles can sync events' });
         }
 
         const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`);
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`, {
+            headers: { 'Accept': 'application/json' },
+            redirect: 'follow',
+        });
         if (!response.ok) {
-            return res.status(502).json({ error: 'Failed to reach Event Finder backend' });
+            return res.status(502).json({ error: `Event Finder backend returned status ${response.status}` });
         }
 
-        const data = await response.json() as { success?: boolean; events?: any[] };
+        // Google Apps Script can return HTML (login/CAPTCHA) even with 200 status
+        const contentType = response.headers.get('content-type') || '';
+        const responseText = await response.text();
+        let data: { success?: boolean; events?: any[] };
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            console.error('[SYNC] Event Finder returned non-JSON response:', responseText.substring(0, 200));
+            return res.status(502).json({ error: 'Event Finder returned an invalid response. The Apps Script may need to be redeployed or authorized.' });
+        }
         if (!data.success || !Array.isArray(data.events) || data.events.length === 0) {
             return res.json({ success: true, synced: 0, skipped: 0, message: 'No events found in Event Finder Tool' });
         }
@@ -4041,8 +4082,7 @@ app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: 
   try {
     const callerUser = (req as any).user;
     const callerData = (await db.collection('volunteers').doc(callerUser.uid).get()).data();
-    const allowedRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-    if (!callerData?.isAdmin && !allowedRoles.includes(callerData?.role)) {
+    if (!callerData?.isAdmin && !COORDINATOR_AND_LEAD_ROLES.includes(callerData?.role)) {
       return res.status(403).json({ error: 'Only admins, coordinators, and leads can invite volunteers' });
     }
 
@@ -4107,8 +4147,7 @@ app.post('/api/events/unregister', verifyToken, async (req: Request, res: Respon
     // Auth: caller must be the volunteer themselves or an admin/coordinator
     const callerUid = (req as any).user?.uid;
     const callerProfile = (req as any).user?.profile;
-    const mgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-    if (callerUid !== volunteerId && !callerProfile?.isAdmin && !mgmtRoles.includes(callerProfile?.role)) {
+    if (callerUid !== volunteerId && !callerProfile?.isAdmin && !REGISTRATION_MANAGEMENT_ROLES.includes(callerProfile?.role)) {
       return res.status(403).json({ error: 'You can only unregister yourself or must be a coordinator' });
     }
 
@@ -4173,8 +4212,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
     // Auth: caller must be the volunteer themselves or an admin/coordinator
     const callerUid = (req as any).user?.uid;
     const callerProfile = (req as any).user?.profile;
-    const mgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-    if (callerUid !== volunteerId && !callerProfile?.isAdmin && !mgmtRoles.includes(callerProfile?.role)) {
+    if (callerUid !== volunteerId && !callerProfile?.isAdmin && !REGISTRATION_MANAGEMENT_ROLES.includes(callerProfile?.role)) {
       return res.status(403).json({ error: 'You can only register yourself or must be a coordinator' });
     }
 
@@ -4185,6 +4223,36 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       return res.status(404).json({ error: 'Volunteer not found' });
     }
     const volunteerData = volunteerDoc.data() as any;
+
+    // Training gate enforcement — admins/coordinators can bypass when registering others
+    const isSelfRegistration = callerUid === volunteerId;
+    if (isSelfRegistration) {
+      if (!volunteerData.coreVolunteerStatus && !callerProfile?.isAdmin) {
+        return res.status(403).json({ error: 'You must complete Core Volunteer training before registering for events' });
+      }
+      if (!volunteerData.completedHIPAATraining && !callerProfile?.isAdmin) {
+        return res.status(403).json({ error: 'You must complete HIPAA training before registering for events' });
+      }
+    }
+
+    // Tier 3: Program-specific training gate enforcement
+    if (isSelfRegistration && !callerProfile?.isAdmin) {
+      const oppDoc = await db.collection('opportunities').doc(eventId).get();
+      if (oppDoc.exists) {
+        const oppData = oppDoc.data() as any;
+        const eventCategory = (oppData.category || '').toLowerCase();
+        const eligibility = volunteerData.eventEligibility || {};
+        const qualifiedTypes = (eligibility.qualifiedEventTypes || []).map((t: string) => t.toLowerCase());
+
+        // Check program-specific gates based on event category
+        if (eventCategory.includes('street medicine') && !eligibility.streetMedicineGate) {
+          return res.status(403).json({ error: 'You must complete Street Medicine training before registering for Street Medicine events' });
+        }
+        if ((eventCategory.includes('clinical') || eventCategory.includes('screening') || eventCategory.includes('vaccination')) && !eligibility.clinicGate) {
+          return res.status(403).json({ error: 'You must complete Clinical training before registering for clinical events' });
+        }
+      }
+    }
 
     // Check for duplicate registration on this shift
     if (shiftId) {
@@ -4271,7 +4339,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
     // Notify Event Coordinators about the new registration
     try {
       const coordinatorsSnap = await db.collection('volunteers')
-        .where('role', 'in', ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'])
+        .where('role', 'in', EVENT_MANAGEMENT_ROLES)
         .where('status', '==', 'active')
         .get();
 
@@ -5166,7 +5234,7 @@ app.post('/api/share/log', verifyToken, async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════════
 
 // XP Leaderboard
-app.get('/api/leaderboard/xp', async (req: Request, res: Response) => {
+app.get('/api/leaderboard/xp', verifyToken, async (req: Request, res: Response) => {
   try {
     const snapshot = await db.collection('volunteer_profiles')
       .orderBy('currentXP', 'desc')
@@ -5195,7 +5263,7 @@ app.get('/api/leaderboard/xp', async (req: Request, res: Response) => {
 });
 
 // Referral Leaderboard
-app.get('/api/leaderboard/referrals', async (req: Request, res: Response) => {
+app.get('/api/leaderboard/referrals', verifyToken, async (req: Request, res: Response) => {
   try {
     const snapshot = await db.collection('volunteer_profiles')
       .orderBy('referralCount', 'desc')
@@ -5223,7 +5291,7 @@ app.get('/api/leaderboard/referrals', async (req: Request, res: Response) => {
 });
 
 // Streak Leaderboard (weekly committed only)
-app.get('/api/leaderboard/streaks', async (req: Request, res: Response) => {
+app.get('/api/leaderboard/streaks', verifyToken, async (req: Request, res: Response) => {
   try {
     const snapshot = await db.collection('volunteer_profiles')
       .where('volunteerType', '==', 'weekly_committed')
@@ -5268,9 +5336,8 @@ app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response)
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    const meetingRoles = ['Board Member', 'Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-    if (!userData?.isAdmin && !meetingRoles.includes(userData?.role)) {
-      return res.status(403).json({ error: 'Only admins, board members, coordinators, and leads can manage meetings' });
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins and board members can manage board meetings' });
     }
     const { id, ...meetingData } = req.body;
     if (id) {
@@ -5338,9 +5405,14 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// Save/update meeting minutes
+// Save/update meeting minutes (board members + admins only)
 app.put('/api/board/meetings/:meetingId/minutes', verifyToken, async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins and board members can edit meeting minutes' });
+    }
     const { minutesContent, minutesStatus } = req.body;
     await db.collection('board_meetings').doc(req.params.meetingId).update({ minutesContent, minutesStatus, minutesUpdatedAt: new Date().toISOString() });
     res.json({ success: true });
@@ -5478,21 +5550,29 @@ app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Re
 // Unified calendar feed — merges org_calendar_events + board_meetings + opportunities
 app.get('/api/org-calendar', verifyToken, async (req: Request, res: Response) => {
   try {
+    const callerProfile = (req as any).user?.profile;
+    const callerRole = callerProfile?.role || '';
+    const isAdmin = callerProfile?.isAdmin === true;
+
     const [orgSnap, boardSnap, oppsSnap] = await Promise.all([
       db.collection('org_calendar_events').get(),
       db.collection('board_meetings').get(),
       db.collection('opportunities').get(),
     ]);
 
-    // 1. Org calendar events (native)
+    // 1. Org calendar events (native) — filter by visibleTo
     const orgEvents = orgSnap.docs.map(d => ({
       id: d.id,
       ...d.data(),
       source: 'org-calendar',
-    }));
+    })).filter((e: any) => {
+      if (isAdmin) return true;
+      if (!e.visibleTo || e.visibleTo.length === 0) return true;
+      return e.visibleTo.includes(callerRole);
+    });
 
-    // 2. Board meetings → mapped to OrgCalendarEvent shape
-    const boardEvents = boardSnap.docs.map(d => {
+    // 2. Board meetings → mapped to OrgCalendarEvent shape (board members + admins only)
+    const boardEvents = (isAdmin || BOARD_ROLES.includes(callerRole)) ? boardSnap.docs.map(d => {
       const m = d.data();
       const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
       return {
@@ -5508,7 +5588,7 @@ app.get('/api/org-calendar', verifyToken, async (req: Request, res: Response) =>
         createdBy: m.createdBy,
         source: 'board-meeting',
       };
-    });
+    }) : [];
 
     // 3. Opportunities → mapped to OrgCalendarEvent shape
     const oppEvents = oppsSnap.docs.map(d => {
@@ -5539,8 +5619,7 @@ app.post('/api/org-calendar', verifyToken, async (req: Request, res: Response) =
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    const allowedRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
-    if (!userData?.isAdmin && !allowedRoles.includes(userData?.role)) {
+    if (!userData?.isAdmin && !ORG_CALENDAR_ROLES.includes(userData?.role)) {
       return res.status(403).json({ error: 'Only admins, coordinators, and leads can create calendar events' });
     }
     const { title, date, startTime, endTime, type, location, meetLink, description, isRecurring, recurrenceNote, visibleTo } = req.body;
@@ -5563,8 +5642,7 @@ app.put('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: Res
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    const allowedRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
-    if (!userData?.isAdmin && !allowedRoles.includes(userData?.role)) {
+    if (!userData?.isAdmin && !ORG_CALENDAR_ROLES.includes(userData?.role)) {
       return res.status(403).json({ error: 'Only admins, coordinators, and leads can update calendar events' });
     }
     const { eventId } = req.params;

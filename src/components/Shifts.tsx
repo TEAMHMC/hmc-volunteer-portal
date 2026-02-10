@@ -2,15 +2,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
-import { Clock, Check, Calendar, MapPin, ChevronRight, UserPlus, XCircle, Mail, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw } from 'lucide-react';
-import { EVENT_CATEGORIES } from '../constants';
+import { Clock, Check, Calendar, MapPin, ChevronRight, UserPlus, XCircle, Mail, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw, Package, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
+import { EVENT_CATEGORIES, SERVICE_OFFERINGS } from '../constants';
 import { APP_CONFIG } from '../config';
 import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
 import { apiService } from '../services/apiService';
 
-// Normalize event category for consistent display
+// Normalize event category for consistent display (shared logic with EventExplorer)
 const normalizeCategory = (cat: string): string => {
   const lower = (cat || '').toLowerCase().replace(/[^\w\s&]/g, '').trim();
   if (!lower) return 'Other';
@@ -23,8 +23,9 @@ const normalizeCategory = (cat: string): string => {
   if (lower.includes('tabling')) return 'Tabling';
   if (lower.includes('outreach')) return 'Community Outreach';
   if (lower.includes('education')) return 'Wellness Education';
+  if (lower.includes('wellness meetup') || lower.includes('unstoppable wellness')) return 'Wellness';
   if (lower.includes('wellness')) return 'Wellness';
-  return cat || 'Other';
+  return 'Other';
 };
 
 // Bulk Upload Modal for Events
@@ -258,6 +259,42 @@ const parseTimeForEdit = (opp: Opportunity, shifts: Shift[]): { start: string; e
 };
 
 // Edit Event Modal
+// Equipment catalog for event editing
+const EQUIPMENT_CATALOG = [
+  { id: 'eq-tables', name: 'Folding Tables', category: 'Setup', defaultQty: 4 },
+  { id: 'eq-chairs', name: 'Chairs', category: 'Setup', defaultQty: 20 },
+  { id: 'eq-canopy', name: 'Pop-Up Canopy / Tent', category: 'Setup', defaultQty: 2 },
+  { id: 'eq-signage', name: 'Event Signage & Banners', category: 'Setup', defaultQty: 3 },
+  { id: 'eq-tablecloths', name: 'Tablecloths', category: 'Setup', defaultQty: 4 },
+  { id: 'eq-generator', name: 'Portable Generator', category: 'Setup', defaultQty: 1 },
+  { id: 'eq-cooler', name: 'Coolers (water/snacks)', category: 'Setup', defaultQty: 2 },
+  { id: 'eq-gloves', name: 'Nitrile Gloves (box)', category: 'PPE', defaultQty: 4 },
+  { id: 'eq-masks', name: 'Face Masks (box)', category: 'PPE', defaultQty: 2 },
+  { id: 'eq-sanitizer', name: 'Hand Sanitizer', category: 'PPE', defaultQty: 6 },
+  { id: 'eq-gowns', name: 'Disposable Gowns (pack)', category: 'PPE', defaultQty: 1 },
+  { id: 'eq-bpcuff', name: 'Blood Pressure Cuffs', category: 'Medical', defaultQty: 4 },
+  { id: 'eq-glucometer', name: 'Glucometers + Strips', category: 'Medical', defaultQty: 2 },
+  { id: 'eq-pulseox', name: 'Pulse Oximeters', category: 'Medical', defaultQty: 2 },
+  { id: 'eq-scale', name: 'Digital Scale', category: 'Medical', defaultQty: 1 },
+  { id: 'eq-firstaid', name: 'First Aid Kit', category: 'Medical', defaultQty: 2 },
+  { id: 'eq-sharps', name: 'Sharps Container', category: 'Medical', defaultQty: 1 },
+  { id: 'eq-laptop', name: 'Laptops / Tablets', category: 'Tech', defaultQty: 3 },
+  { id: 'eq-hotspot', name: 'Mobile Hotspot', category: 'Tech', defaultQty: 1 },
+  { id: 'eq-speaker', name: 'Portable Speaker / PA', category: 'Tech', defaultQty: 1 },
+  { id: 'eq-flyers', name: 'Event Flyers (stack)', category: 'Outreach', defaultQty: 200 },
+  { id: 'eq-brochures', name: 'Health Education Brochures', category: 'Outreach', defaultQty: 100 },
+  { id: 'eq-signin', name: 'Sign-In Sheets', category: 'Outreach', defaultQty: 10 },
+  { id: 'eq-pens', name: 'Pens / Markers', category: 'Outreach', defaultQty: 20 },
+  { id: 'eq-clipboards', name: 'Clipboards', category: 'Outreach', defaultQty: 10 },
+  { id: 'eq-bags', name: 'Goodie Bags / Totes', category: 'Outreach', defaultQty: 50 },
+];
+
+const equipmentByCategory: Record<string, typeof EQUIPMENT_CATALOG> = {};
+EQUIPMENT_CATALOG.forEach(item => {
+  if (!equipmentByCategory[item.category]) equipmentByCategory[item.category] = [];
+  equipmentByCategory[item.category].push(item);
+});
+
 const EditEventModal: React.FC<{
   event: Opportunity;
   shifts: Shift[];
@@ -276,7 +313,15 @@ const EditEventModal: React.FC<{
   const [quotas, setQuotas] = useState<{ role: string; count: number; filled: number }[]>(
     event.staffingQuotas?.length ? event.staffingQuotas.map(q => ({ ...q })) : []
   );
+  const [serviceOfferingIds, setServiceOfferingIds] = useState<string[]>(event.serviceOfferingIds || []);
+  const [selectedEquipment, setSelectedEquipment] = useState<{ equipmentId: string; name: string; quantity: number }[]>(event.equipment || []);
+  const [checklist, setChecklist] = useState<{ text: string; done: boolean }[]>(
+    event.checklist?.length ? event.checklist.map(c => ({ ...c })) : []
+  );
   const [isSaving, setIsSaving] = useState(false);
+  const [showServices, setShowServices] = useState(false);
+  const [showEquipment, setShowEquipment] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
 
   const roleOptions = APP_CONFIG.HMC_ROLES.map(r => r.label);
 
@@ -294,11 +339,30 @@ const EditEventModal: React.FC<{
     setQuotas(prev => prev.map((q, i) => i === idx ? { ...q, [field]: field === 'count' ? Math.max(q.filled || 0, Number(value)) : value } : q));
   };
 
+  const handleServiceToggle = (serviceId: string) => {
+    setServiceOfferingIds(prev =>
+      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  const handleToggleEquipment = (item: typeof EQUIPMENT_CATALOG[0]) => {
+    setSelectedEquipment(prev => {
+      const exists = prev.find(e => e.equipmentId === item.id);
+      if (exists) return prev.filter(e => e.equipmentId !== item.id);
+      return [...prev, { equipmentId: item.id, name: item.name, quantity: item.defaultQty }];
+    });
+  };
+
+  const handleEquipmentQtyChange = (equipmentId: string, qty: number) => {
+    setSelectedEquipment(prev => prev.map(e =>
+      e.equipmentId === equipmentId ? { ...e, quantity: Math.max(0, qty) } : e
+    ));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
       const slotsTotal = quotas.reduce((sum, q) => sum + q.count, 0);
-      // Build a readable time string like "10:00 AM - 2:00 PM"
       const fmt = (t: string) => {
         const [h, m] = t.split(':').map(Number);
         const ampm = h >= 12 ? 'PM' : 'AM';
@@ -306,7 +370,12 @@ const EditEventModal: React.FC<{
         return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
       };
       const time = `${fmt(startTime)} - ${fmt(endTime)}`;
-      await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, time, estimatedAttendees, staffingQuotas: quotas, slotsTotal });
+      await onSave({
+        title, description, date, serviceLocation: location, category, startTime, endTime, time,
+        estimatedAttendees, staffingQuotas: quotas, slotsTotal, serviceOfferingIds,
+        equipment: selectedEquipment,
+        checklist: checklist.filter(c => c.text.trim()),
+      });
     } finally {
       setIsSaving(false);
     }
@@ -314,7 +383,7 @@ const EditEventModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl">
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h2 className="text-xl font-black text-zinc-900">Edit Event</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={18} className="text-zinc-400" /></button>
@@ -399,6 +468,98 @@ const EditEventModal: React.FC<{
             >
               <Plus size={14} /> Add Role
             </button>
+          </div>
+
+          {/* Service Offerings (collapsible) */}
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
+            <button onClick={() => setShowServices(!showServices)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><Users size={16} /> Service Offerings {serviceOfferingIds.length > 0 && <span className="text-xs bg-[#233DFF]/10 text-[#233DFF] px-2 py-0.5 rounded-full">{serviceOfferingIds.length} selected</span>}</span>
+              {showServices ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
+            </button>
+            {showServices && (
+              <div className="p-4 grid grid-cols-2 gap-2">
+                {SERVICE_OFFERINGS.map(service => (
+                  <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-3 border-2 rounded-lg text-left transition-colors ${serviceOfferingIds.includes(service.id) ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-100 hover:border-zinc-300'}`}>
+                    <p className="text-sm font-bold">{service.name}</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">{service.description}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Equipment & Resources (collapsible) */}
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
+            <button onClick={() => setShowEquipment(!showEquipment)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><Package size={16} /> Equipment & Resources {selectedEquipment.length > 0 && <span className="text-xs bg-[#233DFF]/10 text-[#233DFF] px-2 py-0.5 rounded-full">{selectedEquipment.length} items</span>}</span>
+              {showEquipment ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
+            </button>
+            {showEquipment && (
+              <div className="p-4 space-y-4">
+                {Object.entries(equipmentByCategory).map(([cat, items]) => (
+                  <div key={cat}>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">{cat}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {items.map(item => {
+                        const selected = selectedEquipment.find(e => e.equipmentId === item.id);
+                        return (
+                          <div key={item.id} className={`p-2.5 border-2 rounded-lg cursor-pointer transition-all ${selected ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-100 hover:border-zinc-300'}`}>
+                            <div className="flex items-center justify-between">
+                              <button onClick={() => handleToggleEquipment(item)} className="flex-1 text-left">
+                                <p className={`text-xs font-bold ${selected ? 'text-[#233DFF]' : 'text-zinc-700'}`}>{item.name}</p>
+                              </button>
+                              {selected && (
+                                <input type="number" value={selected.quantity} onChange={e => handleEquipmentQtyChange(item.id, parseInt(e.target.value) || 0)} className="w-12 p-1 text-center text-xs border border-zinc-200 rounded bg-white" onClick={e => e.stopPropagation()} />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pre-Event Checklist (collapsible) */}
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
+            <button onClick={() => setShowChecklist(!showChecklist)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><ClipboardList size={16} /> Pre-Event Checklist {checklist.length > 0 && <span className="text-xs bg-[#233DFF]/10 text-[#233DFF] px-2 py-0.5 rounded-full">{checklist.filter(c => c.done).length}/{checklist.length} done</span>}</span>
+              {showChecklist ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
+            </button>
+            {showChecklist && (
+              <div className="p-4 space-y-2">
+                {checklist.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 group">
+                    <button
+                      onClick={() => setChecklist(prev => prev.map((c, i) => i === idx ? { ...c, done: !c.done } : c))}
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-[#233DFF]'}`}
+                    >
+                      {item.done && <Check size={12} />}
+                    </button>
+                    <input
+                      value={item.text}
+                      onChange={e => setChecklist(prev => prev.map((c, i) => i === idx ? { ...c, text: e.target.value } : c))}
+                      className={`flex-1 bg-transparent outline-none text-sm ${item.done ? 'line-through text-zinc-400' : 'text-zinc-700'}`}
+                      placeholder="Checklist item..."
+                    />
+                    <button
+                      onClick={() => setChecklist(prev => prev.filter((_, i) => i !== idx))}
+                      className="p-1 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setChecklist(prev => [...prev, { text: '', done: false }])}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] transition-colors mt-2"
+                >
+                  <Plus size={14} /> Add Item
+                </button>
+              </div>
+            )}
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3">
@@ -944,13 +1105,15 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         const matchingShift = shifts.find(s => s.opportunityId === opp.id && s.roleType === q.role);
                         const assignedIds = [...new Set(matchingShift?.assignedVolunteerIds || [])];
                         const assignedVols = assignedIds.map(id => allVolunteers.find(v => v.id === id)).filter(Boolean) as Volunteer[];
+                        // Derive filled count from actual assigned volunteers, not stored q.filled (can desync)
+                        const actualFilled = assignedVols.length;
                         return (
                           <div key={q.role}>
                             <div className="flex justify-between items-center text-sm">
                               <span className="font-bold">{q.role}</span>
                               <div className="flex items-center gap-2">
-                                <span className={`${q.filled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{q.filled} / {q.count} Filled</span>
-                                {q.filled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
+                                <span className={`${actualFilled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{actualFilled} / {q.count} Filled</span>
+                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
                               </div>
                             </div>
                             {assignedVols.length > 0 && (
@@ -964,8 +1127,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                         if (!matchingShift) return;
                                         try {
                                           await apiService.post('/api/events/unregister', { volunteerId: v.id, eventId: opp.id, shiftId: matchingShift.id });
-                                          setShifts(prev => prev.map(s => s.id === matchingShift.id ? { ...s, slotsFilled: s.slotsFilled - 1, assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== v.id) } : s));
-                                          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, staffingQuotas: (o.staffingQuotas || []).map(sq => sq.role === q.role ? { ...sq, filled: Math.max(0, (sq.filled || 0) - 1) } : sq) } : o));
+                                          setShifts(prev => prev.map(s => s.id === matchingShift.id ? { ...s, slotsFilled: Math.max(0, s.slotsFilled - 1), assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== v.id) } : s));
+                                          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, slotsFilled: Math.max(0, (o.slotsFilled || 0) - 1), staffingQuotas: (o.staffingQuotas || []).map(sq => sq.role === q.role ? { ...sq, filled: Math.max(0, (sq.filled || 0) - 1) } : sq) } : o));
                                           if (setAllVolunteers) {
                                             setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id), assignedShiftIds: (vol.assignedShiftIds || []).filter(id => id !== matchingShift.id) } : vol));
                                           }

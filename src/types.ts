@@ -82,6 +82,9 @@ export interface Opportunity {
   estimatedAttendees?: number;
   supplyList?: string;
   serviceOfferingIds?: string[];
+  equipment?: { equipmentId: string; name: string; quantity: number }[];
+  checklist?: { text: string; done: boolean }[];
+  requiresClinicalLead?: boolean;
   flyerUrl?: string;
   flyerBase64?: string;
   // Approval workflow - events need admin approval before being visible to all volunteers
