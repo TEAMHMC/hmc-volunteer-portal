@@ -291,7 +291,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               const color = getColor(ev.type);
               const userRsvp = getUserRsvpStatus(ev);
               const attendingCount = ev.rsvps?.filter(r => r.status === 'attending').length || 0;
-              const isAttending = userRsvp === 'attending';
+              const isSignedUpViaEventFinder = ev.source === 'event-finder' && user.rsvpedEventIds?.includes(ev.id);
+              const isAttending = userRsvp === 'attending' || isSignedUpViaEventFinder;
 
               return (
                 <div
@@ -300,7 +301,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                 >
                   {isAttending && (
                     <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                      <Check size={14} /> Going
+                      <Check size={14} /> {isSignedUpViaEventFinder ? 'Signed Up' : 'Going'}
                     </div>
                   )}
 
@@ -384,8 +385,10 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                         )}
 
                         {ev.source === 'event-finder' && (
-                          <span className="px-5 py-3 rounded-full bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest">
-                            Community
+                          <span className={`px-5 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2 ${
+                            isSignedUpViaEventFinder ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-600'
+                          }`}>
+                            {isSignedUpViaEventFinder ? <><Check size={14} /> Registered</> : 'Community'}
                           </span>
                         )}
                       </div>
