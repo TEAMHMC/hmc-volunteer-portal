@@ -65,6 +65,7 @@ export interface Opportunity {
   description: string;
   category: string;
   serviceLocation: string;
+  address?: string;
   locationCoordinates?: { lat: number; lng: number };
   date: string;
   dateDisplay?: string;

@@ -105,8 +105,9 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
 const geocodeFromAddress = (address: string): { lat: number; lng: number } | null => {
     if (!address) return null;
     const lower = address.toLowerCase();
-    // Try matching city names in the address
-    for (const [city, coords] of Object.entries(CITY_COORDS)) {
+    // Try matching city names in the address (longer names first to avoid partial matches)
+    const sorted = Object.entries(CITY_COORDS).sort((a, b) => b[0].length - a[0].length);
+    for (const [city, coords] of sorted) {
         if (lower.includes(city)) return coords;
     }
     return null;
@@ -114,9 +115,13 @@ const geocodeFromAddress = (address: string): { lat: number; lng: number } | nul
 
 // Helper to convert Opportunity to ClinicEvent for map display
 const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
-    const geocoded = geocodeFromAddress(opp.serviceLocation);
-    const lat = opp.locationCoordinates?.lat || geocoded?.lat || 34.0522;
-    const lng = opp.locationCoordinates?.lng || geocoded?.lng || -118.2437;
+    // Try geocoding from full address first (most reliable), then serviceLocation (city name), then Event Finder coords
+    const geocodedAddr = geocodeFromAddress(opp.address || '');
+    const geocodedLoc = geocodeFromAddress(opp.serviceLocation);
+    const geocoded = geocodedAddr || geocodedLoc;
+    // Prefer our geocoding over Event Finder coordinates (Event Finder coords are often wrong)
+    const lat = geocoded?.lat || opp.locationCoordinates?.lat || 34.0522;
+    const lng = geocoded?.lng || opp.locationCoordinates?.lng || -118.2437;
 
     return {
         id: opp.id,

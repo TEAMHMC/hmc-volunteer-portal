@@ -205,19 +205,56 @@ const BulkUploadEventsModal: React.FC<{
   );
 };
 
+// Parse time from opp.time string like "5:00 PM - 7:00 PM" or shift startTime/endTime
+const parseTimeForEdit = (opp: Opportunity, shifts: Shift[]): { start: string; end: string } => {
+  // Try to parse from shift data first (most reliable — ISO format)
+  const oppShift = shifts.find(s => s.opportunityId === opp.id);
+  if (oppShift?.startTime && oppShift?.endTime) {
+    const sTime = oppShift.startTime.split('T')[1];
+    const eTime = oppShift.endTime.split('T')[1];
+    if (sTime && eTime) return { start: sTime.substring(0, 5), end: eTime.substring(0, 5) };
+  }
+  // Try to parse from opp.time string like "5:00 PM - 7:00 PM"
+  if (opp.time && opp.time !== 'TBD') {
+    const rangeMatch = opp.time.match(/(\d{1,2}:\d{2})\s*(AM|PM)?\s*[-–]\s*(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+    if (rangeMatch) {
+      let sH = parseInt(rangeMatch[1].split(':')[0]);
+      const sM = rangeMatch[1].split(':')[1];
+      if (rangeMatch[2]?.toUpperCase() === 'PM' && sH !== 12) sH += 12;
+      if (rangeMatch[2]?.toUpperCase() === 'AM' && sH === 12) sH = 0;
+      let eH = parseInt(rangeMatch[3].split(':')[0]);
+      const eM = rangeMatch[3].split(':')[1];
+      if (rangeMatch[4]?.toUpperCase() === 'PM' && eH !== 12) eH += 12;
+      if (rangeMatch[4]?.toUpperCase() === 'AM' && eH === 12) eH = 0;
+      return { start: `${String(sH).padStart(2,'0')}:${sM}`, end: `${String(eH).padStart(2,'0')}:${eM}` };
+    }
+    const singleMatch = opp.time.match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+    if (singleMatch) {
+      let h = parseInt(singleMatch[1].split(':')[0]);
+      const m = singleMatch[1].split(':')[1];
+      if (singleMatch[2]?.toUpperCase() === 'PM' && h !== 12) h += 12;
+      if (singleMatch[2]?.toUpperCase() === 'AM' && h === 12) h = 0;
+      return { start: `${String(h).padStart(2,'0')}:${m}`, end: `${String(Math.min(h+3,23)).padStart(2,'0')}:${m}` };
+    }
+  }
+  return { start: '09:00', end: '14:00' };
+};
+
 // Edit Event Modal
 const EditEventModal: React.FC<{
   event: Opportunity;
+  shifts: Shift[];
   onClose: () => void;
   onSave: (updates: Partial<Opportunity> & { startTime?: string; endTime?: string }) => void;
-}> = ({ event, onClose, onSave }) => {
+}> = ({ event, shifts, onClose, onSave }) => {
+  const parsedTime = parseTimeForEdit(event, shifts);
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description || '');
   const [date, setDate] = useState(event.date);
   const [location, setLocation] = useState(event.serviceLocation);
   const [category, setCategory] = useState(event.category);
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('14:00');
+  const [startTime, setStartTime] = useState(parsedTime.start);
+  const [endTime, setEndTime] = useState(parsedTime.end);
   const [estimatedAttendees, setEstimatedAttendees] = useState(event.estimatedAttendees || 100);
   const [quotas, setQuotas] = useState<{ role: string; count: number; filled: number }[]>(
     event.staffingQuotas?.length ? event.staffingQuotas.map(q => ({ ...q })) : []
@@ -244,7 +281,15 @@ const EditEventModal: React.FC<{
     setIsSaving(true);
     try {
       const slotsTotal = quotas.reduce((sum, q) => sum + q.count, 0);
-      await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, estimatedAttendees, staffingQuotas: quotas, slotsTotal });
+      // Build a readable time string like "10:00 AM - 2:00 PM"
+      const fmt = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+      };
+      const time = `${fmt(startTime)} - ${fmt(endTime)}`;
+      await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, time, estimatedAttendees, staffingQuotas: quotas, slotsTotal });
     } finally {
       setIsSaving(false);
     }
@@ -656,7 +701,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
          />
        )}
        {showStaffingModal && <StaffingSuggestions role={showStaffingModal.role} eventDate={showStaffingModal.eventDate} eventId={showStaffingModal.eventId} eventTitle={showStaffingModal.eventTitle} allVolunteers={allVolunteers} assignedVolunteerIds={shifts.find(s => s.opportunityId === showStaffingModal.eventId && s.roleType === showStaffingModal.role)?.assignedVolunteerIds || []} onClose={() => setShowStaffingModal(null)} onAssign={handleAssignVolunteer} />}
-       {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
+       {editingEvent && <EditEventModal event={editingEvent} shifts={shifts} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
@@ -749,7 +794,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h3 className="font-bold truncate">{opp.title}</h3>
-                        <p className="text-xs text-zinc-400">{new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} • {opp.serviceLocation}</p>
+                        <p className="text-xs text-zinc-400">{new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}{opp.time && opp.time !== 'TBD' ? ` • ${opp.time}` : ''} • {opp.serviceLocation}</p>
                         <p className="text-[10px] text-zinc-300 font-bold mt-1">{opp.category}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase shrink-0 ${

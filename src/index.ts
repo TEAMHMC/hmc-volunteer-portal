@@ -3599,7 +3599,7 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
         const allowedFields = [
             'approvalStatus', 'approvedBy', 'approvedAt', 'isPublic', 'isPublicFacing',
             'urgency', 'description', 'title', 'date', 'serviceLocation', 'category',
-            'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime',
+            'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime', 'time', 'address',
             'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64'
         ];
         const sanitizedUpdates: any = {};
@@ -3905,25 +3905,25 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             );
 
             if (existing) {
-                // Update existing event with latest data from Event Finder
+                // Always refresh key fields from Event Finder on re-sync
                 const updates: any = {};
                 if (event.title && event.title !== existing.title) updates.title = event.title;
-                if (event.time && event.time !== existing.time) updates.time = event.time;
-                if (event.address && event.address !== existing.address) updates.address = event.address;
-                if (event.location && event.location !== (existing.serviceLocation || existing.location)) updates.serviceLocation = event.location;
                 if (event.description && event.description !== existing.description) updates.description = event.description;
-                if (event.flyerUrl && event.flyerUrl !== existing.flyerUrl) updates.flyerUrl = event.flyerUrl;
                 if (event.program && event.program !== existing.category) updates.category = event.program;
+                if (event.location && event.location !== (existing.serviceLocation || existing.location)) updates.serviceLocation = event.location;
+                if (event.flyerUrl && event.flyerUrl !== existing.flyerUrl) updates.flyerUrl = event.flyerUrl;
                 if (event.date && event.date !== existing.date) updates.date = event.date;
+                // Always force-update time, address, dateDisplay, and coordinates
+                if (event.time) updates.time = event.time;
+                if (event.address) updates.address = event.address;
                 if (event.dateDisplay) updates.dateDisplay = event.dateDisplay;
                 if (event.lat && event.lng) updates.locationCoordinates = { lat: event.lat, lng: event.lng };
 
-                // Also update shift times when time changes
-                if (updates.time || updates.date) {
-                    const timeStr = event.time || existing.time || '';
-                    const dateStr = event.date || existing.date;
+                // Always re-sync shift times from Event Finder time string
+                const timeStr = event.time || existing.time || '';
+                const dateStr = event.date || existing.date;
+                if (timeStr && timeStr !== 'TBD') {
                     const parsed = parseEventTime(timeStr);
-                    // Update all shifts for this opportunity
                     const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', existing.id).get();
                     for (const shiftDoc of shiftsSnap.docs) {
                         await shiftDoc.ref.update({
