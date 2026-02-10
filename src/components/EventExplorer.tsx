@@ -7,10 +7,26 @@ import { ClinicEvent, Volunteer, Opportunity, Shift } from '../types';
 import { MapPin, Search, Calendar, Clock, Share2, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
+// Normalize similar program/category names to canonical labels
+const normalizeProgram = (program: string): string => {
+  const lower = (program || '').toLowerCase().trim();
+  if (lower.includes('walk') && lower.includes('run')) return 'Community Walk & Run';
+  if (lower.includes('workshop') || lower.includes('unstoppable workshop')) return 'Workshop';
+  if (lower.includes('wellness meetup') || lower.includes('unstoppable wellness')) return 'Wellness Meetup';
+  if (lower.includes('fair')) return 'Health Fair';
+  if (lower.includes('street medicine')) return 'Street Medicine';
+  if (lower.includes('survey')) return 'Survey Collection';
+  if (lower.includes('tabling')) return 'Tabling';
+  if (lower.includes('outreach')) return 'Community Outreach';
+  if (lower.includes('volunteer')) return 'Volunteer';
+  if (lower.includes('wellness') || lower.includes('community wellness')) return 'Wellness';
+  if (lower.includes('education')) return 'Wellness Education';
+  return program || 'Other';
+};
+
 const PROGRAM_COLORS: { [key: string]: string } = {
-  'Unstoppable Workshop': '#4f46e5',
-  'Unstoppable Wellness Meetup': '#7c3aed',
-  'Community Run & Walk': '#059669',
+  'Workshop': '#4f46e5',
+  'Wellness Meetup': '#7c3aed',
   'Community Walk & Run': '#059669',
   'Health Fair': '#ea580c',
   'Wellness': '#db2777',
@@ -19,7 +35,8 @@ const PROGRAM_COLORS: { [key: string]: string } = {
   'Street Medicine': '#be123c',
   'Tabling': '#0891b2',
   'Survey Collection': '#6366f1',
-  'Workshop': '#4f46e5',
+  'Volunteer': '#0e7490',
+  'Other': '#4b5563',
   'default': '#4b5563'
 };
 
@@ -126,7 +143,7 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
     return {
         id: opp.id,
         title: opp.title,
-        program: opp.category,
+        program: normalizeProgram(opp.category),
         lat,
         lng,
         address: opp.serviceLocation,
@@ -341,9 +358,9 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                <div className="bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Legend</p>
                   <div className="flex flex-col gap-2">
-                    {Object.entries(PROGRAM_COLORS).filter(([k]) => k !== 'default').map(([name, color]) => (
+                    {Array.from(new Set(filtered.map(e => e.program))).sort().map(name => (
                       <div key={name} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PROGRAM_COLORS[name] || PROGRAM_COLORS['default'] }} />
                         <span className="text-[10px] font-bold text-slate-600">{name}</span>
                       </div>
                     ))}
