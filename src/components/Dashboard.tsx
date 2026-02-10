@@ -165,29 +165,37 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true);
 
   // Notification counts
+  const [dismissedNotifTs, setDismissedNotifTs] = useState<string>(
+    () => (typeof window !== 'undefined' && localStorage.getItem('hmcNotifDismissedAt')) || ''
+  );
+
   const unreadDMs = useMemo(() => {
     return messages.filter(m => m.senderId !== displayUser.id && !m.read && m.recipientId !== 'general').length;
   }, [messages, displayUser.id]);
 
   const isCoordinatorOrLead = displayUser.role.includes('Coordinator') || displayUser.role.includes('Lead');
-  const openTicketsCount = useMemo(() => {
-    if (displayUser.isAdmin) return supportTickets.filter(t => t.status === 'open').length;
+  const myTickets = useMemo(() => {
     return supportTickets.filter(t => {
       if (t.status === 'closed') return false;
-      if (t.submittedBy === displayUser.id || t.assignedTo === displayUser.id) return true;
-      const vis = t.visibility || 'public';
-      if (vis === 'private') return false;
-      if (vis === 'team') return isCoordinatorOrLead;
-      return true;
-    }).length;
-  }, [supportTickets, displayUser.id, displayUser.isAdmin, isCoordinatorOrLead]);
+      // Only show tickets assigned to you, submitted by you, or (admin sees all)
+      if (displayUser.isAdmin) return t.assignedTo === displayUser.id || t.submittedBy === displayUser.id || t.status === 'open';
+      return t.submittedBy === displayUser.id || t.assignedTo === displayUser.id;
+    });
+  }, [supportTickets, displayUser.id, displayUser.isAdmin]);
+  const openTicketsCount = myTickets.length;
 
   const newApplicantsCount = useMemo(() => {
     if (!displayUser.isAdmin) return 0;
-    return allVolunteers.filter(v => v.status === 'applicant').length;
+    return allVolunteers.filter(v => v.applicationStatus === 'pendingReview').length;
   }, [allVolunteers, displayUser.isAdmin]);
 
   const totalNotifications = unreadDMs + openTicketsCount + newApplicantsCount;
+
+  const handleDismissNotifications = () => {
+    const now = new Date().toISOString();
+    setDismissedNotifTs(now);
+    localStorage.setItem('hmcNotifDismissedAt', now);
+  };
 
   const navItems = useMemo(() => {
     let items: { id: string; label: string; icon: any; badge?: number }[] = [
@@ -451,9 +459,16 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           <div className="fixed right-4 top-[100px] md:left-[240px] md:right-auto md:top-[80px] w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-[200] overflow-hidden">
             <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
               <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
-              <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
-                <X size={14} className="text-zinc-400" />
-              </button>
+              <div className="flex items-center gap-2">
+                {totalNotifications > 0 && (
+                  <button onClick={() => { handleDismissNotifications(); setShowNotifications(false); }} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-600">
+                    Dismiss all
+                  </button>
+                )}
+                <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
+                  <X size={14} className="text-zinc-400" />
+                </button>
+              </div>
             </div>
             <div className="max-h-80 overflow-y-auto">
               {totalNotifications === 0 ? (
@@ -478,44 +493,33 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                       <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
                     </button>
                   )}
-                  {openTicketsCount > 0 && (() => {
-                    const visibleTickets = supportTickets.filter(t => {
-                      if (t.status === 'closed') return false;
-                      if (displayUser.isAdmin) return true;
-                      if (t.submittedBy === displayUser.id || t.assignedTo === displayUser.id) return true;
-                      const vis = (t as any).visibility || 'public';
-                      if (vis === 'private') return false;
-                      if (vis === 'team') return isCoordinatorOrLead;
-                      return true;
-                    });
-                    return (
-                      <div>
+                  {openTicketsCount > 0 && (
+                    <div>
+                      <button
+                        onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
+                        className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                          <ShieldAlert size={16} className="text-amber-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-zinc-900">{openTicketsCount} ticket{openTicketsCount > 1 ? 's' : ''}</p>
+                          <p className="text-[11px] text-zinc-400">Assigned to you or submitted by you</p>
+                        </div>
+                        <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                      </button>
+                      {myTickets.slice(0, 3).map(t => (
                         <button
+                          key={t.id}
                           onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
-                          className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                          className="w-full px-4 py-2 pl-16 hover:bg-zinc-50 text-left transition-colors"
                         >
-                          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                            <ShieldAlert size={16} className="text-amber-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-zinc-900">{openTicketsCount} open ticket{openTicketsCount > 1 ? 's' : ''}</p>
-                            <p className="text-[11px] text-zinc-400">{displayUser.isAdmin ? 'Tickets needing attention' : 'Your active tickets'}</p>
-                          </div>
-                          <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                          <p className="text-xs font-medium text-zinc-700 truncate">{t.subject}</p>
+                          <p className="text-[10px] text-zinc-400">{t.status === 'open' ? 'Open' : 'In Progress'} · {t.priority}</p>
                         </button>
-                        {visibleTickets.slice(0, 3).map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
-                            className="w-full px-4 py-2 pl-16 hover:bg-zinc-50 text-left transition-colors"
-                          >
-                            <p className="text-xs font-medium text-zinc-700 truncate">{t.subject}</p>
-                            <p className="text-[10px] text-zinc-400">{t.status === 'open' ? 'Open' : 'In Progress'} · {t.priority}</p>
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })()}
+                      ))}
+                    </div>
+                  )}
                   {newApplicantsCount > 0 && (
                     <button
                       onClick={() => { setActiveTab('directory'); setShowNotifications(false); }}

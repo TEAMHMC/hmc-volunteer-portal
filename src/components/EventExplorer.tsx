@@ -59,18 +59,71 @@ const extractCityFromAddress = (address: string): string => {
     return 'Los Angeles';
 };
 
+// Known LA-area city coordinates for map pin placement
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+    'inglewood': { lat: 33.9617, lng: -118.3531 },
+    'compton': { lat: 33.8958, lng: -118.2201 },
+    'watts': { lat: 33.9425, lng: -118.2551 },
+    'south los angeles': { lat: 33.9425, lng: -118.2751 },
+    'south la': { lat: 33.9425, lng: -118.2751 },
+    'skid row': { lat: 34.0453, lng: -118.2437 },
+    'downtown la': { lat: 34.0407, lng: -118.2468 },
+    'downtown los angeles': { lat: 34.0407, lng: -118.2468 },
+    'hollywood': { lat: 34.0928, lng: -118.3287 },
+    'koreatown': { lat: 34.0578, lng: -118.3006 },
+    'east los angeles': { lat: 34.0239, lng: -118.1720 },
+    'east la': { lat: 34.0239, lng: -118.1720 },
+    'boyle heights': { lat: 34.0337, lng: -118.2104 },
+    'lincoln heights': { lat: 34.0681, lng: -118.2098 },
+    'el monte': { lat: 34.0686, lng: -118.0276 },
+    'pomona': { lat: 34.0551, lng: -117.7500 },
+    'long beach': { lat: 33.7701, lng: -118.1937 },
+    'torrance': { lat: 33.8358, lng: -118.3406 },
+    'hawthorne': { lat: 33.9164, lng: -118.3526 },
+    'gardena': { lat: 33.8883, lng: -118.3090 },
+    'carson': { lat: 33.8317, lng: -118.2620 },
+    'lynwood': { lat: 33.9307, lng: -118.2115 },
+    'south gate': { lat: 33.9547, lng: -118.2120 },
+    'bell gardens': { lat: 33.9653, lng: -118.1514 },
+    'huntington park': { lat: 33.9817, lng: -118.2251 },
+    'florence': { lat: 33.9667, lng: -118.2500 },
+    'wilmington': { lat: 33.7830, lng: -118.2631 },
+    'san pedro': { lat: 33.7358, lng: -118.2923 },
+    'palmdale': { lat: 34.5794, lng: -118.1165 },
+    'lancaster': { lat: 34.6868, lng: -118.1542 },
+    'pasadena': { lat: 34.1478, lng: -118.1445 },
+    'glendale': { lat: 34.1425, lng: -118.2551 },
+    'burbank': { lat: 34.1808, lng: -118.3090 },
+    'santa monica': { lat: 34.0195, lng: -118.4912 },
+    'culver city': { lat: 34.0211, lng: -118.3965 },
+    'venice': { lat: 33.9850, lng: -118.4695 },
+    'westchester': { lat: 33.9617, lng: -118.4018 },
+    'los angeles': { lat: 34.0522, lng: -118.2437 },
+    'la': { lat: 34.0522, lng: -118.2437 },
+};
+
+const geocodeFromAddress = (address: string): { lat: number; lng: number } | null => {
+    if (!address) return null;
+    const lower = address.toLowerCase();
+    // Try matching city names in the address
+    for (const [city, coords] of Object.entries(CITY_COORDS)) {
+        if (lower.includes(city)) return coords;
+    }
+    return null;
+};
+
 // Helper to convert Opportunity to ClinicEvent for map display
 const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
-    // Default to approximate LA coordinates if missing, scattered slightly to avoid overlap
-    const defaultLat = 34.0522 + (Math.random() - 0.5) * 0.1;
-    const defaultLng = -118.2437 + (Math.random() - 0.5) * 0.1;
+    const geocoded = geocodeFromAddress(opp.serviceLocation);
+    const lat = opp.locationCoordinates?.lat || geocoded?.lat || 34.0522;
+    const lng = opp.locationCoordinates?.lng || geocoded?.lng || -118.2437;
 
     return {
         id: opp.id,
         title: opp.title,
         program: opp.category,
-        lat: opp.locationCoordinates?.lat || defaultLat,
-        lng: opp.locationCoordinates?.lng || defaultLng,
+        lat,
+        lng,
         address: opp.serviceLocation,
         city: extractCityFromAddress(opp.serviceLocation),
         dateDisplay: opp.dateDisplay || new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
