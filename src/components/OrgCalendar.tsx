@@ -265,9 +265,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         </div>
       </div>
 
-      {/* Upcoming Events List */}
+      {/* Upcoming Events */}
       <div>
-        <h3 className="text-xl font-black text-zinc-900 mb-4">
+        <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-2">
           {selectedDay
             ? `Events on ${new Date(selectedDay + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
             : 'Upcoming Events'
@@ -279,110 +279,116 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             <Loader2 className="animate-spin text-zinc-300" size={32} />
           </div>
         ) : upcomingEvents.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-zinc-200/60 p-12 text-center">
-            <CalendarDays size={40} className="mx-auto text-zinc-200 mb-3" />
-            <p className="text-sm font-medium text-zinc-400">
-              {selectedDay ? 'No events on this day' : 'No upcoming events'}
+          <div className="py-32 text-center bg-zinc-50 rounded-[56px] border border-dashed border-zinc-200">
+            <CalendarDays className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5} />
+            <p className="text-lg font-bold text-zinc-400 italic">
+              {selectedDay ? 'No events on this day.' : 'No upcoming events.'}
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {upcomingEvents.map(ev => {
               const color = getColor(ev.type);
               const userRsvp = getUserRsvpStatus(ev);
               const attendingCount = ev.rsvps?.filter(r => r.status === 'attending').length || 0;
+              const isAttending = userRsvp === 'attending';
 
               return (
                 <div
                   key={`${ev.id}-${ev.source}`}
-                  className={`bg-white rounded-2xl border ${color.border} p-5 hover:shadow-md transition-all`}
+                  className={`bg-white rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <div className={`w-2.5 h-2.5 rounded-full ${color.dot}`} />
-                        <h4 className="font-bold text-zinc-900 text-sm">{ev.title}</h4>
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${color.bg} ${color.text}`}>
-                          {color.label}
-                        </span>
-                        {ev.source && ev.source !== 'org-calendar' && (
-                          <span className="text-[10px] font-medium text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Tag size={8} /> {SOURCE_LABELS[ev.source] || ev.source}
-                          </span>
-                        )}
-                      </div>
+                  {isAttending && (
+                    <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Check size={14} /> Going
+                    </div>
+                  )}
 
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 mt-2">
-                        <span className="flex items-center gap-1">
-                          <CalendarDays size={12} />
-                          {new Date(ev.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  <div className="p-10 flex-1">
+                    <div className="flex justify-between items-start mb-6">
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${color.bg} ${color.text} ${color.border}`}>
+                        {color.label}
+                      </span>
+                      {ev.source && ev.source !== 'org-calendar' && (
+                        <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-zinc-50 text-zinc-400 border border-zinc-100 flex items-center gap-1">
+                          <Tag size={10} /> {SOURCE_LABELS[ev.source] || ev.source}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {ev.startTime}{ev.endTime ? ` - ${ev.endTime}` : ''}
-                        </span>
-                        {ev.location && (
-                          <span className="flex items-center gap-1">
-                            <MapPin size={12} /> {ev.location}
-                          </span>
-                        )}
-                        {attendingCount > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Users size={12} /> {attendingCount} attending
-                          </span>
-                        )}
-                      </div>
-
-                      {ev.description && (
-                        <p className="text-xs text-zinc-400 mt-2 line-clamp-2">{ev.description}</p>
-                      )}
-
-                      {ev.isRecurring && ev.recurrenceNote && (
-                        <p className="text-[10px] text-zinc-400 mt-1 italic">{ev.recurrenceNote}</p>
                       )}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {ev.meetLink && (
-                        <a
-                          href={ev.meetLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors"
-                        >
-                          <Video size={14} /> Join
-                        </a>
-                      )}
+                    <h3 className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3">{ev.title}</h3>
 
-                      {ev.source !== 'event-finder' && (
-                        <div className="flex items-center gap-1">
-                          {(['attending', 'tentative', 'declined'] as const).map(status => (
-                            <button
-                              key={status}
-                              onClick={() => handleRsvp(ev.id, status)}
-                              disabled={rsvpLoading === ev.id}
-                              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-                                userRsvp === status
-                                  ? status === 'attending' ? 'bg-emerald-500 text-white' : status === 'tentative' ? 'bg-amber-500 text-white' : 'bg-zinc-500 text-white'
-                                  : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
-                              }`}
-                            >
-                              {rsvpLoading === ev.id ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : (
-                                status === 'attending' ? 'Going' : status === 'tentative' ? 'Maybe' : 'No'
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    {ev.location && (
+                      <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
+                        <MapPin size={14} className="text-zinc-300" /> {ev.location}
+                      </div>
+                    )}
 
-                      {ev.source === 'event-finder' && (
-                        <span className="text-[10px] font-medium text-indigo-500 bg-indigo-50 px-3 py-2 rounded-lg">
-                          Community Event
-                        </span>
-                      )}
+                    {ev.description && (
+                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{ev.description.substring(0, 120)}{ev.description.length > 120 ? '...' : ''}</p>
+                    )}
+
+                    {attendingCount > 0 && (
+                      <p className="text-xs text-zinc-400 mt-4 flex items-center gap-1.5">
+                        <Users size={14} className="text-zinc-300" /> {attendingCount} attending
+                      </p>
+                    )}
+
+                    {ev.isRecurring && ev.recurrenceNote && (
+                      <p className="text-[10px] text-zinc-400 mt-2 italic">{ev.recurrenceNote}</p>
+                    )}
+                  </div>
+
+                  <div className="bg-zinc-50/70 p-8 rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Date & Time</p>
+                        <p className="text-sm font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                          <CalendarDays size={14} className="text-[#233DFF] shrink-0" />
+                          {new Date(ev.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </p>
+                        <p className="text-sm font-bold text-zinc-600 mt-1 flex items-center gap-2">
+                          <Clock size={14} className="text-[#233DFF] shrink-0" />
+                          {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {ev.meetLink && (
+                          <a
+                            href={ev.meetLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-5 py-3 rounded-full bg-green-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg hover:bg-green-700 transition-colors"
+                          >
+                            <Video size={14} /> Join
+                          </a>
+                        )}
+
+                        {ev.source !== 'event-finder' && (
+                          <button
+                            onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
+                            disabled={rsvpLoading === ev.id}
+                            className={`px-6 py-3 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
+                              isAttending ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'
+                            }`}
+                          >
+                            {rsvpLoading === ev.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : isAttending ? (
+                              'Cancel'
+                            ) : (
+                              'RSVP'
+                            )}
+                          </button>
+                        )}
+
+                        {ev.source === 'event-finder' && (
+                          <span className="px-5 py-3 rounded-full bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest">
+                            Community
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
