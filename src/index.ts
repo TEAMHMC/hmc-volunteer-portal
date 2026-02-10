@@ -3667,9 +3667,13 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             console.log(`[EVENTS] Synced shifts for opportunity ${id} with updated quotas`);
         }
 
-        // Fetch and return the updated document
+        // Fetch and return the updated document + current shifts
         const updatedDoc = await db.collection('opportunities').doc(id).get();
-        const updatedData = { id: updatedDoc.id, ...updatedDoc.data() };
+        const updatedData: any = { id: updatedDoc.id, ...updatedDoc.data() };
+
+        // Always return shifts so frontend can sync after quota changes
+        const currentShiftsSnap = await db.collection('shifts').where('opportunityId', '==', id).get();
+        updatedData.shifts = currentShiftsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
         console.log(`[EVENTS] Updated opportunity ${id} with:`, Object.keys(sanitizedUpdates));
         res.json(updatedData);

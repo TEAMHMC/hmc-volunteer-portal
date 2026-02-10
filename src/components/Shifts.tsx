@@ -237,7 +237,7 @@ const EditEventModal: React.FC<{
   };
 
   const handleQuotaChange = (idx: number, field: 'role' | 'count', value: string | number) => {
-    setQuotas(prev => prev.map((q, i) => i === idx ? { ...q, [field]: field === 'count' ? Math.max(0, Number(value)) : value } : q));
+    setQuotas(prev => prev.map((q, i) => i === idx ? { ...q, [field]: field === 'count' ? Math.max(q.filled || 0, Number(value)) : value } : q));
   };
 
   const handleSave = async () => {
@@ -508,7 +508,15 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     if (!editingEvent) return;
     try {
       const result = await apiService.put(`/api/opportunities/${editingEvent.id}`, updates);
-      setOpportunities(prev => prev.map(o => o.id === editingEvent.id ? { ...o, ...result } : o));
+      const { shifts: returnedShifts, ...oppData } = result;
+      setOpportunities(prev => prev.map(o => o.id === editingEvent.id ? { ...o, ...oppData } : o));
+      // Sync shifts: replace all shifts for this opportunity with the ones from the server
+      if (returnedShifts?.length) {
+        setShifts(prev => {
+          const otherShifts = prev.filter(s => s.opportunityId !== editingEvent.id);
+          return [...otherShifts, ...returnedShifts];
+        });
+      }
       setEditingEvent(null);
       setToastMsg('Event updated successfully.');
       setShowToast(true);
