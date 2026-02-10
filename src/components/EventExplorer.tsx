@@ -197,7 +197,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
         if (setOpportunities && shiftToAssign) {
           setOpportunities(prev => prev.map(opp => {
             if (opp.id === eventId) {
-              const updatedQuotas = opp.staffingQuotas.map(q => {
+              const updatedQuotas = (opp.staffingQuotas || []).map(q => {
                 if (q.role === shiftToAssign!.roleType) {
                   return { ...q, filled: (q.filled || 0) + 1 };
                 }

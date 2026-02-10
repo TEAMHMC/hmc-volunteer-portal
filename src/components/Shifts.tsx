@@ -242,9 +242,12 @@ const EditEventModal: React.FC<{
 
   const handleSave = async () => {
     setIsSaving(true);
-    const slotsTotal = quotas.reduce((sum, q) => sum + q.count, 0);
-    await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, estimatedAttendees, staffingQuotas: quotas, slotsTotal });
-    setIsSaving(false);
+    try {
+      const slotsTotal = quotas.reduce((sum, q) => sum + q.count, 0);
+      await onSave({ title, description, date, serviceLocation: location, category, startTime, endTime, estimatedAttendees, staffingQuotas: quotas, slotsTotal });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -454,7 +457,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       // Update local opportunity staffing quotas
       setOpportunities(prev => prev.map(o => o.id === eventId ? {
         ...o,
-        staffingQuotas: o.staffingQuotas.map(q => q.role === role ? { ...q, filled: (q.filled || 0) + 1 } : q),
+        staffingQuotas: (o.staffingQuotas || []).map(q => q.role === role ? { ...q, filled: (q.filled || 0) + 1 } : q),
       } : o));
 
       setShowStaffingModal(null);
@@ -757,7 +760,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                       </span>
                     </div>
                     <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3 flex-1">
-                      {opp.staffingQuotas.map(q => {
+                      {(opp.staffingQuotas || []).map(q => {
                         const matchingShift = shifts.find(s => s.opportunityId === opp.id && s.roleType === q.role);
                         const assignedIds = matchingShift?.assignedVolunteerIds || [];
                         const assignedVols = assignedIds.map(id => allVolunteers.find(v => v.id === id)).filter(Boolean) as Volunteer[];
@@ -782,7 +785,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                         try {
                                           await apiService.post('/api/events/unregister', { volunteerId: v.id, eventId: opp.id, shiftId: matchingShift.id });
                                           setShifts(prev => prev.map(s => s.id === matchingShift.id ? { ...s, slotsFilled: s.slotsFilled - 1, assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== v.id) } : s));
-                                          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, staffingQuotas: o.staffingQuotas.map(sq => sq.role === q.role ? { ...sq, filled: Math.max(0, (sq.filled || 0) - 1) } : sq) } : o));
+                                          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, staffingQuotas: (o.staffingQuotas || []).map(sq => sq.role === q.role ? { ...sq, filled: Math.max(0, (sq.filled || 0) - 1) } : sq) } : o));
                                         } catch (e) { console.error('Failed to unassign', e); }
                                       }}
                                       className="ml-auto p-0.5 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
