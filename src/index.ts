@@ -4048,15 +4048,20 @@ app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: 
     const inviteRef = await db.collection('event_invites').add(inviteData);
 
     // Send invite email
-    await EmailService.send('event_volunteer_invite', {
+    const emailResult = await EmailService.send('event_volunteer_invite', {
       toEmail: email.toLowerCase(),
       volunteerName: name,
       eventTitle: eventTitle || 'a community event',
       eventDate: eventDate || 'an upcoming date',
     });
 
-    console.log(`[INVITE] Volunteer invite sent to ${email} for event ${eventTitle || eventId}`);
-    res.json({ sent: true, inviteId: inviteRef.id });
+    if (emailResult.sent) {
+      console.log(`[INVITE] Volunteer invite sent to ${email} for event ${eventTitle || eventId}`);
+      res.json({ sent: true, inviteId: inviteRef.id });
+    } else {
+      console.warn(`[INVITE] Invite saved but email not sent to ${email}: ${emailResult.reason}`);
+      res.json({ sent: true, inviteId: inviteRef.id, emailFailed: true, emailReason: emailResult.reason || 'Email service not configured' });
+    }
   } catch (error: any) {
     console.error('[INVITE] Failed to send volunteer invite:', error);
     res.status(500).json({ error: error.message || 'Failed to send invite' });
@@ -4067,49 +4072,52 @@ app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: 
 app.post('/api/events/unregister', verifyToken, async (req: Request, res: Response) => {
   try {
     const { volunteerId, eventId, shiftId } = req.body;
-    if (!volunteerId || !shiftId) {
-      return res.status(400).json({ error: 'volunteerId and shiftId are required' });
+    if (!volunteerId || !eventId) {
+      return res.status(400).json({ error: 'volunteerId and eventId are required' });
     }
 
-    // Update shift: remove volunteer and decrement count
-    const shiftRef = db.collection('shifts').doc(shiftId);
-    const shiftDoc = await shiftRef.get();
-    if (!shiftDoc.exists) {
-      return res.status(404).json({ error: 'Shift not found' });
-    }
-    const shiftData = shiftDoc.data()!;
-    await shiftRef.update({
-      slotsFilled: Math.max(0, (shiftData.slotsFilled || 0) - 1),
-      assignedVolunteerIds: (shiftData.assignedVolunteerIds || []).filter((id: string) => id !== volunteerId),
-    });
-
-    // Update opportunity staffingQuotas
-    if (eventId) {
-      const oppRef = db.collection('opportunities').doc(eventId);
-      const oppDoc = await oppRef.get();
-      if (oppDoc.exists) {
-        const oppData = oppDoc.data()!;
-        const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
-          q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
-        );
-        await oppRef.update({
-          staffingQuotas: updatedQuotas,
-          slotsFilled: Math.max(0, (oppData.slotsFilled || 0) - 1),
+    // Update shift: remove volunteer and decrement count (if shift provided)
+    if (shiftId) {
+      const shiftRef = db.collection('shifts').doc(shiftId);
+      const shiftDoc = await shiftRef.get();
+      if (shiftDoc.exists) {
+        const shiftData = shiftDoc.data()!;
+        await shiftRef.update({
+          slotsFilled: Math.max(0, (shiftData.slotsFilled || 0) - 1),
+          assignedVolunteerIds: (shiftData.assignedVolunteerIds || []).filter((id: string) => id !== volunteerId),
         });
+
+        // Update opportunity staffingQuotas
+        const oppRef = db.collection('opportunities').doc(eventId);
+        const oppDoc = await oppRef.get();
+        if (oppDoc.exists) {
+          const oppData = oppDoc.data()!;
+          const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
+            q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
+          );
+          await oppRef.update({
+            staffingQuotas: updatedQuotas,
+            slotsFilled: Math.max(0, (oppData.slotsFilled || 0) - 1),
+          });
+        }
       }
     }
 
-    // Remove shift from volunteer's assignedShiftIds
+    // Remove from volunteer's assignedShiftIds and rsvpedEventIds
     const volRef = db.collection('volunteers').doc(volunteerId);
     const volDoc = await volRef.get();
     if (volDoc.exists) {
       const volData = volDoc.data()!;
-      await volRef.update({
-        assignedShiftIds: (volData.assignedShiftIds || []).filter((id: string) => id !== shiftId),
-      });
+      const updates: any = {
+        rsvpedEventIds: (volData.rsvpedEventIds || []).filter((id: string) => id !== eventId),
+      };
+      if (shiftId) {
+        updates.assignedShiftIds = (volData.assignedShiftIds || []).filter((id: string) => id !== shiftId);
+      }
+      await volRef.update(updates);
     }
 
-    console.log(`[EVENTS] Unregistered volunteer ${volunteerId} from shift ${shiftId}`);
+    console.log(`[EVENTS] Unregistered volunteer ${volunteerId} from event ${eventId}${shiftId ? ` shift ${shiftId}` : ''}`);
     res.json({ success: true });
   } catch (error: any) {
     console.error('[EVENTS] Failed to unregister volunteer:', error);

@@ -359,9 +359,10 @@ interface ShiftsProps {
   opportunities: Opportunity[];
   setOpportunities: React.Dispatch<React.SetStateAction<Opportunity[]>>;
   allVolunteers: Volunteer[];
+  setAllVolunteers?: React.Dispatch<React.SetStateAction<Volunteer[]>>;
 }
 
-const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShifts, onUpdate, opportunities, setOpportunities, allVolunteers }) => {
+const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShifts, onUpdate, opportunities, setOpportunities, allVolunteers, setAllVolunteers }) => {
   const canManageEvents = userMode === 'admin' || userMode === 'coordinator';
   const [activeTab, setActiveTab] = useState<'available' | 'my-schedule' | 'manage'>(canManageEvents ? 'manage' : 'my-schedule');
   const [searchQuery, setSearchQuery] = useState('');
@@ -801,6 +802,39 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         );
                       })}
                     </div>
+                    {/* RSVP'd volunteers not assigned to a specific shift */}
+                    {(() => {
+                      const allAssignedIds = shifts.filter(s => s.opportunityId === opp.id).flatMap(s => s.assignedVolunteerIds || []);
+                      const rsvpOnly = allVolunteers.filter(v => v.rsvpedEventIds?.includes(opp.id) && !allAssignedIds.includes(v.id));
+                      if (rsvpOnly.length === 0) return null;
+                      return (
+                        <div className="mt-3 pt-3 border-t border-zinc-100">
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">RSVP'd ({rsvpOnly.length})</p>
+                          <div className="space-y-1">
+                            {rsvpOnly.map(v => (
+                              <div key={v.id} className="flex items-center gap-2 group">
+                                <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[9px] font-bold shrink-0">{v.name.charAt(0)}</div>
+                                <span className="text-xs text-zinc-600 truncate">{v.name}</span>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await apiService.post('/api/events/unregister', { volunteerId: v.id, eventId: opp.id });
+                                      if (setAllVolunteers) {
+                                        setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id) } : vol));
+                                      }
+                                    } catch (e) { console.error('Failed to remove RSVP', e); }
+                                  }}
+                                  className="ml-auto p-0.5 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                  title="Remove RSVP"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center gap-2">
                       <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold transition-colors">
                         <Pencil size={12} /> Edit

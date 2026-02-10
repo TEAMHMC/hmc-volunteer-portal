@@ -78,6 +78,10 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
             });
             if (result.alreadyRegistered) {
                 setInviteResult({ type: 'exists', message: `${result.volunteerName || inviteEmail} already has an account. Use the search above to find and assign them.` });
+            } else if (result.emailFailed) {
+                setInviteResult({ type: 'error', message: `Invite saved but email could not be sent (${result.emailReason}). You may need to contact them manually.` });
+                setInviteName('');
+                setInviteEmail('');
             } else {
                 setInviteResult({ type: 'success', message: `Invite sent to ${inviteEmail}!` });
                 setInviteName('');
