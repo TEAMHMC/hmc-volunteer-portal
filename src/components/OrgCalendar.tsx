@@ -3,7 +3,7 @@ import { Volunteer, Opportunity, OrgCalendarEvent } from '../types';
 import { apiService } from '../services/apiService';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Plus, X, Clock, MapPin,
-  ExternalLink, Users, Filter, Video, Loader2, Check, Tag
+  ExternalLink, Users, Filter, Video, Loader2, Check, Tag, Trash2, Edit3, Navigation
 } from 'lucide-react';
 
 interface OrgCalendarProps {
@@ -69,6 +69,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const [typeFilter, setTypeFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<OrgCalendarEvent | null>(null);
+  const [showDetailEvent, setShowDetailEvent] = useState<OrgCalendarEvent | null>(null);
 
   const isAdmin = user.isAdmin;
   const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
@@ -148,6 +150,17 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       console.error('RSVP failed:', err);
     } finally {
       setRsvpLoading(null);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('Are you sure you want to delete this event? This cannot be undone.')) return;
+    try {
+      await apiService.delete(`/api/org-calendar/${eventId}`);
+      setShowDetailEvent(null);
+      await fetchEvents();
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
   };
 
@@ -313,7 +326,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               return (
                 <div
                   key={`${ev.id}-${ev.source}`}
-                  className={`bg-white rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}
+                  className={`bg-white rounded-3xl md:rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}
                 >
                   {isAttending && (
                     <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -321,7 +334,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     </div>
                   )}
 
-                  <div className="p-10 flex-1">
+                  <div className="p-6 md:p-10 flex-1">
                     <div className="flex justify-between items-start mb-6">
                       <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${color.bg} ${color.text} ${color.border}`}>
                         {color.label}
@@ -333,7 +346,10 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                       )}
                     </div>
 
-                    <h3 className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3">{ev.title}</h3>
+                    <h3
+                      className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors"
+                      onClick={() => setShowDetailEvent(ev)}
+                    >{ev.title}</h3>
 
                     {ev.location && (
                       <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
@@ -356,7 +372,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     )}
                   </div>
 
-                  <div className="bg-zinc-50/70 p-8 rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
+                  <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl md:rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Date & Time</p>
@@ -407,6 +423,25 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                             {isSignedUpViaEventFinder ? <><Check size={14} /> Registered</> : 'Community'}
                           </span>
                         )}
+
+                        {canCreateEvents && ev.source === 'org-calendar' && (
+                          <>
+                            <button
+                              onClick={() => { setEditingEvent(ev); setShowCreateModal(true); }}
+                              className="w-10 h-10 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors"
+                              title="Edit event"
+                            >
+                              <Edit3 size={14} className="text-zinc-500" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEvent(ev.id)}
+                              className="w-10 h-10 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                              title="Delete event"
+                            >
+                              <Trash2 size={14} className="text-rose-500" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -417,8 +452,107 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         )}
       </div>
 
-      {/* Create Event Modal */}
-      {showCreateModal && <CreateEventModal onClose={() => setShowCreateModal(false)} onCreated={fetchEvents} />}
+      {/* Create/Edit Event Modal */}
+      {showCreateModal && (
+        <CreateEventModal
+          onClose={() => { setShowCreateModal(false); setEditingEvent(null); }}
+          onCreated={fetchEvents}
+          editingEvent={editingEvent}
+        />
+      )}
+
+      {/* Event Detail Modal */}
+      {showDetailEvent && (
+        <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={() => setShowDetailEvent(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-zinc-100">
+              <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getColor(showDetailEvent.type).bg} ${getColor(showDetailEvent.type).text} ${getColor(showDetailEvent.type).border}`}>
+                {getColor(showDetailEvent.type).label}
+              </span>
+              <button onClick={() => setShowDetailEvent(null)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
+                <X size={18} className="text-zinc-400" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight">{showDetailEvent.title}</h3>
+
+              <div className="flex items-center gap-2 text-sm text-zinc-600">
+                <CalendarDays size={16} className="text-[#233DFF]" />
+                {new Date(showDetailEvent.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-zinc-600">
+                <Clock size={16} className="text-[#233DFF]" />
+                {formatTimeDisplay(showDetailEvent.startTime)}{showDetailEvent.endTime ? ` – ${formatTimeDisplay(showDetailEvent.endTime)}` : ''}
+              </div>
+
+              {showDetailEvent.location && (
+                <div className="flex items-center gap-2 text-sm text-zinc-600">
+                  <MapPin size={16} className="text-[#233DFF]" />
+                  {showDetailEvent.location}
+                </div>
+              )}
+
+              {showDetailEvent.description && (
+                <p className="text-sm text-zinc-500 leading-relaxed pt-2 border-t border-zinc-100">{showDetailEvent.description}</p>
+              )}
+
+              {showDetailEvent.rsvps && showDetailEvent.rsvps.length > 0 && (
+                <div className="pt-2 border-t border-zinc-100">
+                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                    <Users size={14} className="inline mr-1" /> {showDetailEvent.rsvps.filter(r => r.status === 'attending').length} attending
+                  </p>
+                </div>
+              )}
+
+              {showDetailEvent.isRecurring && showDetailEvent.recurrenceNote && (
+                <p className="text-xs text-zinc-400 italic">{showDetailEvent.recurrenceNote}</p>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                {showDetailEvent.meetLink && (
+                  <a
+                    href={showDetailEvent.meetLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
+                  >
+                    <Video size={16} /> Join Meeting
+                  </a>
+                )}
+                {showDetailEvent.location && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showDetailEvent.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Navigation size={16} /> Get Directions
+                  </a>
+                )}
+              </div>
+
+              {canCreateEvents && showDetailEvent.source === 'org-calendar' && (
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => { setEditingEvent(showDetailEvent); setShowDetailEvent(null); setShowCreateModal(true); }}
+                    className="flex-1 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Edit3 size={16} /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteEvent(showDetailEvent.id)}
+                    className="flex-1 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Trash2 size={16} /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -430,22 +564,23 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 interface CreateEventModalProps {
   onClose: () => void;
   onCreated: () => Promise<void> | void;
+  editingEvent?: OrgCalendarEvent | null;
 }
 
-const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated }) => {
+const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated, editingEvent }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    title: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    type: 'all-hands' as OrgCalendarEvent['type'],
-    location: '',
-    meetLink: '',
-    description: '',
-    isRecurring: false,
-    recurrenceNote: '',
+    title: editingEvent?.title || '',
+    date: editingEvent?.date || '',
+    startTime: editingEvent?.startTime || '',
+    endTime: editingEvent?.endTime || '',
+    type: (editingEvent?.type || 'all-hands') as OrgCalendarEvent['type'],
+    location: editingEvent?.location || '',
+    meetLink: editingEvent?.meetLink || '',
+    description: editingEvent?.description || '',
+    isRecurring: editingEvent?.isRecurring || false,
+    recurrenceNote: editingEvent?.recurrenceNote || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -454,12 +589,16 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated 
     setError('');
     try {
       setSaving(true);
-      await apiService.post('/api/org-calendar', form);
+      if (editingEvent) {
+        await apiService.put(`/api/org-calendar/${editingEvent.id}`, form);
+      } else {
+        await apiService.post('/api/org-calendar', form);
+      }
       await onCreated();
       onClose();
     } catch (err: any) {
-      console.error('Failed to create event:', err);
-      setError(err?.message || 'Failed to create event. Please try again.');
+      console.error(`Failed to ${editingEvent ? 'update' : 'create'} event:`, err);
+      setError(err?.message || `Failed to ${editingEvent ? 'update' : 'create'} event. Please try again.`);
     } finally {
       setSaving(false);
     }
@@ -471,7 +610,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated 
     <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
-          <h3 className="text-lg font-black text-zinc-900">New Event</h3>
+          <h3 className="text-lg font-black text-zinc-900">{editingEvent ? 'Edit Event' : 'New Event'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
             <X size={18} className="text-zinc-400" />
           </button>
@@ -614,8 +753,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated 
             disabled={saving || !form.title || !form.date || !form.startTime}
             className="w-full py-4 bg-[#233DFF] text-white rounded-xl font-bold text-sm hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-            {saving ? 'Creating...' : 'Create Event'}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : editingEvent ? <Check size={16} /> : <Plus size={16} />}
+            {saving ? (editingEvent ? 'Saving...' : 'Creating...') : (editingEvent ? 'Save Changes' : 'Create Event')}
           </button>
         </form>
       </div>

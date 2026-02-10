@@ -38,14 +38,14 @@ const normalizeProgram = (program: string): string => {
 };
 
 const PROGRAM_COLORS: { [key: string]: string } = {
-  'Workshop': '#4f46e5',
+  'Workshop': '#8b5cf6',
   'Community Run & Walk': '#059669',
   'Health Fair': '#ea580c',
   'Wellness': '#db2777',
   'Wellness Education': '#db2777',
   'Community Outreach': '#0891b2',
   'Street Medicine': '#be123c',
-  'Tabling': '#0891b2',
+  'Tabling': '#0d9488',
   'Survey Collection': '#6366f1',
   'Other': '#4b5563',
   'default': '#4b5563'
@@ -183,6 +183,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastIsError, setToastIsError] = useState(false);
+  const [deepLinkProcessed, setDeepLinkProcessed] = useState(false);
 
   // Helper to check if event is in the past
   const isPastEvent = (dateStr: string) => {
@@ -194,6 +195,23 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
     today.setHours(0, 0, 0, 0);
     return eventDate < today;
   };
+
+  // Deep linking: parse ?event=<id> from URL to auto-select an event
+  useEffect(() => {
+    if (deepLinkProcessed || opportunities.length === 0) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const eventParam = params.get('event') || params.get('eventId');
+      if (eventParam) {
+        const opp = opportunities.find(o => o.id === eventParam);
+        if (opp) {
+          const mapped = mapOpportunityToEvent(opp);
+          setSelectedEvent(mapped);
+        }
+      }
+    } catch (_) { /* ignore parse errors */ }
+    setDeepLinkProcessed(true);
+  }, [opportunities, deepLinkProcessed]);
 
   // Convert live opportunities to map events (approved or legacy status)
   const allApprovedOpportunities = useMemo(() =>
@@ -426,6 +444,18 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.time}</p>
                 </div>
               </div>
+
+              {/* Get Directions */}
+              {selectedEvent.address && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedEvent.address + ', ' + selectedEvent.city)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 md:py-4 rounded-2xl md:rounded-3xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm transition-all flex items-center justify-center gap-2"
+                >
+                  <Navigation size={16} /> Get Directions
+                </a>
+              )}
 
               <div className="space-y-3 md:space-y-4">
                 {canSignUp ? (

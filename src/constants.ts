@@ -607,6 +607,7 @@ export const EVENT_CATEGORIES = [
   'Tabling',
   'Survey Collection',
   'Workshop',
+  'Community Event',
 ] as const;
 
 // Board Member Governance Documents & Required Forms

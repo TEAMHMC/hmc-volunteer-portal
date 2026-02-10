@@ -297,7 +297,7 @@ const rateLimit = (limit: number, timeframeMs: number) => (req: Request, res: Re
 const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
   const user = (req as any).user;
   if (!user?.profile?.isAdmin) {
-    console.warn(`[SECURITY] Non-admin attempted admin action: ${user?.profile?.email || 'unknown'} on ${req.path}`);
+    console.warn(`[SECURITY] Non-admin attempted admin action: ${maskEmail(user?.profile?.email || 'unknown')} on ${req.path}`);
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
@@ -1014,7 +1014,7 @@ class EmailService {
       const result = await response.json() as { success?: boolean; error?: string };
 
       if (result.success) {
-        console.log(`[EMAIL] ✅ Sent ${templateName} to ${data.toEmail}`);
+        console.log(`[EMAIL] ✅ Sent ${templateName} to ${maskEmail(data.toEmail)}`);
         return { sent: true };
       } else {
         console.error(`[EMAIL] ❌ Apps Script error: ${result.error}`);
@@ -1549,7 +1549,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
         if (bootstrapDoc.exists && bootstrapDoc.data()?.email === user.email.toLowerCase()) {
             userDataToSave.isAdmin = true;
             await db.collection('admin_bootstrap').doc('pending').delete();
-            console.log(`[BOOTSTRAP] Auto-promoted new signup ${user.email} to admin`);
+            console.log(`[BOOTSTRAP] Auto-promoted new signup ${maskEmail(user.email)} to admin`);
         }
 
         await db.collection('volunteers').doc(finalUserId).set(userDataToSave);
@@ -1581,7 +1581,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
             appliedRole: user.appliedRole || 'HMC Champion',
             applicationId: finalUserId.substring(0, 12).toUpperCase(),
           });
-          console.log(`[SIGNUP] Sent admin notification for new applicant: ${user.email}`);
+          console.log(`[SIGNUP] Sent admin notification for new applicant: ${maskEmail(user.email)}`);
         } catch (adminEmailErr) {
           console.error('[SIGNUP] Failed to send admin notification:', adminEmailErr);
         }
@@ -1749,7 +1749,7 @@ app.post('/auth/forgot-password', rateLimit(3, 60000), async (req: Request, res:
 
         if (volSnap.empty) {
             // No volunteer record - return success anyway to prevent email enumeration
-            console.log(`[AUTH] Password reset requested for unknown email: ${emailLower}`);
+            console.log(`[AUTH] Password reset requested for unknown email: ${maskEmail(emailLower)}`);
             return res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
         }
 
@@ -1764,7 +1764,7 @@ app.post('/auth/forgot-password', rateLimit(3, 60000), async (req: Request, res:
         } catch (err: any) {
             if (err.code === 'auth/user-not-found') {
                 // Volunteer exists in Firestore but not in Firebase Auth - create the auth account
-                console.log(`[AUTH] Creating Firebase Auth account for existing volunteer: ${emailLower}`);
+                console.log(`[AUTH] Creating Firebase Auth account for existing volunteer: ${maskEmail(emailLower)}`);
                 const tempPassword = crypto.randomBytes(9).toString('base64url') + 'A1!';
                 const userRecord = await auth.createUser({
                     email: emailLower,
@@ -1799,7 +1799,7 @@ app.post('/auth/forgot-password', rateLimit(3, 60000), async (req: Request, res:
             expiresInHours: 1,
         });
 
-        console.log(`[AUTH] Password reset email sent to ${emailLower}`);
+        console.log(`[AUTH] Password reset email sent to ${maskEmail(emailLower)}`);
         res.json({ success: true, message: 'If an account exists with that email, a password reset link has been sent.' });
     } catch (error: any) {
         console.error('Password reset error:', error);
@@ -1850,7 +1850,7 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
              if (bootstrapDoc.exists && bootstrapDoc.data()?.email === googleUser.email.toLowerCase()) {
                  shouldBeAdmin = true;
                  await db.collection('admin_bootstrap').doc('pending').delete();
-                 console.log(`[BOOTSTRAP] Auto-promoted Google signup ${googleUser.email} to admin`);
+                 console.log(`[BOOTSTRAP] Auto-promoted Google signup ${maskEmail(googleUser.email)} to admin`);
              }
 
              await db.collection('volunteers').doc(userId).set({
@@ -2823,7 +2823,7 @@ const processVolunteerMatch = async (
       eventDate: formatEventDate(eventDate)
     });
 
-    console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${email}`);
+    console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${maskEmail(email)}`);
   } catch (error) {
     console.error(`[PUBLIC RSVP] processVolunteerMatch failed for RSVP ${rsvpId}:`, error);
   }
@@ -2911,7 +2911,7 @@ const handleVolunteerMatch = async (
 };
 
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
-app.post('/api/public/rsvp', async (req: Request, res: Response) => {
+app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Response) => {
     try {
         const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source } = req.body;
 
@@ -2981,7 +2981,7 @@ app.post('/api/public/rsvp', async (req: Request, res: Response) => {
 });
 
 // POST /api/public/checkin - Public endpoint for event check-in
-app.post('/api/public/checkin', async (req: Request, res: Response) => {
+app.post('/api/public/checkin', rateLimit(20, 60000), async (req: Request, res: Response) => {
     try {
         const { checkinToken } = req.body;
 
@@ -3017,9 +3017,8 @@ app.post('/api/public/checkin', async (req: Request, res: Response) => {
         const eventRef = db.collection('opportunities').doc(rsvpData.eventId);
         const eventDoc = await eventRef.get();
         if (eventDoc.exists) {
-            const currentCheckinCount = eventDoc.data()?.checkinCount || 0;
             await eventRef.update({
-                checkinCount: currentCheckinCount + 1 + (rsvpData.guests || 0)
+                checkinCount: admin.firestore.FieldValue.increment(1 + (rsvpData.guests || 0))
             });
         }
 
@@ -3037,8 +3036,13 @@ app.post('/api/public/checkin', async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/events/:id/rsvp-stats - Protected endpoint for admins to see RSVP stats
+// GET /api/events/:id/rsvp-stats - Protected endpoint for admins/coordinators to see RSVP stats
 app.get('/api/events/:id/rsvp-stats', verifyToken, async (req: Request, res: Response) => {
+    const userProfile = (req as any).user?.profile;
+    const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+    if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+        return res.status(403).json({ error: 'Only admins and event coordinators can view RSVP stats' });
+    }
     try {
         const { id } = req.params;
 
@@ -3524,7 +3528,7 @@ app.delete('/api/messages/:messageId', verifyToken, requireAdmin, async (req: Re
             return res.status(404).json({ error: 'Message not found' });
         }
         await msgRef.delete();
-        console.log(`[MESSAGES] Message ${messageId} deleted by admin ${(req as any).user?.profile?.email}`);
+        console.log(`[MESSAGES] Message ${messageId} deleted by admin ${maskEmail((req as any).user?.profile?.email || '')}`);
         res.json({ success: true });
     } catch (error: any) {
         console.error('[MESSAGES] Failed to delete message:', error);
@@ -3793,10 +3797,14 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
                 slotsFilled: 0,
                 isPublic: true,
                 isPublicFacing: true,
+                approvalStatus: 'approved',
+                requiredSkills: [] as string[],
                 estimatedAttendees,
                 tenantId: 'hmc-health',
                 urgency: row.urgency || 'medium',
                 locationCoordinates: { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 },
+                createdAt: new Date().toISOString(),
+                createdBy: userProfile?.id || 'bulk-import',
             };
 
             const docRef = await db.collection('opportunities').add(opportunity);
@@ -3890,7 +3898,7 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             return res.status(403).json({ error: 'Only admins and event management roles can sync events' });
         }
 
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`);
         if (!response.ok) {
             return res.status(502).json({ error: 'Failed to reach Event Finder backend' });
@@ -4076,10 +4084,10 @@ app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: 
     });
 
     if (emailResult.sent) {
-      console.log(`[INVITE] Volunteer invite sent to ${email} for event ${eventTitle || eventId}`);
+      console.log(`[INVITE] Volunteer invite sent to ${maskEmail(email)} for event ${eventTitle || eventId}`);
       res.json({ sent: true, inviteId: inviteRef.id });
     } else {
-      console.warn(`[INVITE] Invite saved but email not sent to ${email}: ${emailResult.reason}`);
+      console.warn(`[INVITE] Invite saved but email not sent to ${maskEmail(email)}: ${emailResult.reason}`);
       res.json({ sent: true, inviteId: inviteRef.id, emailFailed: true, emailReason: emailResult.reason || 'Email service not configured' });
     }
   } catch (error: any) {
@@ -4246,7 +4254,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           eventDate: formatEventDate(eventDate || 'TBD'),
           eventLocation: eventLocation || 'TBD'
         });
-        console.log(`[EVENTS] Sent registration confirmation to ${volunteerEmail} for ${eventTitle}`);
+        console.log(`[EVENTS] Sent registration confirmation to ${maskEmail(volunteerEmail)} for ${eventTitle}`);
       } catch (emailError) {
         console.error('[EVENTS] Failed to send confirmation email:', emailError);
         // Don't fail the registration if email fails
