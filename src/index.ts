@@ -3688,8 +3688,9 @@ app.delete('/api/opportunities/:id', verifyToken, async (req: Request, res: Resp
     try {
         const { id } = req.params;
         const userProfile = (req as any).user?.profile;
-        if (!userProfile?.isAdmin) {
-            return res.status(403).json({ error: 'Only admins can delete events' });
+        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'];
+        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and event management roles can delete events' });
         }
 
         // Delete associated shifts
@@ -3870,8 +3871,9 @@ const parseEventTime = (timeStr: string | undefined): { startTime: string; endTi
 app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: Response) => {
     try {
         const userProfile = (req as any).user?.profile;
-        if (!userProfile?.isAdmin) {
-            return res.status(403).json({ error: 'Only admins can sync events' });
+        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'];
+        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and event management roles can sync events' });
         }
 
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
@@ -3885,9 +3887,12 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             return res.json({ success: true, synced: 0, skipped: 0, message: 'No events found in Event Finder Tool' });
         }
 
-        // Get existing opportunities to avoid duplicates (match by syncSourceId or title+date)
+        // Get existing opportunities to avoid duplicates (match by syncSourceId or normalized title+date)
         const existingSnap = await db.collection('opportunities').get();
         const existingEvents = existingSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+        // Normalize title for fuzzy matching: lowercase, strip punctuation, collapse whitespace
+        const normalizeTitle = (t: string) => (t || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
 
         let synced = 0;
         let skipped = 0;
@@ -3898,10 +3903,11 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
         for (const event of data.events) {
             if (!event.title || !event.date) { skipped++; continue; }
 
-            // Check for existing event by syncSourceId or title+date match
+            // Check for existing event by syncSourceId or normalized title+date match
+            const normTitle = normalizeTitle(event.title);
             const existing = existingEvents.find(e =>
                 e.syncSourceId === event.id ||
-                (e.title === event.title && e.date === event.date)
+                (normalizeTitle(e.title) === normTitle && e.date === event.date)
             );
 
             if (existing) {

@@ -8,26 +8,38 @@ import { MapPin, Search, Calendar, Clock, Share2, CheckCircle2, Navigation, Load
 import { apiService } from '../services/apiService';
 
 // Normalize similar program/category names to canonical labels
+// Must handle raw Event Finder programs ("Unstoppable Workshop", "Community Walk & Run", etc.)
+// AND manually-created EVENT_CATEGORIES ("Community Run & Walk", "Workshop", etc.)
 const normalizeProgram = (program: string): string => {
-  const lower = (program || '').toLowerCase().trim();
-  if (lower.includes('walk') && lower.includes('run')) return 'Community Walk & Run';
-  if (lower.includes('workshop') || lower.includes('unstoppable workshop')) return 'Workshop';
-  if (lower.includes('wellness meetup') || lower.includes('unstoppable wellness')) return 'Wellness Meetup';
+  const lower = (program || '').toLowerCase().replace(/[^\w\s&]/g, '').trim();
+  if (!lower) return 'Other';
+  // Walk/Run variants — always normalize to one canonical name
+  if (lower.includes('walk') && lower.includes('run')) return 'Community Run & Walk';
+  if (lower.includes('5k')) return 'Community Run & Walk';
+  // Workshop (catches "Unstoppable Workshop", "Workshop", etc.)
+  if (lower.includes('workshop')) return 'Workshop';
+  // Health Fair (catches "Community Fair", "Health Fair", etc.)
   if (lower.includes('fair')) return 'Health Fair';
+  // Street Medicine
   if (lower.includes('street medicine')) return 'Street Medicine';
+  // Survey
   if (lower.includes('survey')) return 'Survey Collection';
+  // Tabling
   if (lower.includes('tabling')) return 'Tabling';
+  // Outreach (catches "Community Outreach", etc.)
   if (lower.includes('outreach')) return 'Community Outreach';
-  if (lower.includes('volunteer')) return 'Volunteer';
-  if (lower.includes('wellness') || lower.includes('community wellness')) return 'Wellness';
+  // Wellness Education
   if (lower.includes('education')) return 'Wellness Education';
-  return program || 'Other';
+  // Wellness Meetup (catches "Unstoppable Wellness Meetup", etc.) — must be before generic "wellness"
+  if (lower.includes('wellness meetup') || lower.includes('unstoppable wellness')) return 'Wellness';
+  // Generic Wellness (catches "Community Wellness", "Wellness", etc.)
+  if (lower.includes('wellness')) return 'Wellness';
+  return 'Other';
 };
 
 const PROGRAM_COLORS: { [key: string]: string } = {
   'Workshop': '#4f46e5',
-  'Wellness Meetup': '#7c3aed',
-  'Community Walk & Run': '#059669',
+  'Community Run & Walk': '#059669',
   'Health Fair': '#ea580c',
   'Wellness': '#db2777',
   'Wellness Education': '#db2777',
@@ -35,7 +47,6 @@ const PROGRAM_COLORS: { [key: string]: string } = {
   'Street Medicine': '#be123c',
   'Tabling': '#0891b2',
   'Survey Collection': '#6366f1',
-  'Volunteer': '#0e7490',
   'Other': '#4b5563',
   'default': '#4b5563'
 };

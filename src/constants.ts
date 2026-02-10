@@ -600,6 +600,7 @@ export const EVENT_TYPE_TEMPLATE_MAP: Record<string, string> = {
 export const EVENT_CATEGORIES = [
   'Health Fair',
   'Street Medicine',
+  'Wellness',
   'Wellness Education',
   'Community Run & Walk',
   'Community Outreach',
