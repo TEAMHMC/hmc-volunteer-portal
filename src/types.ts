@@ -415,6 +415,7 @@ export interface ClinicEvent {
   lng: number;
   address: string;
   city: string;
+  date: string;
   dateDisplay: string;
   time: string;
   surveyKitId?: string;

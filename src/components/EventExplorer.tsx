@@ -74,7 +74,8 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
         address: opp.serviceLocation,
         city: extractCityFromAddress(opp.serviceLocation),
         dateDisplay: opp.dateDisplay || new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        time: opp.time || 'TBD'
+        date: opp.date,
+        time: opp.time || 'TBD',
         surveyKitId: opp.surveyKitId
     };
 }
