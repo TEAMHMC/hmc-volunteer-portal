@@ -73,8 +73,8 @@ const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
         lng: opp.locationCoordinates?.lng || defaultLng,
         address: opp.serviceLocation,
         city: extractCityFromAddress(opp.serviceLocation),
-        dateDisplay: new Date(opp.date + 'T00:00:00').toLocaleDateString(),
-        time: '9:00 AM - 3:00 PM', // Default/Placeholder as Opportunity object date is just YYYY-MM-DD
+        dateDisplay: opp.dateDisplay || new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        time: opp.time || 'TBD'
         surveyKitId: opp.surveyKitId
     };
 }

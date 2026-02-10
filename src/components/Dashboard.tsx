@@ -476,21 +476,44 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                       <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
                     </button>
                   )}
-                  {openTicketsCount > 0 && (
-                    <button
-                      onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
-                      className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                        <ShieldAlert size={16} className="text-amber-600" />
+                  {openTicketsCount > 0 && (() => {
+                    const visibleTickets = supportTickets.filter(t => {
+                      if (t.status === 'closed') return false;
+                      if (displayUser.isAdmin) return true;
+                      if (t.submittedBy === displayUser.id || t.assignedTo === displayUser.id) return true;
+                      const vis = (t as any).visibility || 'public';
+                      if (vis === 'private') return false;
+                      if (vis === 'team') return isCoordinatorOrLead;
+                      return true;
+                    });
+                    return (
+                      <div>
+                        <button
+                          onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
+                          className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                        >
+                          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                            <ShieldAlert size={16} className="text-amber-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-zinc-900">{openTicketsCount} open ticket{openTicketsCount > 1 ? 's' : ''}</p>
+                            <p className="text-[11px] text-zinc-400">{displayUser.isAdmin ? 'Tickets needing attention' : 'Your active tickets'}</p>
+                          </div>
+                          <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                        </button>
+                        {visibleTickets.slice(0, 3).map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
+                            className="w-full px-4 py-2 pl-16 hover:bg-zinc-50 text-left transition-colors"
+                          >
+                            <p className="text-xs font-medium text-zinc-700 truncate">{t.subject}</p>
+                            <p className="text-[10px] text-zinc-400">{t.status === 'open' ? 'Open' : 'In Progress'} · {t.priority}</p>
+                          </button>
+                        ))}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-zinc-900">{openTicketsCount} open ticket{openTicketsCount > 1 ? 's' : ''}</p>
-                        <p className="text-[11px] text-zinc-400">{displayUser.isAdmin ? 'Tickets needing attention' : 'Your active tickets'}</p>
-                      </div>
-                      <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
-                    </button>
-                  )}
+                    );
+                  })()}
                   {newApplicantsCount > 0 && (
                     <button
                       onClick={() => { setActiveTab('directory'); setShowNotifications(false); }}

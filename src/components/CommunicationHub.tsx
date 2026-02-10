@@ -565,14 +565,32 @@ const BriefingView: React.FC<{
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div
-                      className={`px-4 py-3 rounded-2xl ${
-                        isMyMessage
-                          ? 'bg-[#233DFF] text-white rounded-tr-md'
-                          : 'bg-white border border-zinc-100 text-zinc-800 rounded-tl-md'
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
+                    <div className={`group/msg relative`}>
+                      <div
+                        className={`px-4 py-3 rounded-2xl ${
+                          isMyMessage
+                            ? 'bg-[#233DFF] text-white rounded-tr-md'
+                            : 'bg-white border border-zinc-100 text-zinc-800 rounded-tl-md'
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                      </div>
+                      {userMode === 'admin' && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm('Delete this message?')) return;
+                            try {
+                              await apiService.delete(`/api/messages/${msg.id}`);
+                              setMessages(prev => prev.filter(m => m.id !== msg.id));
+                            } catch { alert('Failed to delete message.'); }
+                          }}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-bold items-center justify-center hidden group-hover/msg:flex hover:bg-rose-600 shadow"
+                          title="Delete message"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                     {/* Read receipt indicator for sent messages */}
                     {isMyMessage && activeChannel !== 'general' && (
@@ -1519,9 +1537,9 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
   }, [initialTab]);
 
   const tabs = [
-    { id: 'broadcasts', label: canBroadcast ? 'Broadcasts' : 'Announcements', icon: Megaphone },
-    { id: 'briefing', label: 'Briefing', icon: MessageSquare },
-    { id: 'support', label: 'Ops Support', icon: LifeBuoy },
+    { id: 'broadcasts', label: 'Announcements', icon: Megaphone },
+    { id: 'briefing', label: 'Chat', icon: MessageSquare },
+    { id: 'support', label: 'Tickets', icon: LifeBuoy },
   ];
 
   return (

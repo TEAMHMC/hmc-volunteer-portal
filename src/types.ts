@@ -67,6 +67,8 @@ export interface Opportunity {
   serviceLocation: string;
   locationCoordinates?: { lat: number; lng: number };
   date: string;
+  dateDisplay?: string;
+  time?: string;
   staffingQuotas: { role: string; count: number; filled: number }[];
   isPublic: boolean;
   isPublicFacing: boolean;

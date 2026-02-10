@@ -3496,6 +3496,24 @@ app.put('/api/messages/:messageId/read', verifyToken, async (req: Request, res: 
     }
 });
 
+// Admin: delete a message
+app.delete('/api/messages/:messageId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { messageId } = req.params;
+        const msgRef = db.collection('messages').doc(messageId);
+        const msgDoc = await msgRef.get();
+        if (!msgDoc.exists) {
+            return res.status(404).json({ error: 'Message not found' });
+        }
+        await msgRef.delete();
+        console.log(`[MESSAGES] Message ${messageId} deleted by admin ${(req as any).user?.profile?.email}`);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[MESSAGES] Failed to delete message:', error);
+        res.status(500).json({ error: error.message || 'Failed to delete message' });
+    }
+});
+
 app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) => {
     try {
         const { opportunity } = req.body;
