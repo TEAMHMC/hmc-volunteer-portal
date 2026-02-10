@@ -373,7 +373,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </div>
             <nav className="flex flex-col gap-1">
               {navItems.map(item => (
-                <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
+                <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-full font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
                   <item.icon size={18} /> {item.label}
                   {item.badge && item.badge > 0 ? (
                     <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
@@ -414,7 +414,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           { id: 'briefing', label: 'Comms', icon: MessageSquare },
           { id: 'docs', label: 'Docs', icon: BookOpen },
         ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-0 ${activeTab === tab.id ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
             <span className="text-[10px] font-bold truncate">{tab.label}</span>
           </button>
@@ -448,7 +448,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          <nav className="flex flex-col gap-1.5">
             {navItems.map(item => (
-                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
+                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-full font-semibold text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
                     <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                     {item.badge && item.badge > 0 ? (
                       <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
@@ -572,15 +572,15 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         </>
       )}
 
-      <main className={`flex-1 p-6 md:p-16 space-y-12 md:space-y-16 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
+      <main className={`flex-1 p-6 md:p-10 space-y-8 md:space-y-10 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {activeTab === 'overview' && (
            <>
-            <header className="space-y-8">
+            <header className="space-y-5">
                 {/* Personalized Greeting Section */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight leading-[1.1]">
+                    <h1 className="text-5xl md:text-6xl font-medium text-zinc-900 tracking-normal leading-[1.1]">
                       {getGreeting(displayUser.name)}.
                     </h1>
                     <p className="text-lg text-zinc-500 font-medium max-w-lg">
@@ -591,29 +591,29 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   </div>
 
                   {/* Stats Card - Apple-style glass effect */}
-                  <div className="flex flex-wrap bg-white/80 backdrop-blur-xl border border-zinc-200/50 p-1.5 rounded-[28px] shadow-lg shadow-zinc-200/50">
+                  <div className="flex flex-wrap bg-white/80 backdrop-blur-xl border border-zinc-200/50 p-1.5 rounded-2xl shadow-lg shadow-zinc-200/50">
                     <div className="px-6 md:px-8 py-5 md:py-6 text-center">
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Hours</p>
-                        <p className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">{displayUser.hoursContributed}</p>
+                        <p className="text-3xl md:text-4xl font-medium text-zinc-900 tracking-normal">{displayUser.hoursContributed}</p>
                     </div>
                     <div className="w-px bg-zinc-100 my-4" />
                     <div className="px-6 md:px-8 py-5 md:py-6 text-center">
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Impact XP</p>
-                        <p className="text-3xl md:text-4xl font-black text-[#233DFF] tracking-tight">{gamification?.currentXP ?? displayUser.points}</p>
+                        <p className="text-3xl md:text-4xl font-medium text-[#233DFF] tracking-normal">{gamification?.currentXP ?? displayUser.points}</p>
                     </div>
                     {gamification && (
                       <>
                         <div className="w-px bg-zinc-100 my-4" />
                         <div className="px-6 md:px-8 py-5 md:py-6 text-center">
                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Level</p>
-                            <p className="text-3xl md:text-4xl font-black text-emerald-600 tracking-tight">{gamification.level}</p>
+                            <p className="text-3xl md:text-4xl font-medium text-emerald-600 tracking-normal">{gamification.level}</p>
                         </div>
                         {gamification.streakDays > 0 && (
                           <>
                             <div className="w-px bg-zinc-100 my-4" />
                             <div className="px-6 md:px-8 py-5 md:py-6 text-center">
                                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Streak</p>
-                                <p className="text-3xl md:text-4xl font-black text-amber-500 tracking-tight">{gamification.streakDays}d</p>
+                                <p className="text-3xl md:text-4xl font-medium text-amber-500 tracking-normal">{gamification.streakDays}d</p>
                             </div>
                           </>
                         )}
@@ -664,7 +664,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 )}
                 {gamification && gamification.level >= 10 && (
                   <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-5 shadow-sm text-center">
-                    <p className="text-sm font-black text-amber-700">Max Level Reached — Volunteer Legend</p>
+                    <p className="text-sm font-medium text-amber-700">Max Level Reached — Volunteer Legend</p>
                   </div>
                 )}
             </header>
@@ -725,15 +725,15 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-[40px] p-10 md:p-12 text-white shadow-2xl shadow-[#233DFF]/20 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-2xl shadow-[#233DFF]/20 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-              <div className="relative z-10 flex flex-col justify-between min-h-[280px]">
+              <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
                 <div>
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-widest mb-8">
                       <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
                       Getting Started
                     </div>
-                    <h3 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1] mb-6">
+                    <h3 className="text-4xl md:text-5xl font-medium tracking-normal leading-[1.1] mb-6">
                       Welcome to the team, {user.name?.split(' ')[0]}.
                     </h3>
                     <p className="text-lg font-medium text-white/80 max-w-lg leading-relaxed">
@@ -878,14 +878,14 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           </div>
         </div>
         <div className="space-y-10">
-          <div className="bg-zinc-50 p-12 rounded-[56px] border border-zinc-100 shadow-inner space-y-10">
-            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Quick Actions</h4>
+          <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
+            <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-black text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-medium text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-black text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-medium text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
           </div>
@@ -895,15 +895,15 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-      <div className="xl:col-span-2 bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm space-y-10">
-        <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Mission Command</h3>
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="xl:col-span-2 bg-white p-6 md:p-8 rounded-2xl border border-zinc-100 shadow-sm space-y-8">
+        <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Mission Command</h3>
         {hasUpcomingMission ? (
-          <div className="bg-zinc-50 p-10 rounded-[40px] border border-zinc-100">
-            <p className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Next Mission</p>
+          <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">Next Mission</p>
             {nextShift ? (
               <>
-                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextShiftOpp?.title || nextShift.roleType}</h4>
+                <h4 className="text-3xl font-medium text-zinc-900 tracking-normal mt-4">{nextShiftOpp?.title || nextShift.roleType}</h4>
                 <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
                   <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextShift.startTime).toLocaleDateString()}</span>
                   <span className="flex items-center gap-2"><Clock size={16}/> {new Date(nextShift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -912,7 +912,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
               </>
             ) : nextRsvpedEvent && (
               <>
-                <h4 className="text-4xl font-black text-zinc-900 tracking-tighter mt-4">{nextRsvpedEvent.title}</h4>
+                <h4 className="text-3xl font-medium text-zinc-900 tracking-normal mt-4">{nextRsvpedEvent.title}</h4>
                 <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
                   <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextRsvpedEvent.date).toLocaleDateString()}</span>
                   <span className="flex items-center gap-2"><MapPin size={16}/> {nextRsvpedEvent.serviceLocation}</span>
@@ -921,14 +921,14 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
             )}
           </div>
         ) : (
-          <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 text-center">
-            <p className="text-lg font-bold text-zinc-400">No upcoming missions.</p>
-            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-zinc-900 text-white rounded-full font-black text-xs uppercase tracking-widest">Find a Mission</button>
+          <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
+            <p className="text-lg font-medium text-zinc-400">No upcoming missions.</p>
+            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-zinc-900 text-white rounded-full font-medium text-xs tracking-wide">Find a Mission</button>
           </div>
         )}
 
         <div>
-          <h4 className="text-lg font-black text-zinc-900 mb-4 px-2">Action Items</h4>
+          <h4 className="text-lg font-medium text-zinc-900 mb-4 px-2">Action Items</h4>
           <div className="space-y-3">
              {!hasCompletedCoreTraining && (
                 <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
@@ -964,17 +964,17 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         </div>
       </div>
       <div className="space-y-10">
-        <div className="bg-zinc-50 p-12 rounded-[56px] border border-zinc-100 shadow-inner space-y-10">
-            <h4 className="text-xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Quick Actions</h4>
+        <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
+            <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-black text-zinc-800">Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-medium text-zinc-800">Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
                <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-black text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-medium text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
                <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-black text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+                <span className="font-medium text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
         </div>

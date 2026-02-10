@@ -1,38 +1,23 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import { ClinicEvent, Volunteer, Opportunity, Shift } from '../types';
 import { MapPin, Search, Calendar, Clock, X, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
 // Normalize similar program/category names to canonical labels
-// Must handle raw Event Finder programs ("Unstoppable Workshop", "Community Walk & Run", etc.)
-// AND manually-created EVENT_CATEGORIES ("Community Run & Walk", "Workshop", etc.)
 const normalizeProgram = (program: string): string => {
   const lower = (program || '').toLowerCase().replace(/[^\w\s&]/g, '').trim();
   if (!lower) return 'Other';
-  // Walk/Run variants — always normalize to one canonical name
   if (lower.includes('walk') && lower.includes('run')) return 'Community Run & Walk';
   if (lower.includes('5k')) return 'Community Run & Walk';
-  // Workshop (catches "Unstoppable Workshop", "Workshop", etc.)
   if (lower.includes('workshop')) return 'Workshop';
-  // Health Fair (catches "Community Fair", "Health Fair", etc.)
   if (lower.includes('fair')) return 'Health Fair';
-  // Street Medicine
   if (lower.includes('street medicine')) return 'Street Medicine';
-  // Survey
   if (lower.includes('survey')) return 'Survey Collection';
-  // Tabling
   if (lower.includes('tabling')) return 'Tabling';
-  // Outreach (catches "Community Outreach", etc.)
   if (lower.includes('outreach')) return 'Community Outreach';
-  // Wellness Education
   if (lower.includes('education')) return 'Wellness Education';
-  // Wellness Meetup (catches "Unstoppable Wellness Meetup", etc.) — must be before generic "wellness"
   if (lower.includes('wellness meetup') || lower.includes('unstoppable wellness')) return 'Wellness';
-  // Generic Wellness (catches "Community Wellness", "Wellness", etc.)
   if (lower.includes('wellness')) return 'Wellness';
   return 'Other';
 };
@@ -51,112 +36,24 @@ const PROGRAM_COLORS: { [key: string]: string } = {
   'default': '#4b5563'
 };
 
-const createIcon = (color: string) => {
-  return L.divIcon({
-    className: 'custom-icon',
-    html: `
-      <div style="background-color: ${color};" class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-      </div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-};
-
-const MapController = ({ event }: { event: ClinicEvent | null }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (event) {
-      map.flyTo([event.lat, event.lng], 13);
-    }
-  }, [event, map]);
-  return null;
-};
-
 // Helper to extract city from address string
 const extractCityFromAddress = (address: string): string => {
-    // Try to extract city from common address formats like "123 Main St, Palmdale, CA 93550"
     const parts = address.split(',').map(p => p.trim());
     if (parts.length >= 2) {
-        // City is usually the second-to-last part (before state/zip)
         const cityPart = parts[parts.length - 2] || parts[1];
-        // Remove any numbers (zip codes) and state abbreviations
         return cityPart.replace(/\d+/g, '').replace(/\b[A-Z]{2}\b/g, '').trim() || 'Los Angeles';
     }
     return 'Los Angeles';
 };
 
-// Known LA-area city coordinates for map pin placement
-const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
-    'inglewood': { lat: 33.9617, lng: -118.3531 },
-    'compton': { lat: 33.8958, lng: -118.2201 },
-    'watts': { lat: 33.9425, lng: -118.2551 },
-    'south los angeles': { lat: 33.9425, lng: -118.2751 },
-    'south la': { lat: 33.9425, lng: -118.2751 },
-    'skid row': { lat: 34.0453, lng: -118.2437 },
-    'downtown la': { lat: 34.0407, lng: -118.2468 },
-    'downtown los angeles': { lat: 34.0407, lng: -118.2468 },
-    'hollywood': { lat: 34.0928, lng: -118.3287 },
-    'koreatown': { lat: 34.0578, lng: -118.3006 },
-    'east los angeles': { lat: 34.0239, lng: -118.1720 },
-    'east la': { lat: 34.0239, lng: -118.1720 },
-    'boyle heights': { lat: 34.0337, lng: -118.2104 },
-    'lincoln heights': { lat: 34.0681, lng: -118.2098 },
-    'el monte': { lat: 34.0686, lng: -118.0276 },
-    'pomona': { lat: 34.0551, lng: -117.7500 },
-    'long beach': { lat: 33.7701, lng: -118.1937 },
-    'torrance': { lat: 33.8358, lng: -118.3406 },
-    'hawthorne': { lat: 33.9164, lng: -118.3526 },
-    'gardena': { lat: 33.8883, lng: -118.3090 },
-    'carson': { lat: 33.8317, lng: -118.2620 },
-    'lynwood': { lat: 33.9307, lng: -118.2115 },
-    'south gate': { lat: 33.9547, lng: -118.2120 },
-    'bell gardens': { lat: 33.9653, lng: -118.1514 },
-    'huntington park': { lat: 33.9817, lng: -118.2251 },
-    'florence': { lat: 33.9667, lng: -118.2500 },
-    'wilmington': { lat: 33.7830, lng: -118.2631 },
-    'san pedro': { lat: 33.7358, lng: -118.2923 },
-    'palmdale': { lat: 34.5794, lng: -118.1165 },
-    'lancaster': { lat: 34.6868, lng: -118.1542 },
-    'pasadena': { lat: 34.1478, lng: -118.1445 },
-    'glendale': { lat: 34.1425, lng: -118.2551 },
-    'burbank': { lat: 34.1808, lng: -118.3090 },
-    'santa monica': { lat: 34.0195, lng: -118.4912 },
-    'culver city': { lat: 34.0211, lng: -118.3965 },
-    'venice': { lat: 33.9850, lng: -118.4695 },
-    'westchester': { lat: 33.9617, lng: -118.4018 },
-    'los angeles': { lat: 34.0522, lng: -118.2437 },
-    'la': { lat: 34.0522, lng: -118.2437 },
-};
-
-const geocodeFromAddress = (address: string): { lat: number; lng: number } | null => {
-    if (!address) return null;
-    const lower = address.toLowerCase();
-    // Try matching city names in the address (longer names first to avoid partial matches)
-    const sorted = Object.entries(CITY_COORDS).sort((a, b) => b[0].length - a[0].length);
-    for (const [city, coords] of sorted) {
-        if (lower.includes(city)) return coords;
-    }
-    return null;
-};
-
-// Helper to convert Opportunity to ClinicEvent for map display
+// Helper to convert Opportunity to ClinicEvent for display
 const mapOpportunityToEvent = (opp: Opportunity): ClinicEvent => {
-    // Try geocoding from full address first (most reliable), then serviceLocation (city name), then Event Finder coords
-    const geocodedAddr = geocodeFromAddress(opp.address || '');
-    const geocodedLoc = geocodeFromAddress(opp.serviceLocation);
-    const geocoded = geocodedAddr || geocodedLoc;
-    // Prefer our geocoding over Event Finder coordinates (Event Finder coords are often wrong)
-    const lat = geocoded?.lat || opp.locationCoordinates?.lat || 34.0522;
-    const lng = geocoded?.lng || opp.locationCoordinates?.lng || -118.2437;
-
     return {
         id: opp.id,
         title: opp.title,
         program: normalizeProgram(opp.category),
-        lat,
-        lng,
+        lat: opp.locationCoordinates?.lat || 34.0522,
+        lng: opp.locationCoordinates?.lng || -118.2437,
         address: opp.serviceLocation,
         city: extractCityFromAddress(opp.serviceLocation),
         dateDisplay: opp.dateDisplay || new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -187,7 +84,6 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
   // Helper to check if event is in the past
   const isPastEvent = (dateStr: string) => {
-    // Extract YYYY-MM-DD portion to handle both "2026-02-10" and "2026-02-10T00:00:00Z" formats
     const datePart = (dateStr || '').split('T')[0];
     if (!datePart) return false;
     const eventDate = new Date(datePart + 'T00:00:00');
@@ -213,7 +109,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
     setDeepLinkProcessed(true);
   }, [opportunities, deepLinkProcessed]);
 
-  // Convert live opportunities to map events (approved or legacy status)
+  // Convert live opportunities to events (approved or legacy status)
   const allApprovedOpportunities = useMemo(() =>
     opportunities.filter(o =>
       o.approvalStatus === 'approved' || !o.approvalStatus
@@ -242,7 +138,6 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
     try {
       if (alreadySignedUp) {
-        // Unregister from event and all associated shifts via proper endpoint
         const eventShifts = shifts.filter(s => s.opportunityId === eventId);
         const assignedShift = eventShifts.find(s => user.assignedShiftIds?.includes(s.id));
 
@@ -260,7 +155,6 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
         };
         onUpdate(updatedUser);
 
-        // Update shift/opportunity counts locally
         if (setShifts && assignedShift) {
           setShifts(prev => prev.map(s => s.id === assignedShift.id ? { ...s, slotsFilled: Math.max(0, s.slotsFilled - 1), assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== user.id) } : s));
         }
@@ -270,11 +164,9 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
         setToastMessage('You have been unregistered from this event.');
       } else {
-        // Register for event and auto-assign to first available shift
         const eventShifts = shifts.filter(s => s.opportunityId === eventId && s.slotsFilled < s.slotsTotal);
         const opportunity = opportunities.find(o => o.id === eventId);
 
-        // Find a shift that matches Core Volunteer or any available
         let shiftToAssign = eventShifts.find(s => s.roleType === 'Core Volunteer') || eventShifts[0];
 
         const updatedRsvpIds = [...(user.rsvpedEventIds || []), eventId];
@@ -288,7 +180,6 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           assignedShiftIds: updatedShiftIds
         };
 
-        // Call API to register and send confirmation email
         await apiService.post('/api/events/register', {
           volunteerId: user.id,
           eventId: eventId,
@@ -302,7 +193,6 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
         onUpdate(updatedUser);
 
-        // Update shift slot count locally if setShifts is available
         if (setShifts && shiftToAssign) {
           setShifts(prev => prev.map(s =>
             s.id === shiftToAssign!.id
@@ -311,7 +201,6 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           ));
         }
 
-        // Update opportunity staffing quotas locally
         if (setOpportunities && shiftToAssign) {
           setOpportunities(prev => prev.map(opp => {
             if (opp.id === eventId) {
@@ -345,180 +234,186 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   };
 
   return (
-    <div className="h-full flex flex-col gap-4 md:gap-8 animate-in fade-in duration-500 relative">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500 relative">
       {/* Toast notification */}
       {showToast && (
-        <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-4 md:px-8 py-3 md:py-5 rounded-full shadow-2xl flex items-center gap-2 md:gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
+        <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
           <CheckCircle2 size={18} className={toastIsError ? 'text-rose-400' : 'text-emerald-400'} />
-          <span className="text-xs md:text-sm font-bold">{toastMessage}</span>
+          <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
         <div>
-          <h2 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight">Volunteer Opportunities</h2>
-          <p className="text-slate-500 text-sm md:text-lg font-light">Find and sign up for upcoming community health events.</p>
+          <h2 className="text-xl md:text-2xl font-medium text-zinc-900 tracking-normal">Volunteer Opportunities</h2>
+          <p className="text-zinc-500 text-sm font-normal">Find and sign up for upcoming community health events.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-10 flex-1 min-h-0">
-        <div className="lg:col-span-8 flex flex-col gap-4 md:gap-6">
-          <div className="relative group">
-            <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
-            <input
-              type="text"
-              placeholder="Search by location or event..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-2xl md:rounded-[28px] py-3 md:py-6 pl-12 md:pl-16 pr-4 md:pr-8 text-base md:text-lg font-medium outline-none focus:ring-4 md:focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-sm"
-            />
-          </div>
+      {/* Search bar */}
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#233DFF] transition-colors" size={18} />
+        <input
+          type="text"
+          placeholder="Search by location, event name, or category..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-white border border-[#e8e6e3] rounded-2xl py-3 pl-11 pr-4 text-sm font-normal outline-none focus:ring-4 focus:ring-[#233DFF]/5 focus:border-[#233DFF]/30 transition-all"
+        />
+      </div>
 
-          <div className="bg-slate-200 rounded-2xl md:rounded-[48px] overflow-hidden relative shadow-inner border-2 md:border-4 border-white h-[300px] md:h-[450px]">
-            <MapContainer center={[34.0522, -118.2437]} zoom={10} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {filtered.map(e => (
-                <Marker
-                  key={e.id}
-                  position={[e.lat, e.lng]}
-                  icon={createIcon(PROGRAM_COLORS[e.program] || PROGRAM_COLORS['default'])}
-                  eventHandlers={{
-                    click: () => setSelectedEvent(e),
-                  }}
-                >
-                  <Popup>
-                    <p className="font-bold">{e.title}</p>
-                    <p>{e.address}</p>
-                  </Popup>
-                </Marker>
-              ))}
-              <MapController event={selectedEvent} />
-            </MapContainer>
-
-            {/* Legend - hidden on mobile, shown on larger screens */}
-            <div className="flex absolute bottom-2 right-2 md:bottom-8 md:right-8 flex-col gap-2 md:gap-3 z-[1000]">
-               <div className="bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Legend</p>
-                  <div className="flex flex-col gap-2">
-                    {Array.from(new Set(filtered.map(e => e.program))).sort().map(name => (
-                      <div key={name} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PROGRAM_COLORS[name] || PROGRAM_COLORS['default'] }} />
-                        <span className="text-[10px] font-bold text-slate-600">{name}</span>
-                      </div>
-                    ))}
-                  </div>
-               </div>
-            </div>
-          </div>
+      {/* Event card grid */}
+      {filtered.length === 0 ? (
+        <div className="py-16 text-center bg-zinc-50 rounded-2xl border border-[#e8e6e3]">
+          <Calendar size={32} className="mx-auto text-zinc-300 mb-3" />
+          <p className="text-zinc-400 font-medium text-sm">No events found.</p>
+          {search && <p className="text-zinc-400 text-xs mt-1">Try a different search term.</p>}
         </div>
-
-        <div className="lg:col-span-4 flex flex-col gap-4 md:gap-6 h-full overflow-y-auto no-scrollbar">
-          {selectedEvent ? (
-            <div className="bg-white rounded-2xl md:rounded-[48px] p-5 md:p-10 border border-slate-100 shadow-xl flex flex-col gap-4 md:gap-8 animate-in slide-in-from-right-10 shrink-0">
-              <div className="flex justify-between items-start">
-                 <span className="px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-lg" style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}>
-                   {selectedEvent.program}
-                 </span>
-                 <button onClick={() => setSelectedEvent(null)} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X size={20} /></button>
-              </div>
-
-              <div>
-                <h3 className="text-xl md:text-3xl font-black text-slate-900 leading-tight mb-2 md:mb-4">{selectedEvent.title}</h3>
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] md:text-[10px] flex items-center gap-2">
-                  <MapPin size={14} /> {selectedEvent.address}, {selectedEvent.city}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100">
-                  <Calendar className="text-indigo-600 mb-1 md:mb-2" size={18} />
-                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
-                  <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.dateDisplay}</p>
-                </div>
-                <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100">
-                  <Clock className="text-indigo-600 mb-1 md:mb-2" size={18} />
-                  <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</p>
-                  <p className="text-xs md:text-sm font-black text-slate-900">{selectedEvent.time}</p>
-                </div>
-              </div>
-
-              {/* Get Directions */}
-              {selectedEvent.address && (
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedEvent.address + ', ' + selectedEvent.city)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 md:py-4 rounded-2xl md:rounded-3xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm transition-all flex items-center justify-center gap-2"
-                >
-                  <Navigation size={16} /> Get Directions
-                </a>
-              )}
-
-              <div className="space-y-3 md:space-y-4">
-                {canSignUp ? (
-                  <button
-                    onClick={() => handleSignUp(selectedEvent.id)}
-                    disabled={isSigningUp}
-                    className={`w-full py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-sm md:text-lg transition-all shadow-xl flex items-center justify-center gap-2 md:gap-3 disabled:opacity-60 ${
-                      user.rsvpedEventIds?.includes(selectedEvent.id)
-                        ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100'
-                        : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
-                    }`}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(event => {
+            const isSignedUp = user.rsvpedEventIds?.includes(event.id);
+            return (
+              <button
+                key={event.id}
+                onClick={() => setSelectedEvent(event)}
+                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-md group ${isSignedUp ? 'border-[#233DFF]/30 shadow-sm' : 'border-[#e8e6e3] hover:border-zinc-300'}`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <span
+                    className="px-2.5 py-1 rounded-full text-[10px] font-medium text-white"
+                    style={{ backgroundColor: PROGRAM_COLORS[event.program] || PROGRAM_COLORS['default'] }}
                   >
-                    {isSigningUp ? (
-                      <><Loader2 size={20} className="animate-spin" /> Processing...</>
-                    ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                      <><CheckCircle2 size={20} /> <span className="hidden sm:inline">Signed Up - </span>Click to Cancel</>
-                    ) : (
-                      <>Sign Up</>
-                    )}
-                  </button>
-                ) : (
-                  <div className="w-full py-4 md:py-6 px-4 rounded-2xl md:rounded-3xl bg-amber-50 border border-amber-200 text-center">
-                    <p className="font-bold text-amber-800 text-xs md:text-sm">Complete required training to sign up</p>
-                    <p className="text-amber-600 text-[10px] md:text-xs mt-1">Visit Training Academy to complete your orientation modules</p>
-                  </div>
-                )}
-                <p className="text-center text-[9px] md:text-[10px] text-slate-400 font-medium">Earn impact points for participating in community events.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl md:rounded-[48px] p-6 md:p-10 border border-slate-100 shadow-sm flex-1 flex flex-col items-center justify-center text-center opacity-60 min-h-[150px] md:min-h-0">
-              <div className="w-14 h-14 md:w-20 md:h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4 md:mb-6">
-                <Navigation size={28} className="md:hidden" />
-                <Navigation size={40} className="hidden md:block" />
-              </div>
-              <h3 className="text-base md:text-xl font-black text-slate-400 mb-2 uppercase tracking-widest">Select an Event</h3>
-              <p className="text-slate-400 text-xs md:text-sm font-medium">Tap a marker on the map to view details and sign up.</p>
-            </div>
-          )}
-
-          <div className="bg-indigo-900 rounded-2xl md:rounded-[48px] p-5 md:p-10 text-white shadow-2xl relative overflow-hidden group shrink-0">
-             <Calendar className="absolute -bottom-10 -right-10 w-32 md:w-48 h-32 md:h-48 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
-             <div className="relative z-10">
-                <h4 className="text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 md:mb-6">My Confirmed Events</h4>
-                <div className="space-y-3 md:space-y-4">
-                  {user.rsvpedEventIds?.length ? user.rsvpedEventIds.map(id => {
-                    const event = allEvents.find(e => e.id === id);
-                    if (!event) return null;
-                    return (
-                      <div key={id} className="flex items-center gap-3 md:gap-4 bg-white/5 p-3 md:p-4 rounded-xl md:rounded-2xl border border-white/10">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-lg md:rounded-xl flex items-center justify-center text-white flex-shrink-0"><CheckCircle2 size={16} className="md:hidden" /><CheckCircle2 size={20} className="hidden md:block" /></div>
-                        <div className="min-w-0">
-                          <p className="text-xs md:text-sm font-black truncate">{event.title}</p>
-                          <p className="text-[9px] md:text-[10px] font-bold text-indigo-300 uppercase">{event.dateDisplay}</p>
-                        </div>
-                      </div>
-                    );
-                  }) : <p className="text-indigo-300 text-xs font-medium">You haven't signed up for any events yet.</p>}
+                    {event.program}
+                  </span>
+                  {isSignedUp && (
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                      <CheckCircle2 size={10} /> Signed up
+                    </span>
+                  )}
                 </div>
-             </div>
+                <h3 className="text-base font-medium text-zinc-900 mb-2 group-hover:text-[#233DFF] transition-colors leading-snug">{event.title}</h3>
+                <div className="space-y-1.5 text-xs text-zinc-500">
+                  <p className="flex items-center gap-1.5"><MapPin size={13} className="text-zinc-400 shrink-0" /> {event.address}</p>
+                  <p className="flex items-center gap-1.5"><Calendar size={13} className="text-zinc-400 shrink-0" /> {event.dateDisplay}</p>
+                  <p className="flex items-center gap-1.5"><Clock size={13} className="text-zinc-400 shrink-0" /> {event.time}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Event detail modal */}
+      {selectedEvent && (
+        <>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]" onClick={() => setSelectedEvent(null)} />
+          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl flex flex-col max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 space-y-5">
+                <div className="flex justify-between items-start">
+                  <span
+                    className="px-3 py-1.5 rounded-full text-[10px] font-medium text-white"
+                    style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}
+                  >
+                    {selectedEvent.program}
+                  </span>
+                  <button onClick={() => setSelectedEvent(null)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-medium text-zinc-900 leading-tight mb-2">{selectedEvent.title}</h3>
+                  <p className="text-zinc-500 text-xs flex items-center gap-1.5">
+                    <MapPin size={13} /> {selectedEvent.address}, {selectedEvent.city}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-[#e8e6e3]">
+                    <Calendar className="text-[#233DFF] mb-1.5" size={16} />
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Date</p>
+                    <p className="text-sm font-medium text-zinc-900">{selectedEvent.dateDisplay}</p>
+                  </div>
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-[#e8e6e3]">
+                    <Clock className="text-[#233DFF] mb-1.5" size={16} />
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Time</p>
+                    <p className="text-sm font-medium text-zinc-900">{selectedEvent.time}</p>
+                  </div>
+                </div>
+
+                {selectedEvent.address && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedEvent.address + ', ' + selectedEvent.city)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium text-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <Navigation size={14} /> Get Directions
+                  </a>
+                )}
+
+                <div className="space-y-3">
+                  {canSignUp ? (
+                    <button
+                      onClick={() => handleSignUp(selectedEvent.id)}
+                      disabled={isSigningUp}
+                      className={`w-full py-4 rounded-full font-medium text-sm transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 ${
+                        user.rsvpedEventIds?.includes(selectedEvent.id)
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-emerald-100'
+                          : 'bg-[#233DFF] text-white hover:opacity-95'
+                      }`}
+                    >
+                      {isSigningUp ? (
+                        <><Loader2 size={18} className="animate-spin" /> Processing...</>
+                      ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
+                        <><CheckCircle2 size={18} /> Signed Up — Click to Cancel</>
+                      ) : (
+                        <><div className="w-1.5 h-1.5 rounded-full bg-white" /> Sign Up</>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="w-full py-4 px-4 rounded-2xl bg-amber-50 border border-amber-200 text-center">
+                      <p className="font-medium text-amber-800 text-sm">Complete required training to sign up</p>
+                      <p className="text-amber-600 text-xs mt-1">Visit Training Academy to complete your orientation modules</p>
+                    </div>
+                  )}
+                  <p className="text-center text-[10px] text-zinc-400 font-normal">Earn impact points for participating in community events.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* My Confirmed Events */}
+      {user.rsvpedEventIds && user.rsvpedEventIds.length > 0 && (
+        <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
+          <Calendar className="absolute -bottom-8 -right-8 w-36 h-36 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
+          <div className="relative z-10">
+            <h4 className="text-[10px] font-medium text-indigo-400 uppercase tracking-wide mb-4">My Confirmed Events</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {user.rsvpedEventIds.map(id => {
+                const event = allEvents.find(e => e.id === id);
+                if (!event) return null;
+                return (
+                  <div key={id} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{event.title}</p>
+                      <p className="text-[10px] font-normal text-indigo-300">{event.dateDisplay}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

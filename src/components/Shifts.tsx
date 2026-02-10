@@ -108,7 +108,7 @@ const BulkUploadEventsModal: React.FC<{
       <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl">
         <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-black text-zinc-900">Bulk Import Events</h2>
+            <h2 className="text-2xl font-medium text-zinc-900">Bulk Import Events</h2>
             <p className="text-sm text-zinc-500 mt-1">Upload a CSV file to create multiple events at once</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
@@ -385,7 +385,7 @@ const EditEventModal: React.FC<{
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl">
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h2 className="text-xl font-black text-zinc-900">Edit Event</h2>
+          <h2 className="text-xl font-medium text-zinc-900">Edit Event</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={18} className="text-zinc-400" /></button>
         </div>
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -498,7 +498,7 @@ const EditEventModal: React.FC<{
               <div className="p-4 space-y-4">
                 {Object.entries(equipmentByCategory).map(([cat, items]) => (
                   <div key={cat}>
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">{cat}</p>
+                    <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide mb-2">{cat}</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {items.map(item => {
                         const selected = selectedEquipment.find(e => e.equipmentId === item.id);
@@ -934,7 +934,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
        {showToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-2xl flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
            <div className={`p-2 rounded-lg ${toastError ? 'bg-rose-500' : 'bg-emerald-500'}`}>{toastError ? <XCircle size={16} /> : <Check size={16} />}</div>
-           <span className="text-sm font-black uppercase tracking-widest">{toastMsg}</span>
+           <span className="text-sm font-medium uppercase tracking-wide">{toastMsg}</span>
         </div>
       )}
        {showEventBuilder && <EventBuilder onClose={() => setShowEventBuilder(false)} onSave={handleSaveEvent} />}
@@ -960,10 +960,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
              <div className="p-8">
                <div className="flex justify-between items-start mb-6">
-                 <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#233DFF]/10 text-[#233DFF]">{normalizeCategory(showEventDetail.category)}</span>
+                 <span className="px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-[#233DFF]/10 text-[#233DFF]">{normalizeCategory(showEventDetail.category)}</span>
                  <button onClick={() => setShowEventDetail(null)} className="p-2 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"><X size={20} /></button>
                </div>
-               <h3 className="text-2xl font-black text-zinc-900 tracking-tighter mb-4">{showEventDetail.title}</h3>
+               <h3 className="text-2xl font-medium text-zinc-900 tracking-normal mb-4">{showEventDetail.title}</h3>
                <div className="space-y-3 text-sm text-zinc-600">
                  <p className="flex items-center gap-3"><Calendar size={16} className="text-[#233DFF] shrink-0" /> {new Date(showEventDetail.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
                  <p className="flex items-center gap-3"><Clock size={16} className="text-[#233DFF] shrink-0" /> {showEventDetail.time || 'TBD'}</p>
@@ -980,7 +980,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                <div className="mt-6 pt-6 border-t border-zinc-100 flex flex-col gap-3">
                  <div className="flex items-center justify-between text-sm">
                    <span className="text-zinc-400 font-bold">Capacity</span>
-                   <span className="font-black text-zinc-700">{showEventDetail.slotsFilled || 0} / {showEventDetail.slotsTotal} filled</span>
+                   <span className="font-medium text-zinc-700">{showEventDetail.slotsFilled || 0} / {showEventDetail.slotsTotal} filled</span>
                  </div>
                  {showEventDetail.serviceLocation && (
                    <a
@@ -1000,12 +1000,12 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tighter uppercase leading-none">My Missions</h2>
+          <h2 className="text-3xl md:text-4xl font-medium text-zinc-900 tracking-normal leading-none">My Missions</h2>
           <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Find, join, and manage community health events.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-sm shrink-0 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-medium uppercase tracking-wide transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}>
               {tab.label}
             </button>
           ))}
@@ -1015,13 +1015,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:bg-zinc-800 transition-colors">
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-medium uppercase tracking-wide shadow-lg hover:bg-zinc-800 transition-colors">
                   <Plus size={16} /> Create New Event
               </button>
-              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-2xl text-sm font-medium uppercase tracking-wide shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
                   {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
               </button>
-              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-white border-2 border-zinc-200 text-zinc-700 rounded-2xl text-sm font-black uppercase tracking-widest shadow-sm hover:border-zinc-300 transition-colors">
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-white border-2 border-zinc-200 text-zinc-700 rounded-2xl text-sm font-medium uppercase tracking-wide shadow-sm hover:border-zinc-300 transition-colors">
                   <Upload size={16} /> Bulk Import CSV
               </button>
            </div>
@@ -1029,7 +1029,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            {/* Pending Approval Section */}
            {opportunities.filter(o => o.approvalStatus === 'pending').length > 0 && (
              <div className="mb-8">
-               <h3 className="text-sm font-black text-amber-600 uppercase tracking-widest mb-4 px-2 flex items-center gap-2">
+               <h3 className="text-sm font-medium text-amber-600 uppercase tracking-wide mb-4 px-2 flex items-center gap-2">
                  <Clock size={14} /> Pending Approval ({opportunities.filter(o => o.approvalStatus === 'pending').length})
                </h3>
                <div className="space-y-4">
@@ -1078,7 +1078,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            )}
 
            {/* All Events */}
-           <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-2">All Events</h3>
+           <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide mb-6 px-2">All Events</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {[...opportunities].filter(o => o.approvalStatus !== 'pending').sort((a, b) => {
                 const dateA = new Date(a.date + 'T00:00:00').getTime();
@@ -1220,7 +1220,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             </select>
           </div>
             {(Object.keys(groupedByDate).length === 0 || Object.values(groupedByDate).every(d => d.shifts.length === 0 && d.opportunities.length === 0)) && (
-                <div className="py-32 text-center bg-zinc-50 rounded-[56px] border border-dashed border-zinc-200">
+                <div className="py-32 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
                     <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
                     <p className="text-lg font-bold text-zinc-400 italic">
                       {activeTab === 'my-schedule' ? "You have no upcoming missions." : "No available missions found."}
@@ -1230,7 +1230,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             )}
             {Object.entries(groupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
                 <div key={date}>
-                    <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-6 px-4">{date}</h3>
+                    <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide mb-6 px-4">{date}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {/* Render shifts */}
                         {dateData.shifts.map(shift => {
@@ -1240,9 +1240,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const slotsLeft = shift.slotsTotal - shift.slotsFilled;
 
                             return (
-                                <div key={shift.id} className={`bg-white rounded-3xl md:rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                <div key={shift.id} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
                                     {isRegistered && (
-                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
                                           <Check size={14} /> Confirmed
                                        </div>
                                     )}
@@ -1253,29 +1253,29 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           const urgencyLabel = rawUrgency === 'save the date' ? 'Upcoming' : rawUrgency === 'high' ? 'High' : rawUrgency === 'low' ? 'Low' : 'Medium';
                                           const isHigh = urgencyLabel === 'High';
                                           return (
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${isHigh ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
+                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${isHigh ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
                                               {urgencyLabel}
                                             </span>
                                           );
                                         })()}
-                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                                             {slotsLeft === 0 ? 'Full' : `${slotsLeft} ${slotsLeft === 1 ? 'Spot' : 'Spots'} Left`}
                                          </div>
                                       </div>
 
                                       <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
-                                      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
-                                      <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
+                                      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                      <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>
                                       <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description ? (opp.description.length > 120 ? opp.description.substring(0, 120) + '...' : opp.description) : ''}</p>
                                     </div>
 
-                                    <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl md:rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
+                                    <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
                                        <div className="flex items-center justify-between gap-4">
                                           <div className="min-w-0">
-                                            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Time</p>
-                                            <p className="text-sm font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                                            <p className="text-[9px] font-medium text-zinc-300 uppercase tracking-wide mb-2">Time</p>
+                                            <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
                                               <Clock size={14} className="text-[#233DFF] shrink-0" />
                                               {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                             </p>
@@ -1324,9 +1324,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const slotsLeft = opp.slotsTotal - (opp.slotsFilled || 0);
 
                             return (
-                                <div key={`opp-${opp.id}`} className={`bg-white rounded-3xl md:rounded-[48px] border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
                                     {isRsvped && (
-                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
                                           <Check size={14} /> Confirmed
                                        </div>
                                     )}
@@ -1337,29 +1337,29 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           const urgencyLabel = rawUrgency === 'save the date' ? 'Upcoming' : rawUrgency === 'high' ? 'High' : rawUrgency === 'low' ? 'Low' : 'Medium';
                                           const isHigh = urgencyLabel === 'High';
                                           return (
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${isHigh ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
+                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${isHigh ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
                                               {urgencyLabel}
                                             </span>
                                           );
                                         })()}
-                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                                             {slotsLeft === 0 ? 'Full' : `${slotsLeft} ${slotsLeft === 1 ? 'Spot' : 'Spots'} Left`}
                                          </div>
                                       </div>
 
                                       <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
-                                      <h3 className="text-2xl font-black text-zinc-900 tracking-tighter leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
-                                      <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
+                                      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                      <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>
                                       <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description ? (opp.description.length > 120 ? opp.description.substring(0, 120) + '...' : opp.description) : ''}</p>
                                     </div>
 
-                                    <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl md:rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
+                                    <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
                                        <div className="flex items-center justify-between gap-4">
                                           <div className="min-w-0">
-                                            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-2">Event Date</p>
-                                            <p className="text-sm font-black text-zinc-900 tracking-tight flex items-center gap-2">
+                                            <p className="text-[9px] font-medium text-zinc-300 uppercase tracking-wide mb-2">Event Date</p>
+                                            <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
                                               <Calendar size={14} className="text-[#233DFF] shrink-0" />
                                               {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </p>
@@ -1381,30 +1381,30 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             {/* Past Events Section - Only show on my-schedule tab */}
             {activeTab === 'my-schedule' && hasPastEvents && (
               <div className="mt-16 pt-8 border-t-2 border-zinc-100">
-                <h3 className="text-lg font-black text-zinc-300 uppercase tracking-widest mb-8 px-4 flex items-center gap-3">
+                <h3 className="text-lg font-medium text-zinc-300 uppercase tracking-wide mb-8 px-4 flex items-center gap-3">
                   <Clock size={20} /> Past Events
                 </h3>
                 {Object.entries(pastGroupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
                   <div key={`past-${date}`} className="mb-8">
-                    <h4 className="text-sm font-black text-zinc-300 uppercase tracking-widest mb-4 px-4">{date}</h4>
+                    <h4 className="text-sm font-medium text-zinc-300 uppercase tracking-wide mb-4 px-4">{date}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {dateData.shifts.map(shift => {
                         const opp = getOpp(shift.opportunityId);
                         if (!opp) return null;
                         return (
                           <div key={`past-shift-${shift.id}`} className="bg-zinc-50 rounded-[32px] border border-zinc-200 p-8 opacity-60">
-                            <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest mb-4 inline-block">Past Event</span>
+                            <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-medium uppercase tracking-wide mb-4 inline-block">Past Event</span>
                             <p className="text-xs font-bold text-zinc-400 mb-1">{normalizeCategory(opp.category)}</p>
-                            <h4 className="text-lg font-black text-zinc-600 mb-2">{opp.title}</h4>
+                            <h4 className="text-lg font-medium text-zinc-600 mb-2">{opp.title}</h4>
                             <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
                           </div>
                         );
                       })}
                       {dateData.opportunities.map(opp => (
                         <div key={`past-opp-${opp.id}`} className="bg-zinc-50 rounded-[32px] border border-zinc-200 p-8 opacity-60">
-                          <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest mb-4 inline-block">Past Event</span>
+                          <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-medium uppercase tracking-wide mb-4 inline-block">Past Event</span>
                           <p className="text-xs font-bold text-zinc-400 mb-1">{normalizeCategory(opp.category)}</p>
-                          <h4 className="text-lg font-black text-zinc-600 mb-2">{opp.title}</h4>
+                          <h4 className="text-lg font-medium text-zinc-600 mb-2">{opp.title}</h4>
                           <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
                         </div>
                       ))}
