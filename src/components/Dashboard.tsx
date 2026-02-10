@@ -6,7 +6,7 @@ import {
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
-  Bell, Menu
+  Bell, Menu, CalendarDays
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -32,6 +32,7 @@ import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
 import BoardGovernance from './BoardGovernance';
 import LiveChatDashboard from './LiveChatDashboard';
+import OrgCalendar from './OrgCalendar';
 
 interface DashboardProps {
   user: Volunteer;
@@ -98,7 +99,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
@@ -207,6 +208,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     items.push({ id: 'impact', label: 'Impact Hub', icon: DollarSign });
     items.push({ id: 'briefing', label: 'Communication Hub', icon: MessageSquare, badge: unreadDMs + openTicketsCount });
     items.push({ id: 'docs', label: 'Doc Hub', icon: BookOpen });
+    items.push({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
 
     if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
       items.splice(2, 0, { id: 'my-team', label: 'My Team', icon: Users });
@@ -370,9 +372,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         {[
           { id: 'overview', label: 'Home', icon: Activity },
           { id: 'academy', label: 'Training', icon: GraduationCap },
+          { id: 'calendar', label: 'Calendar', icon: CalendarDays },
           { id: 'briefing', label: 'Comms', icon: MessageSquare },
           { id: 'docs', label: 'Docs', icon: BookOpen },
-          { id: 'impact', label: 'Impact', icon: DollarSign },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-0 ${activeTab === tab.id ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
@@ -608,6 +610,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}
+         {activeTab === 'calendar' && <OrgCalendar user={displayUser} opportunities={opportunities} />}
          {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}
          {activeTab === 'referrals' && user.isAdmin && <ReferralManagement isAdmin={true} />}
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}

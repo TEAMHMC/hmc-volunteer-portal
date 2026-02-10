@@ -5182,6 +5182,168 @@ app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Re
   }
 });
 
+// =============================================
+// ORG-WIDE CALENDAR API ENDPOINTS
+// =============================================
+
+// Unified calendar feed — merges org_calendar_events + board_meetings + opportunities
+app.get('/api/org-calendar', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const [orgSnap, boardSnap, oppsSnap] = await Promise.all([
+      db.collection('org_calendar_events').get(),
+      db.collection('board_meetings').get(),
+      db.collection('opportunities').get(),
+    ]);
+
+    // 1. Org calendar events (native)
+    const orgEvents = orgSnap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+      source: 'org-calendar',
+    }));
+
+    // 2. Board meetings → mapped to OrgCalendarEvent shape
+    const boardEvents = boardSnap.docs.map(d => {
+      const m = d.data();
+      const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
+      return {
+        id: d.id,
+        title: m.title || 'Board Meeting',
+        description: m.agenda ? (Array.isArray(m.agenda) ? m.agenda.join(', ') : m.agenda) : undefined,
+        date: m.date || '',
+        startTime: m.time || '',
+        type: meetingType,
+        location: m.googleMeetLink ? 'Virtual' : undefined,
+        meetLink: m.googleMeetLink || undefined,
+        rsvps: m.rsvps || [],
+        createdBy: m.createdBy,
+        source: 'board-meeting',
+      };
+    });
+
+    // 3. Opportunities → mapped to OrgCalendarEvent shape
+    const oppEvents = oppsSnap.docs.map(d => {
+      const o = d.data();
+      return {
+        id: d.id,
+        title: o.title || 'Community Event',
+        description: o.description || undefined,
+        date: o.date ? (o.date.includes('T') ? o.date.split('T')[0] : o.date) : '',
+        startTime: o.time || o.dateDisplay || '',
+        type: 'community-event',
+        location: o.serviceLocation || undefined,
+        source: 'event-finder',
+      };
+    }).filter(e => e.date); // Only include events with valid dates
+
+    // Merge and sort
+    const all = [...orgEvents, ...boardEvents, ...oppEvents].sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
+    res.json(all);
+  } catch (e: any) {
+    console.error('[ORG-CALENDAR] GET failed:', e);
+    res.json([]);
+  }
+});
+
+// Create org calendar event (coordinator/admin only)
+app.post('/api/org-calendar', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    const allowedRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
+    if (!userData?.isAdmin && !allowedRoles.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins, coordinators, and leads can create calendar events' });
+    }
+    const { title, date, startTime, endTime, type, location, meetLink, description, isRecurring, recurrenceNote, visibleTo } = req.body;
+    const eventData = {
+      title, date, startTime, endTime: endTime || null, type: type || 'other',
+      location: location || null, meetLink: meetLink || null, description: description || null,
+      isRecurring: isRecurring || false, recurrenceNote: recurrenceNote || null,
+      visibleTo: visibleTo || null, rsvps: [],
+      createdBy: user.uid, createdAt: new Date().toISOString(), source: 'org-calendar',
+    };
+    const ref = await db.collection('org_calendar_events').add(eventData);
+    res.json({ id: ref.id, ...eventData });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Update org calendar event
+app.put('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    const allowedRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
+    if (!userData?.isAdmin && !allowedRoles.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins, coordinators, and leads can update calendar events' });
+    }
+    const { eventId } = req.params;
+    const updates = req.body;
+    delete updates.id;
+    delete updates.source;
+    updates.updatedAt = new Date().toISOString();
+    await db.collection('org_calendar_events').doc(eventId).update(updates);
+    res.json({ id: eventId, ...updates });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Delete org calendar event (admin only)
+app.delete('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin) {
+      return res.status(403).json({ error: 'Only admins can delete calendar events' });
+    }
+    await db.collection('org_calendar_events').doc(req.params.eventId).delete();
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// RSVP to an org calendar event (any authenticated user)
+app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    const { status } = req.body;
+    if (!['attending', 'tentative', 'declined'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid RSVP status' });
+    }
+
+    // Check if this is an org-calendar event or a board meeting
+    let docRef = db.collection('org_calendar_events').doc(req.params.eventId);
+    let docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      // Try board_meetings collection
+      docRef = db.collection('board_meetings').doc(req.params.eventId);
+      docSnap = await docRef.get();
+    }
+    if (!docSnap.exists) return res.status(404).json({ error: 'Event not found' });
+
+    const eventData = docSnap.data()!;
+    const rsvps = eventData.rsvps || [];
+    const rsvpEntry = {
+      odId: user.uid,
+      odName: userData?.name || userData?.legalFirstName || 'Unknown',
+      status,
+      respondedAt: new Date().toISOString(),
+    };
+    const existingIdx = rsvps.findIndex((r: any) => r.odId === user.uid);
+    if (existingIdx >= 0) rsvps[existingIdx] = rsvpEntry;
+    else rsvps.push(rsvpEntry);
+
+    await docRef.update({ rsvps });
+    res.json({ success: true, rsvps });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // --- ADMIN BOOTSTRAP ---
 const bootstrapAdmin = async () => {
   // Support multiple admin emails (comma-separated or single)

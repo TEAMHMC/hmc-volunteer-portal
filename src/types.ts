@@ -802,6 +802,24 @@ export interface ReferralResource {
 // - volunteerRole (must match allowed roles)
 // ============================================================
 
+export interface OrgCalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;              // YYYY-MM-DD
+  startTime: string;         // "10:00 AM" or ISO
+  endTime?: string;          // "11:00 AM" or ISO
+  type: 'all-hands' | 'committee' | 'training' | 'social' | 'community-event' | 'board' | 'other';
+  location?: string;         // Physical or "Virtual"
+  meetLink?: string;         // Google Meet / Zoom
+  visibleTo?: string[];      // Roles; empty/undefined = everyone
+  rsvps?: { odId: string; odName: string; status: 'attending' | 'tentative' | 'declined' }[];
+  isRecurring?: boolean;
+  recurrenceNote?: string;   // Human-readable: "Every 1st Monday"
+  createdBy?: string;
+  source?: 'org-calendar' | 'board-meeting' | 'event-finder';
+}
+
 export interface CSVImportRow {
   legalFirstName: string;
   legalLastName: string;
