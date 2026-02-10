@@ -127,6 +127,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const handleUpdateUser = async (updatedUser: Volunteer) => {
       const user = await apiService.put('/api/volunteer', updatedUser);
       setCurrentUser(user);
+      // Also update this volunteer in allVolunteers so admin directory reflects changes
+      setAllVolunteers(prev => prev.map(v => v.id === user.id ? { ...v, ...user } : v));
   }
   
   const handleMigrationComplete = async () => {

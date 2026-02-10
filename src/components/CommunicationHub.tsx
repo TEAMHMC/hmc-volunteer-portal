@@ -209,10 +209,11 @@ const BroadcastsView: React.FC<{
 // --- BRIEFING VIEW (Slack-like with General channel + DMs) ---
 const BriefingView: React.FC<{
   user: Volunteer;
+  userMode: 'volunteer' | 'admin';
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   allVolunteers: Volunteer[];
-}> = ({ user, messages, setMessages, allVolunteers }) => {
+}> = ({ user, userMode, messages, setMessages, allVolunteers }) => {
   const [activeChannel, setActiveChannel] = useState<'general' | string>('general');
   const [newMessage, setNewMessage] = useState('');
   const [showNewConversation, setShowNewConversation] = useState(false);
@@ -1580,6 +1581,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
         {activeTab === 'briefing' && (
           <BriefingView
             user={user}
+            userMode={userMode}
             messages={messages}
             setMessages={setMessages}
             allVolunteers={allVolunteers}

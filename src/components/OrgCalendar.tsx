@@ -413,11 +413,12 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
 interface CreateEventModalProps {
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: () => Promise<void> | void;
 }
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated }) => {
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     title: '',
     date: '',
@@ -434,13 +435,15 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.date || !form.startTime) return;
+    setError('');
     try {
       setSaving(true);
       await apiService.post('/api/org-calendar', form);
-      onCreated();
+      await onCreated();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create event:', err);
+      setError(err?.message || 'Failed to create event. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -578,6 +581,13 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated 
                 placeholder="e.g. Every 1st Monday"
                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
               />
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
+              {error}
             </div>
           )}
 
