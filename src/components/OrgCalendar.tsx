@@ -43,6 +43,23 @@ const EVENT_TYPES = [
 
 const getColor = (type: string) => EVENT_COLORS[type] || EVENT_COLORS['other'];
 
+// Normalize time display: convert 24h "14:00" to "2:00 PM", pass through "5:30 PM PT" as-is
+const formatTimeDisplay = (t: string): string => {
+  if (!t) return '';
+  // Already in 12h format (contains AM/PM)
+  if (/[ap]m/i.test(t)) return t;
+  // 24h format like "14:00"
+  const match = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (match) {
+    const h = parseInt(match[1]);
+    const m = match[2];
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  }
+  return t;
+};
+
 const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const [events, setEvents] = useState<OrgCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +71,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
 
   const isAdmin = user.isAdmin;
-  const isCoordinatorOrLead = user.role.includes('Coordinator') || user.role.includes('Lead');
-  const canCreateEvents = isAdmin || isCoordinatorOrLead;
+  const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
+  const canCreateEvents = isAdmin || eventMgmtRoles.includes(user.role);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -96,17 +113,16 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
     return map;
   }, [events, currentMonth, currentYear]);
 
-  // Filtered upcoming events
+  // Filtered events — show all events for a selected day, otherwise upcoming only
   const upcomingEvents = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    let filtered = events.filter(ev => ev.date >= today);
-    if (selectedDay) {
-      filtered = filtered.filter(ev => ev.date === selectedDay);
-    }
+    let filtered = selectedDay
+      ? events.filter(ev => ev.date === selectedDay) // Show all events for selected day (past or future)
+      : events.filter(ev => ev.date >= today);       // Default to upcoming
     if (typeFilter) {
       filtered = filtered.filter(ev => ev.type === typeFilter);
     }
-    return filtered.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+    return filtered.sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
   }, [events, selectedDay, typeFilter]);
 
   const prevMonth = () => {
@@ -350,7 +366,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                         </p>
                         <p className="text-sm font-bold text-zinc-600 mt-1 flex items-center gap-2">
                           <Clock size={14} className="text-[#233DFF] shrink-0" />
-                          {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''}
+                          {formatTimeDisplay(ev.startTime)}{ev.endTime ? ` – ${formatTimeDisplay(ev.endTime)}` : ''}
                         </p>
                       </div>
 
@@ -519,6 +535,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated 
               <option value="all-hands">All-Hands</option>
               <option value="committee">Committee</option>
               <option value="training">Training</option>
+              <option value="community-event">Community Event</option>
               <option value="social">Social</option>
               <option value="board">Board</option>
               <option value="other">Other</option>

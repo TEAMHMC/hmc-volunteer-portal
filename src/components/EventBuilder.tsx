@@ -88,13 +88,13 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            alert('Please upload an image file (PNG, JPG, etc.)');
+            setSaveError('Please upload an image file (PNG, JPG, etc.)');
             return;
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('File size must be less than 5MB');
+            setSaveError('File size must be less than 5MB');
             return;
         }
 
@@ -157,11 +157,29 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
         }));
     };
 
+    const [saveError, setSaveError] = useState('');
+
+    // Format 24h time to 12h display: "14:00" -> "2:00 PM"
+    const formatTime12h = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const hour12 = h % 12 || 12;
+        return `${hour12}:${String(m).padStart(2, '0')} ${ampm}`;
+    };
+
     const handleSaveEvent = async () => {
         setIsSaving(true);
+        setSaveError('');
         try {
+            // Build human-readable time string from startTime/endTime
+            const start = eventData.startTime || '09:00';
+            const end = eventData.endTime || '14:00';
+            const timeDisplay = `${formatTime12h(start)} - ${formatTime12h(end)}`;
+
             const finalEventData = {
                 ...eventData,
+                time: timeDisplay,
+                address: eventData.address || eventData.serviceLocation || '',
                 slotsTotal: eventData.staffingQuotas?.reduce((sum, q) => sum + q.count, 0) || 0,
                 slotsFilled: 0,
                 urgency: 'medium',
@@ -177,7 +195,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
             setIsSuccess(true);
             setTimeout(onClose, 2000);
         } catch (error) {
-            alert(`Failed to save event: ${(error as Error).message}`);
+            setSaveError(`Failed to save event: ${(error as Error).message}`);
         } finally {
             setIsSaving(false);
         }
@@ -185,7 +203,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
     
     const handleGenerateSupplies = async () => {
         if (!eventData.estimatedAttendees || !eventData.serviceOfferingIds?.length) {
-            alert("Please estimate attendees and select at least one service.");
+            setSaveError("Please estimate attendees and select at least one service.");
             return;
         }
         setIsGeneratingSupplies(true);
@@ -195,7 +213,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
             setEventData(prev => ({ ...prev, supplyList: list }));
         } catch(e) {
             console.error(e);
-            alert("Failed to generate supply list.");
+            setSaveError("Failed to generate supply list.");
         } finally {
             setIsGeneratingSupplies(false);
         }
@@ -290,9 +308,13 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1">Location</label>
+                                <label className="block text-xs font-bold text-zinc-500 mb-1">Location Name</label>
                                 <input type="text" placeholder="e.g., East LA Library" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
                             </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-zinc-500 mb-1">Full Address</label>
+                            <input type="text" placeholder="e.g., 123 W. Manchester Blvd, Inglewood, CA 90301" value={(eventData as any).address || ''} onChange={e => setEventData({...eventData, address: e.target.value} as any)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div>
@@ -526,10 +548,17 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                 </section>
 
             </main>
-            <footer className="p-8 border-t border-zinc-100 flex justify-end">
-                <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#1a2fbf] disabled:opacity-50">
-                    {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
-                </button>
+            <footer className="p-8 border-t border-zinc-100 space-y-4">
+                {saveError && (
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium flex items-center gap-2">
+                        <AlertTriangle size={16} className="shrink-0" /> {saveError}
+                    </div>
+                )}
+                <div className="flex justify-end">
+                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#1a2fbf] disabled:opacity-50">
+                        {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
+                    </button>
+                </div>
             </footer>
         </div>
     );

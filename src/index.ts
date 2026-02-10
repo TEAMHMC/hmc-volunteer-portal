@@ -2947,13 +2947,12 @@ app.post('/api/public/rsvp', async (req: Request, res: Response) => {
 
         const rsvpRef = await db.collection('public_rsvps').add(rsvp);
 
-        // Update the event's RSVP count
+        // Update the event's RSVP count atomically
         const eventRef = db.collection('opportunities').doc(eventId);
         const eventDoc = await eventRef.get();
         if (eventDoc.exists) {
-            const currentCount = eventDoc.data()?.rsvpCount || 0;
             await eventRef.update({
-                rsvpCount: currentCount + 1 + (guests || 0)
+                rsvpCount: admin.firestore.FieldValue.increment(1 + (guests || 0))
             });
         }
 
@@ -3535,6 +3534,11 @@ app.delete('/api/messages/:messageId', verifyToken, requireAdmin, async (req: Re
 
 app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) => {
     try {
+        const userProfile = (req as any).user?.profile;
+        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and event management roles can create events' });
+        }
         const { opportunity } = req.body;
         if (!opportunity.locationCoordinates) {
             opportunity.locationCoordinates = { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 };
@@ -3592,6 +3596,11 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
 // Update opportunity (for approval workflow, editing, etc.)
 app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Response) => {
     try {
+        const userProfile = (req as any).user?.profile;
+        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and event management roles can update events' });
+        }
         const { id } = req.params;
         const updates = req.body;
 
@@ -3600,7 +3609,7 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             'approvalStatus', 'approvedBy', 'approvedAt', 'isPublic', 'isPublicFacing',
             'urgency', 'description', 'title', 'date', 'serviceLocation', 'category',
             'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime', 'time', 'address',
-            'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64'
+            'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64', 'locationCoordinates'
         ];
         const sanitizedUpdates: any = {};
         for (const field of allowedFields) {
@@ -3711,6 +3720,11 @@ app.delete('/api/opportunities/:id', verifyToken, async (req: Request, res: Resp
 // Bulk import events from CSV
 app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Response) => {
     try {
+        const userProfile = (req as any).user?.profile;
+        const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+        if (!userProfile?.isAdmin && !eventMgmtRoles.includes(userProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and event management roles can import events' });
+        }
         const { csvData } = req.body;
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
         const lines = csvContent.split('\n').filter(line => line.trim());
@@ -4074,7 +4088,7 @@ app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: 
   }
 });
 
-// Admin unregister a volunteer from an event shift
+// Unregister a volunteer from an event shift
 app.post('/api/events/unregister', verifyToken, async (req: Request, res: Response) => {
   try {
     const { volunteerId, eventId, shiftId } = req.body;
@@ -4082,29 +4096,41 @@ app.post('/api/events/unregister', verifyToken, async (req: Request, res: Respon
       return res.status(400).json({ error: 'volunteerId and eventId are required' });
     }
 
-    // Update shift: remove volunteer and decrement count (if shift provided)
+    // Auth: caller must be the volunteer themselves or an admin/coordinator
+    const callerUid = (req as any).user?.uid;
+    const callerProfile = (req as any).user?.profile;
+    const mgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+    if (callerUid !== volunteerId && !callerProfile?.isAdmin && !mgmtRoles.includes(callerProfile?.role)) {
+      return res.status(403).json({ error: 'You can only unregister yourself or must be a coordinator' });
+    }
+
+    // Update shift: remove volunteer and decrement count atomically (if shift provided)
     if (shiftId) {
       const shiftRef = db.collection('shifts').doc(shiftId);
       const shiftDoc = await shiftRef.get();
       if (shiftDoc.exists) {
         const shiftData = shiftDoc.data()!;
-        await shiftRef.update({
-          slotsFilled: Math.max(0, (shiftData.slotsFilled || 0) - 1),
-          assignedVolunteerIds: (shiftData.assignedVolunteerIds || []).filter((id: string) => id !== volunteerId),
-        });
-
-        // Update opportunity staffingQuotas
-        const oppRef = db.collection('opportunities').doc(eventId);
-        const oppDoc = await oppRef.get();
-        if (oppDoc.exists) {
-          const oppData = oppDoc.data()!;
-          const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
-            q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
-          );
-          await oppRef.update({
-            staffingQuotas: updatedQuotas,
-            slotsFilled: Math.max(0, (oppData.slotsFilled || 0) - 1),
+        // Only decrement if volunteer is actually assigned
+        const isAssigned = (shiftData.assignedVolunteerIds || []).includes(volunteerId);
+        if (isAssigned) {
+          await shiftRef.update({
+            slotsFilled: admin.firestore.FieldValue.increment(-1),
+            assignedVolunteerIds: admin.firestore.FieldValue.arrayRemove(volunteerId),
           });
+
+          // Update opportunity staffingQuotas
+          const oppRef = db.collection('opportunities').doc(eventId);
+          const oppDoc = await oppRef.get();
+          if (oppDoc.exists) {
+            const oppData = oppDoc.data()!;
+            const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
+              q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
+            );
+            await oppRef.update({
+              staffingQuotas: updatedQuotas,
+              slotsFilled: admin.firestore.FieldValue.increment(-1),
+            });
+          }
         }
       }
     }
@@ -4136,10 +4162,38 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
   try {
     const { volunteerId, eventId, shiftId, eventTitle, eventDate, eventLocation, volunteerEmail, volunteerName } = req.body;
 
-    // Update volunteer's RSVPs and assigned shifts
+    // Auth: caller must be the volunteer themselves or an admin/coordinator
+    const callerUid = (req as any).user?.uid;
+    const callerProfile = (req as any).user?.profile;
+    const mgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+    if (callerUid !== volunteerId && !callerProfile?.isAdmin && !mgmtRoles.includes(callerProfile?.role)) {
+      return res.status(403).json({ error: 'You can only register yourself or must be a coordinator' });
+    }
+
+    // Validate volunteer exists
     const volunteerRef = db.collection('volunteers').doc(volunteerId);
     const volunteerDoc = await volunteerRef.get();
+    if (!volunteerDoc.exists) {
+      return res.status(404).json({ error: 'Volunteer not found' });
+    }
     const volunteerData = volunteerDoc.data() as any;
+
+    // Check for duplicate registration on this shift
+    if (shiftId) {
+      const shiftRef = db.collection('shifts').doc(shiftId);
+      const shiftDoc = await shiftRef.get();
+      if (shiftDoc.exists) {
+        const shiftData = shiftDoc.data() as any;
+        if ((shiftData.assignedVolunteerIds || []).includes(volunteerId)) {
+          return res.json({ success: true, message: 'Already registered', alreadyRegistered: true,
+            rsvpedEventIds: volunteerData.rsvpedEventIds || [], assignedShiftIds: volunteerData.assignedShiftIds || [] });
+        }
+        // Check slot capacity
+        if ((shiftData.slotsFilled || 0) >= (shiftData.slotsTotal || 0)) {
+          return res.status(409).json({ error: 'This shift is full' });
+        }
+      }
+    }
 
     const updatedRsvpIds = [...new Set([...(volunteerData.rsvpedEventIds || []), eventId])];
     const updatedShiftIds = shiftId
@@ -4151,18 +4205,18 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       assignedShiftIds: updatedShiftIds
     });
 
-    // Update shift slot count if a shift was assigned
+    // Update shift slot count atomically if a shift was assigned
     if (shiftId) {
       const shiftRef = db.collection('shifts').doc(shiftId);
+      await shiftRef.update({
+        slotsFilled: admin.firestore.FieldValue.increment(1),
+        assignedVolunteerIds: admin.firestore.FieldValue.arrayUnion(volunteerId)
+      });
+
+      // Read shift for roleType, then update opportunity quotas
       const shiftDoc = await shiftRef.get();
       if (shiftDoc.exists) {
         const shiftData = shiftDoc.data() as any;
-        await shiftRef.update({
-          slotsFilled: (shiftData.slotsFilled || 0) + 1,
-          assignedVolunteerIds: [...(shiftData.assignedVolunteerIds || []), volunteerId]
-        });
-
-        // Also update the opportunity's staffing quotas
         const opportunityRef = db.collection('opportunities').doc(eventId);
         const oppDoc = await opportunityRef.get();
         if (oppDoc.exists) {
@@ -4176,7 +4230,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           });
           await opportunityRef.update({
             staffingQuotas: updatedQuotas,
-            slotsFilled: (oppData.slotsFilled || 0) + 1
+            slotsFilled: admin.firestore.FieldValue.increment(1)
           });
         }
       }

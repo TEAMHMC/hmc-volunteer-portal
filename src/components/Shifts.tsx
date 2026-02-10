@@ -430,6 +430,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [searchQuery, setSearchQuery] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [toastError, setToastError] = useState(false);
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [showEventBuilder, setShowEventBuilder] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
@@ -448,30 +449,71 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     return `${parseFloat(diffHours.toFixed(1))} hour${diffHours !== 1 ? 's' : ''}`;
   };
 
-  const handleToggleRegistration = async (shiftId: string) => {
-    const isRegistered = user.assignedShiftIds?.includes(shiftId);
-    let updatedIds: string[];
+  const [isRegistering, setIsRegistering] = useState(false);
 
-    if (isRegistered) {
-      updatedIds = user.assignedShiftIds?.filter(id => id !== shiftId) || [];
-      setToastMsg('You have unregistered from the shift.');
-    } else {
-      updatedIds = [...(user.assignedShiftIds || []), shiftId];
-      setToastMsg('Successfully registered for the shift!');
-    }
-    
-    const originalUser = { ...user };
-    onUpdate({ ...user, assignedShiftIds: updatedIds });
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+  const handleToggleRegistration = async (shiftId: string) => {
+    if (isRegistering) return; // Prevent double-click
+    setIsRegistering(true);
+    const isRegistered = user.assignedShiftIds?.includes(shiftId);
+    const shift = shifts.find(s => s.id === shiftId);
+    const opp = shift ? getOpp(shift.opportunityId) : null;
 
     try {
-      await apiService.put('/api/volunteer', { ...user, assignedShiftIds: updatedIds });
+      if (isRegistered) {
+        // Unregister via proper endpoint
+        await apiService.post('/api/events/unregister', {
+          volunteerId: user.id,
+          eventId: shift?.opportunityId,
+          shiftId,
+        });
+        // Update local state
+        onUpdate({
+          ...user,
+          assignedShiftIds: (user.assignedShiftIds || []).filter(id => id !== shiftId),
+          rsvpedEventIds: (user.rsvpedEventIds || []).filter(id => id !== shift?.opportunityId),
+        });
+        if (shift) {
+          setShifts(prev => prev.map(s => s.id === shiftId ? { ...s, slotsFilled: Math.max(0, s.slotsFilled - 1), assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== user.id) } : s));
+        }
+        if (opp) {
+          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, slotsFilled: Math.max(0, (o.slotsFilled || 0) - 1) } : o));
+        }
+        setToastMsg('You have unregistered from the shift.');
+        setToastError(false);
+      } else {
+        // Register via proper endpoint
+        await apiService.post('/api/events/register', {
+          volunteerId: user.id,
+          eventId: shift?.opportunityId,
+          shiftId,
+          eventTitle: opp?.title || '',
+          eventDate: opp?.date || '',
+          eventLocation: opp?.serviceLocation || '',
+          volunteerEmail: user.email || '',
+          volunteerName: user.name || '',
+        });
+        // Update local state
+        onUpdate({
+          ...user,
+          assignedShiftIds: [...new Set([...(user.assignedShiftIds || []), shiftId])],
+          rsvpedEventIds: [...new Set([...(user.rsvpedEventIds || []), shift?.opportunityId || ''])],
+        });
+        if (shift) {
+          setShifts(prev => prev.map(s => s.id === shiftId ? { ...s, slotsFilled: s.slotsFilled + 1, assignedVolunteerIds: [...s.assignedVolunteerIds, user.id] } : s));
+        }
+        if (opp) {
+          setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, slotsFilled: (o.slotsFilled || 0) + 1 } : o));
+        }
+        setToastMsg('Successfully registered for the shift!');
+        setToastError(false);
+      }
       analyticsService.logEvent(isRegistered ? 'shift_unregister' : 'shift_register', { shiftId, userId: user.id });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update shift registration:", error);
-      onUpdate(originalUser); // Rollback on failure
-      setToastMsg('Failed to update registration. Please try again.');
+      setToastMsg(error?.message || 'Failed to update registration. Please try again.');
+      setToastError(true);
+    } finally {
+      setIsRegistering(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
@@ -525,11 +567,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
       setShowStaffingModal(null);
       setToastMsg(`${volunteer?.name || 'Volunteer'} assigned to ${role} shift.`);
+      setToastError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (e: any) {
       console.error('Failed to assign volunteer:', e);
       setToastMsg(e.message || 'Failed to assign volunteer.');
+      setToastError(true);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
@@ -547,10 +591,12 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       if (Array.isArray(oppsData)) setOpportunities(oppsData);
       if (Array.isArray(shiftsData)) setShifts(shiftsData);
       setToastMsg(`Synced ${result.synced} new, ${result.updated} updated, ${result.skipped} unchanged`);
+      setToastError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
     } catch (e: any) {
       setToastMsg(e.message || 'Sync failed');
+      setToastError(true);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } finally {
@@ -565,11 +611,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       setOpportunities(prev => prev.filter(o => o.id !== oppId));
       setShifts(prev => prev.filter(s => s.opportunityId !== oppId));
       setToastMsg('Event deleted successfully.');
+      setToastError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (e) {
       console.error('Failed to delete event', e);
       setToastMsg('Failed to delete event.');
+      setToastError(true);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
@@ -581,7 +629,6 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       const result = await apiService.put(`/api/opportunities/${editingEvent.id}`, updates);
       const { shifts: returnedShifts, ...oppData } = result;
       setOpportunities(prev => prev.map(o => o.id === editingEvent.id ? { ...o, ...oppData } : o));
-      // Sync shifts: replace all shifts for this opportunity with the ones from the server
       if (returnedShifts?.length) {
         setShifts(prev => {
           const otherShifts = prev.filter(s => s.opportunityId !== editingEvent.id);
@@ -590,11 +637,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       }
       setEditingEvent(null);
       setToastMsg('Event updated successfully.');
+      setToastError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (e) {
       console.error('Failed to update event', e);
       setToastMsg('Failed to update event.');
+      setToastError(true);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
@@ -717,7 +766,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
        {showToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-2xl flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
-           <div className="p-2 bg-emerald-500 rounded-lg"><Mail size={16} /></div>
+           <div className={`p-2 rounded-lg ${toastError ? 'bg-rose-500' : 'bg-emerald-500'}`}>{toastError ? <XCircle size={16} /> : <Check size={16} />}</div>
            <span className="text-sm font-black uppercase tracking-widest">{toastMsg}</span>
         </div>
       )}
@@ -729,6 +778,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
              setOpportunities(prev => [...prev, ...newEvents]);
              setShifts(prev => [...prev, ...newShifts]);
              setToastMsg(`Successfully imported ${newEvents.length} events!`);
+             setToastError(false);
              setShowToast(true);
              setTimeout(() => setShowToast(false), 3000);
            }}
@@ -982,7 +1032,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>
-                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description?.substring(0, 120)}...</p>
+                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description ? (opp.description.length > 120 ? opp.description.substring(0, 120) + '...' : opp.description) : ''}</p>
                                     </div>
 
                                     <div className="bg-zinc-50/70 p-8 rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">
@@ -997,10 +1047,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           {userMode === 'volunteer' && (
                                             <button
                                               onClick={() => handleToggleRegistration(shift.id)}
-                                              disabled={slotsLeft === 0 && !isRegistered}
+                                              disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
                                               className={`px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'}`}
                                             >
-                                              {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Register</>}
+                                              {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><XCircle size={14} /> Unregister</> : <><UserPlus size={14} /> Register</>}
                                             </button>
                                           )}
                                           {canManageEvents && (
@@ -1066,7 +1116,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       <div className="flex items-center gap-2 text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>
-                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description?.substring(0, 120)}...</p>
+                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description ? (opp.description.length > 120 ? opp.description.substring(0, 120) + '...' : opp.description) : ''}</p>
                                     </div>
 
                                     <div className="bg-zinc-50/70 p-8 rounded-t-[32px] border-t-2 border-zinc-100 mt-auto">

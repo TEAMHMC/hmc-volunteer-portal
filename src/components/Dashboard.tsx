@@ -170,8 +170,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   );
 
   const unreadDMs = useMemo(() => {
-    return messages.filter(m => m.senderId !== displayUser.id && !m.read && m.recipientId !== 'general').length;
-  }, [messages, displayUser.id]);
+    return messages.filter(m => {
+      if (m.senderId === displayUser.id || m.read || m.recipientId === 'general') return false;
+      if (dismissedNotifTs && m.createdAt && m.createdAt <= dismissedNotifTs) return false;
+      return true;
+    }).length;
+  }, [messages, displayUser.id, dismissedNotifTs]);
 
   const isCoordinatorOrLead = displayUser.role.includes('Coordinator') || displayUser.role.includes('Lead');
   const myTickets = useMemo(() => {

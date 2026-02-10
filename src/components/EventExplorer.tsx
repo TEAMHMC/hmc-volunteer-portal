@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { ClinicEvent, Volunteer, Opportunity, Shift } from '../types';
-import { MapPin, Search, Calendar, Clock, Share2, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
+import { MapPin, Search, Calendar, Clock, X, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
 // Normalize similar program/category names to canonical labels
@@ -182,10 +182,14 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastIsError, setToastIsError] = useState(false);
 
   // Helper to check if event is in the past
   const isPastEvent = (dateStr: string) => {
-    const eventDate = new Date(dateStr + 'T00:00:00');
+    // Extract YYYY-MM-DD portion to handle both "2026-02-10" and "2026-02-10T00:00:00Z" formats
+    const datePart = (dateStr || '').split('T')[0];
+    if (!datePart) return false;
+    const eventDate = new Date(datePart + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate < today;
@@ -220,21 +224,31 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
     try {
       if (alreadySignedUp) {
-        // Unregister from event and all associated shifts
+        // Unregister from event and all associated shifts via proper endpoint
         const eventShifts = shifts.filter(s => s.opportunityId === eventId);
+        const assignedShift = eventShifts.find(s => user.assignedShiftIds?.includes(s.id));
+
+        await apiService.post('/api/events/unregister', {
+          volunteerId: user.id,
+          eventId,
+          shiftId: assignedShift?.id || null,
+        });
+
         const shiftIdsToRemove = eventShifts.map(s => s.id);
-
-        const updatedRsvpIds = user.rsvpedEventIds?.filter(id => id !== eventId) || [];
-        const updatedShiftIds = (user.assignedShiftIds || []).filter(id => !shiftIdsToRemove.includes(id));
-
         const updatedUser = {
           ...user,
-          rsvpedEventIds: updatedRsvpIds,
-          assignedShiftIds: updatedShiftIds
+          rsvpedEventIds: (user.rsvpedEventIds || []).filter(id => id !== eventId),
+          assignedShiftIds: (user.assignedShiftIds || []).filter(id => !shiftIdsToRemove.includes(id)),
         };
-
-        await apiService.put('/api/volunteer', updatedUser);
         onUpdate(updatedUser);
+
+        // Update shift/opportunity counts locally
+        if (setShifts && assignedShift) {
+          setShifts(prev => prev.map(s => s.id === assignedShift.id ? { ...s, slotsFilled: Math.max(0, s.slotsFilled - 1), assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== user.id) } : s));
+        }
+        if (setOpportunities && assignedShift) {
+          setOpportunities(prev => prev.map(o => o.id === eventId ? { ...o, slotsFilled: Math.max(0, (o.slotsFilled || 0) - 1) } : o));
+        }
 
         setToastMessage('You have been unregistered from this event.');
       } else {
@@ -298,11 +312,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
         setToastMessage('You are registered! Check your email for confirmation.');
       }
 
+      setToastIsError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
     } catch (error) {
       console.error('Failed to register for event:', error);
       setToastMessage('Registration failed. Please try again.');
+      setToastIsError(true);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
     } finally {
@@ -315,7 +331,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {/* Toast notification */}
       {showToast && (
         <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-4 md:px-8 py-3 md:py-5 rounded-full shadow-2xl flex items-center gap-2 md:gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
-          <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0" />
+          <CheckCircle2 size={18} className={toastIsError ? 'text-rose-400' : 'text-emerald-400'} />
           <span className="text-xs md:text-sm font-bold">{toastMessage}</span>
         </div>
       )}
@@ -365,7 +381,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
             </MapContainer>
 
             {/* Legend - hidden on mobile, shown on larger screens */}
-            <div className="hidden md:flex absolute bottom-8 right-8 flex-col gap-3 z-[1000]">
+            <div className="flex absolute bottom-2 right-2 md:bottom-8 md:right-8 flex-col gap-2 md:gap-3 z-[1000]">
                <div className="bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-white">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Legend</p>
                   <div className="flex flex-col gap-2">
@@ -388,7 +404,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                  <span className="px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-lg" style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}>
                    {selectedEvent.program}
                  </span>
-                 <button onClick={() => setSelectedEvent(null)} className="text-slate-300 hover:text-slate-600"><Share2 size={20} /></button>
+                 <button onClick={() => setSelectedEvent(null)} className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X size={20} /></button>
               </div>
 
               <div>
