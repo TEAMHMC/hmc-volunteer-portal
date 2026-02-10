@@ -855,14 +855,38 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         )}
 
         <div>
-          <h4 className="text-lg font-black text-zinc-900 mb-4 px-2">Pending Assignments</h4>
+          <h4 className="text-lg font-black text-zinc-900 mb-4 px-2">Action Items</h4>
           <div className="space-y-3">
-             {pendingTasks.length > 0 ? pendingTasks.map(task => (
-                <div key={task.id} className="p-5 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-between">
-                  <p className="font-bold text-zinc-700">{task.title}</p>
-                  <button onClick={() => onNavigate('profile')} className="text-xs font-bold text-zinc-400 hover:text-zinc-800">View</button>
+             {!hasCompletedCoreTraining && (
+                <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-400 text-white flex items-center justify-center"><GraduationCap size={16} /></div>
+                    <p className="font-bold text-amber-800 text-sm">Complete orientation training</p>
+                  </div>
+                  <button onClick={() => onNavigate('academy')} className="text-xs font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
                 </div>
-             )) : <p className="text-sm text-zinc-400 italic px-2">No pending assignments.</p>}
+             )}
+             {!user.completedHIPAATraining && hasCompletedCoreTraining && (
+                <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-rose-400 text-white flex items-center justify-center"><ShieldCheck size={16} /></div>
+                    <p className="font-bold text-rose-800 text-sm">Complete HIPAA training</p>
+                  </div>
+                  <button onClick={() => onNavigate('academy')} className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
+                </div>
+             )}
+             {hasCompletedCoreTraining && !hasUpcomingMission && (
+                <div className="p-5 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#233DFF] text-white flex items-center justify-center"><Calendar size={16} /></div>
+                    <p className="font-bold text-[#233DFF] text-sm">Sign up for a mission</p>
+                  </div>
+                  <button onClick={() => onNavigate('missions')} className="text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] flex items-center gap-1">Browse <ChevronRight size={14} /></button>
+                </div>
+             )}
+             {hasCompletedCoreTraining && hasUpcomingMission && user.completedHIPAATraining && (
+                <p className="text-sm text-emerald-600 font-bold italic px-2 flex items-center gap-2"><CheckCircle size={16} /> You're all caught up!</p>
+             )}
           </div>
         </div>
       </div>
