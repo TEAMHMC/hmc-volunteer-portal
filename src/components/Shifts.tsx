@@ -808,7 +808,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                     <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3 flex-1">
                       {(opp.staffingQuotas || []).map(q => {
                         const matchingShift = shifts.find(s => s.opportunityId === opp.id && s.roleType === q.role);
-                        const assignedIds = matchingShift?.assignedVolunteerIds || [];
+                        const assignedIds = [...new Set(matchingShift?.assignedVolunteerIds || [])];
                         const assignedVols = assignedIds.map(id => allVolunteers.find(v => v.id === id)).filter(Boolean) as Volunteer[];
                         return (
                           <div key={q.role}>
@@ -832,6 +832,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           await apiService.post('/api/events/unregister', { volunteerId: v.id, eventId: opp.id, shiftId: matchingShift.id });
                                           setShifts(prev => prev.map(s => s.id === matchingShift.id ? { ...s, slotsFilled: s.slotsFilled - 1, assignedVolunteerIds: s.assignedVolunteerIds.filter(id => id !== v.id) } : s));
                                           setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, staffingQuotas: (o.staffingQuotas || []).map(sq => sq.role === q.role ? { ...sq, filled: Math.max(0, (sq.filled || 0) - 1) } : sq) } : o));
+                                          if (setAllVolunteers) {
+                                            setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id), assignedShiftIds: (vol.assignedShiftIds || []).filter(id => id !== matchingShift.id) } : vol));
+                                          }
                                         } catch (e) { console.error('Failed to unassign', e); }
                                       }}
                                       className="ml-auto p-0.5 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
