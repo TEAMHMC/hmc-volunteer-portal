@@ -13,6 +13,7 @@ import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
 import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS } from '../constants';
 import { computeLevel } from '../utils/xpLevels';
+import { generateQuests, completeQuest, getAllQuestsComplete, DAILY_QUEST_BONUS_XP, DailyQuest } from '../utils/dailyQuests';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
 import CommunicationHub from './CommunicationHub';
@@ -875,90 +876,132 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
     );
   }
 
+  const [activeCardTab, setActiveCardTab] = React.useState<'actions' | 'quests'>('actions');
+  const [quests, setQuests] = React.useState<DailyQuest[]>(() =>
+    generateQuests(user.role, user.isAdmin, isGovernanceRole)
+  );
+
+  const handleCompleteQuest = (questId: string) => {
+    completeQuest(questId);
+    setQuests(generateQuests(user.role, user.isAdmin, isGovernanceRole));
+  };
+
+  const completedQuestsCount = quests.filter(q => q.completed).length;
+  const allComplete = getAllQuestsComplete(quests);
+
+  // Action items
+  const actionItems: { icon: string; title: string; description: string; color: string; onClick: () => void }[] = [];
+  if (!hasCompletedCoreTraining) {
+    actionItems.push({ icon: 'fa-solid fa-graduation-cap', title: 'Complete orientation', description: 'Finish orientation videos to unlock missions', color: 'amber', onClick: () => onNavigate('academy') });
+  }
+  if (!user.completedHIPAATraining && hasCompletedCoreTraining) {
+    actionItems.push({ icon: 'fa-solid fa-shield-halved', title: 'Complete HIPAA training', description: 'Required before signing up for missions', color: 'rose', onClick: () => onNavigate('academy') });
+  }
+  if (hasCompletedCoreTraining && !hasUpcomingMission) {
+    actionItems.push({ icon: 'fa-solid fa-compass', title: 'Sign up for a mission', description: 'Browse available community events', color: 'blue', onClick: () => onNavigate('missions') });
+  }
+  if (user.isAdmin) {
+    actionItems.push({ icon: 'fa-solid fa-user-check', title: 'Review applicants', description: 'New volunteers waiting for review', color: 'emerald', onClick: () => onNavigate('profile') });
+  }
+
+  const colorMap: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
+    amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', iconBg: 'bg-amber-400' },
+    rose: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', iconBg: 'bg-rose-400' },
+    blue: { bg: 'bg-[#233DFF]/5', border: 'border-[#233DFF]/20', text: 'text-[#233DFF]', iconBg: 'bg-[#233DFF]' },
+    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', iconBg: 'bg-emerald-500' },
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <div className="xl:col-span-2 bg-white p-6 md:p-8 rounded-2xl border border-zinc-100 shadow-sm space-y-8">
-        <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Mission Command</h3>
-        {hasUpcomingMission ? (
-          <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">Next Mission</p>
-            {nextShift ? (
-              <>
-                <h4 className="text-3xl font-medium text-zinc-900 tracking-normal mt-4">{nextShiftOpp?.title || nextShift.roleType}</h4>
-                <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
-                  <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextShift.startTime).toLocaleDateString()}</span>
-                  <span className="flex items-center gap-2"><Clock size={16}/> {new Date(nextShift.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  {nextShiftOpp?.serviceLocation && <span className="flex items-center gap-2"><MapPin size={16}/> {nextShiftOpp.serviceLocation}</span>}
-                </div>
-              </>
-            ) : nextRsvpedEvent && (
-              <>
-                <h4 className="text-3xl font-medium text-zinc-900 tracking-normal mt-4">{nextRsvpedEvent.title}</h4>
-                <div className="flex items-center gap-8 mt-6 text-zinc-500 font-medium flex-wrap">
-                  <span className="flex items-center gap-2"><Calendar size={16}/> {new Date(nextRsvpedEvent.date).toLocaleDateString()}</span>
-                  <span className="flex items-center gap-2"><MapPin size={16}/> {nextRsvpedEvent.serviceLocation}</span>
-                </div>
-              </>
+    <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+      {/* Tab Header */}
+      <div className="flex border-b border-zinc-100">
+        <button
+          onClick={() => setActiveCardTab('actions')}
+          className={`flex-1 px-6 py-4 text-sm font-bold transition-colors relative ${activeCardTab === 'actions' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+        >
+          <i className="fa-solid fa-list-check mr-2" />Actions
+          {actionItems.length > 0 && activeCardTab !== 'actions' && (
+            <span className="ml-2 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full inline-flex items-center justify-center">{actionItems.length}</span>
+          )}
+          {activeCardTab === 'actions' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#233DFF]" />}
+        </button>
+        <button
+          onClick={() => setActiveCardTab('quests')}
+          className={`flex-1 px-6 py-4 text-sm font-bold transition-colors relative ${activeCardTab === 'quests' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+        >
+          <i className="fa-solid fa-scroll mr-2" />Daily Quests
+          {!allComplete && activeCardTab !== 'quests' && (
+            <span className="ml-2 text-[10px] font-bold text-zinc-400">{completedQuestsCount}/{quests.length}</span>
+          )}
+          {allComplete && activeCardTab !== 'quests' && (
+            <span className="ml-2 text-[10px] font-bold text-emerald-500"><i className="fa-solid fa-check" /></span>
+          )}
+          {activeCardTab === 'quests' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#233DFF]" />}
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="p-6">
+        {activeCardTab === 'actions' && (
+          <div className="space-y-3">
+            {actionItems.length === 0 ? (
+              <p className="text-sm text-emerald-600 font-bold italic flex items-center gap-2">
+                <CheckCircle size={16} /> You're all caught up!
+              </p>
+            ) : (
+              actionItems.map((item, i) => {
+                const c = colorMap[item.color] || colorMap.blue;
+                return (
+                  <button key={i} onClick={item.onClick} className={`w-full p-4 ${c.bg} border ${c.border} rounded-2xl flex items-center gap-4 text-left hover:opacity-90 transition-opacity group`}>
+                    <div className={`w-9 h-9 rounded-xl ${c.iconBg} text-white flex items-center justify-center shrink-0`}>
+                      <i className={`${item.icon} text-sm`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-bold text-sm ${c.text}`}>{item.title}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">{item.description}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-zinc-500 shrink-0" />
+                  </button>
+                );
+              })
             )}
-          </div>
-        ) : (
-          <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
-            <p className="text-lg font-medium text-zinc-400">No upcoming missions.</p>
-            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base flex items-center gap-2 mx-auto"><span className="w-2 h-2 rounded-full bg-white" />Find a Mission</button>
           </div>
         )}
 
-        <div>
-          <h4 className="text-lg font-medium text-zinc-900 mb-4 px-2">Action Items</h4>
-          <div className="space-y-3">
-             {!hasCompletedCoreTraining && (
-                <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-amber-400 text-white flex items-center justify-center"><GraduationCap size={16} /></div>
-                    <p className="font-bold text-amber-800 text-sm">Complete orientation training</p>
-                  </div>
-                  <button onClick={() => onNavigate('academy')} className="text-xs font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
-                </div>
-             )}
-             {!user.completedHIPAATraining && hasCompletedCoreTraining && (
-                <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-rose-400 text-white flex items-center justify-center"><ShieldCheck size={16} /></div>
-                    <p className="font-bold text-rose-800 text-sm">Complete HIPAA training</p>
-                  </div>
-                  <button onClick={() => onNavigate('academy')} className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1">Go <ChevronRight size={14} /></button>
-                </div>
-             )}
-             {hasCompletedCoreTraining && !hasUpcomingMission && (
-                <div className="p-5 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#233DFF] text-white flex items-center justify-center"><Calendar size={16} /></div>
-                    <p className="font-bold text-[#233DFF] text-sm">Sign up for a mission</p>
-                  </div>
-                  <button onClick={() => onNavigate('missions')} className="text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] flex items-center gap-1">Browse <ChevronRight size={14} /></button>
-                </div>
-             )}
-             {hasCompletedCoreTraining && hasUpcomingMission && user.completedHIPAATraining && (
-                <p className="text-sm text-emerald-600 font-bold italic px-2 flex items-center gap-2"><CheckCircle size={16} /> You're all caught up!</p>
-             )}
-          </div>
-        </div>
-      </div>
-      <div className="space-y-10">
-        <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
-            <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
-            <div className="space-y-4">
-              <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
-              </button>
-               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
-              </button>
-               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
-              </button>
+        {activeCardTab === 'quests' && (
+          <div className="space-y-4">
+            {/* Quest progress bar */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-zinc-500">{completedQuestsCount}/{quests.length} Quests Complete</span>
+                {allComplete && <span className="text-xs font-bold text-emerald-500">+{DAILY_QUEST_BONUS_XP} XP Bonus!</span>}
+              </div>
+              <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500" style={{ width: `${(completedQuestsCount / quests.length) * 100}%` }} />
+              </div>
             </div>
-        </div>
+
+            {allComplete ? (
+              <div className="text-center py-6">
+                <div className="text-4xl mb-3"><i className="fa-solid fa-trophy text-amber-400" /></div>
+                <p className="text-lg font-bold text-zinc-900">All quests complete!</p>
+                <p className="text-sm text-zinc-500 mt-1">You earned {quests.reduce((sum, q) => sum + q.xpReward, 0) + DAILY_QUEST_BONUS_XP} XP today. Come back tomorrow!</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {quests.map(quest => (
+                  <div key={quest.id} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${quest.completed ? 'bg-emerald-50/50' : 'hover:bg-zinc-50'}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${quest.completed ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`}>
+                      {quest.completed ? <i className="fa-solid fa-check text-xs" /> : <i className={`${quest.icon} text-xs`} />}
+                    </div>
+                    <span className={`text-sm font-medium flex-1 ${quest.completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>{quest.title}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${quest.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>+{quest.xpReward} XP</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
