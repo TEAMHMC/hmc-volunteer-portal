@@ -485,70 +485,74 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          </div>
       </aside>
 
-      {/* Notification dropdown - rendered outside sidebar to avoid overflow clipping */}
+      {/* Notification slide-out panel */}
       {showNotifications && (
         <>
-          <div className="fixed inset-0 z-[199]" onClick={() => setShowNotifications(false)} />
-          <div className="fixed right-4 top-[100px] md:left-[240px] md:right-auto md:top-[80px] w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-[200] overflow-hidden">
-            <div className="p-4 border-b border-zinc-100 flex items-center justify-between">
-              <h4 className="text-sm font-black text-zinc-900">Notifications</h4>
-              <div className="flex items-center gap-2">
+          <div className="fixed inset-0 bg-black/30 z-[199] transition-opacity" onClick={() => setShowNotifications(false)} />
+          <div className="fixed inset-y-0 right-0 w-full md:w-[380px] bg-white shadow-2xl z-[200] flex flex-col animate-in slide-in-from-right duration-200">
+            {/* Header */}
+            <div className="p-5 border-b border-zinc-100 flex items-center justify-between shrink-0">
+              <h4 className="text-base font-black text-zinc-900">Notifications</h4>
+              <div className="flex items-center gap-3">
                 {totalNotifications > 0 && (
-                  <button onClick={() => { handleDismissNotifications(); setShowNotifications(false); }} className="text-[10px] font-bold text-zinc-400 hover:text-zinc-600">
+                  <button onClick={() => { handleDismissNotifications(); }} className="text-[11px] font-bold text-zinc-400 hover:text-zinc-600">
                     Dismiss all
                   </button>
                 )}
-                <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-zinc-100 rounded-lg">
-                  <X size={14} className="text-zinc-400" />
+                <button onClick={() => setShowNotifications(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg">
+                  <X size={16} className="text-zinc-400" />
                 </button>
               </div>
             </div>
-            <div className="max-h-80 overflow-y-auto">
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto">
               {totalNotifications === 0 ? (
-                <div className="p-8 text-center">
-                  <Bell size={24} className="mx-auto text-zinc-200 mb-2" />
-                  <p className="text-xs text-zinc-400 font-medium">All caught up!</p>
+                <div className="p-12 text-center">
+                  <Bell size={28} className="mx-auto text-zinc-200 mb-3" />
+                  <p className="text-sm text-zinc-400 font-medium">All caught up!</p>
+                  <p className="text-xs text-zinc-300 mt-1">No new notifications</p>
                 </div>
               ) : (
-                <div className="divide-y divide-zinc-50">
+                <div className="divide-y divide-zinc-100">
                   {unreadDMs > 0 && (
                     <button
                       onClick={() => { setCommHubTab('briefing'); setActiveTab('briefing'); setShowNotifications(false); }}
-                      className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                      className="w-full p-5 hover:bg-zinc-50 flex items-center gap-4 text-left transition-colors"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
-                        <MessageSquare size={16} className="text-[#233DFF]" />
+                      <div className="w-10 h-10 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
+                        <MessageSquare size={18} className="text-[#233DFF]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
-                        <p className="text-[11px] text-zinc-400">New direct messages waiting</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">New direct messages waiting</p>
                       </div>
-                      <span className="min-w-[20px] h-5 px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
+                      <span className="min-w-[22px] h-[22px] px-1.5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{unreadDMs}</span>
                     </button>
                   )}
                   {openTicketsCount > 0 && (
                     <div>
                       <button
                         onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
-                        className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                        className="w-full p-5 hover:bg-zinc-50 flex items-center gap-4 text-left transition-colors"
                       >
-                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                          <ShieldAlert size={16} className="text-amber-600" />
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                          <ShieldAlert size={18} className="text-amber-600" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-zinc-900">{openTicketsCount} ticket{openTicketsCount > 1 ? 's' : ''}</p>
-                          <p className="text-[11px] text-zinc-400">Assigned to you or submitted by you</p>
+                          <p className="text-xs text-zinc-400 mt-0.5">Assigned to you or submitted by you</p>
                         </div>
-                        <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
+                        <span className="min-w-[22px] h-[22px] px-1.5 bg-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{openTicketsCount}</span>
                       </button>
                       {myTickets.slice(0, 3).map(t => (
                         <button
                           key={t.id}
                           onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
-                          className="w-full px-4 py-2 pl-16 hover:bg-zinc-50 text-left transition-colors"
+                          className="w-full px-5 py-3 pl-[72px] hover:bg-zinc-50 text-left transition-colors"
                         >
                           <p className="text-xs font-medium text-zinc-700 truncate">{t.subject}</p>
-                          <p className="text-[10px] text-zinc-400">{t.status === 'open' ? 'Open' : 'In Progress'} · {t.priority}</p>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">{t.status === 'open' ? 'Open' : 'In Progress'} · {t.priority}</p>
                         </button>
                       ))}
                     </div>
@@ -556,21 +560,33 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   {newApplicantsCount > 0 && (
                     <button
                       onClick={() => { setActiveTab('directory'); setShowNotifications(false); }}
-                      className="w-full p-4 hover:bg-zinc-50 flex items-center gap-3 text-left transition-colors"
+                      className="w-full p-5 hover:bg-zinc-50 flex items-center gap-4 text-left transition-colors"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                        <Users size={16} className="text-emerald-600" />
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                        <Users size={18} className="text-emerald-600" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-zinc-900">{newApplicantsCount} new applicant{newApplicantsCount > 1 ? 's' : ''}</p>
-                        <p className="text-[11px] text-zinc-400">Pending review in Directory</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">Pending review in Directory</p>
                       </div>
-                      <span className="min-w-[20px] h-5 px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
+                      <span className="min-w-[22px] h-[22px] px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
                     </button>
                   )}
                 </div>
               )}
             </div>
+
+            {/* Footer */}
+            {totalNotifications > 0 && (
+              <div className="p-4 border-t border-zinc-100 shrink-0">
+                <button
+                  onClick={() => { handleDismissNotifications(); setShowNotifications(false); }}
+                  className="w-full py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 text-sm font-bold rounded-xl transition-colors"
+                >
+                  Mark all as read
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
