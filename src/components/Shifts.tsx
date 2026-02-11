@@ -129,19 +129,19 @@ const BulkUploadEventsModal: React.FC<{
               </p>
               <button
                 onClick={onClose}
-                className="mt-6 px-8 py-3 bg-zinc-900 text-white rounded-full font-bold text-sm"
+                className="mt-6 px-8 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full flex items-center justify-center gap-2 mx-auto"
               >
-                Done
+                <span className="w-2 h-2 rounded-full bg-white" /> Done
               </button>
             </div>
           ) : (
             <>
               <button
                 onClick={downloadTemplate}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full hover:opacity-80 transition-opacity"
               >
-                <Download size={18} />
-                <span className="font-bold text-sm">Download CSV Template</span>
+                <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />
+                Download CSV Template
               </button>
 
               <div
@@ -201,7 +201,7 @@ const BulkUploadEventsModal: React.FC<{
               <button
                 onClick={handleUpload}
                 disabled={!file || isUploading}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? (
                   <>
@@ -210,7 +210,7 @@ const BulkUploadEventsModal: React.FC<{
                   </>
                 ) : (
                   <>
-                    <Upload size={18} />
+                    <span className="w-2 h-2 rounded-full bg-white" />
                     Import Events
                   </>
                 )}
@@ -563,9 +563,9 @@ const EditEventModal: React.FC<{
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-bold text-sm">Cancel</button>
-          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm flex items-center gap-2 disabled:opacity-50">
-            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Save Changes
+          <button onClick={onClose} className="px-6 py-3 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</button>
+          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full flex items-center gap-2 disabled:opacity-50">
+            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} Save Changes
           </button>
         </div>
       </div>
@@ -987,9 +987,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showEventDetail.address || showEventDetail.serviceLocation)}`}
                      target="_blank"
                      rel="noopener noreferrer"
-                     className="w-full py-3 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                     className="w-full py-3 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full transition-all flex items-center justify-center gap-2 hover:opacity-80"
                    >
-                     <MapPin size={16} /> Get Directions
+                     <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Get Directions
                    </a>
                  )}
                </div>
@@ -1015,14 +1015,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-full text-sm font-medium uppercase tracking-wide shadow-lg hover:bg-zinc-800 transition-colors">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white" /> Create New Event
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-lg hover:opacity-90 transition-opacity">
+                  <span className="w-2 h-2 rounded-full bg-white" /> Create New Event
               </button>
-              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-full text-sm font-medium uppercase tracking-wide shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
-                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+                  {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
               </button>
-              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-white border border-[#e8e6e3] text-zinc-700 rounded-full text-sm font-medium uppercase tracking-wide shadow-sm hover:border-zinc-300 transition-colors">
-                  <Upload size={16} /> Bulk Import CSV
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full shadow-sm hover:opacity-80 transition-opacity">
+                  <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Bulk Import CSV
               </button>
            </div>
 
@@ -1284,9 +1284,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                             <button
                                               onClick={() => handleToggleRegistration(shift.id)}
                                               disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
-                                              className={`px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'}`}
+                                              className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                             >
-                                              {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><XCircle size={14} /> Unregister</> : <><UserPlus size={14} /> Register</>}
+                                              {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                             </button>
                                           )}
                                           {canManageEvents && (
@@ -1298,16 +1298,16 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               const isRegistered = user.assignedShiftIds?.includes(shift.id);
 
                                               return isWithinWeek ? (
-                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest bg-zinc-900 text-white flex items-center gap-2 shadow-lg active:scale-95">
-                                                   Ops Mode <ChevronRight size={14}/>
+                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full font-normal text-base bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-lg active:scale-95">
+                                                   <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                                 </button>
                                               ) : (
                                                 <button
                                                   onClick={() => handleToggleRegistration(shift.id)}
                                                   disabled={slotsLeft === 0 && !isRegistered}
-                                                  className={`px-6 py-4 rounded-full border border-black font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'}`}
+                                                  className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                                 >
-                                                  {isRegistered ? <><XCircle size={14} /> Cancel</> : <><UserPlus size={14} /> Register</>}
+                                                  {isRegistered ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                                 </button>
                                               );
                                             })()
@@ -1365,8 +1365,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                             </p>
                                           </div>
                                           {userMode === 'volunteer' && isRsvped && (
-                                            <span className="px-6 py-4 rounded-full bg-emerald-50 text-emerald-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-                                              <Check size={14} /> Registered
+                                            <span className="px-6 py-4 rounded-full font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center gap-2">
+                                              <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Registered
                                             </span>
                                           )}
                                        </div>

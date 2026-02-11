@@ -195,9 +195,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         {canCreateEvents && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-full font-medium text-sm hover:bg-[#1a2fbf] transition-colors shadow-lg shadow-[#233DFF]/20"
+            className="flex items-center gap-2 px-5 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full hover:bg-[#1a2fbf] transition-colors shadow-lg shadow-[#233DFF]/20"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white" /> New Event
+            <span className="w-2 h-2 rounded-full bg-white" /> New Event
           </button>
         )}
       </div>
@@ -403,9 +403,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                             href={ev.meetLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-5 py-3 rounded-full bg-green-600 text-white font-bold text-[10px] uppercase tracking-wide flex items-center gap-2 shadow-lg hover:bg-green-700 transition-colors"
+                            className="px-5 py-3 rounded-full bg-green-600 text-white font-normal text-base border border-green-600 flex items-center gap-2 shadow-lg hover:bg-green-700 transition-colors"
                           >
-                            <Video size={14} /> Join
+                            <span className="w-2 h-2 rounded-full bg-white" /> <Video size={14} /> Join
                           </a>
                         )}
 
@@ -413,16 +413,16 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                           <button
                             onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
                             disabled={rsvpLoading === ev.id}
-                            className={`px-6 py-3 rounded-full border border-black font-bold text-[10px] uppercase tracking-wide transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
-                              isAttending ? 'bg-white text-rose-500' : 'bg-[#233DFF] text-white hover:opacity-95'
+                            className={`px-6 py-3 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
+                              isAttending ? 'bg-white text-rose-500 border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
                             }`}
                           >
                             {rsvpLoading === ev.id ? (
                               <Loader2 size={14} className="animate-spin" />
                             ) : isAttending ? (
-                              'Cancel'
+                              <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</>
                             ) : (
-                              'RSVP'
+                              <><span className="w-2 h-2 rounded-full bg-white" /> RSVP</>
                             )}
                           </button>
                         )}
@@ -534,9 +534,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     href={showDetailEvent.meetLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-3 rounded-xl bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
+                    className="flex-1 py-3 rounded-full bg-green-600 text-white font-normal text-base border border-green-600 flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
                   >
-                    <Video size={16} /> Join Meeting
+                    <span className="w-2 h-2 rounded-full bg-white" /> <Video size={16} /> Join Meeting
                   </a>
                 )}
                 {showDetailEvent.location && (
@@ -544,9 +544,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showDetailEvent.location)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                    className="flex-1 py-3 rounded-full font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
                   >
-                    <Navigation size={16} /> Get Directions
+                    <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> <Navigation size={16} /> Get Directions
                   </a>
                 )}
               </div>
@@ -555,15 +555,15 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => { setEditingEvent(showDetailEvent); setShowDetailEvent(null); setShowCreateModal(true); }}
-                    className="flex-1 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                    className="flex-1 py-3 rounded-full font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
                   >
-                    <Edit3 size={16} /> Edit
+                    <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> <Edit3 size={16} /> Edit
                   </button>
                   <button
                     onClick={() => handleDeleteEvent(showDetailEvent.id)}
-                    className="flex-1 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                    className="flex-1 py-3 rounded-full font-normal text-base bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-300 flex items-center justify-center gap-2 transition-colors"
                   >
-                    <Trash2 size={16} /> Delete
+                    <span className="w-2 h-2 rounded-full bg-rose-600" /> <Trash2 size={16} /> Delete
                   </button>
                 </div>
               )}
@@ -770,8 +770,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           <button
             type="submit"
             disabled={saving || !form.title || !form.date || !form.startTime}
-            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-medium text-sm hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full py-4 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
+            <span className="w-2 h-2 rounded-full bg-white" />
             {saving ? <Loader2 size={16} className="animate-spin" /> : editingEvent ? <Check size={16} /> : <Plus size={16} />}
             {saving ? (editingEvent ? 'Saving...' : 'Creating...') : (editingEvent ? 'Save Changes' : 'Create Event')}
           </button>

@@ -374,7 +374,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </div>
             <nav className="flex flex-col gap-1">
               {navItems.map(item => (
-                <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-full font-semibold text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
+                <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-full font-medium text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
                   <item.icon size={18} /> {item.label}
                   {item.badge && item.badge > 0 ? (
                     <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
@@ -449,7 +449,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          <nav className="flex flex-col gap-1.5">
             {navItems.map(item => (
-                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-full font-semibold text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
+                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
                     <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                     {item.badge && item.badge > 0 ? (
                       <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
@@ -741,8 +741,8 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#233DFF] rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
-                    <div className="w-2 h-2 rounded-full bg-[#233DFF]" />
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full font-normal text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                    <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
                 </button>
@@ -870,8 +870,8 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                 })}
               </div>
 
-              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-white" />
+              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-normal text-base shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-white" />
                 Continue Training
                 <ArrowRight size={18} />
               </button>
@@ -882,11 +882,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
           </div>
@@ -924,7 +924,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         ) : (
           <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
             <p className="text-lg font-medium text-zinc-400">No upcoming missions.</p>
-            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-zinc-900 text-white rounded-full font-medium text-xs tracking-wide">Find a Mission</button>
+            <button onClick={() => onNavigate('missions')} className="mt-4 px-6 py-3 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base flex items-center gap-2 mx-auto"><span className="w-2 h-2 rounded-full bg-white" />Find a Mission</button>
           </div>
         )}
 
@@ -968,14 +968,14 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
         </div>
@@ -1002,8 +1002,8 @@ const EventPreview: React.FC<{ opportunities: Opportunity[], onNavigate: (tab: '
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Upcoming Events</h3>
-        <button onClick={() => onNavigate('missions')} className="flex items-center gap-2 px-5 py-2.5 bg-[#233DFF] text-white rounded-full font-medium text-xs tracking-wide hover:opacity-95 transition-all">
-          <span className="w-1.5 h-1.5 rounded-full bg-white" />View All Missions
+        <button onClick={() => onNavigate('missions')} className="flex items-center gap-2 px-5 py-2.5 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base hover:opacity-95 transition-all">
+          <span className="w-2 h-2 rounded-full bg-white" />View All Missions
           <ArrowRight size={14} />
         </button>
       </div>

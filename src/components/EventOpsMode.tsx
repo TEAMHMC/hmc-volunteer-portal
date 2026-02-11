@@ -135,7 +135,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
               <button 
                 key={tab.id} 
                 onClick={() => setActiveTab(tab.id as any)} 
-                className={`flex-1 min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-3 px-6 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
+                className={`flex-1 min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-3 px-6 py-4 rounded-full text-[13px] font-medium transition-all ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
               >
                 <tab.icon size={16} /> <span className="whitespace-nowrap">{tab.label}</span>
               </button>
@@ -238,7 +238,7 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
         <div className="space-y-10 animate-in fade-in">
             <header className="flex items-center justify-between">
                 <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Incident Engine</h2>
-                <button onClick={() => setIsReporting(true)} className="px-6 py-3 bg-rose-500 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-rose-600 transition-all flex items-center gap-2"><Plus size={16}/> New Incident</button>
+                <button onClick={() => setIsReporting(true)} className="px-6 py-3 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base shadow-lg hover:opacity-90 transition-all flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-white" /><Plus size={16}/> New Incident</button>
             </header>
 
             {isReporting && (
@@ -261,8 +261,8 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
                     <textarea placeholder="Event description..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full h-32 p-6 bg-white border border-rose-200 rounded-3xl outline-none font-medium resize-none" />
                     <textarea placeholder="Actions taken in field..." value={form.actionsTaken} onChange={e => setForm({...form, actionsTaken: e.target.value})} className="w-full h-24 p-6 bg-white border border-rose-200 rounded-3xl outline-none font-medium resize-none" />
                     <div className="flex gap-4">
-                        <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 border border-rose-200 rounded-full font-black text-[10px] uppercase text-rose-500">Discard</button>
-                        <button type="submit" className="flex-[2] py-4 bg-rose-500 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl">Transmit Report</button>
+                        <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full font-normal text-base flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Discard</button>
+                        <button type="submit" className="flex-[2] py-4 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base shadow-xl flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-white" /> Transmit Report</button>
                     </div>
                 </form>
             )}
@@ -383,7 +383,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
             <h3 className="font-black text-2xl uppercase italic tracking-tight">Sync Complete</h3>
             <p className="text-zinc-400 text-sm mt-2 font-medium italic">Data transmitted to Registry Cloud.</p>
             <p className="text-emerald-600 text-sm font-bold mt-4">{responseCount} surveys collected this session</p>
-            <button onClick={resetForm} className="mt-12 px-10 py-4 bg-zinc-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">Next Participant</button>
+            <button onClick={resetForm} className="mt-12 px-10 py-4 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base shadow-xl flex items-center justify-center gap-2 mx-auto"><span className="w-2 h-2 rounded-full bg-white" /> Next Participant</button>
         </div>
     );
 
@@ -475,9 +475,9 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                 <button
                     type="submit"
                     disabled={isSubmitting || !consentGiven}
-                    className="w-full py-6 bg-[#233DFF] text-white font-black uppercase tracking-[0.3em] text-[11px] rounded-full shadow-[0_20px_50px_rgba(35,61,255,0.3)] hover:scale-[1.02] transition-all active:scale-95 mt-10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                    className="w-full py-6 bg-[#233dff] text-white border border-[#233dff] font-normal text-base rounded-full shadow-[0_20px_50px_rgba(35,61,255,0.3)] hover:scale-[1.02] transition-all active:scale-95 mt-10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
-                    {isSubmitting ? <><Loader2 className="animate-spin" size={18} /> Syncing...</> : 'Sync Entry'}
+                    {isSubmitting ? <><Loader2 className="animate-spin" size={18} /> Syncing...</> : <><span className="w-2 h-2 rounded-full bg-white" /> Sync Entry</>}
                 </button>
             </form>
         </div>
@@ -515,8 +515,8 @@ const SignoffView: React.FC<{shift: Shift, opsRun: MissionOpsRun | null, onSigno
                 </div>
             </div>
 
-            <button onClick={handleConfirm} disabled={signing} className="w-full py-7 bg-zinc-900 text-white rounded-full font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4">
-                {signing ? <Loader2 className="animate-spin" /> : <>Commit Record & End Session <Send size={18}/></>}
+            <button onClick={handleConfirm} disabled={signing} className="w-full py-7 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base shadow-2xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4">
+                {signing ? <Loader2 className="animate-spin" /> : <><span className="w-2 h-2 rounded-full bg-white" /> Commit Record & End Session <Send size={18}/></>}
             </button>
         </div>
     );

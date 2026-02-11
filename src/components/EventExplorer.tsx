@@ -351,18 +351,18 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                     <button
                       onClick={() => handleSignUp(selectedEvent.id)}
                       disabled={isSigningUp}
-                      className={`w-full py-4 rounded-full font-medium text-sm transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 ${
+                      className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 ${
                         user.rsvpedEventIds?.includes(selectedEvent.id)
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-emerald-100'
-                          : 'bg-[#233DFF] text-white hover:opacity-95'
+                          ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]'
+                          : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
                       }`}
                     >
                       {isSigningUp ? (
                         <><Loader2 size={18} className="animate-spin" /> Processing...</>
                       ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                        <><CheckCircle2 size={18} /> Signed Up — Click to Cancel</>
+                        <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Signed up — click to cancel</>
                       ) : (
-                        <><div className="w-1.5 h-1.5 rounded-full bg-white" /> Sign Up</>
+                        <><span className="w-2 h-2 rounded-full bg-white" /> Sign up</>
                       )}
                     </button>
                   ) : (
