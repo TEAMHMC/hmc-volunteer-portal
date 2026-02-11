@@ -172,6 +172,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const tier2CoreCompletedCount = TIER_2_CORE_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const tier2CoreProgress = Math.round((tier2CoreCompletedCount / TIER_2_CORE_MODULES.length) * 100);
   const tier2FieldCompletedCount = TIER_2_FIELD_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+  const tier2CompletedCount = TIER_2_MODULES.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
   const governanceTier2Complete = hasCompletedAllModules(completedModuleIds, TIER_2_IDS);
 
   const overallRequired = isGovernanceRole ? [...TIER_1_MODULES] : [...TIER_1_MODULES, ...TIER_2_CORE_MODULES];

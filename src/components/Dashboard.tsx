@@ -223,6 +223,22 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     localStorage.setItem('hmcNotifDismissedAt', now);
   };
 
+  // Complete daily quests when user navigates to corresponding tabs
+  useEffect(() => {
+    const questMap: Record<string, string> = {
+      missions: 'check_mission',
+      academy: 'review_training',
+      briefing: 'send_message',
+      calendar: 'check_calendar',
+      directory: 'review_applicants',
+      governance: 'check_governance',
+    };
+    const questId = questMap[activeTab];
+    if (questId) {
+      completeQuest(questId);
+    }
+  }, [activeTab]);
+
   type NavItem = { id: string; label: string; icon: any; badge?: number };
   type SidebarGroup = { label: string; items: NavItem[] };
 
@@ -320,9 +336,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
 
   // Redirect to overview if current tab is no longer accessible (e.g., role changed)
+  // 'profile' is always valid (accessed via avatar button, not sidebar nav)
   useEffect(() => {
     const validTabIds = navItems.map(n => n.id);
-    if (activeTab !== 'overview' && !validTabIds.includes(activeTab)) {
+    if (activeTab !== 'overview' && activeTab !== 'profile' && !validTabIds.includes(activeTab)) {
       setActiveTab('overview');
     }
   }, [navItems, activeTab]);
@@ -707,7 +724,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   );
                 })()}
             </header>
-            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} />}
+            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} newApplicantsCount={newApplicantsCount} />}
             <ComingUp user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} />
            </>
          )}
@@ -816,7 +833,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     </div>
 )};
 
-const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: 'missions' | 'profile' | 'academy') => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean, isGovernanceRole?: boolean }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible, isGovernanceRole = false }) => {
+const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: string) => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean, isGovernanceRole?: boolean, newApplicantsCount?: number }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible, isGovernanceRole = false, newApplicantsCount = 0 }) => {
   const getOpp = (oppId: string) => opportunities.find(o => o.id === oppId);
 
   // Get upcoming shifts the user is assigned to
@@ -952,11 +969,14 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   if (!user.completedHIPAATraining && hasCompletedCoreTraining) {
     actionItems.push({ icon: 'fa-solid fa-shield-halved', title: 'Complete HIPAA training', description: 'Required before signing up for missions', color: 'rose', onClick: () => onNavigate('academy') });
   }
+  if (!user.availability?.days?.length) {
+    actionItems.push({ icon: 'fa-solid fa-calendar-check', title: 'Set your availability', description: 'Help us match you to the right shifts', color: 'blue', onClick: () => onNavigate('profile') });
+  }
   if (hasCompletedCoreTraining && !hasUpcomingMission) {
     actionItems.push({ icon: 'fa-solid fa-compass', title: 'Sign up for a mission', description: 'Browse available community events', color: 'blue', onClick: () => onNavigate('missions') });
   }
-  if (user.isAdmin) {
-    actionItems.push({ icon: 'fa-solid fa-user-check', title: 'Review applicants', description: 'New volunteers waiting for review', color: 'emerald', onClick: () => onNavigate('profile') });
+  if (user.isAdmin && newApplicantsCount > 0) {
+    actionItems.push({ icon: 'fa-solid fa-user-check', title: 'Review applicants', description: `${newApplicantsCount} new volunteer${newApplicantsCount > 1 ? 's' : ''} waiting for review`, color: 'emerald', onClick: () => onNavigate('directory') });
   }
 
   const colorMap: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
