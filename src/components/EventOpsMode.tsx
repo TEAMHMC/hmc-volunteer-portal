@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField } from '../types';
-import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP } from '../constants';
+import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
@@ -9,6 +9,18 @@ import {
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
+
+// Training clearance: user has completed all required training (coreVolunteerStatus) or is admin/lead
+const hasOperationalClearance = (user: Volunteer): boolean => {
+  if (user.isAdmin) return true;
+  const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+  if (LEAD_ROLES.includes(user.role)) return true;
+  // coreVolunteerStatus means Tier 1 + Tier 2 complete and approved
+  if (user.coreVolunteerStatus === true) return true;
+  // Fallback: check survey_general as a proxy for Tier 2 completion
+  if (hasCompletedModule(user.completedTrainingIds || [], 'survey_general')) return true;
+  return false;
+};
 
 interface EventOpsModeProps {
   shift: Shift;
@@ -170,9 +182,9 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; onNavig
             <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner flex flex-col justify-between">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Training Clearances</p>
                 <div className="space-y-4">
-                    <GateCheck label="Survey Kiosk" isMet={!!user.trainingFlags?.surveySOPComplete} onNavigate={onNavigateToAcademy} />
-                    <GateCheck label="Intake & Referrals" isMet={!!user.trainingFlags?.clientPortalOrientationComplete} onNavigate={onNavigateToAcademy} />
-                    <GateCheck label="Health Screenings" isMet={!!user.trainingFlags?.screeningCompetencyVerified} onNavigate={onNavigateToAcademy} />
+                    <GateCheck label="Survey Kiosk" isMet={hasOperationalClearance(user)} onNavigate={onNavigateToAcademy} />
+                    <GateCheck label="Intake & Referrals" isMet={hasOperationalClearance(user)} onNavigate={onNavigateToAcademy} />
+                    <GateCheck label="Health Screenings" isMet={hasOperationalClearance(user)} onNavigate={onNavigateToAcademy} />
                 </div>
             </div>
         </div>
@@ -334,7 +346,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     const [consentGiven, setConsentGiven] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
 
-    if (!user.trainingFlags?.surveySOPComplete && !user.isAdmin) return <AccessGate requiredTraining="Survey SOP" />;
+    if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

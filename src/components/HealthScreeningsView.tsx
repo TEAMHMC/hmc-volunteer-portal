@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ScreeningRecord, AuditLog } from '../types';
 import { apiService } from '../services/apiService';
+import { hasCompletedModule } from '../constants';
 import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, Plus, AlertTriangle } from 'lucide-react';
 
 interface HealthScreeningsViewProps {
@@ -51,14 +52,18 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
         setView('screening');
     };
 
-    // Medical roles need clinical onboarding completed, others need screening competency
+    // Medical roles need clinical onboarding completed, others need core volunteer training
     const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
-    if (isMedicalRole) {
-        if (!user.clinicalOnboarding?.completed && !user.isAdmin) {
-            return <AccessGate requiredTraining="Clinical Onboarding (Training Academy)" />;
+    const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+    const isLeadOrAdmin = user.isAdmin || LEAD_ROLES.includes(user.role);
+    if (!isLeadOrAdmin) {
+        if (isMedicalRole) {
+            if (!user.clinicalOnboarding?.completed) {
+                return <AccessGate requiredTraining="Clinical Onboarding (Training Academy)" />;
+            }
+        } else if (!user.coreVolunteerStatus && !hasCompletedModule(user.completedTrainingIds || [], 'survey_general')) {
+            return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
         }
-    } else if (!user.trainingFlags?.screeningCompetencyVerified && !user.isAdmin) {
-        return <AccessGate requiredTraining="Screening Competency" />;
     }
 
     return (

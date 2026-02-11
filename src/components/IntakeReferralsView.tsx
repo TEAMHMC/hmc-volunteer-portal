@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ReferralRecord, AuditLog, ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
+import { hasCompletedModule } from '../constants';
 import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot } from 'lucide-react';
 
 interface IntakeReferralsViewProps {
@@ -61,14 +62,18 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         setView('referral');
     };
 
-    // Medical roles need clinical onboarding completed, others need client portal orientation
+    // Medical roles need clinical onboarding completed, others need core volunteer training
     const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
-    if (isMedicalRole) {
-        if (!user.clinicalOnboarding?.completed && !user.isAdmin) {
-            return <AccessGate requiredTraining="Clinical Onboarding (Training Academy)" />;
+    const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+    const isLeadOrAdmin = user.isAdmin || LEAD_ROLES.includes(user.role);
+    if (!isLeadOrAdmin) {
+        if (isMedicalRole) {
+            if (!user.clinicalOnboarding?.completed) {
+                return <AccessGate requiredTraining="Clinical Onboarding (Training Academy)" />;
+            }
+        } else if (!user.coreVolunteerStatus && !hasCompletedModule(user.completedTrainingIds || [], 'survey_general')) {
+            return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
         }
-    } else if (!user.trainingFlags?.clientPortalOrientationComplete && !user.isAdmin) {
-        return <AccessGate requiredTraining="Client Portal Orientation" />;
     }
 
     return (
