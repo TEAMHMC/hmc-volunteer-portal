@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -31,11 +31,12 @@ interface EventOpsModeProps {
   onNavigateToAcademy?: () => void;
   allVolunteers?: Volunteer[];
   eventShifts?: Shift[];
+  setOpportunities?: React.Dispatch<React.SetStateAction<Opportunity[]>>;
 }
 
 type OpsTab = 'overview' | 'checklists' | 'survey' | 'intake' | 'screenings' | 'incidents' | 'signoff' | 'audit';
 
-const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts }) => {
+const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts, setOpportunities }) => {
   const [activeTab, setActiveTab] = useState<OpsTab>('overview');
   const [opsRun, setOpsRun] = useState<MissionOpsRun | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,22 +44,48 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   const checklistTemplate = useMemo(() => {
-    // Match template by event category using the type map
+    // If lead has saved a custom override for this event, use it
+    if (opportunity.checklistOverride) {
+      return {
+        id: `custom-${opportunity.id}`,
+        ...opportunity.checklistOverride,
+      } as ChecklistTemplate;
+    }
+
+    // Exact category match
     const templateId = EVENT_TYPE_TEMPLATE_MAP[opportunity.category];
     if (templateId) {
       const match = CHECKLIST_TEMPLATES.find(t => t.id === templateId);
       if (match) return match;
     }
-    // Fallback: partial match on category keywords
-    for (const [key, id] of Object.entries(EVENT_TYPE_TEMPLATE_MAP)) {
-      if (opportunity.category.toLowerCase().includes(key.toLowerCase())) {
+
+    // Check opportunity title + category for keywords (catches "Unstoppable Community Run" etc.)
+    const titleLower = opportunity.title.toLowerCase();
+    const categoryLower = opportunity.category.toLowerCase();
+    const combined = `${categoryLower} ${titleLower}`;
+
+    // Check specific terms first (run/walk/5k before generic "fair" or "wellness")
+    const keywordPriority: [string[], string][] = [
+      [['run', 'walk', '5k'], 'community-run-walk-ops'],
+      [['street medicine'], 'street-medicine-ops'],
+      [['survey'], 'survey-station-ops'],
+      [['tabling'], 'tabling-outreach-ops'],
+      [['outreach'], 'tabling-outreach-ops'],
+      [['workshop', 'education'], 'wellness-workshop-ops'],
+      [['fair'], 'health-fair-ops'],
+      [['wellness'], 'health-fair-ops'],
+    ];
+
+    for (const [keywords, id] of keywordPriority) {
+      if (keywords.some(kw => combined.includes(kw))) {
         const match = CHECKLIST_TEMPLATES.find(t => t.id === id);
         if (match) return match;
       }
     }
-    // Final fallback: wellness workshop (generic)
+
+    // Final fallback
     return CHECKLIST_TEMPLATES.find(t => t.id === 'wellness-workshop-ops') || CHECKLIST_TEMPLATES[0];
-  }, [opportunity.category]);
+  }, [opportunity]);
     
   const event = useMemo(() => EVENTS.find(e => `opp-${e.id}` === opportunity.id), [opportunity.id]);
   const surveyKit = useMemo(() => SURVEY_KITS.find(s => s.id === event?.surveyKitId) || SURVEY_KITS[0], [event]);
@@ -112,6 +139,33 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     setAuditLogs(prev => [newLog, ...prev]);
   };
 
+  const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+  const isLead = user.isAdmin || LEAD_ROLES.includes(user.role);
+
+  const handleSaveChecklist = async (template: ChecklistTemplate) => {
+    try {
+      const override = { name: template.name, stages: template.stages };
+      await apiService.put(`/api/opportunities/${opportunity.id}`, { checklistOverride: override });
+      // Update local opportunity state so it reflects immediately
+      if (setOpportunities) {
+        setOpportunities(prev => prev.map(o => o.id === opportunity.id ? { ...o, checklistOverride: override } : o));
+      }
+    } catch (error) {
+      console.error('Failed to save checklist override:', error);
+    }
+  };
+
+  const handleResetChecklist = async () => {
+    try {
+      await apiService.put(`/api/opportunities/${opportunity.id}`, { checklistOverride: null });
+      if (setOpportunities) {
+        setOpportunities(prev => prev.map(o => o.id === opportunity.id ? { ...o, checklistOverride: undefined } : o));
+      }
+    } catch (error) {
+      console.error('Failed to reset checklist override:', error);
+    }
+  };
+
   const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
     { id: 'overview', label: 'Brief', icon: BookUser },
     { id: 'checklists', label: 'Tasks', icon: ListChecks },
@@ -158,7 +212,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-[48px] md:rounded-[64px] p-8 md:p-16 shadow-sm min-h-[600px] relative">
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
-          {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} />}
+          {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
@@ -455,34 +509,179 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
     );
 };
 
-const ChecklistsView: React.FC<{template: ChecklistTemplate, completedItems: string[], onCheckItem: (id: string) => void}> = ({ template, completedItems, onCheckItem }) => (
-  <div className="space-y-12 animate-in fade-in">
-    <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">{template.name}</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {Object.keys(template.stages).map((key) => {
-            const stage = template.stages[key];
+const ChecklistsView: React.FC<{
+  template: ChecklistTemplate;
+  completedItems: string[];
+  onCheckItem: (id: string) => void;
+  isLead?: boolean;
+  onSaveTemplate?: (template: ChecklistTemplate) => Promise<void>;
+  onResetTemplate?: () => Promise<void>;
+  hasOverride?: boolean;
+}> = ({ template, completedItems, onCheckItem, isLead, onSaveTemplate, onResetTemplate, hasOverride }) => {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editName, setEditName] = useState(template.name);
+  const [editStages, setEditStages] = useState<ChecklistTemplate['stages']>(JSON.parse(JSON.stringify(template.stages)));
+
+  // Sync edit state when template changes (e.g. after save or reset)
+  useEffect(() => {
+    setEditName(template.name);
+    setEditStages(JSON.parse(JSON.stringify(template.stages)));
+  }, [template]);
+
+  const handleSave = async () => {
+    if (!onSaveTemplate) return;
+    setSaving(true);
+    try {
+      await onSaveTemplate({ ...template, name: editName, stages: editStages });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!onResetTemplate) return;
+    setSaving(true);
+    try {
+      await onResetTemplate();
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(template.name);
+    setEditStages(JSON.parse(JSON.stringify(template.stages)));
+    setEditing(false);
+  };
+
+  const updateStageTitle = (stageKey: string, newTitle: string) => {
+    setEditStages(prev => ({ ...prev, [stageKey]: { ...prev[stageKey], title: newTitle } }));
+  };
+
+  const updateItemText = (stageKey: string, itemIdx: number, newText: string) => {
+    setEditStages(prev => {
+      const stage = { ...prev[stageKey] };
+      const items = [...stage.items];
+      items[itemIdx] = { ...items[itemIdx], text: newText };
+      return { ...prev, [stageKey]: { ...stage, items } };
+    });
+  };
+
+  const addItem = (stageKey: string) => {
+    setEditStages(prev => {
+      const stage = { ...prev[stageKey] };
+      const items = [...stage.items, { id: `${stageKey}-custom-${Date.now()}`, text: '' }];
+      return { ...prev, [stageKey]: { ...stage, items } };
+    });
+  };
+
+  const removeItem = (stageKey: string, itemIdx: number) => {
+    setEditStages(prev => {
+      const stage = { ...prev[stageKey] };
+      const items = stage.items.filter((_, i) => i !== itemIdx);
+      return { ...prev, [stageKey]: { ...stage, items } };
+    });
+  };
+
+  if (editing) {
+    return (
+      <div className="space-y-12 animate-in fade-in">
+        <div className="flex items-center justify-between gap-4">
+          <input
+            type="text"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+            className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none bg-transparent border-b-2 border-[#233DFF] outline-none w-full"
+          />
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={handleCancelEdit} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors">Cancel</button>
+            {hasOverride && onResetTemplate && (
+              <button onClick={handleReset} disabled={saving} className="px-4 py-2 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                <RotateCcw size={12} /> Reset
+              </button>
+            )}
+            <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-[#233DFF] text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-[#1a2fbf] transition-colors flex items-center gap-1.5 disabled:opacity-50">
+              {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Save
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {Object.keys(editStages).map((key) => {
+            const stage = editStages[key];
             return (
-                <div key={key} className="space-y-6">
-                    <h3 className="text-[10px] font-black text-[#233DFF] uppercase tracking-[0.2em] pb-3 border-b-2 border-[#233DFF]/10">{stage.title}</h3>
-                    <div className="space-y-3">
-                    {stage.items.map(item => {
-                        const isCompleted = completedItems.includes(item.id);
-                        return (
-                        <label key={item.id} onClick={() => onCheckItem(item.id)} className={`p-6 rounded-[32px] border-2 flex items-start gap-4 cursor-pointer transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-100 opacity-50' : 'bg-white border-zinc-100 hover:border-zinc-300 shadow-sm'}`}>
-                            <div className="shrink-0 mt-1">
-                                {isCompleted ? <CheckSquare size={20} className="text-[#233DFF]" /> : <Square size={20} className="text-zinc-200" />}
-                            </div>
-                            <span className={`text-xs font-black uppercase tracking-tight leading-tight ${isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-600'}`}>{item.text}</span>
-                        </label>
-                        )
-                    })}
+              <div key={key} className="space-y-6">
+                <input
+                  type="text"
+                  value={stage.title}
+                  onChange={e => updateStageTitle(key, e.target.value)}
+                  className="text-[10px] font-black text-[#233DFF] uppercase tracking-[0.2em] pb-3 border-b-2 border-[#233DFF]/10 bg-transparent outline-none w-full focus:border-[#233DFF]/40"
+                />
+                <div className="space-y-3">
+                  {stage.items.map((item, idx) => (
+                    <div key={item.id} className="p-4 rounded-[24px] border-2 border-dashed border-zinc-200 flex items-center gap-3 bg-zinc-50/50">
+                      <input
+                        type="text"
+                        value={item.text}
+                        onChange={e => updateItemText(key, idx, e.target.value)}
+                        placeholder="Checklist item..."
+                        className="flex-1 text-xs font-bold text-zinc-700 bg-transparent outline-none"
+                      />
+                      <button onClick={() => removeItem(key, idx)} className="text-zinc-300 hover:text-rose-400 transition-colors shrink-0">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
+                  ))}
+                  <button onClick={() => addItem(key)} className="w-full p-4 rounded-[24px] border-2 border-dashed border-zinc-100 text-zinc-300 hover:text-[#233DFF] hover:border-[#233DFF]/20 transition-colors flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                    <Plus size={12} /> Add Item
+                  </button>
                 </div>
-            )
-        })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-12 animate-in fade-in">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">{template.name}</h2>
+        {isLead && onSaveTemplate && (
+          <button onClick={() => setEditing(true)} className="px-4 py-2 bg-zinc-50 text-zinc-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-zinc-100 hover:bg-zinc-100 hover:text-zinc-600 transition-colors flex items-center gap-1.5">
+            <Pencil size={12} /> Edit
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {Object.keys(template.stages).map((key) => {
+              const stage = template.stages[key];
+              return (
+                  <div key={key} className="space-y-6">
+                      <h3 className="text-[10px] font-black text-[#233DFF] uppercase tracking-[0.2em] pb-3 border-b-2 border-[#233DFF]/10">{stage.title}</h3>
+                      <div className="space-y-3">
+                      {stage.items.map(item => {
+                          const isCompleted = completedItems.includes(item.id);
+                          return (
+                          <label key={item.id} onClick={() => onCheckItem(item.id)} className={`p-6 rounded-[32px] border-2 flex items-start gap-4 cursor-pointer transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-100 opacity-50' : 'bg-white border-zinc-100 hover:border-zinc-300 shadow-sm'}`}>
+                              <div className="shrink-0 mt-1">
+                                  {isCompleted ? <CheckSquare size={20} className="text-[#233DFF]" /> : <Square size={20} className="text-zinc-200" />}
+                              </div>
+                              <span className={`text-xs font-black uppercase tracking-tight leading-tight ${isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-600'}`}>{item.text}</span>
+                          </label>
+                          )
+                      })}
+                      </div>
+                  </div>
+              )
+          })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventId?: string, eventTitle?: string}> = ({ surveyKit, user, eventId, eventTitle }) => {
     const [submission, setSubmission] = useState<{ [key: string]: any }>({});

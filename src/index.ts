@@ -3688,7 +3688,8 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             'approvalStatus', 'approvedBy', 'approvedAt', 'isPublic', 'isPublicFacing',
             'urgency', 'description', 'title', 'date', 'serviceLocation', 'category',
             'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime', 'time', 'address',
-            'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64', 'locationCoordinates'
+            'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64', 'locationCoordinates',
+            'checklistOverride'
         ];
         const sanitizedUpdates: any = {};
         for (const field of allowedFields) {

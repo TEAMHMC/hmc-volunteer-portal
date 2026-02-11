@@ -84,6 +84,10 @@ export interface Opportunity {
   serviceOfferingIds?: string[];
   equipment?: { equipmentId: string; name: string; quantity: number }[];
   checklist?: { text: string; done: boolean }[];
+  checklistOverride?: {
+    name: string;
+    stages: { [key: string]: { title: string; items: { id: string; text: string }[] } };
+  };
   requiresClinicalLead?: boolean;
   flyerUrl?: string;
   flyerBase64?: string;
