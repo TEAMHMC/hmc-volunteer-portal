@@ -1015,13 +1015,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-2xl text-sm font-medium uppercase tracking-wide shadow-lg hover:bg-zinc-800 transition-colors">
-                  <Plus size={16} /> Create New Event
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-zinc-900 text-white rounded-full text-sm font-medium uppercase tracking-wide shadow-lg hover:bg-zinc-800 transition-colors">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" /> Create New Event
               </button>
-              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-2xl text-sm font-medium uppercase tracking-wide shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 bg-[#233DFF] text-white rounded-full text-sm font-medium uppercase tracking-wide shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
                   {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
               </button>
-              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-white border-2 border-zinc-200 text-zinc-700 rounded-2xl text-sm font-medium uppercase tracking-wide shadow-sm hover:border-zinc-300 transition-colors">
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 bg-white border border-[#e8e6e3] text-zinc-700 rounded-full text-sm font-medium uppercase tracking-wide shadow-sm hover:border-zinc-300 transition-colors">
                   <Upload size={16} /> Bulk Import CSV
               </button>
            </div>

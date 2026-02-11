@@ -78,6 +78,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [isGeneratingSupplies, setIsGeneratingSupplies] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
+    const [manualSupplyItem, setManualSupplyItem] = useState('');
     const [flyerPreview, setFlyerPreview] = useState<string | null>(null);
     const [flyerFileName, setFlyerFileName] = useState<string>('');
     const flyerInputRef = useRef<HTMLInputElement>(null);
@@ -544,6 +545,42 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                 </button>
                             </div>
                         )}
+                        <div className="flex items-center gap-2 mt-4">
+                            <input
+                                type="text"
+                                value={manualSupplyItem}
+                                onChange={e => setManualSupplyItem(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' && manualSupplyItem.trim()) {
+                                        e.preventDefault();
+                                        const newItem = manualSupplyItem.trim();
+                                        setEventData(prev => ({
+                                            ...prev,
+                                            supplyList: prev.supplyList ? `${prev.supplyList}\n- ${newItem}` : `- ${newItem}`
+                                        }));
+                                        setManualSupplyItem('');
+                                    }
+                                }}
+                                placeholder="Add supply item manually..."
+                                className="flex-1 p-3 bg-white border border-zinc-200 rounded-lg text-sm"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!manualSupplyItem.trim()) return;
+                                    const newItem = manualSupplyItem.trim();
+                                    setEventData(prev => ({
+                                        ...prev,
+                                        supplyList: prev.supplyList ? `${prev.supplyList}\n- ${newItem}` : `- ${newItem}`
+                                    }));
+                                    setManualSupplyItem('');
+                                }}
+                                disabled={!manualSupplyItem.trim()}
+                                className="px-4 py-3 bg-zinc-900 text-white rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+                            >
+                                <Plus size={14} /> Add
+                            </button>
+                        </div>
                     </div>
                 </section>
 

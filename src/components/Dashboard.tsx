@@ -27,7 +27,7 @@ import ResourceDashboard from './ResourceDashboard';
 import CoordinatorView from './CoordinatorView';
 import SystemTour from './SystemTour';
 import DocumentationHub from './DocumentationHub';
-import EventExplorer from './EventExplorer';
+// EventExplorer is accessed via My Missions tab (Shifts component)
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
 import BoardGovernance from './BoardGovernance';
@@ -172,8 +172,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   // Legacy alias
   const canAccessOperationalTools = isOperationalEligible;
 
-  // My Missions: requires coreVolunteerStatus AND HIPAA training (or admin)
-  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && displayUser.completedHIPAATraining === true);
+  const COORDINATOR_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+  const isCoordinatorOrLead = COORDINATOR_LEAD_ROLES.includes(displayUser.role);
+
+  // My Missions: requires coreVolunteerStatus AND HIPAA training (or admin, or coordinator/lead roles)
+  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && displayUser.completedHIPAATraining === true) || isCoordinatorOrLead;
 
   // Notification counts
   const [dismissedNotifTs, setDismissedNotifTs] = useState<string>(
@@ -188,8 +191,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }).length;
   }, [messages, displayUser.id, dismissedNotifTs]);
 
-  const COORDINATOR_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-  const isCoordinatorOrLead = COORDINATOR_LEAD_ROLES.includes(displayUser.role);
   const myTickets = useMemo(() => {
     return supportTickets.filter(t => {
       if (t.status === 'closed') return false;
@@ -670,13 +671,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </header>
             {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} />}
             <div className="pt-8 border-t border-zinc-100">
-               <EventExplorer user={displayUser} opportunities={opportunities} setOpportunities={setOpportunities} onUpdate={handleUpdateUser} canSignUp={canAccessMissions} shifts={shifts} setShifts={setShifts} />
+               <EventPreview opportunities={opportunities} onNavigate={setActiveTab} />
             </div>
            </>
          )}
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
-         {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
+         {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
          {activeTab === 'event-management' && canAccessOperationalTools && (displayUser.isAdmin || COORDINATOR_LEAD_ROLES.includes(displayUser.role)) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
@@ -881,11 +882,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
           </div>
@@ -967,14 +968,14 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('missions')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Find Missions</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-medium text-zinc-800">Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-200 shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+                <span className="font-medium text-zinc-800 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
         </div>
@@ -983,5 +984,52 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   );
 };
 
+
+const EventPreview: React.FC<{ opportunities: Opportunity[], onNavigate: (tab: 'missions') => void }> = ({ opportunities, onNavigate }) => {
+  const upcomingEvents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return opportunities
+      .filter(o => {
+        const d = new Date(o.date + 'T00:00:00');
+        return d >= today && (o.approvalStatus === 'approved' || !o.approvalStatus);
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 3);
+  }, [opportunities]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Upcoming Events</h3>
+        <button onClick={() => onNavigate('missions')} className="flex items-center gap-2 px-5 py-2.5 bg-[#233DFF] text-white rounded-full font-medium text-xs tracking-wide hover:opacity-95 transition-all">
+          <span className="w-1.5 h-1.5 rounded-full bg-white" />View All Missions
+          <ArrowRight size={14} />
+        </button>
+      </div>
+      {upcomingEvents.length === 0 ? (
+        <div className="py-12 text-center bg-zinc-50 rounded-2xl border border-zinc-100">
+          <Calendar size={28} className="mx-auto text-zinc-300 mb-3" />
+          <p className="text-zinc-400 font-medium text-sm">No upcoming events.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {upcomingEvents.map(event => (
+            <div key={event.id} className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm hover:shadow-md transition-all">
+              <div className="mb-3">
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-medium text-white bg-[#233DFF]">{event.category || 'Event'}</span>
+              </div>
+              <h4 className="text-base font-medium text-zinc-900 mb-2 leading-snug">{event.title}</h4>
+              <div className="space-y-1.5 text-xs text-zinc-500">
+                <p className="flex items-center gap-1.5"><MapPin size={13} className="text-zinc-400 shrink-0" /> {event.serviceLocation}</p>
+                <p className="flex items-center gap-1.5"><Calendar size={13} className="text-zinc-400 shrink-0" /> {new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default Dashboard;

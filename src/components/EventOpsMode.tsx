@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -16,11 +16,12 @@ interface EventOpsModeProps {
   user: Volunteer;
   onBack: () => void;
   onUpdateUser: (u: Volunteer) => void;
+  onNavigateToAcademy?: () => void;
 }
 
 type OpsTab = 'overview' | 'checklists' | 'survey' | 'intake' | 'screenings' | 'incidents' | 'signoff' | 'audit';
 
-const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser }) => {
+const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy }) => {
   const [activeTab, setActiveTab] = useState<OpsTab>('overview');
   const [opsRun, setOpsRun] = useState<MissionOpsRun | null>(null);
   const [loading, setLoading] = useState(true);
@@ -142,7 +143,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         </div>
         
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-[48px] md:rounded-[64px] p-8 md:p-16 shadow-sm min-h-[600px] relative">
-          {activeTab === 'overview' && <OverviewTab user={user} />}
+          {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} onNavigateToAcademy={onNavigateToAcademy} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
@@ -156,32 +157,60 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   );
 };
 
-const OverviewTab: React.FC<{ user: Volunteer }> = ({ user }) => (
+const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; onNavigateToAcademy?: () => void }> = ({ user, opportunity, onNavigateToAcademy }) => {
+    const fullAddress = opportunity.serviceLocation || '';
+    return (
     <div className="space-y-8 animate-in fade-in">
-        <h2 className="text-3xl font-black text-zinc-900 tracking-tight uppercase italic leading-none">Operational Brief</h2>
+        <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Operational Brief</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Duty Assignment</p>
-                <p className="text-2xl font-black text-zinc-900 leading-tight italic uppercase">{user.role}</p>
+                <p className="text-2xl font-medium text-zinc-900 leading-tight">{user.role}</p>
             </div>
             <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner flex flex-col justify-between">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Training Clearances</p>
                 <div className="space-y-4">
-                    <GateCheck label="Survey Kiosk" isMet={!!user.trainingFlags?.surveySOPComplete} />
-                    <GateCheck label="Intake & Referrals" isMet={!!user.trainingFlags?.clientPortalOrientationComplete} />
-                    <GateCheck label="Health Screenings" isMet={!!user.trainingFlags?.screeningCompetencyVerified} />
+                    <GateCheck label="Survey Kiosk" isMet={!!user.trainingFlags?.surveySOPComplete} onNavigate={onNavigateToAcademy} />
+                    <GateCheck label="Intake & Referrals" isMet={!!user.trainingFlags?.clientPortalOrientationComplete} onNavigate={onNavigateToAcademy} />
+                    <GateCheck label="Health Screenings" isMet={!!user.trainingFlags?.screeningCompetencyVerified} onNavigate={onNavigateToAcademy} />
                 </div>
             </div>
         </div>
+        {fullAddress && (
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-full font-medium text-sm transition-all"
+          >
+            <Navigation size={16} /> Get Directions
+          </a>
+        )}
     </div>
-);
+    );
+};
 
-const GateCheck: React.FC<{ label: string; isMet: boolean }> = ({ label, isMet }) => (
-    <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${isMet ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 opacity-60 text-rose-800'}`}>
-        {isMet ? <CheckCircle size={18} className="text-emerald-500" /> : <Lock size={18} className="text-rose-500" />}
-        <span className="font-black uppercase tracking-widest text-[9px]">{label}</span>
-    </div>
-);
+const GateCheck: React.FC<{ label: string; isMet: boolean; onNavigate?: () => void }> = ({ label, isMet, onNavigate }) => {
+    if (!isMet && onNavigate) {
+        return (
+            <button
+                onClick={onNavigate}
+                title="Complete this training in the Training Academy"
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border transition-all bg-rose-50 border-rose-100 text-rose-800 hover:bg-rose-100 hover:border-rose-200 cursor-pointer"
+            >
+                <Lock size={18} className="text-rose-500" />
+                <span className="font-black uppercase tracking-widest text-[9px] flex-1 text-left">{label}</span>
+                <span className="text-[8px] font-bold text-rose-500 uppercase tracking-wide">Complete →</span>
+            </button>
+        );
+    }
+    return (
+        <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${isMet ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 opacity-60 text-rose-800'}`}>
+            {isMet ? <CheckCircle size={18} className="text-emerald-500" /> : <Lock size={18} className="text-rose-500" />}
+            <span className="font-black uppercase tracking-widest text-[9px]">{label}</span>
+        </div>
+    );
+};
 
 const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport: (r: IncidentReport) => void, incidents: IncidentReport[] }> = ({ user, shift, onReport, incidents }) => {
     const [isReporting, setIsReporting] = useState(false);

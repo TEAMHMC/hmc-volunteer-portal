@@ -80,7 +80,17 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
     try {
       if (!soft) setLoading(true);
       const data = await apiService.get('/api/org-calendar');
-      setEvents(Array.isArray(data) ? data : []);
+      const fetched = Array.isArray(data) ? data : [];
+      if (soft) {
+        // Merge: keep any optimistically-added events that the server hasn't indexed yet
+        setEvents(prev => {
+          const fetchedIds = new Set(fetched.map((e: any) => e.id));
+          const optimistic = prev.filter(e => !fetchedIds.has(e.id) && (e as any)._optimistic);
+          return [...fetched, ...optimistic].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        });
+      } else {
+        setEvents(fetched);
+      }
     } catch {
       // Only clear events on initial load failure, not on re-fetch
       if (!soft) setEvents([]);
@@ -185,9 +195,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         {canCreateEvents && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm hover:bg-[#1a2fbf] transition-colors shadow-lg shadow-[#233DFF]/20"
+            className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-full font-medium text-sm hover:bg-[#1a2fbf] transition-colors shadow-lg shadow-[#233DFF]/20"
           >
-            <Plus size={18} /> New Event
+            <span className="w-1.5 h-1.5 rounded-full bg-white" /> New Event
           </button>
         )}
       </div>
@@ -459,11 +469,11 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           onClose={() => { setShowCreateModal(false); setEditingEvent(null); }}
           onCreated={(newEvent) => {
             if (newEvent && newEvent.id) {
-              // Optimistic: add immediately so event appears in UI
-              setEvents(prev => [...prev, newEvent].sort((a, b) => (a.date || '').localeCompare(b.date || '')));
+              // Optimistic: add immediately so event appears in UI (marked for merge protection)
+              setEvents(prev => [...prev, { ...newEvent, _optimistic: true }].sort((a, b) => (a.date || '').localeCompare(b.date || '')));
             }
-            // Soft re-fetch in background (won't clear events on error)
-            fetchEvents(true);
+            // Soft re-fetch in background — merges with optimistic events to prevent disappearance
+            setTimeout(() => fetchEvents(true), 1000);
           }}
           editingEvent={editingEvent}
         />
@@ -760,7 +770,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           <button
             type="submit"
             disabled={saving || !form.title || !form.date || !form.startTime}
-            className="w-full py-4 bg-[#233DFF] text-white rounded-xl font-bold text-sm hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-medium text-sm hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : editingEvent ? <Check size={16} /> : <Plus size={16} />}
             {saving ? (editingEvent ? 'Saving...' : 'Creating...') : (editingEvent ? 'Save Changes' : 'Create Event')}

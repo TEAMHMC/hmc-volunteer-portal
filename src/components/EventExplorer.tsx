@@ -344,16 +344,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   </div>
                 </div>
 
-                {selectedEvent.address && (
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedEvent.address + ', ' + selectedEvent.city)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium text-sm transition-all flex items-center justify-center gap-2"
-                  >
-                    <Navigation size={14} /> Get Directions
-                  </a>
-                )}
+                {/* Get Directions is available in EventOps mode during missions */}
 
                 <div className="space-y-3">
                   {canSignUp ? (

@@ -956,6 +956,24 @@ const EmailTemplates = {
     text: `Review needed: RSVP from ${data.rsvpName} (${data.rsvpEmail}) for ${data.eventTitle} may match volunteer ${data.volunteerName} (${data.volunteerEmail}). Name-only match — please verify.`
   }),
 
+  // Event Created Notification (sent to outreach/content team leads)
+  event_created_notification: (data: EmailTemplateData) => ({
+    subject: `New Event Created: ${data.eventTitle}`,
+    html: `${emailHeader('New Event Created')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>A new community event has been created and may need outreach or content support:</p>
+      <div style="background: #eef2ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <p style="margin: 0 0 8px 0;"><strong>Event:</strong> ${data.eventTitle}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Location:</strong> ${data.eventLocation}</p>
+        <p style="margin: 0;"><strong>Created by:</strong> ${data.creatorName || 'Admin'}</p>
+      </div>
+      <p>Please coordinate any necessary social media posts, newsletters, or outreach materials for this event.</p>
+      ${actionButton('View Event Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, a new event "${data.eventTitle}" on ${data.eventDate} at ${data.eventLocation} has been created. Please coordinate outreach/content support.`
+  }),
+
   // Support Ticket Notification
   support_ticket_notification: (data: EmailTemplateData) => ({
     subject: `New Support Ticket: ${data.subject}`,
@@ -3623,6 +3641,31 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
         }
 
         console.log(`[EVENTS] Created opportunity ${opportunityId} with ${createdShifts.length} shift(s)`);
+
+        // Notify outreach & content teams about the new event
+        try {
+            const NOTIFY_ROLES = ['Outreach & Engagement Lead', 'Newsletter & Content Writer', 'Social Media Coordinator', 'Events Lead', 'Events Coordinator'];
+            const teamSnap = await db.collection('volunteers')
+                .where('role', 'in', NOTIFY_ROLES.slice(0, 10))
+                .get();
+            const creatorName = userProfile?.name || userProfile?.firstName || 'Admin';
+            for (const doc of teamSnap.docs) {
+                const vol = doc.data();
+                if (vol.email && doc.id !== (req as any).user?.uid) {
+                    EmailService.send('event_created_notification', {
+                        toEmail: vol.email,
+                        volunteerName: vol.name || vol.firstName || 'Team Member',
+                        eventTitle: opportunity.title || 'Untitled Event',
+                        eventDate: opportunity.date || 'TBD',
+                        eventLocation: opportunity.serviceLocation || 'TBD',
+                        creatorName,
+                    }).catch(err => console.warn(`[EVENTS] Failed to notify ${vol.email}:`, err));
+                }
+            }
+        } catch (notifyErr) {
+            console.warn('[EVENTS] Failed to send team notifications:', notifyErr);
+        }
+
         res.json({ id: opportunityId, ...opportunity, shifts: createdShifts });
     } catch (error) {
         console.error('[EVENTS] Failed to create opportunity:', error);
