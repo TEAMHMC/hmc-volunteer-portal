@@ -73,6 +73,60 @@ interface EventExplorerProps {
   setShifts?: React.Dispatch<React.SetStateAction<Shift[]>>;
 }
 
+// Generate ICS calendar file content
+const generateICS = (event: ClinicEvent): string => {
+  const datePart = (event.date || '').split('T')[0].replace(/-/g, '');
+  // Parse time like "10:00 AM" or "10:00 AM - 2:00 PM"
+  const parseTime = (timeStr: string): { start: string; end: string } => {
+    const parts = timeStr.split(/\s*[-–]\s*/);
+    const toHHMM = (t: string): string => {
+      const match = t.trim().match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
+      if (!match) return '0900';
+      let h = parseInt(match[1]);
+      const m = match[2] || '00';
+      const ampm = (match[3] || '').toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return `${h.toString().padStart(2, '0')}${m}`;
+    };
+    const startTime = toHHMM(parts[0]);
+    const endTime = parts[1] ? toHHMM(parts[1]) : `${(parseInt(startTime.slice(0, 2)) + 2).toString().padStart(2, '0')}${startTime.slice(2)}`;
+    return { start: startTime, end: endTime };
+  };
+  const times = event.time && event.time !== 'TBD' ? parseTime(event.time) : { start: '0900', end: '1700' };
+  const dtStart = `${datePart}T${times.start}00`;
+  const dtEnd = `${datePart}T${times.end}00`;
+  const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//HMC Volunteer Portal//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${event.title}`,
+    `LOCATION:${event.address || ''}`,
+    `DESCRIPTION:Health Matters Clinic volunteer event`,
+    `DTSTAMP:${now}`,
+    `UID:${event.id}@hmcportal`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+};
+
+const downloadICS = (event: ClinicEvent) => {
+  const ics = generateICS(event);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${event.title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_')}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setOpportunities, onUpdate, canSignUp = true, shifts = [], setShifts }) => {
   const [selectedEvent, setSelectedEvent] = useState<ClinicEvent | null>(null);
   const [search, setSearch] = useState('');
@@ -81,6 +135,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   const [toastMessage, setToastMessage] = useState('');
   const [toastIsError, setToastIsError] = useState(false);
   const [deepLinkProcessed, setDeepLinkProcessed] = useState(false);
+  const [justRsvped, setJustRsvped] = useState(false);
 
   // Helper to check if event is in the past
   const isPastEvent = (dateStr: string) => {
@@ -217,6 +272,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
         }
 
         setToastMessage('You are registered! Check your email for confirmation.');
+        setJustRsvped(true);
       }
 
       setToastIsError(false);
@@ -308,7 +364,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {/* Event detail modal */}
       {selectedEvent && (
         <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]" onClick={() => setSelectedEvent(null)} />
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]" onClick={() => { setSelectedEvent(null); setJustRsvped(false); }} />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl flex flex-col max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
               <div className="p-6 space-y-5">
@@ -319,7 +375,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                   >
                     {selectedEvent.program}
                   </span>
-                  <button onClick={() => setSelectedEvent(null)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                  <button onClick={() => { setSelectedEvent(null); setJustRsvped(false); }} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
                     <X size={18} />
                   </button>
                 </div>
@@ -347,24 +403,54 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                 {/* Get Directions is available in EventOps mode during missions */}
 
                 <div className="space-y-3">
-                  {canSignUp ? (
-                    <button
-                      onClick={() => handleSignUp(selectedEvent.id)}
-                      disabled={isSigningUp}
-                      className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 ${
-                        user.rsvpedEventIds?.includes(selectedEvent.id)
-                          ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]'
-                          : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
-                      }`}
-                    >
-                      {isSigningUp ? (
-                        <><Loader2 size={18} className="animate-spin" /> Processing...</>
-                      ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                        <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Signed up — click to cancel</>
-                      ) : (
-                        <><span className="w-2 h-2 rounded-full bg-white" /> Sign up</>
+                  {justRsvped && user.rsvpedEventIds?.includes(selectedEvent.id) ? (
+                    <>
+                      <div className="w-full py-5 px-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+                        <CheckCircle2 size={28} className="mx-auto text-emerald-500 mb-2" />
+                        <p className="font-medium text-emerald-800 text-sm">You're signed up!</p>
+                        <p className="text-emerald-600 text-xs mt-1">A confirmation email has been sent to you.</p>
+                      </div>
+                      <button
+                        onClick={() => downloadICS(selectedEvent)}
+                        className="w-full py-4 rounded-full font-normal text-base transition-all shadow-lg flex items-center justify-center gap-2 bg-[#233dff] text-white border border-[#233dff] hover:opacity-95"
+                      >
+                        <Calendar size={16} /> Save to Calendar (.ics)
+                      </button>
+                      <button
+                        onClick={() => setJustRsvped(false)}
+                        className="w-full py-3 rounded-full font-normal text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                    </>
+                  ) : canSignUp ? (
+                    <>
+                      <button
+                        onClick={() => handleSignUp(selectedEvent.id)}
+                        disabled={isSigningUp}
+                        className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 ${
+                          user.rsvpedEventIds?.includes(selectedEvent.id)
+                            ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]'
+                            : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
+                        }`}
+                      >
+                        {isSigningUp ? (
+                          <><Loader2 size={18} className="animate-spin" /> Processing...</>
+                        ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
+                          <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Signed up — click to cancel</>
+                        ) : (
+                          <><span className="w-2 h-2 rounded-full bg-white" /> Sign up</>
+                        )}
+                      </button>
+                      {user.rsvpedEventIds?.includes(selectedEvent.id) && (
+                        <button
+                          onClick={() => downloadICS(selectedEvent)}
+                          className="w-full py-3 rounded-full font-normal text-sm text-[#233dff] hover:bg-[#233dff]/5 border border-[#233dff]/20 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Calendar size={14} /> Save to Calendar
+                        </button>
                       )}
-                    </button>
+                    </>
                   ) : (
                     <div className="w-full py-4 px-4 rounded-2xl bg-amber-50 border border-amber-200 text-center">
                       <p className="font-medium text-amber-800 text-sm">Complete required training to sign up</p>
@@ -394,10 +480,17 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                     <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white flex-shrink-0">
                       <CheckCircle2 size={16} />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{event.title}</p>
                       <p className="text-[10px] font-normal text-indigo-300">{event.dateDisplay}</p>
                     </div>
+                    <button
+                      onClick={() => downloadICS(event)}
+                      className="p-1.5 rounded-lg text-indigo-300 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
+                      title="Save to Calendar"
+                    >
+                      <Calendar size={14} />
+                    </button>
                   </div>
                 );
               })}
