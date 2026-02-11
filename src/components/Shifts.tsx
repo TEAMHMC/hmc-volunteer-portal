@@ -640,7 +640,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     return `${parseFloat(diffHours.toFixed(1))} hour${diffHours !== 1 ? 's' : ''}`;
   };
 
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [registeringShiftIds, setRegisteringShiftIds] = useState<Set<string>>(new Set());
 
   // Check training eligibility for registration
   const getRegistrationStatus = (opp: Opportunity | undefined) => {
@@ -683,8 +683,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   };
 
   const handleToggleRegistration = async (shiftId: string) => {
-    if (isRegistering) return; // Prevent double-click
-    setIsRegistering(true);
+    if (registeringShiftIds.has(shiftId)) return; // Prevent double-click on same shift
+    setRegisteringShiftIds(prev => new Set([...prev, shiftId]));
     const isRegistered = user.assignedShiftIds?.includes(shiftId);
     const shift = shifts.find(s => s.id === shiftId);
     const opp = shift ? getOpp(shift.opportunityId) : null;
@@ -695,7 +695,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       if (!status.canRegister) {
         setToastMsg(status.message);
         setToastError(true);
-        setIsRegistering(false);
+        setRegisteringShiftIds(prev => { const next = new Set(prev); next.delete(shiftId); return next; });
         setShowToast(true);
         setTimeout(() => setShowToast(false), 4000);
         return;
@@ -765,16 +765,16 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       setToastMsg(error?.message || 'Failed to update registration. Please try again.');
       setToastError(true);
     } finally {
-      setIsRegistering(false);
+      setRegisteringShiftIds(prev => { const next = new Set(prev); next.delete(shiftId); return next; });
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     }
   };
   
   const handleSaveEvent = async (newEventData: Omit<Opportunity, 'id'>) => {
-      // API call creates the opportunity and associated shifts
+      // API call creates the opportunity and associated shifts (server auto-approves for admin/coordinator)
       const result = await apiService.post('/api/opportunities', { opportunity: newEventData });
-      setOpportunities(prev => [...prev, { id: result.id, ...newEventData }]);
+      setOpportunities(prev => [...prev, { id: result.id, ...newEventData, approvalStatus: result.approvalStatus || newEventData.approvalStatus }]);
 
       // Also add the created shifts to state so volunteers can see them immediately
       if (result.shifts && result.shifts.length > 0) {
@@ -928,7 +928,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const shiftsToDisplay = activeTab === 'available'
     ? shifts.filter(s => {
         const opp = getOpp(s.opportunityId);
-        return !user.assignedShiftIds?.includes(s.id) && opp && !isPastEvent(opp.date);
+        return !user.assignedShiftIds?.includes(s.id) && opp && !isPastEvent(opp.date)
+          && (opp.approvalStatus === 'approved' || !opp.approvalStatus);
       })
     : shifts.filter(s => user.assignedShiftIds?.includes(s.id));
 
@@ -1415,10 +1416,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       return (
                                         <button
                                           onClick={() => handleToggleRegistration(shift.id)}
-                                          disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
+                                          disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
                                           className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                         >
-                                          {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
+                                          {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                         </button>
                                       );
                                     })()}
@@ -1619,10 +1620,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                             return (
                                               <button
                                                 onClick={() => handleToggleRegistration(shift.id)}
-                                                disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
+                                                disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
                                                 className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                               >
-                                                {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
+                                                {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                               </button>
                                             );
                                           })()}

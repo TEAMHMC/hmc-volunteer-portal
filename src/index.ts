@@ -3595,6 +3595,12 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
             return res.status(403).json({ error: 'Only admins and event management roles can create events' });
         }
         const { opportunity } = req.body;
+        // Auto-approve events created by admins and event management roles
+        if (userProfile?.isAdmin || EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
+            opportunity.approvalStatus = 'approved';
+            opportunity.approvedBy = userProfile?.id || 'system';
+            opportunity.approvedAt = new Date().toISOString();
+        }
         if (!opportunity.locationCoordinates) {
             opportunity.locationCoordinates = { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 };
         }
@@ -3860,12 +3866,34 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
                 staffingQuotas = [{ role: 'Core Volunteer', count: slotsTotal, filled: 0 }];
             }
 
+            // Parse time fields from CSV
+            const eventTime = row.time || row.Time || row['Event Time'] || '';
+            const csvStartTime = row.startTime || row['Start Time'] || '';
+            const csvEndTime = row.endTime || row['End Time'] || '';
+            let startTimePart = '09:00:00';
+            let endTimePart = '14:00:00';
+            if (csvStartTime) {
+                const parsed = parseEventTime(csvStartTime);
+                startTimePart = parsed.startTime;
+            } else if (eventTime) {
+                const parsed = parseEventTime(eventTime);
+                startTimePart = parsed.startTime;
+                if (parsed.hasEndTime) endTimePart = parsed.endTime;
+            }
+            if (csvEndTime) {
+                const parsed = parseEventTime(csvEndTime);
+                endTimePart = parsed.startTime; // parseEventTime returns the time in startTime
+            }
+
             const opportunity = {
                 title: eventTitle,
                 description,
                 category,
                 serviceLocation: eventLocation,
                 date: eventDate,
+                time: eventTime || `${startTimePart} - ${endTimePart}`,
+                startTime: startTimePart,
+                endTime: endTimePart,
                 staffingQuotas,
                 slotsTotal: staffingQuotas.reduce((sum, q) => sum + q.count, 0),
                 slotsFilled: 0,
@@ -3886,8 +3914,8 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
             importedEvents.push({ id: opportunityId, ...opportunity });
 
             // Create shifts for each staffing quota
-            const defaultStartTime = `${eventDate}T09:00:00`;
-            const defaultEndTime = `${eventDate}T14:00:00`;
+            const defaultStartTime = `${eventDate}T${startTimePart}`;
+            const defaultEndTime = `${eventDate}T${endTimePart}`;
 
             for (const quota of staffingQuotas) {
                 const shift = {

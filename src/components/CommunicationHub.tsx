@@ -358,8 +358,9 @@ const BriefingView: React.FC<{
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
+    const tempId = `msg-${Date.now()}`;
     const msg: Message = {
-      id: `msg-${Date.now()}`,
+      id: tempId,
       senderId: user.id,
       sender: user.name,
       recipientId: activeChannel,
@@ -372,9 +373,15 @@ const BriefingView: React.FC<{
     setNewMessage('');
 
     try {
-      await apiService.post('/api/messages', msg);
+      const saved = await apiService.post('/api/messages', msg);
+      // Replace temp ID with server-generated Firestore ID
+      if (saved?.id) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: saved.id } : m));
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
+      // Rollback optimistic update on failure
+      setMessages(prev => prev.filter(m => m.id !== tempId));
     }
   };
 
