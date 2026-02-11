@@ -12,6 +12,7 @@ import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcem
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
 import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS } from '../constants';
+import { computeLevel } from '../utils/xpLevels';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
 import CommunicationHub from './CommunicationHub';
@@ -577,97 +578,76 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'overview' && (
            <>
             <header className="space-y-5">
-                {/* Personalized Greeting Section */}
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
-                  <div className="space-y-3">
+                {/* Greeting + Stat Chips */}
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                  <div className="space-y-2">
                     <p className="text-sm font-medium text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-5xl md:text-6xl font-medium text-zinc-900 tracking-normal leading-[1.1]">
+                    <h1 className="text-4xl md:text-5xl font-medium text-zinc-900 tracking-normal leading-[1.1]">
                       {getGreeting(displayUser.name)}.
                     </h1>
-                    <p className="text-lg text-zinc-500 font-medium max-w-lg">
+                    <p className="text-base text-zinc-500 font-medium max-w-lg">
                       {isOnboarding
-                        ? "Complete your orientation to unlock missions. You can explore the rest of the portal right away."
-                        : "Ready to continue making a difference? Here's your dashboard."}
+                        ? "Complete your orientation to unlock missions."
+                        : "Ready to continue making a difference?"}
                     </p>
                   </div>
 
-                  {/* Stats Card - Apple-style glass effect */}
-                  <div className="flex flex-wrap bg-white/80 backdrop-blur-xl border border-zinc-200/50 p-1.5 rounded-2xl shadow-lg shadow-zinc-200/50">
-                    <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Hours</p>
-                        <p className="text-3xl md:text-4xl font-medium text-zinc-900 tracking-normal">{displayUser.hoursContributed}</p>
+                  {/* Compact Stat Chips */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                      <i className="fa-solid fa-clock text-zinc-400 text-xs" />
+                      <span className="text-sm font-bold text-zinc-900">{displayUser.hoursContributed}</span>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase">hrs</span>
                     </div>
-                    <div className="w-px bg-zinc-100 my-4" />
-                    <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Impact XP</p>
-                        <p className="text-3xl md:text-4xl font-medium text-[#233DFF] tracking-normal">{gamification?.currentXP ?? displayUser.points}</p>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                      <i className="fa-solid fa-bolt text-[#233DFF] text-xs" />
+                      <span className="text-sm font-bold text-[#233DFF]">{(computeLevel(displayUser.points).currentXP).toLocaleString()}</span>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase">xp</span>
                     </div>
-                    {gamification && (
-                      <>
-                        <div className="w-px bg-zinc-100 my-4" />
-                        <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Level</p>
-                            <p className="text-3xl md:text-4xl font-medium text-emerald-600 tracking-normal">{gamification.level}</p>
-                        </div>
-                        {gamification.streakDays > 0 && (
-                          <>
-                            <div className="w-px bg-zinc-100 my-4" />
-                            <div className="px-6 md:px-8 py-5 md:py-6 text-center">
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Streak</p>
-                                <p className="text-3xl md:text-4xl font-medium text-amber-500 tracking-normal">{gamification.streakDays}d</p>
-                            </div>
-                          </>
-                        )}
-                      </>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                      <i className="fa-solid fa-shield text-emerald-500 text-xs" />
+                      <span className="text-sm font-bold text-emerald-600">Lv {computeLevel(displayUser.points).level}</span>
+                    </div>
+                    {gamification && gamification.streakDays > 0 && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                        <i className="fa-solid fa-fire text-amber-500 text-xs" />
+                        <span className="text-sm font-bold text-amber-500">{gamification.streakDays}d</span>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {/* Status & Admin Controls Row */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className={`px-5 py-2.5 rounded-full border text-[10px] font-black uppercase tracking-[0.15em] flex items-center gap-2.5 ${isOnboarding ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-                      <div className={`w-2 h-2 rounded-full animate-pulse ${isOnboarding ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                      {isOnboarding ? 'Onboarding' : 'Active Volunteer'}
-                  </div>
-
-                  <div className="px-5 py-2.5 rounded-full bg-zinc-100 border border-zinc-200 text-[10px] font-black uppercase tracking-[0.15em] text-zinc-600">
-                    {displayUser.role}
-                  </div>
-
-                  {user.isAdmin && !viewingAsRole && (
-                    <div className="relative ml-auto">
-                      <select
-                        onChange={(e) => setViewingAsRole(e.target.value)}
-                        className="bg-zinc-900 text-white border-0 rounded-full font-black text-[10px] uppercase tracking-widest pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-lg"
-                      >
-                        <option value="">View as Role...</option>
-                        {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
-                      </select>
-                      <Eye size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-                    </div>
-                  )}
                 </div>
 
                 {/* Level Progress Bar */}
-                {gamification && gamification.level < 10 && (
-                  <div className="bg-white/80 backdrop-blur-xl border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-zinc-500">Level {gamification.level}</span>
-                      <span className="text-xs font-bold text-[#233DFF]">{gamification.xpToNext.toLocaleString()} XP to Level {gamification.level + 1}</span>
+                {(() => {
+                  const lvl = computeLevel(displayUser.points);
+                  if (lvl.isMaxLevel) {
+                    return (
+                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-4 text-center">
+                        <p className="text-sm font-medium text-amber-700">
+                          <i className="fa-solid fa-crown text-amber-500 mr-2" />
+                          Max Level Reached — {lvl.title}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-zinc-600">
+                          <i className="fa-solid fa-star text-[#233DFF] mr-1.5" />
+                          Level {lvl.level} · {lvl.title}
+                        </span>
+                        <span className="text-xs font-bold text-[#233DFF]">{lvl.xpToNext.toLocaleString()} XP to Level {lvl.level + 1}</span>
+                      </div>
+                      <div className="w-full h-3 bg-zinc-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700" style={{ width: `${lvl.progress}%` }} />
+                      </div>
+                      {lvl.progress >= 75 && (
+                        <p className="text-[10px] font-bold text-emerald-600 mt-2">Almost there! Keep going!</p>
+                      )}
                     </div>
-                    <div className="w-full h-3 bg-zinc-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700" style={{ width: `${gamification.levelProgress}%` }} />
-                    </div>
-                    {gamification.levelProgress >= 75 && (
-                      <p className="text-[10px] font-bold text-emerald-600 mt-2">Almost there! Keep going!</p>
-                    )}
-                  </div>
-                )}
-                {gamification && gamification.level >= 10 && (
-                  <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-5 shadow-sm text-center">
-                    <p className="text-sm font-medium text-amber-700">Max Level Reached — Volunteer Legend</p>
-                  </div>
-                )}
+                  );
+                })()}
             </header>
             {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} />}
             <div className="pt-8 border-t border-zinc-100">
