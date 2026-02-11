@@ -223,84 +223,99 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     localStorage.setItem('hmcNotifDismissedAt', now);
   };
 
-  const navItems = useMemo(() => {
-    let items: { id: string; label: string; icon: any; badge?: number }[] = [
-      { id: 'overview', label: 'Overview', icon: Activity },
-      { id: 'academy', label: 'Training Academy', icon: GraduationCap },
-    ];
+  type NavItem = { id: string; label: string; icon: any; badge?: number };
+  type SidebarGroup = { label: string; items: NavItem[] };
 
-    // My Missions: requires coreVolunteerStatus (Tier 1 + Tier 2 Core complete) or admin
-    if (canAccessMissions) {
-      // Governance roles see My Missions only if they opted in by completing Tier 2
-      const governanceCompletedTier2 = isGovernanceRole && hasCompletedAllModules(completedTrainingIds, TIER_2_IDS);
-      if (!isGovernanceRole || governanceCompletedTier2) {
-        items.splice(1, 0, { id: 'missions', label: 'My Missions', icon: Calendar });
-      }
-    }
-
-    // Always show these tabs
-    items.push({ id: 'impact', label: 'Impact Hub', icon: DollarSign });
-    items.push({ id: 'briefing', label: 'Communication Hub', icon: MessageSquare, badge: unreadDMs + openTicketsCount });
-    items.push({ id: 'docs', label: 'Doc Hub', icon: BookOpen });
-    items.push({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
-
-    if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
-      items.splice(2, 0, { id: 'my-team', label: 'My Team', icon: Users });
-    }
-
-    // Role-specific clinical/operational views
+  const sidebarGroups = useMemo(() => {
     const medicalRoles = ['Licensed Medical Professional', 'Medical Admin'];
     const clientFacingRoles = ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'];
-
-    // Health Screenings - for medical professionals
-    if (canAccessOperationalTools && medicalRoles.includes(displayUser.role)) {
-      items.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
-    }
-
-    // Client Intake & Referrals - for client-facing roles
-    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
-      items.push({ id: 'intake', label: 'Client Portal', icon: Send });
-    }
-
-    // Live Chat Support - for client-facing roles to help website visitors
-    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
-      items.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
-    }
-
-    // Event management for Events Leads/Coordinators and Outreach Leads
-    if (canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role)) {
-      items.push({ id: 'event-management', label: 'Event Management', icon: Calendar });
-    }
-
-    // Add governance tab for Board Members and CAB
     const BOARD_ROLES = ['Board Member', 'Community Advisory Board'];
-    if (BOARD_ROLES.includes(displayUser.role)) {
-        items.push({ id: 'governance', label: 'Governance', icon: Briefcase });
-    }
 
-    // Add meetings tab for coordinators and leads
-    if (canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
-        items.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
-    }
+    const groups: SidebarGroup[] = [];
 
-    // Coordinators and leads get access to Forms for internal surveys
+    // MAIN
+    const mainItems: NavItem[] = [{ id: 'overview', label: 'Overview', icon: Activity }];
+    if (canAccessMissions) {
+      const governanceCompletedTier2 = isGovernanceRole && hasCompletedAllModules(completedTrainingIds, TIER_2_IDS);
+      if (!isGovernanceRole || governanceCompletedTier2) {
+        mainItems.push({ id: 'missions', label: 'My Missions', icon: Calendar });
+      }
+    }
+    mainItems.push({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
+    groups.push({ label: 'MAIN', items: mainItems });
+
+    // TOOLS
+    const toolItems: NavItem[] = [
+      { id: 'academy', label: 'Training Academy', icon: GraduationCap },
+      { id: 'docs', label: 'Doc Hub', icon: BookOpen },
+    ];
     if (!displayUser.isAdmin && canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
-        items.push({ id: 'forms', label: 'Forms', icon: FileText });
+      toolItems.push({ id: 'forms', label: 'Forms', icon: FileText });
+    }
+    groups.push({ label: 'TOOLS', items: toolItems });
+
+    // COMMUNICATE
+    const commItems: NavItem[] = [
+      { id: 'briefing', label: 'Communication Hub', icon: MessageSquare, badge: unreadDMs + openTicketsCount },
+    ];
+    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
+      commItems.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
+    }
+    groups.push({ label: 'COMMUNICATE', items: commItems });
+
+    // COMMUNITY
+    groups.push({ label: 'COMMUNITY', items: [{ id: 'impact', label: 'Impact Hub', icon: DollarSign }] });
+
+    // ROLE-SPECIFIC
+    const roleItems: NavItem[] = [];
+    if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
+      roleItems.push({ id: 'my-team', label: 'My Team', icon: Users });
+    }
+    if (canAccessOperationalTools && medicalRoles.includes(displayUser.role)) {
+      roleItems.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
+    }
+    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
+      roleItems.push({ id: 'intake', label: 'Client Portal', icon: Send });
+    }
+    if (canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role)) {
+      roleItems.push({ id: 'event-management', label: 'Event Management', icon: Calendar });
+    }
+    if (BOARD_ROLES.includes(displayUser.role)) {
+      roleItems.push({ id: 'governance', label: 'Governance', icon: Briefcase });
+    }
+    if (canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
+      roleItems.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
+    }
+    if (!displayUser.isAdmin && ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(displayUser.role)) {
+      roleItems.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
+    }
+    if (roleItems.length > 0) {
+      groups.push({ label: 'ROLE-SPECIFIC', items: roleItems });
     }
 
-    if(displayUser.isAdmin) {
-        items.push({ id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount });
-        items.push({ id: 'referrals', label: 'Referrals', icon: Send });
-        items.push({ id: 'resources', label: 'Resources', icon: Database });
-        items.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
-        items.push({ id: 'workflows', label: 'Workflows', icon: Zap });
-        items.push({ id: 'forms', label: 'Forms', icon: FileText });
-    } else if (['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(displayUser.role)) {
-        items.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
+    // ADMIN
+    if (displayUser.isAdmin) {
+      groups.push({
+        label: 'ADMIN',
+        items: [
+          { id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount },
+          { id: 'referrals', label: 'Referrals', icon: Send },
+          { id: 'resources', label: 'Resources', icon: Database },
+          { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+          { id: 'workflows', label: 'Workflows', icon: Zap },
+          { id: 'forms', label: 'Forms', icon: FileText },
+        ],
+      });
     }
-    return items;
+
+    return groups;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, canAccessMissions, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
+
+  // Flat navItems for tab validation and mobile bottom bar
+  const navItems = useMemo(() => {
+    return sidebarGroups.flatMap(g => g.items);
+  }, [sidebarGroups]);
 
   const isOnboarding = displayUser.status === 'onboarding' || displayUser.status === 'applicant';
 
@@ -374,16 +389,23 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <X size={20} className="text-zinc-500" />
               </button>
             </div>
-            <nav className="flex flex-col gap-1">
-              {navItems.map(item => (
-                <button key={item.id} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3.5 rounded-full font-medium text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
-                  <item.icon size={18} /> {item.label}
-                  {item.badge && item.badge > 0 ? (
-                    <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  ) : null}
-                </button>
+            <nav className="flex flex-col gap-4">
+              {sidebarGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-4 mb-1.5">{group.label}</p>
+                  <div className="flex flex-col gap-0.5">
+                    {group.items.map(item => (
+                      <button key={item.id + '-' + group.label} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3 rounded-full font-medium text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
+                        <item.icon size={18} /> {item.label}
+                        {item.badge && item.badge > 0 ? (
+                          <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </nav>
             <div className="mt-auto pt-4 border-t border-zinc-100 space-y-3">
@@ -449,26 +471,33 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </div>
          </div>
 
-         <nav className="flex flex-col gap-1.5">
-            {navItems.map(item => (
-                <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-4 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
-                    <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
-                    {item.badge && item.badge > 0 ? (
-                      <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                        activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'
-                      }`}>
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </span>
-                    ) : null}
-                </button>
+         <nav className="flex flex-col gap-5">
+            {sidebarGroups.map(group => (
+              <div key={group.label}>
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-5 mb-2">{group.label}</p>
+                <div className="flex flex-col gap-1">
+                  {group.items.map(item => (
+                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
+                        <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
+                        {item.badge && item.badge > 0 ? (
+                          <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                            activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'
+                          }`}>
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </span>
+                        ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
          </nav>
 
          <div className="mt-auto space-y-4 pt-8 border-t border-zinc-100">
             <button onClick={() => setActiveTab('profile')} className="flex w-full items-center gap-4 p-3 hover:bg-white rounded-2xl transition-all hover:shadow-sm group">
                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-lg shadow-lg shrink-0 overflow-hidden">
-                 {displayUser.avatarUrl || displayUser.profilePhoto ? (
-                   <img src={displayUser.avatarUrl || displayUser.profilePhoto} className="w-full h-full object-cover" alt="" />
+                 {displayUser.avatarUrl || (displayUser as any).profilePhoto ? (
+                   <img src={displayUser.avatarUrl || (displayUser as any).profilePhoto} className="w-full h-full object-cover" alt="" />
                  ) : (
                    displayUser.name?.charAt(0)?.toUpperCase()
                  )}
@@ -479,6 +508,18 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                </div>
                <ChevronRight size={16} className="text-zinc-300 group-hover:text-[#233DFF] transition-colors" />
             </button>
+            {user.isAdmin && !viewingAsRole && (
+              <div className="relative">
+                <select
+                  onChange={(e) => setViewingAsRole(e.target.value)}
+                  className="w-full bg-zinc-900 text-white border-0 rounded-full font-black text-[10px] uppercase tracking-widest pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-lg"
+                >
+                  <option value="">View as Role...</option>
+                  {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
+                </select>
+                <Eye size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+            )}
             <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-zinc-400 font-medium text-sm hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                <LogOut size={16} /> Sign Out
             </button>
