@@ -3,12 +3,40 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
 import { Clock, Check, Calendar, MapPin, ChevronRight, UserPlus, XCircle, Mail, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw, Package, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
-import { EVENT_CATEGORIES, SERVICE_OFFERINGS } from '../constants';
+import { EVENT_CATEGORIES, SERVICE_OFFERINGS, TIER_1_IDS, TIER_2_CORE_IDS, PROGRAM_TRAINING_REQUIREMENTS, hasCompletedAllModules, ALL_TRAINING_MODULES } from '../constants';
 import { APP_CONFIG } from '../config';
 import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
 import { apiService } from '../services/apiService';
+import { AlertTriangle } from 'lucide-react';
+
+// Map event category to program training requirement key
+const getCategoryProgram = (category: string): string | null => {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('street medicine') || cat.includes('smo')) return 'street_medicine';
+  if (cat.includes('clinic') || cat.includes('clinical')) return 'clinical';
+  if (cat.includes('wellness') || cat.includes('unstoppable') || cat.includes('workshop')) return 'community_wellness';
+  if (cat.includes('outreach') || cat.includes('health fair') || cat.includes('pop-up') || cat.includes('tabling')) return 'community_health_outreach';
+  return null;
+};
+
+// Get missing program training names for display
+const getMissingProgramTraining = (completedIds: string[], program: string): string[] => {
+  const requiredIds = PROGRAM_TRAINING_REQUIREMENTS[program] || [];
+  const missingIds = requiredIds.filter(id => !completedIds.includes(id));
+  return missingIds.map(id => {
+    const mod = ALL_TRAINING_MODULES.find(m => m.id === id);
+    return mod ? mod.title : id;
+  });
+};
+
+const PROGRAM_LABELS: Record<string, string> = {
+  street_medicine: 'Street Medicine',
+  clinical: 'Clinical Services',
+  community_wellness: 'Community Wellness',
+  community_health_outreach: 'Community Health Outreach',
+};
 
 // Normalize event category for consistent display (shared logic with EventExplorer)
 const normalizeCategory = (cat: string): string => {
@@ -614,12 +642,65 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // Check training eligibility for registration
+  const getRegistrationStatus = (opp: Opportunity | undefined) => {
+    const completedIds = user.completedTrainingIds || [];
+    const tier1Done = hasCompletedAllModules(completedIds, TIER_1_IDS);
+    const tier2Done = hasCompletedAllModules(completedIds, TIER_2_CORE_IDS);
+    const basicTrainingDone = tier1Done && tier2Done;
+
+    if (!basicTrainingDone) {
+      return {
+        canRegister: false,
+        isPending: false,
+        message: !tier1Done
+          ? 'Complete Orientation training in Training Academy to register for missions.'
+          : 'Complete Baseline Training in Training Academy to register for missions.',
+      };
+    }
+
+    // Basic training done — check program-specific clearance
+    if (opp) {
+      const program = getCategoryProgram(opp.category);
+      if (program) {
+        const requiredIds = PROGRAM_TRAINING_REQUIREMENTS[program] || [];
+        const hasClearance = hasCompletedAllModules(completedIds, requiredIds);
+        if (!hasClearance) {
+          const missing = getMissingProgramTraining(completedIds, program);
+          const label = PROGRAM_LABELS[program] || program;
+          return {
+            canRegister: true,
+            isPending: true,
+            message: `Pending — complete ${label} training to confirm registration`,
+            missingTraining: missing,
+            program: label,
+          };
+        }
+      }
+    }
+
+    return { canRegister: true, isPending: false, message: '' };
+  };
+
   const handleToggleRegistration = async (shiftId: string) => {
     if (isRegistering) return; // Prevent double-click
     setIsRegistering(true);
     const isRegistered = user.assignedShiftIds?.includes(shiftId);
     const shift = shifts.find(s => s.id === shiftId);
     const opp = shift ? getOpp(shift.opportunityId) : null;
+
+    // Check training eligibility before allowing registration
+    if (!isRegistered && opp) {
+      const status = getRegistrationStatus(opp);
+      if (!status.canRegister) {
+        setToastMsg(status.message);
+        setToastError(true);
+        setIsRegistering(false);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 4000);
+        return;
+      }
+    }
 
     try {
       if (isRegistered) {
@@ -644,6 +725,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
         setToastMsg('You have unregistered from the shift.');
         setToastError(false);
       } else {
+        const regStatus = opp ? getRegistrationStatus(opp) : { isPending: false };
+
         // Register via proper endpoint
         await apiService.post('/api/events/register', {
           volunteerId: user.id,
@@ -654,6 +737,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           eventLocation: opp?.serviceLocation || '',
           volunteerEmail: user.email || '',
           volunteerName: user.name || '',
+          status: regStatus.isPending ? 'pending_training' : 'confirmed',
         });
         // Update local state
         onUpdate({
@@ -667,8 +751,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
         if (opp) {
           setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, slotsFilled: (o.slotsFilled || 0) + 1 } : o));
         }
-        setToastMsg('Successfully registered for the shift!');
-        setToastError(false);
+        if (regStatus.isPending) {
+          setToastMsg(`Registered — pending ${(regStatus as any).program} training completion`);
+          setToastError(false);
+        } else {
+          setToastMsg('Successfully registered for the shift!');
+          setToastError(false);
+        }
       }
       analyticsService.logEvent(isRegistered ? 'shift_unregister' : 'shift_register', { shiftId, userId: user.id });
     } catch (error: any) {
@@ -1239,12 +1328,25 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const isRegistered = user.assignedShiftIds?.includes(shift.id);
                             const slotsLeft = shift.slotsTotal - shift.slotsFilled;
 
+                            const regStatus = getRegistrationStatus(opp);
+                            const isPendingTraining = isRegistered && regStatus.isPending;
+
                             return (
-                                <div key={shift.id} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                <div key={shift.id} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-xl' : isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
                                     {isRegistered && (
-                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
-                                          <Check size={14} /> Confirmed
+                                       <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-[#233DFF] text-white'}`}>
+                                          {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
                                        </div>
+                                    )}
+                                    {/* Pending training notice */}
+                                    {isPendingTraining && (
+                                      <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3">
+                                        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                                        <div>
+                                          <p className="text-xs font-bold text-amber-800">Complete {regStatus.program} training to confirm</p>
+                                          <p className="text-[11px] text-amber-600 mt-0.5">Go to Training Academy to finish the remaining modules.</p>
+                                        </div>
+                                      </div>
                                     )}
                                     <div className="p-6 md:p-10 flex-1">
                                       <div className="flex justify-between items-start mb-6">
@@ -1280,15 +1382,25 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                             </p>
                                           </div>
-                                          {userMode === 'volunteer' && (
-                                            <button
-                                              onClick={() => handleToggleRegistration(shift.id)}
-                                              disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
-                                              className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
-                                            >
-                                              {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
-                                            </button>
-                                          )}
+                                          {userMode === 'volunteer' && (() => {
+                                            const volRegStatus = getRegistrationStatus(opp);
+                                            if (!volRegStatus.canRegister && !isRegistered) {
+                                              return (
+                                                <div className="text-right max-w-[200px]">
+                                                  <p className="text-[10px] text-zinc-400 font-medium leading-tight">{volRegStatus.message}</p>
+                                                </div>
+                                              );
+                                            }
+                                            return (
+                                              <button
+                                                onClick={() => handleToggleRegistration(shift.id)}
+                                                disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
+                                                className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                              >
+                                                {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
+                                              </button>
+                                            );
+                                          })()}
                                           {canManageEvents && (
                                             (() => {
                                               const eventDate = new Date(opp.date + 'T00:00:00');

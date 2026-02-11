@@ -120,6 +120,25 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const [reviewMode, setReviewMode] = useState(false);
   const [signatureName, setSignatureName] = useState('');
   const [showFieldAccess, setShowFieldAccess] = useState(false);
+  const [expandedTiers, setExpandedTiers] = useState<Record<string, boolean>>({});
+
+  const toggleTier = (tierId: string) => {
+    setExpandedTiers(prev => ({ ...prev, [tierId]: !prev[tierId] }));
+  };
+
+  // Auto-expand the first incomplete tier
+  useEffect(() => {
+    const auto: Record<string, boolean> = {};
+    if (!tier1Complete) {
+      auto['tier1'] = true;
+    } else if (!tier2CoreComplete && !isGovernanceRole) {
+      auto['tier2'] = true;
+    } else if (tier2CoreComplete) {
+      auto['tier3'] = true;
+    }
+    setExpandedTiers(auto);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Try both role and appliedRole — use whichever has role-specific training
   const primarySlug = getRoleSlug(user.role);
@@ -380,39 +399,39 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     const isLocked = tierLocked;
 
     return (
-      <div key={m.id} className={`p-8 rounded-[40px] border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-xl hover:border-zinc-200'}`}>
+      <div key={m.id} className={`p-5 rounded-2xl border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-lg hover:border-zinc-200'}`}>
         <div>
-          <div className="flex items-start justify-between mb-6">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-[#233DFF] text-zinc-300 group-hover:text-white`}`}>
-              {isCompleted ? <CheckCircle2 size={28} /> : m.format === 'read_ack' ? <FileCheck size={28} /> : hasVideo ? <PlayCircle size={28} /> : <BookOpen size={28} />}
+          <div className="flex items-start justify-between mb-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-[#233DFF] text-zinc-300 group-hover:text-white`}`}>
+              {isCompleted ? <CheckCircle2 size={20} /> : m.format === 'read_ack' ? <FileCheck size={20} /> : hasVideo ? <PlayCircle size={20} /> : <BookOpen size={20} />}
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end gap-1.5">
               <FormatBadge format={m.format} />
-              {m.req && !isCompleted && !isLocked && <span className="px-3 py-1 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
-              {isCompleted && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>}
-              {isLocked && <span className="px-3 py-1 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">Locked</span>}
+              {m.req && !isCompleted && !isLocked && <span className="px-2.5 py-0.5 bg-rose-50 text-rose-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-100">Required</span>}
+              {isCompleted && <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Completed</span>}
+              {isLocked && <span className="px-2.5 py-0.5 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">Locked</span>}
             </div>
           </div>
-          <h4 className={`text-xl font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">
+          <h4 className={`text-base font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
             {m.dur} MIN {m.isAIGenerated && '• AI-GENERATED'}
           </p>
-          <p className={`text-sm mt-4 font-medium leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
+          <p className={`text-xs mt-3 font-medium leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
         </div>
-        <div className="mt-8">
+        <div className="mt-5">
           {!isCompleted && !isLocked && (
-            <button onClick={() => startQuiz(m)} className="w-full py-5 bg-zinc-900 text-white rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:scale-[1.02] shadow-xl">
-              {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Mastery Assessment'}
+            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-zinc-900 text-white rounded-full font-normal text-xs transition-all hover:scale-[1.02] shadow-lg">
+              {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Assessment'}
             </button>
           )}
           {isCompleted && (
-            <button onClick={() => startReview(m)} className="w-full py-5 bg-white border-2 border-zinc-200 text-zinc-600 rounded-full font-black text-[11px] uppercase tracking-widest transition-all hover:border-[#233DFF] hover:text-[#233DFF] hover:scale-[1.02] flex items-center justify-center gap-2">
-              <BookOpen size={14} /> Review Module
+            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-zinc-200 text-zinc-600 rounded-full font-normal text-xs transition-all hover:border-[#233DFF] hover:text-[#233DFF] hover:scale-[1.02] flex items-center justify-center gap-2">
+              <BookOpen size={12} /> Review
             </button>
           )}
           {isLocked && (
-            <div className="w-full py-5 bg-zinc-100 text-zinc-400 rounded-full font-black text-[11px] uppercase tracking-widest text-center flex items-center justify-center gap-2">
-              <Lock size={14} /> Complete Previous Tier to Unlock
+            <div className="w-full py-3.5 bg-zinc-100 text-zinc-400 rounded-full font-normal text-xs text-center flex items-center justify-center gap-2">
+              <Lock size={12} /> Complete Previous Tier
             </div>
           )}
         </div>
@@ -591,12 +610,12 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   }, [roleSlug, primarySlug, user.role]);
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-32">
+    <div className="space-y-6 animate-in fade-in duration-700 pb-16">
       {/* Tier 1 Complete Banner */}
       {tier1Complete && !tier2CoreComplete && (
-        <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-8 rounded-[32px] flex items-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-[#233DFF]/50 text-white flex items-center justify-center shadow-lg shrink-0">
-            <CheckCircle2 size={28} />
+        <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center shadow-sm shrink-0">
+            <CheckCircle2 size={20} />
           </div>
           <div>
             <h4 className="text-lg font-black text-[#233DFF]">Orientation Complete!</h4>
@@ -607,9 +626,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* Core Baseline Complete Banner */}
       {tier2CoreComplete && (
-        <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-[32px] flex items-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shrink-0">
-            <Award size={28} />
+        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm shrink-0">
+            <Award size={20} />
           </div>
           <div>
             <h4 className="text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Baseline Training Complete'}</h4>
@@ -623,13 +642,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* Header with progress */}
-      <div className="bg-white border border-zinc-100 p-12 rounded-[56px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden">
+      <div className="bg-white border border-zinc-100 p-8 md:p-10 rounded-[32px] shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
-          <div className="inline-flex items-center gap-3 px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-10">
+          <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
              TRAINING ACADEMY
           </div>
-          <h2 className="text-6xl font-black text-zinc-900 tracking-tighter leading-none mb-6 italic">HMC Training</h2>
-          <p className="text-zinc-500 text-lg font-medium leading-relaxed italic">
+          <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tighter leading-none mb-4 italic">HMC Training</h2>
+          <p className="text-zinc-500 text-base font-medium leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
               <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
@@ -637,7 +656,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </p>
         </div>
 
-        <div className="w-full md:w-80 bg-zinc-50 p-8 rounded-[40px] border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-6">
+        <div className="w-full md:w-72 bg-zinc-50 p-6 rounded-[24px] border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-4">
           {/* Tier 1 Progress */}
           <div className="flex items-center gap-4 w-full">
             <div className="relative w-16 h-16">
@@ -673,18 +692,29 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       </div>
 
       {/* ===== TIER 1: ORIENTATION ===== */}
-      <div>
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center text-sm font-black">1</div>
-          <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
-          {tier1Complete && (
-            <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
-          )}
-        </div>
-        <p className="text-zinc-500 font-medium mb-8 -mt-4">Start here! These two videos introduce you to Health Matters Clinic and what it means to volunteer with HMC.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {TIER_1_MODULES.map(m => renderModuleCard(m, false))}
-        </div>
+      <div className="border border-zinc-100 rounded-[32px] overflow-hidden">
+        <button onClick={() => toggleTier('tier1')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center text-sm font-black shrink-0">1</div>
+          <div className="flex-1 text-left">
+            <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
+            <p className="text-zinc-400 text-sm font-medium mt-1">Two intro videos about HMC and volunteering</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {tier1Complete ? (
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+            ) : (
+              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">{tier1CompletedCount}/{TIER_1_MODULES.length}</span>
+            )}
+            <ChevronDown size={20} className={`text-zinc-400 transition-transform ${expandedTiers['tier1'] ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+        {expandedTiers['tier1'] && (
+          <div className="px-6 md:px-8 pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {TIER_1_MODULES.map(m => renderModuleCard(m, false))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== TIER 2: BASELINE OPERATIONAL ===== */}
@@ -718,7 +748,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </button>
           {showFieldAccess && (
             <div className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {TIER_2_MODULES.map(m => renderModuleCard(m, false))}
               </div>
             </div>
@@ -727,18 +757,29 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
       {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete) ===== */}
       {!isGovernanceRole && tier1Complete && (
-        <div>
-          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black">2</div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
-            {tier2CoreComplete && (
-              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
-            )}
-          </div>
-          <p className="text-zinc-500 font-medium mb-8 -mt-4">Required for all operational volunteers. Complete these to unlock My Missions and event registration.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {TIER_2_CORE_MODULES.map(m => renderModuleCard(m, false))}
-          </div>
+        <div className="border border-zinc-100 rounded-[32px] overflow-hidden">
+          <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
+            <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black shrink-0">2</div>
+            <div className="flex-1 text-left">
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
+              <p className="text-zinc-400 text-sm font-medium mt-1">Required to unlock My Missions and event registration</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {tier2CoreComplete ? (
+                <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Complete</span>
+              ) : (
+                <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase tracking-widest">{tier2CoreCompletedCount}/{TIER_2_CORE_MODULES.length}</span>
+              )}
+              <ChevronDown size={20} className={`text-zinc-400 transition-transform ${expandedTiers['tier2'] ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+          {expandedTiers['tier2'] && (
+            <div className="px-6 md:px-8 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {TIER_2_CORE_MODULES.map(m => renderModuleCard(m, false))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -771,7 +812,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </button>
           {showFieldAccess && (
             <div className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {TIER_2_FIELD_MODULES.map(m => renderModuleCard(m, false))}
               </div>
             </div>
@@ -781,61 +822,96 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div>
-          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black">3</div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
-          </div>
-          <p className="text-zinc-500 font-medium mb-8 -mt-4">Complete program-specific training to unlock specialized event types. Each program has its own requirements.</p>
+        <div className="border border-zinc-100 rounded-[32px] overflow-hidden">
+          <button onClick={() => toggleTier('tier3')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
+            <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black shrink-0">3</div>
+            <div className="flex-1 text-left">
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
+              <p className="text-zinc-400 text-sm font-medium mt-1">Unlock specialized missions like Street Medicine, Clinical, etc.</p>
+            </div>
+            <ChevronDown size={20} className={`text-zinc-400 transition-transform shrink-0 ${expandedTiers['tier3'] ? 'rotate-180' : ''}`} />
+          </button>
+          {expandedTiers['tier3'] && (
+            <div className="px-6 md:px-8 pb-8 space-y-6">
+              {programModules.map(section => {
+                const sectionCompletedCount = section.modules.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
+                const sectionComplete = sectionCompletedCount === section.modules.length;
+                const isExpanded = expandedTiers[`prog_${section.program}`];
 
-          {programModules.map(section => {
-            const sectionCompletedCount = section.modules.filter(m => hasCompletedModule(completedModuleIds, m.id)).length;
-            const sectionComplete = sectionCompletedCount === section.modules.length;
-
-            return (
-              <div key={section.program} className="mb-12">
-                <div className="flex items-center gap-4 mb-6">
-                  <h4 className="text-lg font-black text-zinc-800">{section.title}</h4>
-                  {sectionComplete ? (
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest">Cleared</span>
-                  ) : (
-                    <span className="px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest">{sectionCompletedCount}/{section.modules.length}</span>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {section.modules.map(m => renderModuleCard(m, false))}
-                </div>
-              </div>
-            );
-          })}
+                return (
+                  <div key={section.program} className="border border-zinc-100 rounded-2xl overflow-hidden">
+                    <button onClick={() => toggleTier(`prog_${section.program}`)} className="w-full flex items-center gap-4 p-5 hover:bg-zinc-50/50 transition-colors">
+                      <div className="flex-1 text-left">
+                        <h4 className="text-base font-black text-zinc-800">{section.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {sectionComplete ? (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest">Cleared</span>
+                        ) : (
+                          <span className="px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[9px] font-black uppercase tracking-widest">{sectionCompletedCount}/{section.modules.length}</span>
+                        )}
+                        <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-5 pb-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {section.modules.map(m => renderModuleCard(m, false))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* ===== ROLE-SPECIFIC TRAINING ===== */}
       {roleModules.length > 0 && tier1Complete && (
-        <div>
-          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
-          </div>
-          <p className="text-zinc-500 font-medium mb-8 -mt-4">Additional training specific to your assigned role.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {roleModules.map(m => renderModuleCard(m, false))}
-          </div>
+        <div className="border border-zinc-100 rounded-[32px] overflow-hidden">
+          <button onClick={() => toggleTier('role')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
+              <ShieldCheck size={20} />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
+              <p className="text-zinc-400 text-sm font-medium mt-1">Additional training specific to your assigned role</p>
+            </div>
+            <ChevronDown size={20} className={`text-zinc-400 transition-transform shrink-0 ${expandedTiers['role'] ? 'rotate-180' : ''}`} />
+          </button>
+          {expandedTiers['role'] && (
+            <div className="px-6 md:px-8 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {roleModules.map(m => renderModuleCard(m, false))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div>
-          <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black">4</div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
-            <span className="px-4 py-1.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200">30-Day Deadline</span>
-          </div>
-          <p className="text-zinc-500 font-medium mb-8 -mt-4">These modules provide important context. Complete within 30 days of becoming operational to maintain access to advanced missions.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {TIER_4_MODULES.map(m => renderModuleCard(m, false))}
-          </div>
+        <div className="border border-zinc-100 rounded-[32px] overflow-hidden">
+          <button onClick={() => toggleTier('tier4')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
+            <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black shrink-0">4</div>
+            <div className="flex-1 text-left">
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
+              <p className="text-zinc-400 text-sm font-medium mt-1">Context videos — complete within 30 days to keep advanced mission access</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200">30 Days</span>
+              <ChevronDown size={20} className={`text-zinc-400 transition-transform ${expandedTiers['tier4'] ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+          {expandedTiers['tier4'] && (
+            <div className="px-6 md:px-8 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {TIER_4_MODULES.map(m => renderModuleCard(m, false))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
