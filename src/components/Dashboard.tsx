@@ -651,9 +651,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 })()}
             </header>
             {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} />}
-            <div className="pt-8 border-t border-zinc-100">
-               <EventPreview opportunities={opportunities} onNavigate={setActiveTab} />
-            </div>
+            <ComingUp user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} />
            </>
          )}
 
@@ -1008,47 +1006,172 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
 };
 
 
-const EventPreview: React.FC<{ opportunities: Opportunity[], onNavigate: (tab: 'missions') => void }> = ({ opportunities, onNavigate }) => {
-  const upcomingEvents = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return opportunities
-      .filter(o => {
-        const d = new Date(o.date + 'T00:00:00');
-        return d >= today && (o.approvalStatus === 'approved' || !o.approvalStatus);
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 3);
-  }, [opportunities]);
+interface TimelineItem {
+  id: string;
+  title: string;
+  date: Date;
+  time?: string;
+  location?: string;
+  category?: string;
+  type: 'shift' | 'event';
+}
+
+const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Opportunity[]; onNavigate: (tab: 'missions' | 'calendar') => void }> = ({ user, shifts, opportunities, onNavigate }) => {
+  const timelineItems = useMemo(() => {
+    const now = new Date();
+    const items: TimelineItem[] = [];
+    const seenIds = new Set<string>();
+
+    // Shifts assigned to user
+    shifts
+      .filter(s => user.assignedShiftIds?.includes(s.id) && new Date(s.startTime) > now)
+      .forEach(s => {
+        const opp = opportunities.find(o => o.id === s.opportunityId);
+        const key = `shift-${s.id}`;
+        if (!seenIds.has(key)) {
+          seenIds.add(key);
+          items.push({
+            id: key,
+            title: opp?.title || s.roleType,
+            date: new Date(s.startTime),
+            time: new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            location: opp?.serviceLocation,
+            category: opp?.category,
+            type: 'shift',
+          });
+        }
+      });
+
+    // RSVPed events
+    opportunities
+      .filter(o => user.rsvpedEventIds?.includes(o.id) && new Date(o.date) > now)
+      .forEach(o => {
+        const key = `event-${o.id}`;
+        if (!seenIds.has(key)) {
+          seenIds.add(key);
+          items.push({
+            id: key,
+            title: o.title,
+            date: new Date(o.date + 'T00:00:00'),
+            time: o.time,
+            location: o.serviceLocation,
+            category: o.category,
+            type: 'event',
+          });
+        }
+      });
+
+    items.sort((a, b) => a.date.getTime() - b.date.getTime());
+    return items;
+  }, [user.assignedShiftIds, user.rsvpedEventIds, shifts, opportunities]);
+
+  const heroItem = timelineItems[0];
+  const restItems = timelineItems.slice(1, 5);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">Upcoming Events</h3>
-        <button onClick={() => onNavigate('missions')} className="flex items-center gap-2 px-5 py-2.5 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-base hover:opacity-95 transition-all">
-          <span className="w-2 h-2 rounded-full bg-white" />View All Missions
+        <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
+          <i className="fa-solid fa-radar text-[#233DFF] text-sm" />
+          Coming Up
+        </h3>
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-[#233dff] text-white border border-[#233dff] rounded-full font-normal text-sm hover:opacity-95 transition-all">
+          <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
       </div>
-      {upcomingEvents.length === 0 ? (
-        <div className="py-12 text-center bg-zinc-50 rounded-2xl border border-zinc-100">
-          <Calendar size={28} className="mx-auto text-zinc-300 mb-3" />
-          <p className="text-zinc-400 font-medium text-sm">No upcoming events.</p>
+
+      {/* Hero Card */}
+      {heroItem ? (
+        <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="px-3 py-1 bg-white/15 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                {heroItem.type === 'shift' ? 'Next Mission' : 'Next Event'}
+              </span>
+              {heroItem.category && (
+                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-medium">{heroItem.category}</span>
+              )}
+            </div>
+            <h4 className="text-2xl font-medium tracking-normal mb-4">{heroItem.title}</h4>
+            <div className="flex items-center gap-6 text-sm text-white/80 font-medium flex-wrap">
+              <span className="flex items-center gap-2">
+                <i className="fa-solid fa-calendar text-xs" />
+                {heroItem.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </span>
+              {heroItem.time && (
+                <span className="flex items-center gap-2">
+                  <i className="fa-solid fa-clock text-xs" />
+                  {heroItem.time}
+                </span>
+              )}
+              {heroItem.location && (
+                <span className="flex items-center gap-2">
+                  <i className="fa-solid fa-location-dot text-xs" />
+                  {heroItem.location}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {upcomingEvents.map(event => (
-            <div key={event.id} className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm hover:shadow-md transition-all">
-              <div className="mb-3">
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-medium text-white bg-[#233DFF]">{event.category || 'Event'}</span>
+        <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
+          <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
+          <p className="text-zinc-400 font-medium text-sm mb-3">No upcoming missions.</p>
+          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-[#233dff] text-white rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
+            <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
+          </button>
+        </div>
+      )}
+
+      {/* Vertical Timeline */}
+      {restItems.length > 0 && (
+        <div className="relative pl-8">
+          {/* Vertical line */}
+          <div className="absolute left-[11px] top-2 bottom-2 w-px bg-zinc-200" />
+
+          <div className="space-y-4">
+            {restItems.map((item, i) => (
+              <div key={item.id} className="relative flex items-start gap-4">
+                {/* Timeline dot */}
+                <div className="absolute left-[-21px] top-3 w-[7px] h-[7px] rounded-full bg-[#233DFF] ring-4 ring-white" />
+
+                {/* Date pill */}
+                <div className="shrink-0 w-16 pt-1">
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase">
+                    {item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+
+                {/* Event card */}
+                <div className="flex-1 bg-white border border-zinc-100 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>
+                      <div className="flex items-center gap-4 mt-1.5 text-xs text-zinc-500">
+                        {item.time && (
+                          <span className="flex items-center gap-1">
+                            <i className="fa-solid fa-clock text-[10px] text-zinc-400" />
+                            {item.time}
+                          </span>
+                        )}
+                        {item.location && (
+                          <span className="flex items-center gap-1 truncate">
+                            <i className="fa-solid fa-location-dot text-[10px] text-zinc-400" />
+                            {item.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {item.category && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white bg-[#233DFF] shrink-0">{item.category}</span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <h4 className="text-base font-medium text-zinc-900 mb-2 leading-snug">{event.title}</h4>
-              <div className="space-y-1.5 text-xs text-zinc-500">
-                <p className="flex items-center gap-1.5"><MapPin size={13} className="text-zinc-400 shrink-0" /> {event.serviceLocation}</p>
-                <p className="flex items-center gap-1.5"><Calendar size={13} className="text-zinc-400 shrink-0" /> {new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
