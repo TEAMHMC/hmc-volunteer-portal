@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField } from '../types';
-import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule } from '../constants';
+import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -29,11 +29,13 @@ interface EventOpsModeProps {
   onBack: () => void;
   onUpdateUser: (u: Volunteer) => void;
   onNavigateToAcademy?: () => void;
+  allVolunteers?: Volunteer[];
+  eventShifts?: Shift[];
 }
 
 type OpsTab = 'overview' | 'checklists' | 'survey' | 'intake' | 'screenings' | 'incidents' | 'signoff' | 'audit';
 
-const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy }) => {
+const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts }) => {
   const [activeTab, setActiveTab] = useState<OpsTab>('overview');
   const [opsRun, setOpsRun] = useState<MissionOpsRun | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,7 +157,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         </div>
         
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-[48px] md:rounded-[64px] p-8 md:p-16 shadow-sm min-h-[600px] relative">
-          {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} onNavigateToAcademy={onNavigateToAcademy} />}
+          {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
@@ -169,25 +171,191 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   );
 };
 
-const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; onNavigateToAcademy?: () => void }> = ({ user, opportunity, onNavigateToAcademy }) => {
+const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: Shift; onNavigateToAcademy?: () => void; allVolunteers?: Volunteer[]; eventShifts?: Shift[] }> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
     const fullAddress = opportunity.serviceLocation || '';
+    const services = (opportunity.serviceOfferingIds || [])
+        .map(id => SERVICE_OFFERINGS.find(s => s.id === id))
+        .filter(Boolean) as typeof SERVICE_OFFERINGS;
+
+    const formatTime = (iso: string) => {
+        try { return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+        catch { return iso; }
+    };
+
     return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-10 animate-in fade-in">
         <h2 className="text-3xl font-medium text-zinc-900 tracking-normal leading-none">Operational Brief</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Duty Assignment</p>
-                <p className="text-2xl font-medium text-zinc-900 leading-tight">{user.role}</p>
+
+        {/* Section A: Mission Summary */}
+        <div className="p-8 md:p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner space-y-4">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Mission Summary</p>
+            <p className="text-base font-medium text-zinc-700 leading-relaxed">
+                {opportunity.description || `${opportunity.category} event: ${opportunity.title}`}
+            </p>
+            <div className="flex flex-wrap gap-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest pt-2">
+                <span className="flex items-center gap-1.5"><Clock size={12} /> {opportunity.date}</span>
+                <span className="flex items-center gap-1.5"><Clock size={12} /> {formatTime(shift.startTime)} – {formatTime(shift.endTime)}</span>
+                {fullAddress && <span className="flex items-center gap-1.5"><Navigation size={12} /> {fullAddress}</span>}
             </div>
-            <div className="p-10 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-inner flex flex-col justify-between">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Training Clearances</p>
-                <div className="space-y-4">
-                    <GateCheck label="Survey Kiosk" isMet={hasOperationalClearance(user)} onNavigate={onNavigateToAcademy} />
-                    <GateCheck label="Intake & Referrals" isMet={hasOperationalClearance(user)} onNavigate={onNavigateToAcademy} />
-                    <GateCheck label="Health Screenings" isMet={hasOperationalClearance(user)} onNavigate={onNavigateToAcademy} />
+        </div>
+
+        {/* Section B: Event Goals & Targets */}
+        <div className="space-y-4">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Goals & Targets</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
+                    <Target size={20} className="mx-auto text-[#233DFF] mb-2" />
+                    <p className="text-2xl font-black text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-1">Target Attendance</p>
+                </div>
+                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
+                    <Users size={20} className="mx-auto text-[#233DFF] mb-2" />
+                    <p className="text-2xl font-black text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-lg">/{opportunity.slotsTotal}</span></p>
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-1">Volunteers</p>
+                </div>
+                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
+                    <HeartPulse size={20} className="mx-auto text-[#233DFF] mb-2" />
+                    <p className="text-2xl font-black text-zinc-900">{services.length}</p>
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-1">Services</p>
+                </div>
+                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
+                    <Shield size={20} className={`mx-auto mb-2 ${opportunity.requiresClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
+                    <p className="text-2xl font-black text-zinc-900">{opportunity.requiresClinicalLead ? 'Yes' : 'No'}</p>
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-1">Clinical Lead</p>
                 </div>
             </div>
         </div>
+
+        {/* Section C: Services & Staffing */}
+        <div className="space-y-6">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Services & Staffing</p>
+
+            {services.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {services.map(s => (
+                        <span key={s.id} className="px-4 py-2 bg-[#233DFF]/5 text-[#233DFF] rounded-full text-[10px] font-black uppercase tracking-widest border border-[#233DFF]/10">
+                            {s.name}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {opportunity.staffingQuotas && opportunity.staffingQuotas.length > 0 && (
+                <div className="space-y-3">
+                    {opportunity.staffingQuotas.map((q, i) => {
+                        const pct = q.count > 0 ? Math.min(100, Math.round((q.filled / q.count) * 100)) : 0;
+                        const isMyRole = q.role === shift.roleType || q.role === user.role;
+                        return (
+                            <div key={i} className={`p-5 rounded-2xl border transition-all ${isMyRole ? 'bg-[#233DFF]/5 border-[#233DFF]/20' : 'bg-zinc-50 border-zinc-100'}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className={`text-xs font-black uppercase tracking-tight ${isMyRole ? 'text-[#233DFF]' : 'text-zinc-700'}`}>
+                                        {q.role} {isMyRole && '(You)'}
+                                    </span>
+                                    <span className="text-[10px] font-black text-zinc-400">{q.filled}/{q.count}</span>
+                                </div>
+                                <div className="w-full h-2 bg-zinc-200 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all ${isMyRole ? 'bg-[#233DFF]' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+
+        {/* Section C2: Event Team (leads/coordinators only) */}
+        {(() => {
+            const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
+            const isLead = user.isAdmin || LEAD_ROLES.includes(user.role);
+            if (!isLead || !allVolunteers || !eventShifts) return null;
+
+            const allVolIds = new Set<string>();
+            eventShifts.forEach(s => s.assignedVolunteerIds?.forEach(id => allVolIds.add(id)));
+            const teamMembers = Array.from(allVolIds)
+                .map(id => allVolunteers.find(v => v.id === id))
+                .filter(Boolean) as Volunteer[];
+            if (teamMembers.length === 0) return null;
+
+            const grouped: Record<string, Volunteer[]> = {};
+            teamMembers.forEach(v => {
+                const role = v.role || 'Unassigned';
+                if (!grouped[role]) grouped[role] = [];
+                grouped[role].push(v);
+            });
+
+            // Sort groups: leads first, then coordinators, then others
+            const roleOrder = (role: string) => {
+                if (role.toLowerCase().includes('lead')) return 0;
+                if (role.toLowerCase().includes('coordinator')) return 1;
+                return 2;
+            };
+            const sortedRoles = Object.keys(grouped).sort((a, b) => roleOrder(a) - roleOrder(b) || a.localeCompare(b));
+
+            return (
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Event Team</p>
+                    <div className="p-6 md:p-8 bg-zinc-50 rounded-[32px] border border-zinc-100 space-y-5">
+                        {sortedRoles.map(role => (
+                            <div key={role}>
+                                <p className="text-[9px] font-black text-[#233DFF] uppercase tracking-widest mb-2">{role}</p>
+                                <div className="space-y-1.5">
+                                    {grouped[role].map(v => (
+                                        <div key={v.id} className="flex items-center gap-3 px-4 py-2.5 bg-white rounded-xl border border-zinc-100">
+                                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
+                                                {v.avatarUrl || v.profilePhoto ? (
+                                                    <img src={v.avatarUrl || v.profilePhoto} className="w-full h-full object-cover" alt="" />
+                                                ) : (
+                                                    v.name?.charAt(0)?.toUpperCase()
+                                                )}
+                                            </div>
+                                            <span className="text-sm font-medium text-zinc-800">{v.name}</span>
+                                            {v.id === user.id && <span className="text-[9px] font-black text-[#233DFF] uppercase tracking-widest">(You)</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                        <p className="text-[9px] text-zinc-400 font-medium pt-2">{teamMembers.length} volunteer{teamMembers.length !== 1 ? 's' : ''} assigned</p>
+                    </div>
+                </div>
+            );
+        })()}
+
+        {/* Section D: Your Assignment */}
+        <div className="space-y-4">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Your Assignment</p>
+            <div className="p-8 md:p-10 bg-[#233DFF]/5 rounded-[40px] border-2 border-[#233DFF]/15 space-y-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[#233DFF] rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
+                        <Briefcase size={24} className="text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xl font-black text-zinc-900 uppercase tracking-tight">{shift.roleType || user.role}</p>
+                        <p className="text-sm text-zinc-500 font-medium">{formatTime(shift.startTime)} – {formatTime(shift.endTime)}</p>
+                    </div>
+                </div>
+                {opportunity.supplyList && (
+                    <div className="pt-4 border-t border-[#233DFF]/10">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Supplies & Equipment</p>
+                        <p className="text-sm text-zinc-600 font-medium leading-relaxed">{opportunity.supplyList}</p>
+                    </div>
+                )}
+                {opportunity.equipment && opportunity.equipment.length > 0 && (
+                    <div className={`${opportunity.supplyList ? '' : 'pt-4 border-t border-[#233DFF]/10'}`}>
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Equipment Checklist</p>
+                        <div className="flex flex-wrap gap-2">
+                            {opportunity.equipment.map(eq => (
+                                <span key={eq.equipmentId} className="px-3 py-1.5 bg-white rounded-xl text-xs font-bold text-zinc-700 border border-zinc-200">
+                                    {eq.name} ×{eq.quantity}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* Get Directions */}
         {fullAddress && (
           <a
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`}
@@ -199,28 +367,6 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; onNavig
           </a>
         )}
     </div>
-    );
-};
-
-const GateCheck: React.FC<{ label: string; isMet: boolean; onNavigate?: () => void }> = ({ label, isMet, onNavigate }) => {
-    if (!isMet && onNavigate) {
-        return (
-            <button
-                onClick={onNavigate}
-                title="Complete this training in the Training Academy"
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border transition-all bg-rose-50 border-rose-100 text-rose-800 hover:bg-rose-100 hover:border-rose-200 cursor-pointer"
-            >
-                <Lock size={18} className="text-rose-500" />
-                <span className="font-black uppercase tracking-widest text-[9px] flex-1 text-left">{label}</span>
-                <span className="text-[8px] font-bold text-rose-500 uppercase tracking-wide">Complete →</span>
-            </button>
-        );
-    }
-    return (
-        <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${isMet ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 opacity-60 text-rose-800'}`}>
-            {isMet ? <CheckCircle size={18} className="text-emerald-500" /> : <Lock size={18} className="text-rose-500" />}
-            <span className="font-black uppercase tracking-widest text-[9px]">{label}</span>
-        </div>
     );
 };
 

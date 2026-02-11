@@ -911,7 +911,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   }, [selectedShiftId, selectedShift, selectedOpp]);
 
   if (selectedShiftId && selectedShift && selectedOpp) {
-    return <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} />;
+    const eventShifts = shifts.filter(s => s.opportunityId === selectedOpp.id);
+    return <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} />;
   }
 
   // Helper to check if a date is in the past

@@ -6,7 +6,7 @@ import {
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
-  Bell, Menu, CalendarDays
+  Bell, Menu, CalendarDays, Megaphone
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -177,8 +177,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const COORDINATOR_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
   const isCoordinatorOrLead = COORDINATOR_LEAD_ROLES.includes(displayUser.role);
 
-  // My Missions: requires coreVolunteerStatus AND HIPAA training (or admin, or coordinator/lead roles)
-  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && displayUser.completedHIPAATraining === true) || isCoordinatorOrLead;
+  // Event-participant roles: collaborate on events but aren't coordinators/leads and may not have coreVolunteerStatus
+  const EVENT_PARTICIPANT_ROLES = ['Outreach Volunteer', 'Content Writer', 'Newsletter & Content Writer', 'Social Media Team', 'Student Intern', 'Fundraising Volunteer', 'Grant Writer'];
+  const isEventParticipant = EVENT_PARTICIPANT_ROLES.includes(displayUser.role);
+
+  // My Missions: requires coreVolunteerStatus AND HIPAA training (or admin, or coordinator/lead roles, or event participant with HIPAA)
+  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && displayUser.completedHIPAATraining === true) || isCoordinatorOrLead || (isEventParticipant && displayUser.completedHIPAATraining === true);
 
   // Notification counts
   const [dismissedNotifTs, setDismissedNotifTs] = useState<string>(
@@ -650,6 +654,51 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
 
       <main className={`flex-1 p-6 md:p-10 space-y-8 md:space-y-10 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
+         {/* Announcement Banner */}
+         {(() => {
+           const DISMISSED_KEY = 'hmcDismissedAnnouncements';
+           const getDismissed = (): string[] => {
+             try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch { return []; }
+           };
+           const [dismissedIds, setDismissedIds] = React.useState<string[]>(getDismissed);
+           const now = new Date();
+           const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+           const visibleAnnouncements = announcements
+             .filter(a =>
+               a.status === 'approved'
+               && new Date(a.date) >= sevenDaysAgo
+               && (!a.targetRoles || a.targetRoles.length === 0 || a.targetRoles.includes(displayUser.role))
+               && !dismissedIds.includes(a.id)
+             )
+             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+             .slice(0, 2);
+
+           if (visibleAnnouncements.length === 0) return null;
+
+           const handleDismiss = (id: string) => {
+             const updated = [...dismissedIds, id];
+             setDismissedIds(updated);
+             localStorage.setItem(DISMISSED_KEY, JSON.stringify(updated));
+           };
+
+           return (
+             <div className="space-y-2 mb-6">
+               {visibleAnnouncements.map(a => (
+                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-[#233DFF]/5 border border-[#233DFF]/15 rounded-2xl">
+                   <Megaphone size={16} className="text-[#233DFF] shrink-0" />
+                   <div className="flex-1 min-w-0">
+                     <span className="text-sm font-bold text-zinc-900">{a.title}</span>
+                     {a.content && <span className="text-sm text-zinc-500 ml-2 truncate">{a.content.length > 80 ? a.content.slice(0, 80) + '...' : a.content}</span>}
+                   </div>
+                   <button onClick={() => handleDismiss(a.id)} className="p-1.5 hover:bg-[#233DFF]/10 rounded-lg transition-colors shrink-0">
+                     <X size={14} className="text-zinc-400" />
+                   </button>
+                 </div>
+               ))}
+             </div>
+           );
+         })()}
+
          {activeTab === 'overview' && (
            <>
             <header className="space-y-5">
