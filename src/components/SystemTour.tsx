@@ -49,8 +49,8 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[5000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-xl w-full rounded-[40px] shadow-2xl p-12 relative" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-xl w-full rounded-container shadow-elevation-3 p-12 relative" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors"><X size={20}/></button>
                 
                 <div className="flex items-center gap-4 mb-6">
@@ -66,7 +66,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
                             <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-[#233DFF] scale-125' : 'bg-zinc-200'}`} />
                         ))}
                     </div>
-                    <button onClick={handleNext} className="px-8 py-4 bg-[#233DFF] text-white rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-3 group shadow-xl">
+                    <button onClick={handleNext} className="px-8 py-4 bg-[#233DFF] text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-3 group shadow-elevation-2">
                         {isLastStep ? "Let's Get Started" : "Next"}
                         <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </button>

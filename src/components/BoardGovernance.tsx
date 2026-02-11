@@ -337,10 +337,10 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-32">
       {/* Header */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-10 rounded-[48px] text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-10 rounded-container text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
         <div className="relative z-10 flex items-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-lg">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-elevation-2">
             {meetingsOnly ? <CalendarDays size={28} /> : <Briefcase size={28} />}
           </div>
           <div>
@@ -366,7 +366,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-sm transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-zinc-900 shadow-lg'
+                  ? 'bg-white text-zinc-900 shadow-elevation-2'
                   : 'text-zinc-500 hover:text-zinc-700'
               }`}
             >
@@ -401,7 +401,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Upcoming Meetings */}
-          <div className="bg-white rounded-[40px] border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
             <div className="p-8 border-b border-zinc-100">
               <h3 className="text-xl font-black text-zinc-900">Upcoming Meetings</h3>
             </div>
@@ -514,7 +514,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Past Meetings with Minutes */}
-          <div className="bg-white rounded-[40px] border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
             <div className="p-8 border-b border-zinc-100">
               <h3 className="text-xl font-black text-zinc-900">Meeting Minutes</h3>
               <p className="text-sm text-zinc-500 mt-1">Review and approve minutes from past meetings</p>
@@ -570,7 +570,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             return (
               <div
                 key={form.id}
-                className={`p-8 rounded-[32px] border-2 transition-all ${
+                className={`p-8 rounded-container border-2 transition-all ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' :
                   form.required ? 'border-rose-200 bg-rose-50/30' : 'border-zinc-100 bg-white'
                 }`}
@@ -621,7 +621,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             <div
               key={doc.id}
               onClick={() => setShowDocViewer(doc.id)}
-              className="p-6 rounded-[28px] border border-zinc-100 bg-white hover:shadow-xl hover:border-zinc-200 transition-all cursor-pointer group"
+              className="p-6 rounded-card-lg border border-zinc-100 bg-white hover:shadow-elevation-2 hover:border-zinc-200 transition-all cursor-pointer group"
             >
               <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-[#233DFF]/10 group-hover:text-[#233DFF] transition-colors">
                 <FileText size={24} />
@@ -641,7 +641,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
         <div className="space-y-8">
           {/* Goal Setting */}
           {giveOrGet.goal === 0 && (
-            <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-8 rounded-[32px]">
+            <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-8 rounded-container">
               <h4 className="font-black text-zinc-900 mb-2">Set Your Annual Commitment</h4>
               <p className="text-sm text-zinc-500 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
               <div className="flex gap-3">
@@ -672,7 +672,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Progress Overview */}
           {giveOrGet.goal > 0 && (
-            <div className="bg-gradient-to-br from-[#233DFF] to-[#1a2fbf] p-10 rounded-[40px] text-white">
+            <div className="bg-gradient-to-br from-[#233DFF] to-[#1a2fbf] p-10 rounded-container text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-2xl font-black">Your Give or Get Progress</h3>
@@ -692,7 +692,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-[32px] border border-zinc-100">
+            <div className="bg-white p-8 rounded-container border border-zinc-100">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Gift size={24} />
@@ -722,7 +722,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[32px] border border-zinc-100">
+            <div className="bg-white p-8 rounded-container border border-zinc-100">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-[#233DFF]/10 flex items-center justify-center text-[#233DFF]">
                   <TrendingUp size={24} />
@@ -743,7 +743,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Prospects */}
-          <div className="bg-white rounded-[32px] border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
             <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
               <div>
                 <h4 className="font-black text-zinc-900">Fundraising Prospects</h4>
@@ -834,7 +834,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Donation History */}
           {(giveOrGet.donationLog?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-[32px] border border-zinc-100 overflow-hidden">
+            <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
               <div className="p-6 border-b border-zinc-100">
                 <h4 className="font-black text-zinc-900">Donation Log</h4>
               </div>
@@ -1043,8 +1043,8 @@ I understand I may revoke this authorization in writing at any time.`
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-2xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">{form.title}</h3>
@@ -1114,8 +1114,8 @@ const MinutesReviewModal: React.FC<{
   const [editContent, setEditContent] = useState(meeting.minutesContent || MINUTES_TEMPLATE.replace('[DATE]', new Date(meeting.date + 'T00:00:00').toLocaleDateString()).replace('[TIME]', meeting.time || ''));
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-3xl w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-3xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Meeting Minutes</h3>
@@ -1191,8 +1191,8 @@ const EmergencyMeetingModal: React.FC<{
   const [reason, setReason] = useState('');
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-lg w-full rounded-3xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
@@ -1232,8 +1232,8 @@ const MeetingFormModal: React.FC<{
   const [agendaText, setAgendaText] = useState(meeting?.agenda?.join('\n') || '');
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-lg w-full rounded-3xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-xl font-black text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
@@ -1312,8 +1312,8 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
   const [notes, setNotes] = useState('');
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-lg w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Add Prospect</h3>
@@ -1392,8 +1392,8 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
   const [note, setNote] = useState('');
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-md w-full rounded-3xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-xl font-black text-zinc-900">Log {type === 'personal' ? 'Personal Donation' : 'Fundraising Activity'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
@@ -1473,8 +1473,8 @@ www.healthmatters.clinic`;
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-2xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Fundraising Email Draft</h3>
@@ -1568,8 +1568,8 @@ const DocumentViewerModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-4xl w-full rounded-3xl shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-4xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">{doc.title}</h3>
@@ -1590,7 +1590,7 @@ const DocumentViewerModal: React.FC<{
           {loading ? (
             <div className="py-16 flex flex-col items-center gap-4">
               <Loader2 size={36} className="text-[#233DFF] animate-spin" />
-              <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">Loading document...</p>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Loading document...</p>
             </div>
           ) : content && content.sections.length > 0 ? (
             <div className="space-y-6">

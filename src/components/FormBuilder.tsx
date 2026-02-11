@@ -191,7 +191,7 @@ const FormBuilder: React.FC = () => {
                     </div>
                     <button
                         onClick={() => handleExportResponses(viewingResponses.responses)}
-                        className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-xs font-black uppercase tracking-widest"
+                        className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-xs font-bold uppercase tracking-wide"
                     >
                         <Download size={16} /> Export CSV
                     </button>
@@ -243,7 +243,7 @@ const FormBuilder: React.FC = () => {
                 </div>
                 <button
                     onClick={handleCreateNewForm}
-                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
+                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
                 >
                     <Plus size={16} /> New Form
                 </button>
@@ -251,7 +251,7 @@ const FormBuilder: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {forms.map(form => (
-                    <div key={form.id} className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm flex flex-col">
+                    <div key={form.id} className="bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1 flex flex-col">
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-6">
                             <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 border border-zinc-100"><FileText /></div>
@@ -337,7 +337,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                 <button
                     onClick={() => onSave({ ...form, title: formTitle, fields })}
                     disabled={isSaving}
-                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg disabled:opacity-50"
+                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
@@ -345,7 +345,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
             </div>
 
             <div className="grid grid-cols-12 gap-8 items-start">
-                <div className="col-span-8 bg-white p-12 rounded-[48px] border border-zinc-100 shadow-sm space-y-8">
+                <div className="col-span-8 bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1 space-y-8">
                     <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-black text-zinc-900 outline-none p-2 -ml-2 rounded-lg focus:bg-zinc-50" />
                     {fields.map(field => (
                         <div key={field.id} className="p-6 bg-zinc-50 border border-zinc-100 rounded-2xl relative group">
@@ -367,8 +367,8 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                         </div>
                     ))}
                 </div>
-                <div className="col-span-4 bg-white p-8 rounded-[48px] border border-zinc-100 shadow-sm space-y-4">
-                     <h3 className="text-lg font-black text-zinc-900 mb-4 uppercase tracking-widest">Add Field</h3>
+                <div className="col-span-4 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1 space-y-4">
+                     <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider">Add Field</h3>
                      {fieldTypes.map(field => (
                          <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-[#233DFF]/30 hover:bg-[#233DFF]/5">
                             <field.icon className="text-zinc-400" />

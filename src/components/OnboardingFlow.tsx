@@ -416,12 +416,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   
   if (isComplete) {
     return (
-      <div className="max-w-4xl w-full bg-white rounded-[40px] shadow-2xl border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
+      <div className="max-w-4xl w-full bg-white rounded-container shadow-elevation-3 border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
         <div className="text-center py-20 animate-in fade-in">
             <CheckCircle size={64} className="mx-auto text-emerald-500 mb-6" />
             <h2 className="text-3xl font-black text-zinc-900">Application Submitted!</h2>
             <p className="text-zinc-500 mt-4 max-w-md mx-auto">Thank you for applying to volunteer with Health Matters Clinic. Our team will review your application and you will receive an email notification regarding your status soon.</p>
-            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
+            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-white" />
               Return to Home
             </button>
@@ -438,15 +438,15 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
            <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
          )}
        </div>
-       <div className={`max-w-4xl w-full bg-white rounded-[40px] shadow-2xl border border-zinc-100 ${step === 'account' ? 'p-10 md:p-12' : 'p-10 md:p-16'} relative overflow-hidden`}>
+       <div className={`max-w-4xl w-full bg-white rounded-container shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-10 md:p-12' : 'p-10 md:p-16'} relative overflow-hidden`}>
         {renderStepContent()}
         {step !== 'account' && (
           <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
-            {currentStepIndex > 0 && <button onClick={prevStep} className="py-5 px-10 bg-white border border-black text-zinc-900 rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
+            {currentStepIndex > 0 && <button onClick={prevStep} className="py-5 px-10 bg-white border border-black text-zinc-900 rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-black" />
               Back
             </button>}
-            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
               {isStepLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
               </button>}
           </div>
@@ -631,7 +631,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
           <button
             onClick={onContinue}
             disabled={!canContinue}
-            className="w-full py-5 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-5 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" />
           </button>
@@ -1386,7 +1386,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
         </div>
       )}
 
-      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl">
+      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-elevation-2">
         {isLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Submit Application</>}
       </button>
     </div>

@@ -200,7 +200,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-elevation-1">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-zinc-600">Overall Progress</span>
           <span className="text-sm font-black text-[#233DFF]">{progressPercent}%</span>
@@ -223,7 +223,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
           onClick={() => setActiveSection('documents')}
           className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
             activeSection === 'documents'
-              ? 'bg-[#233DFF] text-white shadow-lg'
+              ? 'bg-[#233DFF] text-white shadow-elevation-2'
               : 'bg-white text-zinc-600 border border-zinc-200 hover:border-[#233DFF]/40'
           }`}
         >
@@ -234,7 +234,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
           onClick={() => setActiveSection('credentials')}
           className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${
             activeSection === 'credentials'
-              ? 'bg-[#233DFF] text-white shadow-lg'
+              ? 'bg-[#233DFF] text-white shadow-elevation-2'
               : 'bg-white text-zinc-600 border border-zinc-200 hover:border-[#233DFF]/40'
           }`}
         >
@@ -275,7 +275,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                     className={`px-4 py-2 rounded-full font-bold text-sm transition-all flex items-center gap-2 ${
                       isSigned
                         ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                        : 'bg-[#233DFF] text-white hover:bg-[#1a2fbf] shadow-lg'
+                        : 'bg-[#233DFF] text-white hover:bg-[#1a2fbf] shadow-elevation-2'
                     }`}
                   >
                     {isSigned ? 'View' : 'Review & Sign'}
@@ -290,7 +290,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
       {/* Credentials Section */}
       {activeSection === 'credentials' && (
-        <div className="bg-white rounded-2xl p-8 border border-zinc-100 shadow-sm space-y-6">
+        <div className="bg-white rounded-2xl p-8 border border-zinc-100 shadow-elevation-1 space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
             <Shield className="text-[#233DFF]" size={24} />
             <div>
@@ -455,7 +455,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
             <button
               onClick={handleSaveCredentials}
               disabled={isSaving}
-              className="px-6 py-3 bg-[#233DFF] text-white font-bold rounded-full hover:bg-[#1a2fbf] disabled:opacity-50 flex items-center gap-2 shadow-lg"
+              className="px-6 py-3 bg-[#233DFF] text-white font-bold rounded-full hover:bg-[#1a2fbf] disabled:opacity-50 flex items-center gap-2 shadow-elevation-2"
             >
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
               Save Credentials
@@ -556,8 +556,8 @@ const DocumentViewerModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-elevation-3 flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
           <div>
@@ -579,7 +579,7 @@ const DocumentViewerModal: React.FC<{
             >
               <iframe
                 src={document.url}
-                className="w-full min-h-[600px] bg-white rounded-xl shadow-sm"
+                className="w-full min-h-[600px] bg-white rounded-xl shadow-elevation-1"
                 title={document.title}
               />
             </div>
@@ -599,7 +599,7 @@ const DocumentViewerModal: React.FC<{
               ) : (
                 <button
                   onClick={() => setShowSignature(true)}
-                  className="w-full py-4 bg-[#233DFF] text-white font-bold rounded-full hover:bg-[#1a2fbf] flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full py-4 bg-[#233DFF] text-white font-bold rounded-full hover:bg-[#1a2fbf] flex items-center justify-center gap-2 shadow-elevation-2"
                 >
                   <Pen size={18} />
                   Proceed to Sign Document

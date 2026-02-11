@@ -93,7 +93,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
               activeTab === tab.id
-                ? 'bg-[#233DFF] text-white shadow-lg'
+                ? 'bg-[#233DFF] text-white shadow-elevation-2'
                 : 'bg-white text-zinc-600 border border-zinc-200 hover:border-[#233DFF]'
             }`}
           >
@@ -111,7 +111,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-[32px] border border-zinc-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
         {activeTab === 'dashboard' && (
           <DashboardView
             clients={clients}
@@ -691,8 +691,8 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
           <h2 className="text-xl font-bold">New Client Intake</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
@@ -815,8 +815,8 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h2 className="text-xl font-bold">Add Partner Agency</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>

@@ -278,7 +278,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
     if(isSuccess) {
         return (
-             <div className="fixed inset-0 bg-white z-[2000] flex items-center justify-center animate-in fade-in">
+             <div className="fixed inset-0 bg-white z-[1000] flex items-center justify-center animate-in fade-in">
                 <div className="text-center">
                     <CheckCircle size={64} className="mx-auto text-emerald-500" />
                     <h2 className="text-2xl font-bold mt-4">Event Created!</h2>
@@ -289,7 +289,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
     }
 
     return (
-        <div className="fixed inset-0 bg-white z-[2000] flex flex-col animate-in fade-in">
+        <div className="fixed inset-0 bg-white z-[1000] flex flex-col animate-in fade-in">
             <header className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Create New Event</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
@@ -444,7 +444,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     <div className="space-y-6">
                         {Object.entries(equipmentByCategory).map(([category, items]) => (
                             <div key={category}>
-                                <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-3">{category}</p>
+                                <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">{category}</p>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                     {items.map(item => {
                                         const selected = selectedEquipment.find(e => e.equipmentId === item.id);
@@ -534,7 +534,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     <h3 className="text-lg font-bold mb-4">6. Logistics & Supplies</h3>
                     <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-4">
                         <input type="number" placeholder="Estimated Attendees" value={eventData.estimatedAttendees || ''} onChange={e => setEventData({...eventData, estimatedAttendees: parseInt(e.target.value, 10) || 0})} className="w-full p-3 bg-white border border-zinc-200 rounded-lg"/>
-                        <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-black uppercase tracking-widest shadow-sm hover:bg-zinc-100 disabled:opacity-50">
+                        <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-100 disabled:opacity-50">
                             {isGeneratingSupplies ? <Loader2 className="animate-spin" size={16}/> : <><Sparkles size={16}/> Generate Supply Suggestions</>}
                         </button>
                         {(isGeneratingSupplies || eventData.supplyList) && (
@@ -592,7 +592,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     </div>
                 )}
                 <div className="flex justify-end">
-                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#1a2fbf] disabled:opacity-50">
+                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#1a2fbf] disabled:opacity-50">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
                     </button>
                 </div>

@@ -360,7 +360,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
 const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }) => (
     <div className="flex flex-col items-center justify-center text-center p-8">
-        <div className="p-6 bg-rose-100 rounded-full text-rose-600 mb-6 border-4 border-rose-200">
+        <div className="p-6 bg-rose-100 rounded-full text-rose-600 mb-6 border-2 border-rose-200">
             <HeartPulse size={48} />
         </div>
         <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Access Denied</h3>

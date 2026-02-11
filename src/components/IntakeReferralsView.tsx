@@ -192,7 +192,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
                 <label className="text-sm font-bold text-zinc-600 mb-2 block">Describe the client's need:</label>
                 <textarea value={clientNeed} onChange={e => setClientNeed(e.target.value)} placeholder="e.g., 'Spanish-speaking client needs a food bank in SPA 4' or 'unhoused veteran seeking mental health support'" className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
             </div>
-            <button onClick={handleFindMatch} disabled={isLoading || !clientNeed} className="w-full py-4 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 disabled:opacity-50 shadow-xl"><Sparkles size={16}/> {isLoading ? 'Searching...' : 'Find Best Match'}</button>
+            <button onClick={handleFindMatch} disabled={isLoading || !clientNeed} className="w-full py-4 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2"><Sparkles size={16}/> {isLoading ? 'Searching...' : 'Find Best Match'}</button>
             
             {isLoading && <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#233DFF]" size={32} /></div>}
 
@@ -204,7 +204,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
                          const resource = resources.find(r => r["Resource Name"] === rec["Resource Name"]);
                          if (!resource) return null;
                          return (
-                             <div key={i} className="p-6 bg-white border border-zinc-100 rounded-2xl shadow-sm">
+                             <div key={i} className="p-6 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1">
                                  <h4 className="font-black text-lg text-zinc-800">{rec["Resource Name"]}</h4>
                                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{resource["Service Category"]}</p>
                                  <p className="text-sm italic text-zinc-600 my-4">"{rec.reasoning}"</p>
@@ -222,7 +222,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
 
 const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }) => (
     <div className="flex flex-col items-center justify-center text-center p-8">
-        <div className="p-6 bg-rose-100 rounded-full text-rose-600 mb-6 border-4 border-rose-200"><ClipboardPaste size={48} /></div>
+        <div className="p-6 bg-rose-100 rounded-full text-rose-600 mb-6 border-2 border-rose-200"><ClipboardPaste size={48} /></div>
         <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Access Denied</h3>
         <p className="text-zinc-500 max-w-sm mt-2">Your current profile does not have the required training clearances for this station. Please complete the "{requiredTraining}" module in the Training Academy.</p>
     </div>

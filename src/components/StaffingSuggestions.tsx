@@ -95,8 +95,8 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2001] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-2xl shadow-lg flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-2 flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-6 border-b border-zinc-100 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>

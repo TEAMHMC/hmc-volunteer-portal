@@ -75,12 +75,12 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                     <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Referral Dashboard</h1>
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage and track all client referrals and SLA compliance.</p>
                 </div>
-                <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 transition-colors">
+                <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#233DFF]/90 transition-colors">
                     <Plus size={16} /> New Referral
                 </button>
             </header>
 
-            <div className="bg-white rounded-[48px] border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
@@ -142,8 +142,8 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
     };
 
     return (
-        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={onClose}>
-            <div className="bg-white max-w-4xl w-full rounded-[40px] shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
+            <div className="bg-white max-w-4xl w-full rounded-container shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{isNew ? 'New Referral' : `Referral for ${formData.clientName}`}</h2>
                     <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
@@ -171,7 +171,7 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
 
                 </main>
                 <footer className="p-8 border-t border-zinc-100 flex justify-end">
-                    <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
+                    <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#233DFF]/90 disabled:opacity-50">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Referral</>}
                     </button>
                 </footer>

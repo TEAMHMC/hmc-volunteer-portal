@@ -96,8 +96,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-[#FDFEFE] flex items-center justify-center p-8 font-['Inter']">
-          <div className="text-center bg-white p-16 rounded-[64px] shadow-2xl border border-zinc-100 max-w-xl animate-in fade-in zoom-in-95 duration-500">
-            <div className="w-24 h-24 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto mb-10 border border-rose-100">
+          <div className="text-center bg-white p-16 rounded-container shadow-elevation-3 border border-zinc-100 max-w-xl animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 bg-rose-50 rounded-container flex items-center justify-center mx-auto mb-10 border border-rose-100">
               <AlertTriangle className="text-rose-500" size={48} />
             </div>
             <h1 className="text-5xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none mb-6">System<br/>Interruption</h1>
@@ -110,13 +110,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <button 
                 onClick={() => window.location.reload()} 
-                className="w-full sm:flex-1 px-10 py-6 bg-zinc-900 text-white font-black rounded-full text-[11px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-3"
+                className="w-full sm:flex-1 px-10 py-6 bg-zinc-900 text-white font-bold rounded-full text-[11px] uppercase tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-elevation-3 flex items-center justify-center gap-3"
               >
                 <RotateCcw size={16} /> Reload Platform
               </button>
               <button 
                 onClick={this.handleReset} 
-                className="w-full sm:flex-1 px-10 py-6 bg-zinc-50 text-zinc-400 font-black rounded-full text-[11px] uppercase tracking-widest hover:text-zinc-900 transition-all border border-zinc-100"
+                className="w-full sm:flex-1 px-10 py-6 bg-zinc-50 text-zinc-400 font-bold rounded-full text-[11px] uppercase tracking-wide hover:text-zinc-900 transition-all border border-zinc-100"
               >
                 Clear Cache
               </button>

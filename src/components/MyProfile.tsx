@@ -160,7 +160,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       {/* Weekly Availability Reminder Banner */}
       {showReminderBanner && (
-        <div className="bg-amber-50 border border-amber-200 p-6 rounded-[32px] flex items-center justify-between animate-in slide-in-from-top">
+        <div className="bg-amber-50 border border-amber-200 p-6 rounded-container flex items-center justify-between animate-in slide-in-from-top">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
               <Bell size={24} />
@@ -190,10 +190,10 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <div className="relative group">
-            <div className="w-32 h-32 rounded-[40px] bg-zinc-900 border-4 border-white shadow-2xl overflow-hidden flex items-center justify-center text-white text-4xl font-black">
+            <div className="w-32 h-32 rounded-container bg-zinc-900 border-2 border-white shadow-elevation-3 overflow-hidden flex items-center justify-center text-white text-4xl font-black">
               {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} className="w-full h-full object-cover" /> : currentUser.name.charAt(0)}
             </div>
-            <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-12 h-12 bg-white border border-black rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all"><Camera size={20} /></button>
+            <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-12 h-12 bg-white border border-black rounded-full flex items-center justify-center shadow-elevation-2 hover:scale-110 active:scale-95 transition-all"><Camera size={20} /></button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <div>
@@ -211,18 +211,18 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             <p className="text-zinc-500 mt-2 font-medium flex items-center gap-2"><Shield size={16} className="text-[#233DFF]" /> {currentUser.role}</p>
           </div>
         </div>
-        <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3 border border-black shadow-xl ${isEditing ? 'bg-[#233DFF] text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
+        <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3 border border-black shadow-elevation-2 ${isEditing ? 'bg-[#233DFF] text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
           {isEditing ? <><Save size={16}/> Save Profile</> : <><Edit3 size={16}/> Edit Profile</>}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
-          <div className="bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm">
+          <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
              <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Profile Details</h3>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
-                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Contact</label>
+                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Contact</label>
                    {isEditing ? (
                      <div className="space-y-4">
                        <input type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-6 py-4 font-bold text-sm outline-none focus:bg-white transition-all" placeholder="Email" />
@@ -236,7 +236,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                    )}
                 </div>
                  <div className="space-y-4">
-                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Notifications</label>
+                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Notifications</label>
                     {isEditing ? (
                         <div className="space-y-3 p-4 bg-zinc-50 rounded-2xl">
                             <label className="flex items-center gap-3"><input type="checkbox" checked={profileData.notificationPrefs.emailAlerts} onChange={e => handleNotificationChange('emailAlerts', e.target.checked)} /> Email Alerts</label>
@@ -251,7 +251,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 </div>
              </div>
           </div>
-          <div className="bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm">
+          <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Availability</h3>
             {isEditing ? (
                  <div className="space-y-6">
@@ -300,7 +300,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             ) : (
                  <div className="space-y-6">
                     <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2 mb-3 block">Weekly Schedule</label>
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2 mb-3 block">Weekly Schedule</label>
                         {profileData.availDays.length > 0 ? (
                           <div className="space-y-2">
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].filter(d => profileData.availDays.includes(d)).map(day => {
@@ -332,7 +332,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                         )}
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2 mb-2 block">Upcoming Time Off</label>
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2 mb-2 block">Upcoming Time Off</label>
                         <div className="flex flex-wrap gap-2">
                             {profileData.unavailableDates.length > 0 ? profileData.unavailableDates.map(date => <span key={date} className="px-3 py-1 bg-zinc-100 text-zinc-700 rounded-full font-bold text-xs">{date}</span>) : <p className="text-xs text-zinc-400 italic">No dates specified.</p>}
                         </div>
@@ -343,12 +343,12 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         </div>
 
         <div className="space-y-10">
-          <div className="bg-white p-12 rounded-[56px] border border-zinc-100 shadow-sm space-y-10">
+          <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1 space-y-10">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Legacy Badges</h3>
             <div className="grid grid-cols-1 gap-4">
               {currentUser.achievements.length === 0 ? <p className="text-zinc-400 text-sm font-medium italic">No badges earned yet.</p> : currentUser.achievements.map(ach => (
-                <div key={ach.id} className="flex items-center gap-5 p-5 bg-zinc-50 rounded-[28px] border border-zinc-100/50">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-400 shadow-sm"><Star size={24} fill="currentColor"/></div>
+                <div key={ach.id} className="flex items-center gap-5 p-5 bg-zinc-50 rounded-card-lg border border-zinc-100/50">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-400 shadow-elevation-1"><Star size={24} fill="currentColor"/></div>
                   <div>
                     <p className="text-sm font-black text-zinc-900">{ach.title}</p>
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{new Date(ach.dateEarned).toLocaleDateString()}</p>

@@ -43,7 +43,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
       <nav className="max-w-[1200px] mx-auto w-full px-6 py-8 flex justify-between items-center">
         <div className="flex items-center gap-4 cursor-pointer" onClick={onBackToLanding}>
           <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-10 h-10" />
-          <span className="text-xs font-black text-zinc-900 uppercase tracking-widest">Health Matters Clinic</span>
+          <span className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Health Matters Clinic</span>
         </div>
         <button onClick={onBackToLanding} className="text-xs font-bold text-zinc-500 hover:text-zinc-900">Return to Home</button>
       </nav>
@@ -59,7 +59,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
         ) : (
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {opportunities.map(opp => (
-              <div key={opp.id} className="bg-white p-8 rounded-3xl border border-zinc-100 shadow-sm flex flex-col">
+              <div key={opp.id} className="bg-white p-8 rounded-3xl border border-zinc-100 shadow-elevation-1 flex flex-col">
                 <h3 className="text-xl font-bold text-zinc-800">{opp.title}</h3>
                 <p className="text-sm text-zinc-400 font-medium mt-1">{opp.category}</p>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 my-4">
@@ -104,8 +104,8 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-lg p-8" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-md w-full rounded-2xl shadow-elevation-2 p-8" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-xl font-bold">RSVP for {opportunity.title}</h2>

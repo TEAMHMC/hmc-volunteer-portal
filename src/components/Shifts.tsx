@@ -132,8 +132,8 @@ const BulkUploadEventsModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-xl w-full shadow-elevation-3">
         <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-medium text-zinc-900">Bulk Import Events</h2>
@@ -410,8 +410,8 @@ const EditEventModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-elevation-3">
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h2 className="text-xl font-medium text-zinc-900">Edit Event</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={18} className="text-zinc-400" /></button>
@@ -912,7 +912,12 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   if (selectedShiftId && selectedShift && selectedOpp) {
     const eventShifts = shifts.filter(s => s.opportunityId === selectedOpp.id);
-    return <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} />;
+    return (
+      <>
+        <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
+        {editingEvent && <EditEventModal event={editingEvent} shifts={shifts} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
+      </>
+    );
   }
 
   // Helper to check if a date is in the past
@@ -1057,7 +1062,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
        {showToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-2xl flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-elevation-3 flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
            <div className={`p-2 rounded-lg ${toastError ? 'bg-rose-500' : 'bg-emerald-500'}`}>{toastError ? <XCircle size={16} /> : <Check size={16} />}</div>
            <span className="text-sm font-medium uppercase tracking-wide">{toastMsg}</span>
         </div>
@@ -1081,8 +1086,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
        {/* Event Detail Modal */}
        {showEventDetail && (
-         <div className="fixed inset-0 bg-black/50 z-[4000] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowEventDetail(null)}>
-           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowEventDetail(null)}>
+           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-elevation-3" onClick={(e) => e.stopPropagation()}>
              <div className="p-8">
                <div className="flex justify-between items-start mb-6">
                  <span className="px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-[#233DFF]/10 text-[#233DFF]">{normalizeCategory(showEventDetail.category)}</span>
@@ -1128,9 +1133,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           <h2 className="text-3xl md:text-4xl font-medium text-zinc-900 tracking-normal leading-none">My Missions</h2>
           <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Find, join, and manage community health events.</p>
         </div>
-        <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-sm shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-medium uppercase tracking-wide transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-xl' : 'text-zinc-400 hover:text-zinc-600'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-medium uppercase tracking-wide transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}>
               {tab.label}
             </button>
           ))}
@@ -1140,13 +1145,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-lg hover:opacity-90 transition-opacity">
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity">
                   <span className="w-2 h-2 rounded-full bg-white" /> Create New Event
               </button>
-              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity disabled:opacity-50">
                   {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
               </button>
-              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full shadow-sm hover:opacity-80 transition-opacity">
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full shadow-elevation-1 hover:opacity-80 transition-opacity">
                   <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Bulk Import CSV
               </button>
            </div>
@@ -1159,7 +1164,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                </h3>
                <div className="space-y-4">
                  {opportunities.filter(o => o.approvalStatus === 'pending').map(opp => (
-                   <div key={opp.id} className="bg-amber-50 p-6 rounded-2xl border-2 border-amber-200">
+                   <div key={opp.id} className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
                      <div className="flex items-start justify-between gap-4">
                        <div>
                          <h3 className="font-bold text-zinc-900">{opp.title}</h3>
@@ -1210,7 +1215,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                 const dateB = new Date(b.date + 'T00:00:00').getTime();
                 return dateA - dateB;
               }).map(opp => (
-                 <div key={opp.id} className={`bg-white p-6 rounded-2xl border shadow-sm flex flex-col ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
+                 <div key={opp.id} className={`bg-white p-6 rounded-2xl border shadow-elevation-1 flex flex-col ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h3 className="font-bold truncate">{opp.title}</h3>
@@ -1373,7 +1378,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const regStatus = getRegistrationStatus(opp);
                             const isPendingTraining = isRegistered && regStatus.isPending;
                             return (
-                              <div key={shift.id} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-xl' : isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                              <div key={shift.id} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-elevation-2' : isRegistered ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
                                 {isRegistered && (
                                   <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-[#233DFF] text-white'}`}>
                                     {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
@@ -1417,7 +1422,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                         <button
                                           onClick={() => handleToggleRegistration(shift.id)}
                                           disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
-                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                         >
                                           {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                         </button>
@@ -1430,14 +1435,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
                                       const isReg = user.assignedShiftIds?.includes(shift.id);
                                       return isWithinWeek ? (
-                                        <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-normal text-sm bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-lg active:scale-95">
+                                        <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-normal text-sm bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                           <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                         </button>
                                       ) : (
                                         <button
                                           onClick={() => handleToggleRegistration(shift.id)}
                                           disabled={slotsLeft === 0 && !isReg}
-                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isReg ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isReg ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                         >
                                           {isReg ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                         </button>
@@ -1450,7 +1455,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           } else {
                             const isRsvped = user.rsvpedEventIds?.includes(opp.id);
                             return (
-                              <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                              <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
                                 {isRsvped && (
                                   <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
                                     <Check size={14} /> Confirmed
@@ -1559,7 +1564,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const isPendingTraining = isRegistered && regStatus.isPending;
 
                             return (
-                                <div key={shift.id} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-xl' : isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                <div key={shift.id} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-elevation-2' : isRegistered ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
                                     {isRegistered && (
                                        <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-[#233DFF] text-white'}`}>
                                           {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
@@ -1621,7 +1626,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               <button
                                                 onClick={() => handleToggleRegistration(shift.id)}
                                                 disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
-                                                className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                                className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                               >
                                                 {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                               </button>
@@ -1636,14 +1641,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               const isRegistered = user.assignedShiftIds?.includes(shift.id);
 
                                               return isWithinWeek ? (
-                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full font-normal text-base bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-lg active:scale-95">
+                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full font-normal text-base bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                                    <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                                 </button>
                                               ) : (
                                                 <button
                                                   onClick={() => handleToggleRegistration(shift.id)}
                                                   disabled={slotsLeft === 0 && !isRegistered}
-                                                  className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                                  className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
                                                 >
                                                   {isRegistered ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                                 </button>

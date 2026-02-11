@@ -140,17 +140,17 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
          <h1 className="text-2xl font-black">Welcome Back, {user.name}!</h1>
          <p className="text-zinc-500">Let's get your new profile up and running.</p>
       </div>
-      <div className="max-w-4xl w-full bg-white rounded-[40px] shadow-2xl border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
+      <div className="max-w-4xl w-full bg-white rounded-container shadow-elevation-3 border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
         <div className="space-y-8 animate-in fade-in">
           {renderContent()}
         </div>
         <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
           {step === 'training' ? (
-            <button onClick={onComplete} disabled={!isTrainingComplete || isLoading} className="flex-1 py-5 bg-emerald-600 text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={onComplete} disabled={!isTrainingComplete || isLoading} className="flex-1 py-5 bg-emerald-600 text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? <Loader2 className="animate-spin" /> : <>Complete Activation <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           ) : (
-            <button onClick={validateAndProceed} disabled={isLoading} className="flex-1 py-5 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={validateAndProceed} disabled={isLoading} className="flex-1 py-5 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? <Loader2 className="animate-spin" /> : <>Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           )}

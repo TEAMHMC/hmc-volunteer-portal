@@ -386,7 +386,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                         message.type === 'volunteer'
                           ? 'bg-[#233DFF] text-white rounded-2xl rounded-br-md'
                           : message.type === 'user'
-                          ? 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md shadow-sm'
+                          ? 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md shadow-elevation-1'
                           : 'bg-slate-200 text-slate-800 rounded-2xl rounded-bl-md'
                       } px-4 py-3`}
                     >

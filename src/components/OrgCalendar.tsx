@@ -195,7 +195,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         {canCreateEvents && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full hover:bg-[#1a2fbf] transition-colors shadow-lg shadow-[#233DFF]/20"
+            className="flex items-center gap-2 px-5 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full hover:bg-[#1a2fbf] transition-colors shadow-elevation-2"
           >
             <span className="w-2 h-2 rounded-full bg-white" /> New Event
           </button>
@@ -205,7 +205,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       {/* Calendar Grid + Filter */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Monthly Calendar */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-zinc-200/60 shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-zinc-200/60 shadow-elevation-1 p-6">
           <div className="flex items-center justify-between mb-6">
             <button onClick={prevMonth} className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors">
               <ChevronLeft size={18} className="text-zinc-600" />
@@ -238,7 +238,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                   key={i}
                   onClick={() => handleDayClick(day)}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all relative
-                    ${isSelected ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/20' : isToday ? 'bg-zinc-100 font-black' : 'hover:bg-zinc-50'}
+                    ${isSelected ? 'bg-[#233DFF] text-white shadow-elevation-2' : isToday ? 'bg-zinc-100 font-black' : 'hover:bg-zinc-50'}
                   `}
                 >
                   <span className={`text-sm font-semibold ${isSelected ? 'text-white' : isToday ? 'text-zinc-900' : 'text-zinc-700'}`}>
@@ -268,7 +268,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
         {/* Filter Panel */}
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-zinc-200/60 shadow-sm p-6">
+          <div className="bg-white rounded-3xl border border-zinc-200/60 shadow-elevation-1 p-6">
             <div className="flex items-center gap-2 mb-4">
               <Filter size={16} className="text-zinc-400" />
               <h4 className="text-sm font-bold text-zinc-900">Filter by Type</h4>
@@ -295,7 +295,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-white rounded-3xl border border-zinc-200/60 shadow-sm p-6">
+          <div className="bg-white rounded-3xl border border-zinc-200/60 shadow-elevation-1 p-6">
             <h4 className="text-sm font-bold text-zinc-900 mb-3">This Month</h4>
             <div className="text-3xl font-medium text-zinc-900">
               {Object.values(eventsByDay).reduce((sum, arr) => sum + arr.length, 0)}
@@ -337,7 +337,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               return (
                 <div
                   key={`${ev.id}-${ev.source}`}
-                  className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}
+                  className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}
                 >
                   {isAttending && (
                     <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
@@ -403,7 +403,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                             href={ev.meetLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-5 py-3 rounded-full bg-green-600 text-white font-normal text-base border border-green-600 flex items-center gap-2 shadow-lg hover:bg-green-700 transition-colors"
+                            className="px-5 py-3 rounded-full bg-green-600 text-white font-normal text-base border border-green-600 flex items-center gap-2 shadow-elevation-2 hover:bg-green-700 transition-colors"
                           >
                             <span className="w-2 h-2 rounded-full bg-white" /> <Video size={14} /> Join
                           </a>
@@ -413,7 +413,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                           <button
                             onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
                             disabled={rsvpLoading === ev.id}
-                            className={`px-6 py-3 rounded-full font-normal text-base transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
+                            className={`px-6 py-3 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 ${
                               isAttending ? 'bg-white text-rose-500 border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
                             }`}
                           >
@@ -481,8 +481,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
       {/* Event Detail Modal */}
       {showDetailEvent && (
-        <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={() => setShowDetailEvent(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowDetailEvent(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevation-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-zinc-100">
               <span className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${getColor(showDetailEvent.type).bg} ${getColor(showDetailEvent.type).text} ${getColor(showDetailEvent.type).border}`}>
                 {getColor(showDetailEvent.type).label}
@@ -626,8 +626,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
   const updateField = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
           <h3 className="text-lg font-medium text-zinc-900">{editingEvent ? 'Edit Event' : 'New Event'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">

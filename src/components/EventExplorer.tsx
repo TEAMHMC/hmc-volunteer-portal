@@ -293,7 +293,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 relative">
       {/* Toast notification */}
       {showToast && (
-        <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
+        <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-6 py-4 rounded-full shadow-elevation-3 flex items-center gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
           <CheckCircle2 size={18} className={toastIsError ? 'text-rose-400' : 'text-emerald-400'} />
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
@@ -334,7 +334,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <button
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
-                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-md group ${isSignedUp ? 'border-[#233DFF]/30 shadow-sm' : 'border-[#e8e6e3] hover:border-zinc-300'}`}
+                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-elevation-1 group ${isSignedUp ? 'border-[#233DFF]/30 shadow-elevation-1' : 'border-[#e8e6e3] hover:border-zinc-300'}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span
@@ -366,7 +366,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]" onClick={() => { setSelectedEvent(null); setJustRsvped(false); }} />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl flex flex-col max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-2xl max-w-lg w-full shadow-elevation-3 flex flex-col max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
               <div className="p-6 space-y-5">
                 <div className="flex justify-between items-start">
                   <span
@@ -412,7 +412,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       </div>
                       <button
                         onClick={() => downloadICS(selectedEvent)}
-                        className="w-full py-4 rounded-full font-normal text-base transition-all shadow-lg flex items-center justify-center gap-2 bg-[#233dff] text-white border border-[#233dff] hover:opacity-95"
+                        className="w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-[#233dff] text-white border border-[#233dff] hover:opacity-95"
                       >
                         <Calendar size={16} /> Save to Calendar (.ics)
                       </button>
@@ -428,7 +428,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       <button
                         onClick={() => handleSignUp(selectedEvent.id)}
                         disabled={isSigningUp}
-                        className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 ${
+                        className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 ${
                           user.rsvpedEventIds?.includes(selectedEvent.id)
                             ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]'
                             : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
@@ -467,7 +467,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
       {/* My Confirmed Events */}
       {user.rsvpedEventIds && user.rsvpedEventIds.length > 0 && (
-        <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
+        <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-elevation-2 relative overflow-hidden group">
           <Calendar className="absolute -bottom-8 -right-8 w-36 h-36 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
           <div className="relative z-10">
             <h4 className="text-[10px] font-medium text-indigo-400 uppercase tracking-wide mb-4">My Confirmed Events</h4>

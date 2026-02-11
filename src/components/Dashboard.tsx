@@ -363,7 +363,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
 
       {viewingAsRole && (
-          <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] z-[101] md:pl-[320px] shadow-lg`}>
+          <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] z-[101] md:pl-[320px] shadow-elevation-2`}>
              <Eye size={16} className="mr-3"/> Viewing as {viewingAsRole}
              <button onClick={() => setViewingAsRole(null)} className="ml-6 bg-zinc-900 text-white px-4 py-1 rounded-full text-[9px] hover:opacity-80">Return to Admin View</button>
           </div>
@@ -470,7 +470,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {/* Desktop sidebar - hidden on mobile */}
       <aside className={`hidden md:flex w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
          <div className="flex items-center gap-4 px-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-elevation-2">
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />
             </div>
             <div className="flex-1">
@@ -498,7 +498,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-5 mb-2">{group.label}</p>
                 <div className="flex flex-col gap-1">
                   {group.items.map(item => (
-                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/25' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm'}`}>
+                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-elevation-1'}`}>
                         <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                         {item.badge && item.badge > 0 ? (
                           <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
@@ -515,8 +515,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          </nav>
 
          <div className="mt-auto space-y-4 pt-8 border-t border-zinc-100">
-            <button onClick={() => setActiveTab('profile')} className="flex w-full items-center gap-4 p-3 hover:bg-white rounded-2xl transition-all hover:shadow-sm group">
-               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-lg shadow-lg shrink-0 overflow-hidden">
+            <button onClick={() => setActiveTab('profile')} className="flex w-full items-center gap-4 p-3 hover:bg-white rounded-2xl transition-all hover:shadow-elevation-1 group">
+               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-lg shadow-elevation-2 shrink-0 overflow-hidden">
                  {displayUser.avatarUrl || (displayUser as any).profilePhoto ? (
                    <img src={displayUser.avatarUrl || (displayUser as any).profilePhoto} className="w-full h-full object-cover" alt="" />
                  ) : (
@@ -533,7 +533,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               <div className="relative">
                 <select
                   onChange={(e) => setViewingAsRole(e.target.value)}
-                  className="w-full bg-zinc-900 text-white border-0 rounded-full font-black text-[10px] uppercase tracking-widest pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-lg"
+                  className="w-full bg-zinc-900 text-white border-0 rounded-full font-bold text-[10px] uppercase tracking-wide pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-elevation-2"
                 >
                   <option value="">View as Role...</option>
                   {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
@@ -551,7 +551,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {showNotifications && (
         <>
           <div className="fixed inset-0 bg-black/30 z-[199] transition-opacity" onClick={() => setShowNotifications(false)} />
-          <div className="fixed inset-y-0 right-0 w-full md:w-[380px] bg-white shadow-2xl z-[200] flex flex-col animate-in slide-in-from-right duration-200">
+          <div className="fixed inset-y-0 right-0 w-full md:w-[380px] bg-white shadow-elevation-3 z-[200] flex flex-col animate-in slide-in-from-right duration-200">
             {/* Header */}
             <div className="p-5 border-b border-zinc-100 flex items-center justify-between shrink-0">
               <h4 className="text-base font-black text-zinc-900">Notifications</h4>
@@ -755,7 +755,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     );
                   }
                   return (
-                    <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
+                    <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-elevation-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-zinc-600">
                           <i className="fa-solid fa-star text-[#233DFF] mr-1.5" />
@@ -828,7 +828,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-2xl shadow-[#233DFF]/20 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
                 <div>
@@ -843,7 +843,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full font-normal text-base shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full font-normal text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
                     <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -855,10 +855,10 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 
         <div className="space-y-6">
           {/* Profile Status Card - Glass effect */}
-          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-zinc-200/50 shadow-lg shadow-zinc-200/30 space-y-6">
+          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-container border border-zinc-200/50 shadow-elevation-2 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-bold text-zinc-900 tracking-tight">Profile Status</h4>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-lg shadow-[#233DFF]/20">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-elevation-2">
                   <ShieldCheck size={18} className="text-white" />
                 </div>
               </div>
@@ -919,11 +919,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Training Required Card - Modern gradient */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[32px] p-8 md:p-10 border border-amber-200/50 shadow-lg shadow-amber-100/50 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-container p-8 md:p-10 border border-amber-200/50 shadow-elevation-2 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="relative z-10">
               <div className="flex items-start gap-5 mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-elevation-2 shrink-0">
                   <GraduationCap size={28} />
                 </div>
                 <div>
@@ -972,7 +972,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                 })}
               </div>
 
-              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-normal text-base shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-normal text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-white" />
                 Continue Training
                 <ArrowRight size={18} />
@@ -984,10 +984,10 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]">
                 <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-sm flex items-center justify-between group hover:border-[#233DFF]">
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]">
                 <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
               </button>
             </div>
@@ -1036,7 +1036,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
       {/* Tab Header */}
       <div className="flex border-b border-zinc-100">
         <button
@@ -1271,7 +1271,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                 </div>
 
                 {/* Event card */}
-                <div className="flex-1 bg-white border border-zinc-100 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                <div className="flex-1 bg-white border border-zinc-100 rounded-xl p-4 hover:shadow-elevation-1 transition-shadow">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>

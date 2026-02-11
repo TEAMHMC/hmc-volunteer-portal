@@ -38,16 +38,16 @@ const ResourceDashboard: React.FC = () => {
                     <p className="text-zinc-500 mt-2 font-medium text-lg">Manage community referral resources.</p>
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-black uppercase tracking-widest shadow-sm hover:bg-zinc-50 transition-colors">
+                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
                         <UploadCloud size={16} /> Bulk Upload
                     </button>
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 transition-colors">
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#233DFF]/90 transition-colors">
                         <Plus size={16} /> Add Resource
                     </button>
                 </div>
             </header>
 
-            <div className="bg-white rounded-[48px] border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
@@ -119,8 +119,8 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
     };
 
     return (
-        <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-md z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-[40px] shadow-2xl border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-2xl w-full rounded-container shadow-elevation-3 border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Upload Resources</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
@@ -155,7 +155,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                         <button
                             onClick={handleUpload}
                             disabled={isUploading || !file}
-                            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isUploading ? <Loader2 className="animate-spin" size={18} /> : <><UploadCloud size={18} /> Import Resources</>}
                         </button>
@@ -167,8 +167,8 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
 };
 
 const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }> = ({ onClose, onComplete }) => (
-    <div className="fixed inset-0 bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-8" onClick={onClose}>
-        <div className="bg-white max-w-4xl w-full rounded-[40px] shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
+        <div className="bg-white max-w-4xl w-full rounded-container shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Resource</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
@@ -238,7 +238,7 @@ const NewResourceForm: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
                 <FormField label="SPA (Service Planning Area)"><input type="text" value={formData['SPA'] || ''} onChange={e => handleChange('SPA', e.target.value)} /></FormField>
              </div>
              <div className="flex justify-end pt-6 border-t border-zinc-100">
-                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
+                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#233DFF]/90 disabled:opacity-50">
                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Resource</>}
                 </button>
              </div>
