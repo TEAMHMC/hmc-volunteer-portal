@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Opportunity, Shift, Volunteer } from '../types';
 import { analyticsService } from '../services/analyticsService';
 import { Clock, Check, Calendar, MapPin, ChevronRight, UserPlus, XCircle, Mail, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw, Package, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
@@ -1013,6 +1013,40 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   const hasPastEvents = Object.keys(pastGroupedByDate).length > 0;
 
+  // For my-schedule: build a flat sorted list of all missions (upcoming first by nearest date, then past)
+  const myScheduleCards = useMemo(() => {
+    if (activeTab !== 'my-schedule') return [];
+    type CardItem = { type: 'shift'; shift: Shift; opp: Opportunity; isPast: boolean; sortDate: number } | { type: 'rsvp'; opp: Opportunity; isPast: boolean; sortDate: number };
+    const cards: CardItem[] = [];
+
+    // Add upcoming + past shifts
+    [...upcomingShifts, ...pastShifts].forEach(shift => {
+      const opp = getOpp(shift.opportunityId);
+      if (!opp) return;
+      // Deduplicate: only keep one shift per opportunity (best slots)
+      if (cards.some(c => c.type === 'shift' && c.opp.id === opp.id)) return;
+      const past = isPastEvent(opp.date);
+      cards.push({ type: 'shift', shift, opp, isPast: past, sortDate: new Date(opp.date + 'T00:00:00').getTime() });
+    });
+
+    // Add rsvped opps without shifts
+    [...upcomingRsvpedOpps, ...pastRsvpedOpps].forEach(opp => {
+      if (cards.some(c => c.opp.id === opp.id)) return;
+      const past = isPastEvent(opp.date);
+      cards.push({ type: 'rsvp', opp, isPast: past, sortDate: new Date(opp.date + 'T00:00:00').getTime() });
+    });
+
+    // Sort: upcoming first (nearest date), then past (most recent first)
+    const now = Date.now();
+    cards.sort((a, b) => {
+      if (a.isPast !== b.isPast) return a.isPast ? 1 : -1;
+      if (!a.isPast) return a.sortDate - b.sortDate; // upcoming: nearest first
+      return b.sortDate - a.sortDate; // past: most recent first
+    });
+
+    return cards;
+  }, [activeTab, upcomingShifts, pastShifts, upcomingRsvpedOpps, pastRsvpedOpps]);
+
   const tabs = [
     ...(canManageEvents ? [{ id: 'manage', label: 'Manage Events' }] : []),
     { id: 'available', label: 'Available Missions' },
@@ -1309,20 +1343,211 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
               ))}
             </select>
           </div>
+
+          {/* MY SCHEDULE — flat sorted grid with date on card */}
+          {activeTab === 'my-schedule' && (
+            <>
+              {myScheduleCards.length === 0 && (
+                <div className="py-32 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
+                    <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
+                    <p className="text-lg font-bold text-zinc-400 italic">You have no upcoming missions.</p>
+                    <p className="text-sm text-zinc-300 mt-2">Browse available missions to get started.</p>
+                </div>
+              )}
+              {myScheduleCards.length > 0 && (() => {
+                const firstPastIdx = myScheduleCards.findIndex(c => c.isPast);
+                const upcomingCards = firstPastIdx === -1 ? myScheduleCards : myScheduleCards.slice(0, firstPastIdx);
+                const pastCards = firstPastIdx === -1 ? [] : myScheduleCards.slice(firstPastIdx);
+                return (
+                  <>
+                    {upcomingCards.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {upcomingCards.map(card => {
+                          const opp = card.opp;
+                          const dateLabel = new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                          if (card.type === 'shift') {
+                            const shift = card.shift;
+                            const isRegistered = user.assignedShiftIds?.includes(shift.id);
+                            const slotsLeft = shift.slotsTotal - shift.slotsFilled;
+                            const regStatus = getRegistrationStatus(opp);
+                            const isPendingTraining = isRegistered && regStatus.isPending;
+                            return (
+                              <div key={shift.id} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-xl' : isRegistered ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                {isRegistered && (
+                                  <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-[#233DFF] text-white'}`}>
+                                    {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
+                                  </div>
+                                )}
+                                {isPendingTraining && (
+                                  <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3">
+                                    <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                                    <div>
+                                      <p className="text-xs font-bold text-amber-800">Complete {regStatus.program} training to confirm</p>
+                                      <p className="text-[11px] text-amber-600 mt-0.5">Go to Training Academy to finish the remaining modules.</p>
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="p-6 md:p-8 flex-1">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-4">
+                                    <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                    {dateLabel}
+                                  </div>
+                                  <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
+                                  <h3 className="text-xl font-medium text-zinc-900 tracking-normal leading-tight mb-2 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                  <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-4">
+                                    <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
+                                  </div>
+                                  <p className="text-sm text-zinc-500 font-medium leading-relaxed line-clamp-2">{opp.description ? (opp.description.length > 100 ? opp.description.substring(0, 100) + '...' : opp.description) : ''}</p>
+                                </div>
+                                <div className="bg-zinc-50/70 p-4 md:p-6 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
+                                        <Clock size={14} className="text-[#233DFF] shrink-0" />
+                                        {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                      </p>
+                                    </div>
+                                    {userMode === 'volunteer' && (() => {
+                                      const volRegStatus = getRegistrationStatus(opp);
+                                      if (!volRegStatus.canRegister && !isRegistered) {
+                                        return <p className="text-[10px] text-zinc-400 font-medium leading-tight text-right max-w-[200px]">{volRegStatus.message}</p>;
+                                      }
+                                      return (
+                                        <button
+                                          onClick={() => handleToggleRegistration(shift.id)}
+                                          disabled={isRegistering || (slotsLeft === 0 && !isRegistered)}
+                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                        >
+                                          {isRegistering ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
+                                        </button>
+                                      );
+                                    })()}
+                                    {canManageEvents && (() => {
+                                      const eventDate = new Date(opp.date + 'T00:00:00');
+                                      const today = new Date();
+                                      const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                      const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
+                                      const isReg = user.assignedShiftIds?.includes(shift.id);
+                                      return isWithinWeek ? (
+                                        <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-normal text-sm bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-lg active:scale-95">
+                                          <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleToggleRegistration(shift.id)}
+                                          disabled={slotsLeft === 0 && !isReg}
+                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isReg ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                        >
+                                          {isReg ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
+                                        </button>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            const isRsvped = user.rsvpedEventIds?.includes(opp.id);
+                            return (
+                              <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
+                                {isRsvped && (
+                                  <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
+                                    <Check size={14} /> Confirmed
+                                  </div>
+                                )}
+                                <div className="p-6 md:p-8 flex-1">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-4">
+                                    <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                    {dateLabel}
+                                  </div>
+                                  <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
+                                  <h3 className="text-xl font-medium text-zinc-900 tracking-normal leading-tight mb-2 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                  <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-4">
+                                    <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
+                                  </div>
+                                  <p className="text-sm text-zinc-500 font-medium leading-relaxed line-clamp-2">{opp.description ? (opp.description.length > 100 ? opp.description.substring(0, 100) + '...' : opp.description) : ''}</p>
+                                </div>
+                                <div className="bg-zinc-50/70 p-4 md:p-6 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
+                                  <div className="flex items-center justify-between gap-4">
+                                    <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
+                                      <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                      {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                    {userMode === 'volunteer' && isRsvped && (
+                                      <span className="px-6 py-3 rounded-full font-normal text-sm bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Registered
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    )}
+
+                    {/* Past events — greyed out but clickable */}
+                    {pastCards.length > 0 && (
+                      <div className="mt-10 pt-8 border-t-2 border-zinc-100">
+                        <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide mb-6 px-4 flex items-center gap-2">
+                          <Clock size={16} /> Past Events
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                          {pastCards.map(card => {
+                            const opp = card.opp;
+                            const dateLabel = new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                            const shift = card.type === 'shift' ? card.shift : null;
+                            return (
+                              <div
+                                key={card.type === 'shift' ? `past-${shift!.id}` : `past-opp-${opp.id}`}
+                                className="bg-zinc-50 rounded-2xl border border-zinc-200 transition-all duration-300 flex flex-col overflow-hidden opacity-50 hover:opacity-75 cursor-pointer"
+                                onClick={() => setShowEventDetail(opp)}
+                              >
+                                <div className="p-6 md:p-8 flex-1">
+                                  <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-medium uppercase tracking-wide mb-3 inline-block">Past</span>
+                                  <div className="flex items-center gap-2 text-sm font-medium text-zinc-500 mb-3">
+                                    <Calendar size={14} className="text-zinc-400 shrink-0" />
+                                    {dateLabel}
+                                  </div>
+                                  <p className="text-xs font-bold text-zinc-400 mb-1">{normalizeCategory(opp.category)}</p>
+                                  <h3 className="text-lg font-medium text-zinc-600 leading-tight mb-2">{opp.title}</h3>
+                                  <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
+                                </div>
+                                {shift && (
+                                  <div className="bg-zinc-100/50 p-4 md:p-6 border-t border-zinc-200 mt-auto">
+                                    <p className="text-sm font-medium text-zinc-500 flex items-center gap-2">
+                                      <Clock size={14} className="text-zinc-400 shrink-0" />
+                                      {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </>
+          )}
+
+          {/* AVAILABLE TAB — keep existing date-grouped layout */}
+          {activeTab === 'available' && (
+            <>
             {(Object.keys(groupedByDate).length === 0 || Object.values(groupedByDate).every(d => d.shifts.length === 0 && d.opportunities.length === 0)) && (
                 <div className="py-32 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
                     <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
-                    <p className="text-lg font-bold text-zinc-400 italic">
-                      {activeTab === 'my-schedule' ? "You have no upcoming missions." : "No available missions found."}
-                    </p>
-                    <p className="text-sm text-zinc-300 mt-2">{activeTab === 'available' ? "Check back later for new opportunities." : "Browse available missions to get started."}</p>
+                    <p className="text-lg font-bold text-zinc-400 italic">No available missions found.</p>
+                    <p className="text-sm text-zinc-300 mt-2">Check back later for new opportunities.</p>
                 </div>
             )}
             {Object.entries(groupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
                 <div key={date}>
                     <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide mb-6 px-4">{date}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* Render shifts */}
                         {dateData.shifts.map(shift => {
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;
@@ -1339,7 +1564,6 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
                                        </div>
                                     )}
-                                    {/* Pending training notice */}
                                     {isPendingTraining && (
                                       <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3">
                                         <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
@@ -1430,102 +1654,11 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                 </div>
                             );
                         })}
-
-                        {/* Render rsvped opportunities without shifts (from EventExplorer signups) */}
-                        {dateData.opportunities.map(opp => {
-                            const isRsvped = user.rsvpedEventIds?.includes(opp.id);
-                            const slotsLeft = opp.slotsTotal - (opp.slotsFilled || 0);
-
-                            return (
-                                <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border-2 transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-2xl' : 'border-zinc-100 shadow-sm hover:border-zinc-200 hover:shadow-xl'}`}>
-                                    {isRsvped && (
-                                       <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
-                                          <Check size={14} /> Confirmed
-                                       </div>
-                                    )}
-                                    <div className="p-6 md:p-10 flex-1">
-                                      <div className="flex justify-between items-start mb-6">
-                                        {(() => {
-                                          const rawUrgency = (opp.urgency || 'medium').toLowerCase().replace(/_/g, ' ');
-                                          const urgencyLabel = rawUrgency === 'save the date' ? 'Upcoming' : rawUrgency === 'high' ? 'High' : rawUrgency === 'low' ? 'Low' : 'Medium';
-                                          const isHigh = urgencyLabel === 'High';
-                                          return (
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${isHigh ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
-                                              {urgencyLabel}
-                                            </span>
-                                          );
-                                        })()}
-                                         <div className={`px-4 py-1.5 rounded-full text-[9px] font-medium uppercase tracking-wide border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                                            {slotsLeft === 0 ? 'Full' : `${slotsLeft} ${slotsLeft === 1 ? 'Spot' : 'Spots'} Left`}
-                                         </div>
-                                      </div>
-
-                                      <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
-                                      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
-                                      <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-6">
-                                        <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
-                                      </div>
-                                      <p className="text-sm text-zinc-500 font-medium leading-relaxed h-16 overflow-hidden">{opp.description ? (opp.description.length > 120 ? opp.description.substring(0, 120) + '...' : opp.description) : ''}</p>
-                                    </div>
-
-                                    <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
-                                       <div className="flex items-center justify-between gap-4">
-                                          <div className="min-w-0">
-                                            <p className="text-[9px] font-medium text-zinc-300 uppercase tracking-wide mb-2">Event Date</p>
-                                            <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
-                                              <Calendar size={14} className="text-[#233DFF] shrink-0" />
-                                              {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </p>
-                                          </div>
-                                          {userMode === 'volunteer' && isRsvped && (
-                                            <span className="px-6 py-4 rounded-full font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center gap-2">
-                                              <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Registered
-                                            </span>
-                                          )}
-                                       </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
                     </div>
                 </div>
             ))}
-
-            {/* Past Events Section - Only show on my-schedule tab */}
-            {activeTab === 'my-schedule' && hasPastEvents && (
-              <div className="mt-16 pt-8 border-t-2 border-zinc-100">
-                <h3 className="text-lg font-medium text-zinc-300 uppercase tracking-wide mb-8 px-4 flex items-center gap-3">
-                  <Clock size={20} /> Past Events
-                </h3>
-                {Object.entries(pastGroupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
-                  <div key={`past-${date}`} className="mb-8">
-                    <h4 className="text-sm font-medium text-zinc-300 uppercase tracking-wide mb-4 px-4">{date}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {dateData.shifts.map(shift => {
-                        const opp = getOpp(shift.opportunityId);
-                        if (!opp) return null;
-                        return (
-                          <div key={`past-shift-${shift.id}`} className="bg-zinc-50 rounded-[32px] border border-zinc-200 p-8 opacity-60">
-                            <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-medium uppercase tracking-wide mb-4 inline-block">Past Event</span>
-                            <p className="text-xs font-bold text-zinc-400 mb-1">{normalizeCategory(opp.category)}</p>
-                            <h4 className="text-lg font-medium text-zinc-600 mb-2">{opp.title}</h4>
-                            <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
-                          </div>
-                        );
-                      })}
-                      {dateData.opportunities.map(opp => (
-                        <div key={`past-opp-${opp.id}`} className="bg-zinc-50 rounded-[32px] border border-zinc-200 p-8 opacity-60">
-                          <span className="px-3 py-1 bg-zinc-200 text-zinc-500 rounded-full text-[9px] font-medium uppercase tracking-wide mb-4 inline-block">Past Event</span>
-                          <p className="text-xs font-bold text-zinc-400 mb-1">{normalizeCategory(opp.category)}</p>
-                          <h4 className="text-lg font-medium text-zinc-600 mb-2">{opp.title}</h4>
-                          <p className="text-sm text-zinc-400 flex items-center gap-2"><MapPin size={12} /> {opp.serviceLocation}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            </>
+          )}
         </div>
       )}
     </div>
