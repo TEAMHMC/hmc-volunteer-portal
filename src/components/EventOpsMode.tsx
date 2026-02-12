@@ -269,24 +269,24 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         <div className="space-y-4">
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Goals & Targets</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
-                    <Target size={20} className="mx-auto text-[#233DFF] mb-2" />
-                    <p className="text-2xl font-black text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
+                <div className="p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                    <Target size={20} className="mx-auto text-blue-500 mb-2" />
+                    <p className="text-2xl font-bold text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Target Attendance</p>
                 </div>
-                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
-                    <Users size={20} className="mx-auto text-[#233DFF] mb-2" />
-                    <p className="text-2xl font-black text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-lg">/{opportunity.slotsTotal}</span></p>
+                <div className="p-6 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                    <Users size={20} className="mx-auto text-emerald-500 mb-2" />
+                    <p className="text-2xl font-bold text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-lg">/{opportunity.slotsTotal}</span></p>
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Volunteers</p>
                 </div>
-                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
-                    <HeartPulse size={20} className="mx-auto text-[#233DFF] mb-2" />
-                    <p className="text-2xl font-black text-zinc-900">{services.length}</p>
+                <div className="p-6 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-3xl border border-violet-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                    <HeartPulse size={20} className="mx-auto text-violet-500 mb-2" />
+                    <p className="text-2xl font-bold text-zinc-900">{services.length}</p>
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Services</p>
                 </div>
-                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-center">
+                <div className="p-6 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-3xl border border-amber-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
                     <Shield size={20} className={`mx-auto mb-2 ${opportunity.requiresClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
-                    <p className="text-2xl font-black text-zinc-900">{opportunity.requiresClinicalLead ? 'Yes' : 'No'}</p>
+                    <p className="text-2xl font-bold text-zinc-900">{opportunity.requiresClinicalLead ? 'Yes' : 'No'}</p>
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Clinical Lead</p>
                 </div>
             </div>
@@ -312,15 +312,15 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                         const pct = q.count > 0 ? Math.min(100, Math.round((q.filled / q.count) * 100)) : 0;
                         const isMyRole = q.role === shift.roleType || q.role === user.role;
                         return (
-                            <div key={i} className={`p-5 rounded-2xl border transition-all ${isMyRole ? 'bg-[#233DFF]/5 border-[#233DFF]/20' : 'bg-zinc-50 border-zinc-100'}`}>
+                            <div key={i} className={`p-5 rounded-2xl border transition-all hover:shadow-elevation-1 ${isMyRole ? 'bg-[#233DFF]/5 border-[#233DFF]/20' : 'bg-zinc-50 border-zinc-100'}`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className={`text-xs font-black uppercase tracking-tight ${isMyRole ? 'text-[#233DFF]' : 'text-zinc-700'}`}>
                                         {q.role} {isMyRole && '(You)'}
                                     </span>
                                     <span className="text-[10px] font-black text-zinc-400">{q.filled}/{q.count}</span>
                                 </div>
-                                <div className="w-full h-2 bg-zinc-200 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full transition-all ${isMyRole ? 'bg-[#233DFF]' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
+                                <div className="w-full h-2.5 bg-zinc-200 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all ${isMyRole ? 'bg-[#233DFF]' : 'bg-gradient-to-r from-emerald-400 to-emerald-500'}`} style={{ width: `${pct}%` }} />
                                 </div>
                             </div>
                         );

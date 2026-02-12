@@ -718,22 +718,22 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
                   {/* Compact Stat Chips */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50/80 backdrop-blur-sm border border-zinc-200/50 rounded-full shadow-sm">
                       <i className="fa-solid fa-clock text-zinc-400 text-xs" />
                       <span className="text-sm font-bold text-zinc-900">{displayUser.hoursContributed}</span>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase">hrs</span>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-[#233DFF]/5 backdrop-blur-sm border border-[#233DFF]/15 rounded-full shadow-sm">
                       <i className="fa-solid fa-bolt text-[#233DFF] text-xs" />
                       <span className="text-sm font-bold text-[#233DFF]">{(computeLevel(displayUser.points).currentXP).toLocaleString()}</span>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase">xp</span>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-full shadow-sm">
                       <i className="fa-solid fa-shield text-emerald-500 text-xs" />
                       <span className="text-sm font-bold text-emerald-600">Lv {computeLevel(displayUser.points).level}</span>
                     </div>
                     {gamification && gamification.streakDays > 0 && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-full shadow-sm">
                         <i className="fa-solid fa-fire text-amber-500 text-xs" />
                         <span className="text-sm font-bold text-amber-500">{gamification.streakDays}d</span>
                       </div>
@@ -755,7 +755,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     );
                   }
                   return (
-                    <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-elevation-1">
+                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-2xl p-4 shadow-elevation-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-zinc-600">
                           <i className="fa-solid fa-star text-[#233DFF] mr-1.5" />
@@ -763,8 +763,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                         </span>
                         <span className="text-xs font-bold text-[#233DFF]">{lvl.xpToNext.toLocaleString()} XP to Level {lvl.level + 1}</span>
                       </div>
-                      <div className="w-full h-3 bg-zinc-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700" style={{ width: `${lvl.progress}%` }} />
+                      <div className="w-full h-3.5 bg-zinc-100 rounded-full overflow-hidden relative group">
+                        <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700 relative" style={{ width: `${lvl.progress}%` }}>
+                          {lvl.progress > 0 && lvl.progress < 100 && (
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-sm animate-pulse" />
+                          )}
+                        </div>
                       </div>
                       {lvl.progress >= 75 && (
                         <p className="text-[10px] font-bold text-emerald-600 mt-2">Almost there! Keep going!</p>
@@ -984,11 +988,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]/30 hover:shadow-elevation-2 transition-all">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><GraduationCap size={18} className="text-zinc-400 group-hover:text-[#233DFF] transition-colors" />Continue Training</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF] transition-colors"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF]"/>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-2xl border border-zinc-200 shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]/30 hover:shadow-elevation-2 transition-all">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><User size={18} className="text-zinc-400 group-hover:text-[#233DFF] transition-colors" />Update Profile</span><ChevronRight className="text-zinc-300 group-hover:text-[#233DFF] transition-colors"/>
               </button>
             </div>
           </div>
@@ -1028,11 +1032,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
     actionItems.push({ icon: 'fa-solid fa-user-check', title: 'Review applicants', description: `${newApplicantsCount} new volunteer${newApplicantsCount > 1 ? 's' : ''} waiting for review`, color: 'emerald', onClick: () => onNavigate('directory') });
   }
 
-  const colorMap: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
-    amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', iconBg: 'bg-amber-400' },
-    rose: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', iconBg: 'bg-rose-400' },
-    blue: { bg: 'bg-[#233DFF]/5', border: 'border-[#233DFF]/20', text: 'text-[#233DFF]', iconBg: 'bg-[#233DFF]' },
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', iconBg: 'bg-emerald-500' },
+  const colorMap: Record<string, { borderAccent: string; text: string; iconBg: string }> = {
+    amber: { borderAccent: 'border-l-amber-400', text: 'text-amber-700', iconBg: 'bg-gradient-to-br from-amber-400 to-amber-500' },
+    rose: { borderAccent: 'border-l-rose-400', text: 'text-rose-700', iconBg: 'bg-gradient-to-br from-rose-400 to-rose-500' },
+    blue: { borderAccent: 'border-l-[#233DFF]', text: 'text-[#233DFF]', iconBg: 'bg-gradient-to-br from-[#233DFF] to-indigo-500' },
+    emerald: { borderAccent: 'border-l-emerald-500', text: 'text-emerald-700', iconBg: 'bg-gradient-to-br from-emerald-400 to-emerald-500' },
   };
 
   return (
@@ -1076,7 +1080,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
               actionItems.map((item, i) => {
                 const c = colorMap[item.color] || colorMap.blue;
                 return (
-                  <button key={i} onClick={item.onClick} className={`w-full p-4 ${c.bg} border ${c.border} rounded-2xl flex items-center gap-4 text-left hover:opacity-90 transition-opacity group`}>
+                  <button key={i} onClick={item.onClick} className={`w-full p-4 bg-white border border-zinc-100 border-l-4 ${c.borderAccent} rounded-2xl flex items-center gap-4 text-left shadow-elevation-1 hover:-translate-y-0.5 hover:shadow-elevation-2 transition-all group`}>
                     <div className={`w-9 h-9 rounded-xl ${c.iconBg} text-white flex items-center justify-center shrink-0`}>
                       <i className={`${item.icon} text-sm`} />
                     </div>
@@ -1209,7 +1213,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
       {/* Hero Card */}
       {heroItem ? (
-        <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-elevation-3">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
@@ -1242,8 +1246,8 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           </div>
         </div>
       ) : (
-        <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
-          <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
+        <div className="bg-gradient-to-br from-zinc-50 to-white rounded-2xl p-10 border border-zinc-100 shadow-elevation-1 text-center">
+          <i className="fa-solid fa-compass text-[#233DFF]/20 text-4xl mb-3" />
           <p className="text-zinc-400 font-medium text-sm mb-3">No upcoming missions.</p>
           <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-[#233dff] text-white rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
             <span className="w-2 h-2 rounded-full bg-white" />Find a Mission

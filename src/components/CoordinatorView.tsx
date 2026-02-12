@@ -16,9 +16,9 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }
   return (
     <div className="space-y-10 animate-in fade-in">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <StatCard title="My Team" value={myTeam.length} icon={Users} />
-        <StatCard title="Pending Approvals" value={pendingApprovals} icon={UserCheck} />
-        <StatCard title="Upcoming Missions" value={upcomingShifts} icon={Calendar} />
+        <StatCard title="My Team" value={myTeam.length} icon={Users} accent="brand" />
+        <StatCard title="Pending Approvals" value={pendingApprovals} icon={UserCheck} accent="emerald" />
+        <StatCard title="Upcoming Missions" value={upcomingShifts} icon={Calendar} accent="amber" />
       </div>
 
       <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
@@ -44,14 +44,23 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }
   );
 };
 
-const StatCard: React.FC<{ title: string, value: number, icon: React.ElementType }> = ({ title, value, icon: Icon }) => (
-  <div className="bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
-    <div className="flex items-center justify-center w-12 h-12 bg-zinc-50 rounded-2xl text-zinc-500 mb-4">
-      <Icon size={24} />
+const statCardThemes = {
+  brand: { border: 'border-l-[#233DFF]', iconBg: 'bg-gradient-to-br from-[#233DFF]/10 to-indigo-100/50', iconText: 'text-[#233DFF]' },
+  emerald: { border: 'border-l-emerald-400', iconBg: 'bg-gradient-to-br from-emerald-500/10 to-emerald-100/50', iconText: 'text-emerald-500' },
+  amber: { border: 'border-l-amber-400', iconBg: 'bg-gradient-to-br from-amber-500/10 to-amber-100/50', iconText: 'text-amber-500' },
+};
+
+const StatCard: React.FC<{ title: string, value: number, icon: React.ElementType, accent?: 'brand' | 'emerald' | 'amber' }> = ({ title, value, icon: Icon, accent = 'brand' }) => {
+  const t = statCardThemes[accent];
+  return (
+    <div className={`bg-gradient-to-br from-white to-zinc-50/50 p-8 rounded-container border border-zinc-100 border-l-4 ${t.border} shadow-elevation-1 hover:shadow-elevation-2 transition-all`}>
+      <div className={`flex items-center justify-center w-12 h-12 ${t.iconBg} rounded-2xl ${t.iconText} mb-4`}>
+        <Icon size={24} />
+      </div>
+      <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{title}</p>
+      <p className="text-3xl font-bold text-zinc-900 mt-1">{value}</p>
     </div>
-    <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{title}</p>
-    <p className="text-4xl font-black text-zinc-900 mt-1">{value}</p>
-  </div>
-);
+  );
+};
 
 export default CoordinatorView;
