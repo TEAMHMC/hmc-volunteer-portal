@@ -5,6 +5,7 @@ import path from 'path';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
 import twilio from 'twilio';
+import cron from 'node-cron';
 import helmet from 'helmet';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import process from 'process';
@@ -3934,6 +3935,17 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
         }
 
         console.log(`[EVENTS] Bulk imported ${importedEvents.length} events with ${createdShifts.length} shifts`);
+
+        // Trigger new opportunity alerts (w3) for each imported event (non-blocking)
+        for (const event of importedEvents) {
+          executeNewOpportunityAlert({
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            staffingQuotas: event.staffingQuotas,
+          }).catch(e => console.error('[WORKFLOW] New opportunity alert failed for', event.title, e));
+        }
+
         res.json({
             success: true,
             importedCount: importedEvents.length,
@@ -5006,6 +5018,492 @@ app.post('/api/admin/review-application', verifyToken, requireAdmin, async (req:
 });
 
 // ═══════════════════════════════════════════════════════════════
+// AUTOMATED WORKFLOWS - Execution Functions + API + Scheduler
+// ═══════════════════════════════════════════════════════════════
+
+const WORKFLOW_DEFAULTS: Record<string, { enabled: boolean }> = {
+  w1: { enabled: true },
+  w2: { enabled: true },
+  w3: { enabled: false },
+  w4: { enabled: true },
+  w5: { enabled: true },
+};
+
+const WORKFLOW_NAMES: Record<string, string> = {
+  w1: 'Shift Reminder',
+  w2: 'Post-Shift Thank You',
+  w3: 'New Opportunity Alert',
+  w4: 'Birthday Recognition',
+  w5: 'Compliance Expiry Warning',
+};
+
+async function logWorkflowRun(workflowId: string, result: { sent: number; failed: number; skipped: number; details?: string }) {
+  try {
+    await db.collection('workflow_runs').add({
+      workflowId,
+      workflowName: WORKFLOW_NAMES[workflowId] || workflowId,
+      ...result,
+      timestamp: new Date().toISOString(),
+    });
+    // Update last run info on the config doc
+    await db.collection('workflow_configs').doc('default').set({
+      [`workflows.${workflowId}.lastRun`]: new Date().toISOString(),
+      [`workflows.${workflowId}.lastRunResult`]: result,
+    }, { merge: true });
+  } catch (e) {
+    console.error(`[WORKFLOW] Failed to log run for ${workflowId}:`, e);
+  }
+}
+
+async function executeShiftReminder(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running Shift Reminder (w1)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const oppsSnap = await db.collection('opportunities').where('date', '==', tomorrowStr).get();
+    if (oppsSnap.empty) {
+      console.log(`[WORKFLOW] No opportunities found for ${tomorrowStr}`);
+      return result;
+    }
+
+    for (const oppDoc of oppsSnap.docs) {
+      const opp = oppDoc.data();
+      const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppDoc.id).get();
+
+      for (const shiftDoc of shiftsSnap.docs) {
+        const shift = shiftDoc.data();
+        const volunteerIds: string[] = shift.assignedVolunteerIds || [];
+
+        for (const volId of volunteerIds) {
+          try {
+            const volDoc = await db.collection('volunteers').doc(volId).get();
+            const vol = volDoc.data();
+            if (!vol) { result.skipped++; continue; }
+
+            const phone = normalizePhone(vol.phone);
+            const time = opp.time || opp.startTime || 'your scheduled time';
+            const location = opp.serviceLocation || opp.location || 'the event location';
+            const msg = `HMC: Reminder — you're scheduled for ${opp.title} tomorrow at ${time}, ${location}.`;
+
+            if (phone) {
+              const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+              if (smsResult.sent) { result.sent++; }
+              else if (smsResult.reason === 'opted_out' || smsResult.reason === 'not_configured') {
+                // Fallback to email
+                if (vol.email) {
+                  await EmailService.send('shift_reminder_24h', {
+                    toEmail: vol.email,
+                    volunteerName: vol.name || vol.firstName || 'Volunteer',
+                    eventTitle: opp.title,
+                    eventDate: tomorrowStr,
+                    eventTime: time,
+                    eventLocation: location,
+                    userId: volId,
+                  });
+                  result.sent++;
+                } else { result.failed++; }
+              } else { result.failed++; }
+            } else if (vol.email) {
+              await EmailService.send('shift_reminder_24h', {
+                toEmail: vol.email,
+                volunteerName: vol.name || vol.firstName || 'Volunteer',
+                eventTitle: opp.title,
+                eventDate: tomorrowStr,
+                eventTime: time,
+                eventLocation: location,
+                userId: volId,
+              });
+              result.sent++;
+            } else { result.skipped++; }
+          } catch (e) {
+            console.error(`[WORKFLOW] Shift reminder failed for volunteer ${volId}:`, e);
+            result.failed++;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executeShiftReminder error:', e);
+  }
+  await logWorkflowRun('w1', result);
+  console.log(`[WORKFLOW] Shift Reminder done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+async function executePostShiftThankYou(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running Post-Shift Thank You (w2)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    const oppsSnap = await db.collection('opportunities').where('date', '==', yesterdayStr).get();
+    if (oppsSnap.empty) return result;
+
+    for (const oppDoc of oppsSnap.docs) {
+      const opp = oppDoc.data();
+      const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppDoc.id).get();
+
+      for (const shiftDoc of shiftsSnap.docs) {
+        const shift = shiftDoc.data();
+        const volunteerIds: string[] = shift.assignedVolunteerIds || [];
+
+        for (const volId of volunteerIds) {
+          try {
+            const volDoc = await db.collection('volunteers').doc(volId).get();
+            const vol = volDoc.data();
+            if (!vol) { result.skipped++; continue; }
+
+            const phone = normalizePhone(vol.phone);
+            const msg = `HMC: Thank you for volunteering at ${opp.title} yesterday! Your service made a real difference.`;
+
+            if (phone) {
+              const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+              if (smsResult.sent) { result.sent++; }
+              else if (vol.email) {
+                await EmailService.send('shift_reminder_24h', {
+                  toEmail: vol.email,
+                  volunteerName: vol.name || vol.firstName || 'Volunteer',
+                  eventTitle: opp.title,
+                  eventDate: yesterdayStr,
+                  userId: volId,
+                });
+                result.sent++;
+              } else { result.failed++; }
+            } else if (vol.email) {
+              await EmailService.send('shift_reminder_24h', {
+                toEmail: vol.email,
+                volunteerName: vol.name || vol.firstName || 'Volunteer',
+                eventTitle: opp.title,
+                eventDate: yesterdayStr,
+                userId: volId,
+              });
+              result.sent++;
+            } else { result.skipped++; }
+          } catch (e) {
+            console.error(`[WORKFLOW] Thank you failed for volunteer ${volId}:`, e);
+            result.failed++;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executePostShiftThankYou error:', e);
+  }
+  await logWorkflowRun('w2', result);
+  console.log(`[WORKFLOW] Post-Shift Thank You done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+async function executeNewOpportunityAlert(opportunity: { id: string; title: string; date: string; staffingQuotas?: { role: string; count: number; filled: number }[] }): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log(`[WORKFLOW] Running New Opportunity Alert (w3) for ${opportunity.title}`);
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    // Check if w3 is enabled
+    const configDoc = await db.collection('workflow_configs').doc('default').get();
+    const config = configDoc.data();
+    if (config?.workflows?.w3?.enabled === false) {
+      console.log('[WORKFLOW] New Opportunity Alert is disabled, skipping');
+      return result;
+    }
+
+    // Get roles from staffing quotas
+    const roles = (opportunity.staffingQuotas || []).map(q => q.role);
+    if (roles.length === 0) roles.push('Core Volunteer');
+
+    // Query volunteers who match these roles
+    const volsSnap = await db.collection('volunteers')
+      .where('status', '==', 'active')
+      .get();
+
+    for (const volDoc of volsSnap.docs) {
+      const vol = volDoc.data();
+      const volRole = vol.selectedRole || vol.role || '';
+      if (!roles.some(r => r.toLowerCase() === volRole.toLowerCase())) {
+        result.skipped++;
+        continue;
+      }
+
+      const phone = normalizePhone(vol.phone);
+      const msg = `HMC: New opportunity — ${opportunity.title} on ${opportunity.date}. Log in to sign up!`;
+
+      try {
+        if (phone) {
+          const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
+          if (smsResult.sent) { result.sent++; }
+          else { result.skipped++; }
+        } else { result.skipped++; }
+      } catch (e) {
+        result.failed++;
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executeNewOpportunityAlert error:', e);
+  }
+  await logWorkflowRun('w3', result);
+  console.log(`[WORKFLOW] New Opportunity Alert done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+async function executeBirthdayRecognition(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running Birthday Recognition (w4)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    const today = new Date();
+    const todayMonth = today.getMonth() + 1; // 1-based
+    const todayDay = today.getDate();
+
+    const volsSnap = await db.collection('volunteers').get();
+
+    for (const volDoc of volsSnap.docs) {
+      const vol = volDoc.data();
+      if (!vol.dateOfBirth) { result.skipped++; continue; }
+
+      // Parse dateOfBirth — could be "YYYY-MM-DD", "MM/DD/YYYY", or a Firestore timestamp
+      let dobMonth: number, dobDay: number;
+      if (typeof vol.dateOfBirth === 'string') {
+        const parts = vol.dateOfBirth.includes('-')
+          ? vol.dateOfBirth.split('-')
+          : vol.dateOfBirth.split('/');
+        if (vol.dateOfBirth.includes('-')) {
+          // YYYY-MM-DD
+          dobMonth = parseInt(parts[1]);
+          dobDay = parseInt(parts[2]);
+        } else {
+          // MM/DD/YYYY
+          dobMonth = parseInt(parts[0]);
+          dobDay = parseInt(parts[1]);
+        }
+      } else if (vol.dateOfBirth.toDate) {
+        const d = vol.dateOfBirth.toDate();
+        dobMonth = d.getMonth() + 1;
+        dobDay = d.getDate();
+      } else {
+        result.skipped++;
+        continue;
+      }
+
+      if (dobMonth !== todayMonth || dobDay !== todayDay) continue;
+
+      try {
+        // Award 100 XP
+        await GamificationService.addXP(volDoc.id, 'birthday', 100, { reason: 'birthday_recognition' });
+
+        const phone = normalizePhone(vol.phone);
+        const msg = `Happy Birthday from HMC! We've added 100 bonus XP to celebrate you. Thank you for being part of our team!`;
+
+        if (phone) {
+          const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
+          if (smsResult.sent) { result.sent++; }
+          else if (vol.email) {
+            await EmailService.send('shift_reminder_24h', {
+              toEmail: vol.email,
+              volunteerName: vol.name || vol.firstName || 'Volunteer',
+              eventTitle: 'Birthday Recognition',
+              userId: volDoc.id,
+            });
+            result.sent++;
+          } else { result.sent++; } // XP was still awarded
+        } else {
+          result.sent++; // XP was still awarded even without notification
+        }
+      } catch (e) {
+        console.error(`[WORKFLOW] Birthday recognition failed for ${volDoc.id}:`, e);
+        result.failed++;
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executeBirthdayRecognition error:', e);
+  }
+  await logWorkflowRun('w4', result);
+  console.log(`[WORKFLOW] Birthday Recognition done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running Compliance Expiry Warning (w5)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+    const volsSnap = await db.collection('volunteers').get();
+
+    for (const volDoc of volsSnap.docs) {
+      const vol = volDoc.data();
+      const compliance = vol.compliance;
+      if (!compliance || typeof compliance !== 'object') { result.skipped++; continue; }
+
+      // Iterate through compliance items (e.g., backgroundCheck, tbTest, etc.)
+      const items = Array.isArray(compliance) ? compliance : Object.entries(compliance).map(([key, val]: [string, any]) => ({ name: key, ...val }));
+
+      for (const item of items) {
+        const dateCompleted = item.dateCompleted || item.completedDate;
+        if (!dateCompleted) continue;
+
+        // Calculate 1-year anniversary
+        let completedDate: Date;
+        if (typeof dateCompleted === 'string') {
+          completedDate = new Date(dateCompleted);
+        } else if (dateCompleted.toDate) {
+          completedDate = dateCompleted.toDate();
+        } else continue;
+
+        const expiryDate = new Date(completedDate);
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+        // Check if expiry is within 30 days from now
+        const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiry <= 0 || daysUntilExpiry > 30) continue;
+
+        const itemName = item.name || item.type || 'compliance item';
+        const phone = normalizePhone(vol.phone);
+        const msg = `HMC: Your ${itemName} is expiring in ${daysUntilExpiry} days. Please contact your coordinator to renew.`;
+
+        try {
+          if (phone) {
+            const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
+            if (smsResult.sent) { result.sent++; }
+            else if (vol.email) {
+              await EmailService.send('shift_reminder_24h', {
+                toEmail: vol.email,
+                volunteerName: vol.name || vol.firstName || 'Volunteer',
+                eventTitle: `${itemName} Expiry Warning`,
+                userId: volDoc.id,
+              });
+              result.sent++;
+            } else { result.failed++; }
+          } else if (vol.email) {
+            await EmailService.send('shift_reminder_24h', {
+              toEmail: vol.email,
+              volunteerName: vol.name || vol.firstName || 'Volunteer',
+              eventTitle: `${itemName} Expiry Warning`,
+              userId: volDoc.id,
+            });
+            result.sent++;
+          } else { result.skipped++; }
+        } catch (e) {
+          result.failed++;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executeComplianceExpiryWarning error:', e);
+  }
+  await logWorkflowRun('w5', result);
+  console.log(`[WORKFLOW] Compliance Expiry Warning done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+// Scheduler runner functions
+async function runScheduledWorkflows() {
+  console.log('[WORKFLOW] Running scheduled workflows (hourly)');
+  try {
+    const configDoc = await db.collection('workflow_configs').doc('default').get();
+    const config = configDoc.data();
+    const workflows = config?.workflows || WORKFLOW_DEFAULTS;
+
+    if (workflows.w1?.enabled !== false) await executeShiftReminder();
+    if (workflows.w2?.enabled !== false) await executePostShiftThankYou();
+  } catch (e) {
+    console.error('[WORKFLOW] runScheduledWorkflows error:', e);
+  }
+}
+
+async function runDailyWorkflows() {
+  console.log('[WORKFLOW] Running daily workflows (8am)');
+  try {
+    const configDoc = await db.collection('workflow_configs').doc('default').get();
+    const config = configDoc.data();
+    const workflows = config?.workflows || WORKFLOW_DEFAULTS;
+
+    if (workflows.w4?.enabled !== false) await executeBirthdayRecognition();
+    if (workflows.w5?.enabled !== false) await executeComplianceExpiryWarning();
+  } catch (e) {
+    console.error('[WORKFLOW] runDailyWorkflows error:', e);
+  }
+}
+
+// --- Workflow API Endpoints ---
+
+app.get('/api/admin/workflows', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const configDoc = await db.collection('workflow_configs').doc('default').get();
+    if (configDoc.exists) {
+      res.json(configDoc.data());
+    } else {
+      // Return defaults
+      const defaults = {
+        workflows: Object.fromEntries(
+          Object.entries(WORKFLOW_DEFAULTS).map(([id, val]) => [id, { ...val, lastRun: null, lastRunResult: null }])
+        ),
+        preferences: { primaryChannel: 'sms', fallbackToEmail: true },
+      };
+      res.json(defaults);
+    }
+  } catch (error: any) {
+    console.error('[WORKFLOW] Failed to load config:', error);
+    res.status(500).json({ error: error.message || 'Failed to load workflow config' });
+  }
+});
+
+app.put('/api/admin/workflows', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { workflows, preferences } = req.body;
+    await db.collection('workflow_configs').doc('default').set(
+      { workflows, preferences, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+    console.log(`[WORKFLOW] Config updated by ${(req as any).user?.profile?.email}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[WORKFLOW] Failed to save config:', error);
+    res.status(500).json({ error: error.message || 'Failed to save workflow config' });
+  }
+});
+
+app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { workflowId } = req.params;
+    console.log(`[WORKFLOW] Manual trigger: ${workflowId} by ${(req as any).user?.profile?.email}`);
+
+    let result: { sent: number; failed: number; skipped: number };
+    switch (workflowId) {
+      case 'w1': result = await executeShiftReminder(); break;
+      case 'w2': result = await executePostShiftThankYou(); break;
+      case 'w3': result = await executeNewOpportunityAlert({ id: 'manual', title: 'Manual Test', date: new Date().toISOString().split('T')[0] }); break;
+      case 'w4': result = await executeBirthdayRecognition(); break;
+      case 'w5': result = await executeComplianceExpiryWarning(); break;
+      default: return res.status(400).json({ error: `Unknown workflow: ${workflowId}` });
+    }
+
+    res.json({ success: true, workflowId, result });
+  } catch (error: any) {
+    console.error(`[WORKFLOW] Manual trigger failed:`, error);
+    res.status(500).json({ error: error.message || 'Workflow execution failed' });
+  }
+});
+
+app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const runsSnap = await db.collection('workflow_runs')
+      .orderBy('timestamp', 'desc')
+      .limit(20)
+      .get();
+    const runs = runsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ runs });
+  } catch (error: any) {
+    console.error('[WORKFLOW] Failed to load runs:', error);
+    res.status(500).json({ error: error.message || 'Failed to load workflow runs' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // GAMIFICATION API ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -5833,6 +6331,21 @@ bootstrapAdmin();
 const server = app.listen(PORT, () => {
     console.log(`[SERVER] Server listening on port ${PORT}`);
     console.log("[SERVER] Mode: PRODUCTION");
+
+    // --- WORKFLOW SCHEDULER ---
+    // Hourly: shift reminders + post-shift thank you
+    cron.schedule('0 * * * *', () => {
+      console.log('[CRON] Running hourly workflow check');
+      runScheduledWorkflows();
+    });
+
+    // Daily at 8am: birthday + compliance
+    cron.schedule('0 8 * * *', () => {
+      console.log('[CRON] Running daily workflow check (8am)');
+      runDailyWorkflows();
+    });
+
+    console.log('[CRON] Workflow scheduler started: hourly (shift/thank-you) + daily 8am (birthday/compliance)');
 });
 
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---

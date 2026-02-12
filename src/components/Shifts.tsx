@@ -910,16 +910,6 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     }
   }, [selectedShiftId, selectedShift, selectedOpp]);
 
-  if (selectedShiftId && selectedShift && selectedOpp) {
-    const eventShifts = shifts.filter(s => s.opportunityId === selectedOpp.id);
-    return (
-      <>
-        <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
-        {editingEvent && <EditEventModal event={editingEvent} shifts={shifts} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
-      </>
-    );
-  }
-
   // Helper to check if a date is in the past
   const isPastEvent = (dateStr: string) => {
     const eventDate = new Date(dateStr + 'T00:00:00');
@@ -1058,6 +1048,17 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     { id: 'available', label: 'Available Missions' },
     { id: 'my-schedule', label: 'My Schedule' },
   ];
+
+  // EventOps early return — placed after all hooks to satisfy Rules of Hooks
+  if (selectedShiftId && selectedShift && selectedOpp) {
+    const eventShifts = shifts.filter(s => s.opportunityId === selectedOpp.id);
+    return (
+      <>
+        <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
+        {editingEvent && <EditEventModal event={editingEvent} shifts={shifts} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
+      </>
+    );
+  }
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-32">
