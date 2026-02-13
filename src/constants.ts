@@ -1,6 +1,27 @@
 
 import { Opportunity, Volunteer, Shift, ClinicEvent, SupportTicket, ChecklistTemplate, Script, SurveyKit, ServiceOffering } from './types';
 
+// ============================================================
+// CENTRALIZED ROLE ARRAYS
+// Single source of truth — import these instead of local arrays.
+// ============================================================
+
+export const COORDINATOR_AND_LEAD_ROLES = [
+  'Events Lead', 'Events Coordinator', 'Program Coordinator',
+  'General Operations Coordinator', 'Operations Coordinator',
+  'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'
+];
+
+export const GOVERNANCE_ROLES = ['Board Member', 'Community Advisory Board'];
+
+export const EVENT_MANAGEMENT_ROLES = [...COORDINATOR_AND_LEAD_ROLES, ...GOVERNANCE_ROLES];
+
+export const BROADCAST_ROLES = COORDINATOR_AND_LEAD_ROLES;
+
+export const ORG_CALENDAR_ROLES = EVENT_MANAGEMENT_ROLES;
+
+export const REGISTRATION_MANAGEMENT_ROLES = COORDINATOR_AND_LEAD_ROLES;
+
 export const I18N = {
   en: {
     submit_btn: 'Sign Up Now',

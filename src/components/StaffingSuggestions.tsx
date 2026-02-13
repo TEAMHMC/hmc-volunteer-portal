@@ -113,7 +113,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                 placeholder="Search by name, email, or role..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#233DFF]/50"
+                                className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm outline-none focus:border-brand/50"
                             />
                         </div>
                         <div className="flex bg-zinc-100 rounded-lg p-0.5">
@@ -127,7 +127,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                     {displayList.length === 0 ? (
                         <div className="text-center py-10">
                             <p className="text-zinc-500">{filterMode === 'recommended' ? 'No recommended volunteers found.' : 'No volunteers match your search.'}</p>
-                            {filterMode === 'recommended' && <button onClick={() => setFilterMode('all')} className="mt-2 text-sm text-[#233DFF] font-bold">Show all volunteers</button>}
+                            {filterMode === 'recommended' && <button onClick={() => setFilterMode('all')} className="mt-2 text-sm text-brand font-bold">Show all volunteers</button>}
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -146,7 +146,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                                 <p className="text-xs text-zinc-500">{v.role} · {v.hoursContributed || 0} hrs{isRoleMatch && !isRecommended ? ' · Role match' : ''}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-[#233DFF] text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0">
+                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0">
                                             <UserPlus size={14} /> Assign
                                         </button>
                                     </div>
@@ -170,7 +170,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                     value={inviteName}
                                     onChange={e => setInviteName(e.target.value)}
                                     placeholder="Full name"
-                                    className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:border-[#233DFF]/50"
+                                    className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:border-brand/50"
                                 />
                             </div>
                             <div className="flex-1">
@@ -180,7 +180,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                     value={inviteEmail}
                                     onChange={e => setInviteEmail(e.target.value)}
                                     placeholder="email@example.com"
-                                    className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:border-[#233DFF]/50"
+                                    className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:border-brand/50"
                                 />
                             </div>
                             <button

@@ -174,7 +174,7 @@ const FormBuilder: React.FC = () => {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <Loader2 className="animate-spin text-[#233DFF]" size={32} />
+                <Loader2 className="animate-spin text-brand" size={32} />
             </div>
         );
     }
@@ -210,7 +210,7 @@ const FormBuilder: React.FC = () => {
                                     <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                                         {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'Unknown date'}
                                     </span>
-                                    <span className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] text-xs font-bold rounded-full">
+                                    <span className="px-3 py-1 bg-brand/10 text-brand text-xs font-bold rounded-full">
                                         {response.respondentType}
                                     </span>
                                 </div>
@@ -243,7 +243,7 @@ const FormBuilder: React.FC = () => {
                 </div>
                 <button
                     onClick={handleCreateNewForm}
-                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
+                    className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
                 >
                     <Plus size={16} /> New Form
                 </button>
@@ -271,7 +271,7 @@ const FormBuilder: React.FC = () => {
                           </div>
                         </div>
                         <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-between gap-3">
-                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#233DFF] hover:bg-[#233DFF]/5 px-4 py-3 rounded-xl">
+                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand hover:bg-brand/5 px-4 py-3 rounded-xl">
                                 <BarChart3 size={14} /> Responses
                             </button>
                             <div className="flex gap-2">
@@ -337,7 +337,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                 <button
                     onClick={() => onSave({ ...form, title: formTitle, fields })}
                     disabled={isSaving}
-                    className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50"
+                    className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
@@ -361,7 +361,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                                             <button onClick={() => removeOption(field.id, i)} className="text-zinc-300 hover:text-rose-500 opacity-0 group-hover/option:opacity-100"><X size={14}/></button>
                                         </div>
                                     ))}
-                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-[#233DFF] mt-2 p-1 hover:bg-[#233DFF]/5 rounded"><PlusCircle size={14} /> Add Option</button>
+                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-brand mt-2 p-1 hover:bg-brand/5 rounded"><PlusCircle size={14} /> Add Option</button>
                                 </div>
                             )}
                         </div>
@@ -370,7 +370,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                 <div className="col-span-4 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1 space-y-4">
                      <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider">Add Field</h3>
                      {fieldTypes.map(field => (
-                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-[#233DFF]/30 hover:bg-[#233DFF]/5">
+                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-brand/30 hover:bg-brand/5">
                             <field.icon className="text-zinc-400" />
                             <span className="font-bold text-zinc-700">{field.name}</span>
                          </button>

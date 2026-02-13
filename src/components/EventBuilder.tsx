@@ -349,7 +349,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                         <img
                                             src={flyerPreview}
                                             alt="Event Flyer Preview"
-                                            className="w-32 h-32 object-cover rounded-lg shadow-md"
+                                            className="w-32 h-32 object-cover rounded-lg shadow-elevation-1"
                                         />
                                         <div className="flex-1">
                                             <p className="font-bold text-zinc-900">{flyerFileName}</p>
@@ -374,14 +374,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                             ) : (
                                 <label
                                     htmlFor="flyer-upload"
-                                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-zinc-300 rounded-xl cursor-pointer bg-zinc-50 hover:bg-zinc-100 hover:border-[#233DFF]/50 transition-all group"
+                                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-zinc-300 rounded-xl cursor-pointer bg-zinc-50 hover:bg-zinc-100 hover:border-brand/50 transition-all group"
                                 >
                                     <div className="flex flex-col items-center justify-center py-6">
-                                        <div className="w-12 h-12 rounded-xl bg-zinc-200 group-hover:bg-[#233DFF]/10 flex items-center justify-center mb-3 transition-colors">
-                                            <Upload size={24} className="text-zinc-400 group-hover:text-[#233DFF]" />
+                                        <div className="w-12 h-12 rounded-xl bg-zinc-200 group-hover:bg-brand/10 flex items-center justify-center mb-3 transition-colors">
+                                            <Upload size={24} className="text-zinc-400 group-hover:text-brand" />
                                         </div>
                                         <p className="mb-1 text-sm font-bold text-zinc-600">
-                                            <span className="text-[#233DFF]">Click to upload</span> event flyer
+                                            <span className="text-brand">Click to upload</span> event flyer
                                         </p>
                                         <p className="text-xs text-zinc-400">PNG, JPG up to 5MB</p>
                                     </div>
@@ -396,7 +396,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                      <h3 className="text-lg font-bold mb-4">2. Service Offerings</h3>
                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {SERVICE_OFFERINGS.map(service => (
-                            <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-lg text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-[#233DFF] bg-[#233DFF]/5' : 'bg-white'}`}>
+                            <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-lg text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-brand bg-brand/5' : 'bg-white'}`}>
                                 <h4 className="font-bold">{service.name}</h4>
                                 <p className="text-xs text-zinc-500">{service.description}</p>
                             </button>
@@ -450,14 +450,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                         const selected = selectedEquipment.find(e => e.equipmentId === item.id);
                                         return (
                                             <div key={item.id} className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${
-                                                selected ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-100 hover:border-zinc-300'
+                                                selected ? 'border-brand bg-brand/5' : 'border-zinc-100 hover:border-zinc-300'
                                             }`}>
                                                 <div className="flex items-center justify-between">
                                                     <button
                                                         onClick={() => handleToggleEquipment(item)}
                                                         className="flex-1 text-left"
                                                     >
-                                                        <p className={`text-sm font-bold ${selected ? 'text-[#233DFF]' : 'text-zinc-700'}`}>{item.name}</p>
+                                                        <p className={`text-sm font-bold ${selected ? 'text-brand' : 'text-zinc-700'}`}>{item.name}</p>
                                                     </button>
                                                     {selected && (
                                                         <input
@@ -481,7 +481,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                             <p className="text-xs font-bold text-zinc-500 mb-2">{selectedEquipment.length} items selected</p>
                             <div className="flex flex-wrap gap-2">
                                 {selectedEquipment.map(item => (
-                                    <span key={item.equipmentId} className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] rounded-full text-xs font-bold">
+                                    <span key={item.equipmentId} className="px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold">
                                         {item.name} x{item.quantity}
                                     </span>
                                 ))}
@@ -501,7 +501,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                 <button
                                     onClick={() => handleToggleChecklist(idx)}
                                     className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
-                                        item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-[#233DFF]'
+                                        item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-brand'
                                     }`}
                                 >
                                     {item.done && <Check size={14} />}
@@ -522,7 +522,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                         ))}
                         <button
                             onClick={handleAddChecklistItem}
-                            className="flex items-center gap-2 text-sm font-bold text-[#233DFF] hover:bg-[#233DFF]/5 px-3 py-2 rounded-lg mt-2"
+                            className="flex items-center gap-2 text-sm font-bold text-brand hover:bg-brand/5 px-3 py-2 rounded-lg mt-2"
                         >
                             <Plus size={14} /> Add Item
                         </button>
@@ -592,7 +592,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     </div>
                 )}
                 <div className="flex justify-end">
-                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#1a2fbf] disabled:opacity-50">
+                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
                     </button>
                 </div>

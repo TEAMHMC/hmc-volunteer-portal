@@ -110,7 +110,7 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
                             <h3 className="text-xl font-black text-zinc-900">{m.title}</h3>
                             <div className="aspect-video bg-zinc-200 rounded-xl overflow-hidden"><iframe src={m.embed} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture;" allowFullScreen></iframe></div>
                             <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl bg-white" onClick={() => (m.id === 'hmc_orientation' ? setWatchedIntro(!watchedIntro) : setWatchedChampion(!watchedChampion))}>
-                                {(m.id === 'hmc_orientation' ? watchedIntro : watchedChampion) ? <CheckSquare className="text-[#233DFF]" /> : <Square className="text-zinc-300" />}
+                                {(m.id === 'hmc_orientation' ? watchedIntro : watchedChampion) ? <CheckSquare className="text-brand" /> : <Square className="text-zinc-300" />}
                                 <span className="text-sm font-medium text-zinc-600">I have watched and understood this module.</span>
                             </label>
                         </div>
@@ -150,7 +150,7 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
               {isLoading ? <Loader2 className="animate-spin" /> : <>Complete Activation <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           ) : (
-            <button onClick={validateAndProceed} disabled={isLoading} className="flex-1 py-5 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={validateAndProceed} disabled={isLoading} className="flex-1 py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? <Loader2 className="animate-spin" /> : <>Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           )}

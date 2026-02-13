@@ -31,9 +31,9 @@ const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) 
           <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0">
-          <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'content' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
-          <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'leaderboard' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
-          <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'rewards' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
+          <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
+          <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'leaderboard' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
+          <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'rewards' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
         </div>
       </div>
       
@@ -83,11 +83,11 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
         <p className="text-zinc-500 mt-2">Use our Matching Assistant to draft a personalized fundraising email to send to your network.</p>
         <div className="mt-10 pt-10 border-t border-zinc-100">
           {!draftedEmail && !isDraftingEmail && <button onClick={handleDraftEmail} className="bg-zinc-900 text-white px-12 py-7 rounded-full font-black text-lg shadow-elevation-3 hover:scale-105 transition-all flex items-center justify-center gap-4 group"><Sparkles size={24} /> Draft My Email</button>}
-          {isDraftingEmail && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-[#233DFF] animate-spin" /></div>}
+          {isDraftingEmail && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-brand animate-spin" /></div>}
           {draftedEmail && (
             <div className="space-y-6 animate-in fade-in">
                <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-100 whitespace-pre-wrap font-mono text-xs leading-relaxed max-h-[300px] overflow-y-auto">{draftedEmail}</div>
-               <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedEmail)} className="flex-1 py-4 bg-[#233DFF] text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}</button><button onClick={() => setDraftedEmail('')} className="py-4 px-8 border border-zinc-200 rounded-full font-black text-xs uppercase">Start Over</button></div>
+               <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedEmail)} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}</button><button onClick={() => setDraftedEmail('')} className="py-4 px-8 border border-zinc-200 rounded-full font-black text-xs uppercase">Start Over</button></div>
             </div>
           )}
         </div>
@@ -105,11 +105,11 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
                      <button onClick={handleDraftPost} disabled={!postTopic} className="w-full bg-zinc-900 text-white px-12 py-5 rounded-full font-black text-sm shadow-elevation-3 flex items-center justify-center gap-4 group disabled:opacity-50"><Sparkles size={20} /> Draft Post</button>
                   </div>
               )}
-              {isDraftingPost && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-[#233DFF] animate-spin" /></div>}
+              {isDraftingPost && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-brand animate-spin" /></div>}
               {draftedPost && (
                 <div className="space-y-6 animate-in fade-in">
                    <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-100 whitespace-pre-wrap font-sans text-sm leading-relaxed max-h-[300px] overflow-y-auto">{draftedPost}</div>
-                   <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedPost)} className="flex-1 py-4 bg-[#233DFF] text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Post</>}</button><button onClick={() => setDraftedPost('')} className="py-4 px-8 border border-zinc-200 rounded-full font-black text-xs uppercase">Start Over</button></div>
+                   <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedPost)} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Post</>}</button><button onClick={() => setDraftedPost('')} className="py-4 px-8 border border-zinc-200 rounded-full font-black text-xs uppercase">Start Over</button></div>
                 </div>
               )}
             </div>
@@ -124,7 +124,7 @@ const LeaderboardPanel: React.FC<{user: Volunteer, userRank: number, leaderboard
     <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Community Leaderboard</h3>
     <div className="space-y-4">
       {leaderboardData.map((v, index) => (
-        <div key={v.id} className={`p-6 rounded-3xl border flex items-center justify-between transition-all ${user.id === v.id ? 'bg-[#233DFF] text-white border-[#233DFF]/20 shadow-elevation-2' : 'bg-zinc-50 border-zinc-100'}`}>
+        <div key={v.id} className={`p-6 rounded-3xl border flex items-center justify-between transition-all ${user.id === v.id ? 'bg-brand text-white border-brand/20 shadow-elevation-2' : 'bg-zinc-50 border-zinc-100'}`}>
           <div className="flex items-center gap-6">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-black ${user.id === v.id ? 'bg-white/20' : 'bg-zinc-200 text-zinc-500'}`}>
               {index + 1}
@@ -224,7 +224,7 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
             const canAfford = user.points >= reward.points;
             return (
               <div key={reward.id} className={`p-8 rounded-3xl border text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-2 ${canAfford ? 'bg-[#233DFF]/5 border-[#233DFF]/10 text-[#233DFF]' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-2 ${canAfford ? 'bg-brand/5 border-brand/10 text-brand' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
                    <AwardIcon size={48} />
                 </div>
                 <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>

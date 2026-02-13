@@ -37,6 +37,17 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
     const responseText = await response.text();
 
     if (!response.ok) {
+      // On 403, redirect to login with clear message
+      if (response.status === 403) {
+        console.error(`[Session] 403 on ${endpoint} — session expired or invalid.`);
+        localStorage.removeItem('authToken');
+        // Only redirect if we're not already on the landing page
+        if (endpoint !== '/auth/me') {
+          window.location.reload();
+        }
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
       // Try to parse as JSON error response
       let errorMessage = `Request failed with status ${response.status}`;
       try {
@@ -52,7 +63,7 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
       }
       throw new Error(errorMessage);
     }
-    
+
     try {
       const data = JSON.parse(responseText);
       if (data.token) {
@@ -79,9 +90,37 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
   }
 };
 
+// Session heartbeat: keeps active sessions alive by pinging the server every 30 min.
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+function startSessionHeartbeat() {
+  stopSessionHeartbeat();
+  heartbeatInterval = setInterval(async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      stopSessionHeartbeat();
+      return;
+    }
+    try {
+      await request('POST', '/api/auth/refresh-session', {});
+    } catch {
+      // Session refresh failed — the 403 handler in request() will handle redirect
+    }
+  }, 30 * 60 * 1000); // 30 minutes
+}
+
+function stopSessionHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+}
+
 export const apiService = {
   get: (endpoint: string) => request('GET', endpoint),
   post: (endpoint: string, body: any, timeout?: number) => request('POST', endpoint, body, timeout),
   put: (endpoint: string, body: any) => request('PUT', endpoint, body),
   delete: (endpoint: string) => request('DELETE', endpoint),
+  startSessionHeartbeat,
+  stopSessionHeartbeat,
 };

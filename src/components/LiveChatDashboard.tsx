@@ -208,8 +208,8 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
             onClick={() => setView('queue')}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border-2 ${
               view === 'queue'
-                ? 'bg-[#233DFF] text-white border-[#233DFF]'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-[#233DFF]/40'
+                ? 'bg-brand text-white border-brand'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-brand/40'
             }`}
           >
             Queue ({pendingSessions.length})
@@ -218,8 +218,8 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
             onClick={() => setView('chat')}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border-2 ${
               view === 'chat'
-                ? 'bg-[#233DFF] text-white border-[#233DFF]'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-[#233DFF]/40'
+                ? 'bg-brand text-white border-brand'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-brand/40'
             }`}
           >
             My Chats ({activeSessions.length})
@@ -272,7 +272,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="w-8 h-8 rounded-full bg-[#233DFF]/10 text-[#233DFF] flex items-center justify-center text-sm font-semibold">
+                          <span className="w-8 h-8 rounded-full bg-brand/10 text-brand flex items-center justify-center text-sm font-semibold">
                             {session.userInfo?.name?.[0] || 'V'}
                           </span>
                           <span className="font-semibold text-slate-900">
@@ -288,7 +288,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                       </div>
                       <button
                         onClick={() => handleClaimSession(session)}
-                        className="px-4 py-2 bg-[#233DFF] text-white text-sm font-semibold rounded-full hover:bg-[#1a2fbf] transition-colors border-2 border-black"
+                        className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
                       >
                         Accept Chat
                       </button>
@@ -384,19 +384,19 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     <div
                       className={`max-w-[75%] ${
                         message.type === 'volunteer'
-                          ? 'bg-[#233DFF] text-white rounded-2xl rounded-br-md'
+                          ? 'bg-brand text-white rounded-2xl rounded-br-md'
                           : message.type === 'user'
                           ? 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md shadow-elevation-1'
                           : 'bg-slate-200 text-slate-800 rounded-2xl rounded-bl-md'
                       } px-4 py-3`}
                     >
                       {message.type !== 'volunteer' && message.senderName && (
-                        <p className="text-xs font-semibold mb-1 text-[#233DFF]">
+                        <p className="text-xs font-semibold mb-1 text-brand">
                           {message.senderName}
                         </p>
                       )}
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                      <p className={`text-[10px] mt-1 ${message.type === 'volunteer' ? 'text-[#233DFF]/40' : 'text-slate-400'}`}>
+                      <p className={`text-[10px] mt-1 ${message.type === 'volunteer' ? 'text-brand/40' : 'text-slate-400'}`}>
                         {formatTime(message.timestamp)}
                       </p>
                     </div>
@@ -414,12 +414,12 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Type your message..."
-                    className="flex-1 px-4 py-3 border border-slate-200 rounded-full text-sm focus:outline-none focus:border-[#233DFF]/40 focus:ring-2 focus:ring-[#233DFF]/10"
+                    className="flex-1 px-4 py-3 border border-slate-200 rounded-full text-sm focus:outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
                   />
                   <button
                     type="submit"
                     disabled={!messageInput.trim()}
-                    className="px-6 py-3 bg-[#233DFF] text-white text-sm font-semibold rounded-full hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
+                    className="px-6 py-3 bg-brand text-white text-sm font-semibold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
                   >
                     Send
                   </button>
@@ -455,7 +455,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 <p className="text-sm mt-1">Accept a chat from the queue to get started</p>
                 <button
                   onClick={() => setView('queue')}
-                  className="mt-4 px-6 py-2 bg-[#233DFF] text-white text-sm font-semibold rounded-full hover:bg-[#1a2fbf] transition-colors border-2 border-black"
+                  className="mt-4 px-6 py-2 bg-brand text-white text-sm font-semibold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
                 >
                   View Queue
                 </button>

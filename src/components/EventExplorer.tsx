@@ -309,13 +309,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
       {/* Search bar */}
       <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#233DFF] transition-colors" size={18} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-brand transition-colors" size={18} />
         <input
           type="text"
           placeholder="Search by location, event name, or category..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white border border-[#e8e6e3] rounded-2xl py-3 pl-11 pr-4 text-sm font-normal outline-none focus:ring-4 focus:ring-[#233DFF]/5 focus:border-[#233DFF]/30 transition-all"
+          className="w-full bg-white border border-[#e8e6e3] rounded-2xl py-3 pl-11 pr-4 text-sm font-normal outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand/30 transition-all"
         />
       </div>
 
@@ -334,7 +334,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <button
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
-                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-elevation-1 group ${isSignedUp ? 'border-[#233DFF]/30 shadow-elevation-1' : 'border-[#e8e6e3] hover:border-zinc-300'}`}
+                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-elevation-1 group ${isSignedUp ? 'border-brand/30 shadow-elevation-1' : 'border-[#e8e6e3] hover:border-zinc-300'}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span
@@ -349,7 +349,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                     </span>
                   )}
                 </div>
-                <h3 className="text-base font-medium text-zinc-900 mb-2 group-hover:text-[#233DFF] transition-colors leading-snug">{event.title}</h3>
+                <h3 className="text-base font-medium text-zinc-900 mb-2 group-hover:text-brand transition-colors leading-snug">{event.title}</h3>
                 <div className="space-y-1.5 text-xs text-zinc-500">
                   <p className="flex items-center gap-1.5"><MapPin size={13} className="text-zinc-400 shrink-0" /> {event.address}</p>
                   <p className="flex items-center gap-1.5"><Calendar size={13} className="text-zinc-400 shrink-0" /> {event.dateDisplay}</p>
@@ -389,12 +389,12 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-zinc-50 p-4 rounded-xl border border-[#e8e6e3]">
-                    <Calendar className="text-[#233DFF] mb-1.5" size={16} />
+                    <Calendar className="text-brand mb-1.5" size={16} />
                     <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Date</p>
                     <p className="text-sm font-medium text-zinc-900">{selectedEvent.dateDisplay}</p>
                   </div>
                   <div className="bg-zinc-50 p-4 rounded-xl border border-[#e8e6e3]">
-                    <Clock className="text-[#233DFF] mb-1.5" size={16} />
+                    <Clock className="text-brand mb-1.5" size={16} />
                     <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Time</p>
                     <p className="text-sm font-medium text-zinc-900">{selectedEvent.time}</p>
                   </div>
@@ -412,7 +412,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       </div>
                       <button
                         onClick={() => downloadICS(selectedEvent)}
-                        className="w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-[#233dff] text-white border border-[#233dff] hover:opacity-95"
+                        className="w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-brand hover:opacity-95"
                       >
                         <Calendar size={16} /> Save to Calendar (.ics)
                       </button>
@@ -431,7 +431,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                         className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 ${
                           user.rsvpedEventIds?.includes(selectedEvent.id)
                             ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]'
-                            : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
+                            : 'bg-brand text-white border border-brand hover:opacity-95'
                         }`}
                       >
                         {isSigningUp ? (
@@ -445,7 +445,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       {user.rsvpedEventIds?.includes(selectedEvent.id) && (
                         <button
                           onClick={() => downloadICS(selectedEvent)}
-                          className="w-full py-3 rounded-full font-normal text-sm text-[#233dff] hover:bg-[#233dff]/5 border border-[#233dff]/20 transition-all flex items-center justify-center gap-2"
+                          className="w-full py-3 rounded-full font-normal text-sm text-brand hover:bg-brand/5 border border-brand/20 transition-all flex items-center justify-center gap-2"
                         >
                           <Calendar size={14} /> Save to Calendar
                         </button>

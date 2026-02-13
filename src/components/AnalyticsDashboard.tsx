@@ -44,8 +44,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
       </header>
 
       <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 w-fit">
-          <button onClick={() => setActiveTab('operations')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'operations' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Operations</button>
-          <button onClick={() => setActiveTab('experience')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'experience' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><MessageSquare size={16} /> Volunteer Experience</button>
+          <button onClick={() => setActiveTab('operations')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'operations' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Operations</button>
+          <button onClick={() => setActiveTab('experience')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'experience' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><MessageSquare size={16} /> Volunteer Experience</button>
       </div>
       
       {activeTab === 'operations' && (
@@ -174,7 +174,7 @@ const VolunteerExperienceView = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-[#233DFF]" size={32} />
+        <Loader2 className="animate-spin text-brand" size={32} />
       </div>
     );
   }
@@ -222,9 +222,9 @@ const VolunteerExperienceView = () => {
                     </div>
                 </div>
                  <div className="xl:col-span-2 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
-                    <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider flex items-center gap-3"><Sparkles size={20} className="text-[#233DFF]"/> Feedback Summary</h3>
+                    <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider flex items-center gap-3"><Sparkles size={20} className="text-brand"/> Feedback Summary</h3>
                     {isLoadingSummary ? (
-                        <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-[#233DFF]" /></div>
+                        <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-brand" /></div>
                     ) : aiSummary ? (
                         <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-medium">
                             {/* SECURITY: Render as text, not HTML, to prevent XSS */}

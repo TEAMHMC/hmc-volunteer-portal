@@ -27,7 +27,7 @@ const ResourceDashboard: React.FC = () => {
         fetchResources();
     }, []);
 
-    if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-[#233DFF]" size={48} /></div>;
+    if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-brand" size={48} /></div>;
     if (error) return <div className="text-center text-rose-500 font-bold">{error}</div>;
 
     return (
@@ -41,7 +41,7 @@ const ResourceDashboard: React.FC = () => {
                     <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
                         <UploadCloud size={16} /> Bulk Upload
                     </button>
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#233DFF]/90 transition-colors">
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
                         <Plus size={16} /> Add Resource
                     </button>
                 </div>
@@ -149,13 +149,13 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                             type="file"
                             accept=".csv"
                             onChange={handleFileChange}
-                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#233DFF]/5 file:text-[#233DFF] hover:file:bg-[#233DFF]/10"
+                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"
                         />
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
                         <button
                             onClick={handleUpload}
                             disabled={isUploading || !file}
-                            className="w-full py-4 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full py-4 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isUploading ? <Loader2 className="animate-spin" size={18} /> : <><UploadCloud size={18} /> Import Resources</>}
                         </button>
@@ -186,7 +186,7 @@ const FormField: React.FC<React.PropsWithChildren<{ label: string, required?: bo
         {React.Children.map(children, child =>
             React.isValidElement(child)
                 ? React.cloneElement(child as React.ReactElement<any>, {
-                    className: `w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-[#233DFF] ${(child.props as any).className || ''}`
+                    className: `w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-brand ${(child.props as any).className || ''}`
                 })
                 : child
         )}
@@ -238,7 +238,7 @@ const NewResourceForm: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
                 <FormField label="SPA (Service Planning Area)"><input type="text" value={formData['SPA'] || ''} onChange={e => handleChange('SPA', e.target.value)} /></FormField>
              </div>
              <div className="flex justify-end pt-6 border-t border-zinc-100">
-                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-[#233DFF]/90 disabled:opacity-50">
+                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 disabled:opacity-50">
                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Resource</>}
                 </button>
              </div>

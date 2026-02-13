@@ -11,7 +11,7 @@ import {
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
-import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS } from '../constants';
+import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS, COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES } from '../constants';
 import { computeLevel } from '../utils/xpLevels';
 import { generateQuests, completeQuest, getAllQuestsComplete, DAILY_QUEST_BONUS_XP, DailyQuest } from '../utils/dailyQuests';
 import TrainingAcademy from './TrainingAcademy';
@@ -163,7 +163,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   };
 
   // Core Volunteer Training — governance roles only need Tier 1, operational roles need Tier 1 + Tier 2
-  const GOVERNANCE_ROLES = ['Board Member', 'Community Advisory Board'];
   const isGovernanceRole = GOVERNANCE_ROLES.includes(displayUser.role);
 
   // Portal access: Tier 1 only (2 orientation videos)
@@ -178,8 +177,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   // Legacy alias
   const canAccessOperationalTools = isOperationalEligible;
 
-  const COORDINATOR_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-  const isCoordinatorOrLead = COORDINATOR_LEAD_ROLES.includes(displayUser.role);
+  const isCoordinatorOrLead = COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role);
 
   // Event-participant roles: collaborate on events but aren't coordinators/leads and may not have coreVolunteerStatus
   const EVENT_PARTICIPANT_ROLES = ['Outreach Volunteer', 'Content Writer', 'Newsletter & Content Writer', 'Social Media Team', 'Student Intern', 'Fundraising Volunteer', 'Grant Writer'];
@@ -253,7 +251,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const sidebarGroups = useMemo(() => {
     const medicalRoles = ['Licensed Medical Professional', 'Medical Admin'];
     const clientFacingRoles = ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'];
-    const BOARD_ROLES = ['Board Member', 'Community Advisory Board'];
 
     const groups: SidebarGroup[] = [];
 
@@ -273,7 +270,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       { id: 'academy', label: 'Training Academy', icon: GraduationCap },
       { id: 'docs', label: 'Doc Hub', icon: BookOpen },
     ];
-    if (!displayUser.isAdmin && canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
+    if (!displayUser.isAdmin && canAccessOperationalTools && COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) {
       toolItems.push({ id: 'forms', label: 'Forms', icon: FileText });
     }
     groups.push({ label: 'TOOLS', items: toolItems });
@@ -304,10 +301,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     if (canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role)) {
       roleItems.push({ id: 'event-management', label: 'Event Management', icon: Calendar });
     }
-    if (BOARD_ROLES.includes(displayUser.role)) {
+    if (GOVERNANCE_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'governance', label: 'Governance', icon: Briefcase });
     }
-    if (canAccessOperationalTools && COORDINATOR_LEAD_ROLES.includes(displayUser.role)) {
+    if (canAccessOperationalTools && COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
     }
     if (!displayUser.isAdmin && ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(displayUser.role)) {
@@ -383,7 +380,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           <Menu size={20} className="text-zinc-700" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center">
             <img src={APP_CONFIG.BRAND.logoUrl} className="w-5 h-5" alt="HMC" />
           </div>
           <span className="text-sm font-black text-zinc-900">HMC Portal</span>
@@ -405,7 +402,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           <div className="fixed inset-y-0 left-0 w-[300px] bg-white z-[300] md:hidden flex flex-col p-6 gap-6 overflow-y-auto animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center">
                   <img src={APP_CONFIG.BRAND.logoUrl} className="w-6 h-6" alt="HMC" />
                 </div>
                 <span className="text-sm font-black text-zinc-900">HMC Portal</span>
@@ -420,10 +417,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-4 mb-1.5">{group.label}</p>
                   <div className="flex flex-col gap-0.5">
                     {group.items.map(item => (
-                      <button key={item.id + '-' + group.label} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3 rounded-full font-medium text-[13px] transition-all ${activeTab === item.id ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
+                      <button key={item.id + '-' + group.label} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3 rounded-full font-medium text-[13px] transition-all ${activeTab === item.id ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
                         <item.icon size={18} /> {item.label}
                         {item.badge && item.badge > 0 ? (
-                          <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'}`}>
+                          <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-brand' : 'bg-rose-500 text-white'}`}>
                             {item.badge > 99 ? '99+' : item.badge}
                           </span>
                         ) : null}
@@ -464,7 +461,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           { id: 'briefing', label: 'Comms', icon: MessageSquare },
           { id: 'docs', label: 'Docs', icon: BookOpen },
         ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-brand' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
             <span className="text-[10px] font-bold truncate">{tab.label}</span>
           </button>
@@ -474,7 +471,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {/* Desktop sidebar - hidden on mobile */}
       <aside className={`hidden md:flex w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
          <div className="flex items-center gap-4 px-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-elevation-2">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />
             </div>
             <div className="flex-1">
@@ -502,11 +499,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-5 mb-2">{group.label}</p>
                 <div className="flex flex-col gap-1">
                   {group.items.map(item => (
-                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-elevation-1'}`}>
+                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-elevation-1'}`}>
                         <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                         {item.badge && item.badge > 0 ? (
                           <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                            activeTab === item.id ? 'bg-white text-[#233DFF]' : 'bg-rose-500 text-white'
+                            activeTab === item.id ? 'bg-white text-brand' : 'bg-rose-500 text-white'
                           }`}>
                             {item.badge > 99 ? '99+' : item.badge}
                           </span>
@@ -528,10 +525,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                  )}
                </div>
                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-bold text-zinc-900 truncate group-hover:text-[#233DFF] transition-colors">{displayUser.name}</p>
+                  <p className="text-sm font-bold text-zinc-900 truncate group-hover:text-brand transition-colors">{displayUser.name}</p>
                   <p className="text-[10px] font-medium text-zinc-400 truncate">{displayUser.role}</p>
                </div>
-               <ChevronRight size={16} className="text-zinc-300 group-hover:text-[#233DFF] transition-colors" />
+               <ChevronRight size={16} className="text-zinc-300 group-hover:text-brand transition-colors" />
             </button>
             {user.isAdmin && !viewingAsRole && (
               <div className="relative">
@@ -586,8 +583,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                       onClick={() => { setCommHubTab('briefing'); setActiveTab('briefing'); setShowNotifications(false); }}
                       className="w-full p-5 hover:bg-zinc-50 flex items-center gap-4 text-left transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-[#233DFF]/10 flex items-center justify-center shrink-0">
-                        <MessageSquare size={18} className="text-[#233DFF]" />
+                      <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
+                        <MessageSquare size={18} className="text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-zinc-900">{unreadDMs} unread message{unreadDMs > 1 ? 's' : ''}</p>
@@ -688,13 +685,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            return (
              <div className="space-y-2 mb-6">
                {visibleAnnouncements.map(a => (
-                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-[#233DFF]/5 border border-[#233DFF]/15 rounded-2xl">
-                   <Megaphone size={16} className="text-[#233DFF] shrink-0" />
+                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/15 rounded-2xl">
+                   <Megaphone size={16} className="text-brand shrink-0" />
                    <div className="flex-1 min-w-0">
                      <span className="text-sm font-bold text-zinc-900">{a.title}</span>
                      {a.content && <span className="text-sm text-zinc-500 ml-2 truncate">{a.content.length > 80 ? a.content.slice(0, 80) + '...' : a.content}</span>}
                    </div>
-                   <button onClick={() => handleDismiss(a.id)} className="p-1.5 hover:bg-[#233DFF]/10 rounded-lg transition-colors shrink-0">
+                   <button onClick={() => handleDismiss(a.id)} className="p-1.5 hover:bg-brand/10 rounded-lg transition-colors shrink-0">
                      <X size={14} className="text-zinc-400" />
                    </button>
                  </div>
@@ -722,22 +719,22 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
                   {/* Compact Stat Chips */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50/80 backdrop-blur-sm border border-zinc-200/50 rounded-full shadow-sm">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50/80 backdrop-blur-sm border border-zinc-200/50 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-clock text-zinc-400 text-xs" />
                       <span className="text-sm font-bold text-zinc-900">{displayUser.hoursContributed}</span>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase">hrs</span>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-[#233DFF]/5 backdrop-blur-sm border border-[#233DFF]/15 rounded-full shadow-sm">
-                      <i className="fa-solid fa-bolt text-[#233DFF] text-xs" />
-                      <span className="text-sm font-bold text-[#233DFF]">{(computeLevel(displayUser.points).currentXP).toLocaleString()}</span>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-brand/5 backdrop-blur-sm border border-brand/15 rounded-full shadow-elevation-1">
+                      <i className="fa-solid fa-bolt text-brand text-xs" />
+                      <span className="text-sm font-bold text-brand">{(computeLevel(displayUser.points).currentXP).toLocaleString()}</span>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase">xp</span>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-full shadow-sm">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-shield text-emerald-500 text-xs" />
                       <span className="text-sm font-bold text-emerald-600">Lv {computeLevel(displayUser.points).level}</span>
                     </div>
                     {gamification && gamification.streakDays > 0 && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-full shadow-sm">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-full shadow-elevation-1">
                         <i className="fa-solid fa-fire text-amber-500 text-xs" />
                         <span className="text-sm font-bold text-amber-500">{gamification.streakDays}d</span>
                       </div>
@@ -762,13 +759,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-2xl p-4 shadow-elevation-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-zinc-600">
-                          <i className="fa-solid fa-star text-[#233DFF] mr-1.5" />
+                          <i className="fa-solid fa-star text-brand mr-1.5" />
                           Level {lvl.level} · {lvl.title}
                         </span>
-                        <span className="text-xs font-bold text-[#233DFF]">{lvl.xpToNext.toLocaleString()} XP to Level {lvl.level + 1}</span>
+                        <span className="text-xs font-bold text-brand">{lvl.xpToNext.toLocaleString()} XP to Level {lvl.level + 1}</span>
                       </div>
                       <div className="w-full h-3.5 bg-zinc-100 rounded-full overflow-hidden relative group">
-                        <div className="h-full bg-gradient-to-r from-[#233DFF] to-[#6366f1] rounded-full transition-all duration-700 relative" style={{ width: `${lvl.progress}%` }}>
+                        <div className="h-full bg-gradient-to-r from-brand to-[#6366f1] rounded-full transition-all duration-700 relative" style={{ width: `${lvl.progress}%` }}>
                           {lvl.progress > 0 && lvl.progress < 100 && (
                             <span className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-sm animate-pulse" />
                           )}
@@ -788,7 +785,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
-         {activeTab === 'event-management' && canAccessOperationalTools && (displayUser.isAdmin || COORDINATOR_LEAD_ROLES.includes(displayUser.role)) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
+         {activeTab === 'event-management' && canAccessOperationalTools && (displayUser.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
@@ -800,7 +797,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} />}
          {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
-         {activeTab === 'forms' && (user.isAdmin || ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'].includes(displayUser.role)) && <FormBuilder />}
+         {activeTab === 'forms' && (user.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <FormBuilder />}
          {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (
            <HealthScreeningsView
              user={displayUser}
@@ -815,7 +812,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
              onLog={() => {}}
            />
          )}
-         {activeTab === 'governance' && ['Board Member', 'Community Advisory Board'].includes(displayUser.role) && (
+         {activeTab === 'governance' && GOVERNANCE_ROLES.includes(displayUser.role) && (
            <BoardGovernance user={displayUser} />
          )}
          {activeTab === 'meetings' && (
@@ -836,7 +833,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
                 <div>
@@ -866,7 +863,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
           <div className="bg-white/80 backdrop-blur-xl p-8 rounded-container border border-zinc-200/50 shadow-elevation-2 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-bold text-zinc-900 tracking-tight">Profile Status</h4>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-600 flex items-center justify-center shadow-elevation-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
                   <ShieldCheck size={18} className="text-white" />
                 </div>
               </div>
@@ -899,7 +896,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   React.useEffect(() => {
     apiService.get('/api/smo/cycles/my').then((data: any) => {
       if (Array.isArray(data)) setSmoCycles(data);
-    }).catch(() => {});
+    }).catch(err => console.error('[Dashboard] SMO cycles fetch failed:', err));
   }, []);
 
   const handleSmoSelfReport = async (cycleId: string) => {
@@ -1010,11 +1007,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]/30 hover:shadow-elevation-2 transition-all">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-[#233DFF] transition-colors"/>
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-[#233DFF]/30 hover:shadow-elevation-2 transition-all">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-[#233DFF] transition-colors"/>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
             </div>
           </div>
@@ -1072,7 +1069,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   const colorMap: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
     amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', iconBg: 'bg-gradient-to-br from-amber-400 to-amber-500' },
     rose: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', iconBg: 'bg-gradient-to-br from-rose-400 to-rose-500' },
-    blue: { bg: 'bg-[#233DFF]/5', border: 'border-[#233DFF]/20', text: 'text-[#233DFF]', iconBg: 'bg-gradient-to-br from-[#233DFF] to-indigo-500' },
+    blue: { bg: 'bg-brand/5', border: 'border-brand/20', text: 'text-brand', iconBg: 'bg-gradient-to-br from-brand to-indigo-500' },
     emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', iconBg: 'bg-gradient-to-br from-emerald-400 to-emerald-500' },
   };
 
@@ -1088,7 +1085,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           {actionItems.length > 0 && activeCardTab !== 'actions' && (
             <span className="ml-2 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full inline-flex items-center justify-center">{actionItems.length}</span>
           )}
-          {activeCardTab === 'actions' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#233DFF]" />}
+          {activeCardTab === 'actions' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
         </button>
         <button
           onClick={() => setActiveCardTab('quests')}
@@ -1101,7 +1098,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           {allComplete && activeCardTab !== 'quests' && (
             <span className="ml-2 text-[10px] font-bold text-emerald-500"><i className="fa-solid fa-check" /></span>
           )}
-          {activeCardTab === 'quests' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#233DFF]" />}
+          {activeCardTab === 'quests' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
         </button>
       </div>
 
@@ -1242,10 +1239,10 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-          <i className="fa-solid fa-radar text-[#233DFF] text-sm" />
+          <i className="fa-solid fa-radar text-brand text-sm" />
           Coming Up
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-[#233dff] text-white border border-[#0f0f0f] rounded-full font-normal text-sm hover:opacity-95 transition-all">
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-[#0f0f0f] rounded-full font-normal text-sm hover:opacity-95 transition-all">
           <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
@@ -1253,7 +1250,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
       {/* Hero Card */}
       {heroItem ? (
-        <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
@@ -1289,7 +1286,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
         <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
           <p className="text-zinc-400 font-medium text-sm mb-3">No upcoming missions.</p>
-          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-[#233dff] text-white border border-[#0f0f0f] rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
+          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-[#0f0f0f] rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
             <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
           </button>
         </div>
@@ -1305,7 +1302,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
             {restItems.map((item, i) => (
               <div key={item.id} className="relative flex items-start gap-4">
                 {/* Timeline dot */}
-                <div className="absolute left-[-21px] top-3 w-[7px] h-[7px] rounded-full bg-[#233DFF] ring-4 ring-white" />
+                <div className="absolute left-[-21px] top-3 w-[7px] h-[7px] rounded-full bg-brand ring-4 ring-white" />
 
                 {/* Date pill */}
                 <div className="shrink-0 w-16 pt-1">
@@ -1335,7 +1332,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                       </div>
                     </div>
                     {item.category && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white bg-[#233DFF] shrink-0">{item.category}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white bg-brand shrink-0">{item.category}</span>
                     )}
                   </div>
                 </div>

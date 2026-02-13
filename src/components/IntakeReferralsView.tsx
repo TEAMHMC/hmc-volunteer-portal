@@ -84,7 +84,7 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
                 <div className="max-w-xl mx-auto space-y-6">
                     <form onSubmit={handleSearch}>
                          <div className="relative">
-                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-[#233DFF] font-medium" />
+                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-medium" />
                             <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-zinc-900 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
@@ -192,9 +192,9 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
                 <label className="text-sm font-bold text-zinc-600 mb-2 block">Describe the client's need:</label>
                 <textarea value={clientNeed} onChange={e => setClientNeed(e.target.value)} placeholder="e.g., 'Spanish-speaking client needs a food bank in SPA 4' or 'unhoused veteran seeking mental health support'" className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
             </div>
-            <button onClick={handleFindMatch} disabled={isLoading || !clientNeed} className="w-full py-4 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2"><Sparkles size={16}/> {isLoading ? 'Searching...' : 'Find Best Match'}</button>
+            <button onClick={handleFindMatch} disabled={isLoading || !clientNeed} className="w-full py-4 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2"><Sparkles size={16}/> {isLoading ? 'Searching...' : 'Find Best Match'}</button>
             
-            {isLoading && <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#233DFF]" size={32} /></div>}
+            {isLoading && <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand" size={32} /></div>}
 
             {recommendations.length > 0 && (
                 <div className="space-y-4 pt-8 border-t">

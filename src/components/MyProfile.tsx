@@ -208,10 +208,10 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             ) : (
               <h2 className="text-4xl font-black text-zinc-900 tracking-tight">{currentUser.name}</h2>
             )}
-            <p className="text-zinc-500 mt-2 font-medium flex items-center gap-2"><Shield size={16} className="text-[#233DFF]" /> {currentUser.role}</p>
+            <p className="text-zinc-500 mt-2 font-medium flex items-center gap-2"><Shield size={16} className="text-brand" /> {currentUser.role}</p>
           </div>
         </div>
-        <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3 border border-black shadow-elevation-2 ${isEditing ? 'bg-[#233DFF] text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
+        <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3 border border-black shadow-elevation-2 ${isEditing ? 'bg-brand text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
           {isEditing ? <><Save size={16}/> Save Profile</> : <><Edit3 size={16}/> Edit Profile</>}
         </button>
       </div>

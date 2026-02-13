@@ -10,6 +10,7 @@ import {
 import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
+import { BROADCAST_ROLES } from '../constants';
 
 interface CommunicationHubProps {
   user: Volunteer;
@@ -39,7 +40,6 @@ const BroadcastsView: React.FC<{
   const [isSent, setIsSent] = useState(false);
   const [filters, setFilters] = useState({ role: 'All', status: 'All', skill: '' });
 
-  const BROADCAST_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
   const canBroadcast = user.isAdmin || BROADCAST_ROLES.includes(user.role);
 
   const handleFilterChange = (type: 'role' | 'status' | 'skill', value: string) => {
@@ -104,7 +104,7 @@ const BroadcastsView: React.FC<{
         {canBroadcast && !showNewAnnouncer && (
           <button
             onClick={() => setShowNewAnnouncer(true)}
-            className="bg-[#233DFF] border border-black text-white px-8 py-4 rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center gap-3 transition-all hover:scale-105 shadow-elevation-2"
+            className="bg-brand border border-black text-white px-8 py-4 rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center gap-3 transition-all hover:scale-105 shadow-elevation-2"
           >
             <Plus size={16} /> New Broadcast
           </button>
@@ -113,7 +113,7 @@ const BroadcastsView: React.FC<{
 
       <div className="flex-1 p-10 space-y-8 overflow-y-auto no-scrollbar bg-zinc-50/20">
         {showNewAnnouncer && (
-          <div className="p-10 bg-white rounded-container border-2 border-dashed border-[#233DFF]/20 animate-in slide-in-from-top-4 duration-500 shadow-elevation-1 mb-12 relative">
+          <div className="p-10 bg-white rounded-container border-2 border-dashed border-brand/20 animate-in slide-in-from-top-4 duration-500 shadow-elevation-1 mb-12 relative">
             <button onClick={handleCloseComposer} className="absolute top-6 right-6 p-2 rounded-full bg-zinc-100 text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors">
               <X size={20} />
             </button>
@@ -165,7 +165,7 @@ const BroadcastsView: React.FC<{
             />
             <div className="flex items-center gap-4 pt-4 border-t border-zinc-100">
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50">
-                <input type="checkbox" checked={sendAsSms} onChange={e => setSendAsSms(e.target.checked)} className="w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]" />
+                <input type="checkbox" checked={sendAsSms} onChange={e => setSendAsSms(e.target.checked)} className="w-5 h-5 rounded border-zinc-300 text-brand focus:ring-brand" />
                 <span className="text-xs font-bold text-zinc-600 flex items-center gap-2"><Smartphone size={14} /> Send as SMS alert</span>
               </label>
               <button
@@ -186,7 +186,7 @@ const BroadcastsView: React.FC<{
             <div className="flex items-start justify-between mb-4">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{new Date(a.date).toLocaleDateString()}</span>
               {a.targetRoles && a.targetRoles.length > 0 && canBroadcast && (
-                <span className="text-[9px] font-bold text-[#233DFF] bg-[#233DFF]/10 px-3 py-1 rounded-full uppercase tracking-wider">
+                <span className="text-[9px] font-bold text-brand bg-brand/10 px-3 py-1 rounded-full uppercase tracking-wider">
                   {a.targetRoles.join(', ')}
                 </span>
               )}
@@ -238,8 +238,8 @@ const BriefingView: React.FC<{
           if (prev.some(m => m.id === newMsg.id)) return prev;
           return [...prev, newMsg];
         });
-      } catch {
-        // Ignore parse errors (e.g. heartbeat comments)
+      } catch (e) {
+        console.warn('[CommunicationHub] SSE parse error:', e);
       }
     };
 
@@ -259,7 +259,7 @@ const BriefingView: React.FC<{
           setMessages(data);
         }
       } catch (error) {
-        // Silent fail on polling — don't disrupt UX
+        console.error('[CommunicationHub] Message polling failed:', error);
       }
     };
 
@@ -276,8 +276,8 @@ const BriefingView: React.FC<{
         if (Array.isArray(data)) {
           setOnlineUserIds(new Set(data.map((u: any) => u.id)));
         }
-      } catch {
-        // Silent fail
+      } catch (error) {
+        console.error('[CommunicationHub] Online status fetch failed:', error);
       }
     };
     pollOnline();
@@ -350,8 +350,8 @@ const BriefingView: React.FC<{
         setMessages(prev => prev.map(m =>
           m.id === msg.id ? { ...m, read: true, readAt: new Date().toISOString() } : m
         ));
-      } catch {
-        // Silent fail
+      } catch (error) {
+        console.error('[CommunicationHub] Mark messages read failed:', error);
       }
     }));
   }, [activeChannel, activeMessages, user.id, setMessages]);
@@ -410,7 +410,7 @@ const BriefingView: React.FC<{
           <button
             onClick={() => setActiveChannel('general')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-              activeChannel === 'general' ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-white'
+              activeChannel === 'general' ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-white'
             }`}
           >
             <Hash size={18} />
@@ -424,7 +424,7 @@ const BriefingView: React.FC<{
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Direct Messages</p>
             <button
               onClick={() => setShowNewConversation(!showNewConversation)}
-              className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-[#233DFF] hover:text-white transition-colors"
+              className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-brand hover:text-white transition-colors"
             >
               <Plus size={14} />
             </button>
@@ -474,7 +474,7 @@ const BriefingView: React.FC<{
                   key={conv.recipientId}
                   onClick={() => setActiveChannel(conv.recipientId)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                    activeChannel === conv.recipientId ? 'bg-[#233DFF] text-white' : 'text-zinc-600 hover:bg-white'
+                    activeChannel === conv.recipientId ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-white'
                   }`}
                 >
                   <div className="relative">
@@ -489,7 +489,7 @@ const BriefingView: React.FC<{
                       </div>
                     ) : isOnline && (
                       <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${
-                        activeChannel === conv.recipientId ? 'bg-emerald-400 border-[#233DFF]' : 'bg-emerald-500 border-zinc-50'
+                        activeChannel === conv.recipientId ? 'bg-emerald-400 border-brand' : 'bg-emerald-500 border-zinc-50'
                       }`} />
                     )}
                   </div>
@@ -512,8 +512,8 @@ const BriefingView: React.FC<{
         <div className="p-6 border-b border-zinc-100 flex items-center gap-4 bg-white">
           {activeChannel === 'general' ? (
             <>
-              <div className="w-10 h-10 rounded-xl bg-[#233DFF]/10 flex items-center justify-center">
-                <Hash size={20} className="text-[#233DFF]" />
+              <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+                <Hash size={20} className="text-brand" />
               </div>
               <div>
                 <p className="font-bold text-zinc-900">General</p>
@@ -564,7 +564,7 @@ const BriefingView: React.FC<{
               >
                 <div className={`flex gap-3 max-w-[70%] ${isMyMessage ? 'flex-row-reverse' : ''}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    isMyMessage ? 'bg-[#233DFF] text-white' : 'bg-zinc-200 text-zinc-600'
+                    isMyMessage ? 'bg-brand text-white' : 'bg-zinc-200 text-zinc-600'
                   }`}>
                     {msg.sender?.charAt(0) || '?'}
                   </div>
@@ -579,7 +579,7 @@ const BriefingView: React.FC<{
                       <div
                         className={`px-4 py-3 rounded-2xl ${
                           isMyMessage
-                            ? 'bg-[#233DFF] text-white rounded-tr-md'
+                            ? 'bg-brand text-white rounded-tr-md'
                             : 'bg-white border border-zinc-100 text-zinc-800 rounded-tl-md'
                         }`}
                       >
@@ -604,7 +604,7 @@ const BriefingView: React.FC<{
                     </div>
                     {/* Read receipt indicator for sent messages */}
                     {isMyMessage && activeChannel !== 'general' && (
-                      <p className={`text-[10px] mt-1 text-right ${msg.read ? 'text-[#233DFF]' : 'text-zinc-400'}`}>
+                      <p className={`text-[10px] mt-1 text-right ${msg.read ? 'text-brand' : 'text-zinc-400'}`}>
                         {msg.read ? 'Read' : 'Sent'}
                       </p>
                     )}
@@ -625,12 +625,12 @@ const BriefingView: React.FC<{
               onChange={e => setNewMessage(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && handleSendMessage()}
               placeholder={`Message ${activeChannel === 'general' ? '#general' : getChannelName()}...`}
-              className="flex-1 px-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl outline-none focus:border-[#233DFF]/30"
+              className="flex-1 px-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl outline-none focus:border-brand/30"
             />
             <button
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
-              className="w-12 h-12 rounded-xl bg-[#233DFF] text-white flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+              className="w-12 h-12 rounded-xl bg-brand text-white flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
             >
               <Send size={18} />
             </button>
@@ -644,7 +644,7 @@ const BriefingView: React.FC<{
 // Ticket category labels and colors
 const TICKET_CATEGORIES: { value: TicketCategory; label: string; color: string }[] = [
   { value: 'technical', label: 'Technical Issue', color: 'bg-purple-100 text-purple-700' },
-  { value: 'account', label: 'Account / Access', color: 'bg-[#233DFF]/10 text-[#233DFF]' },
+  { value: 'account', label: 'Account / Access', color: 'bg-brand/10 text-brand' },
   { value: 'training', label: 'Training', color: 'bg-amber-100 text-amber-700' },
   { value: 'scheduling', label: 'Scheduling', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'compliance', label: 'Compliance', color: 'bg-rose-100 text-rose-700' },
@@ -654,7 +654,7 @@ const TICKET_CATEGORIES: { value: TicketCategory; label: string; color: string }
 
 const TICKET_PRIORITIES: { value: 'low' | 'medium' | 'high' | 'urgent'; label: string; color: string }[] = [
   { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-600' },
-  { value: 'medium', label: 'Medium', color: 'bg-[#233DFF]/10 text-[#233DFF]' },
+  { value: 'medium', label: 'Medium', color: 'bg-brand/10 text-brand' },
   { value: 'high', label: 'High', color: 'bg-amber-100 text-amber-600' },
   { value: 'urgent', label: 'Urgent', color: 'bg-rose-100 text-rose-600' },
 ];
@@ -801,7 +801,7 @@ const TicketDetailModal: React.FC<{
               </span>
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
                 ticket.status === 'open' ? 'bg-amber-100 text-amber-700' :
-                ticket.status === 'in_progress' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
+                ticket.status === 'in_progress' ? 'bg-brand/10 text-brand' :
                 'bg-emerald-100 text-emerald-700'
               }`}>
                 {ticket.status.replace('_', ' ')}
@@ -829,7 +829,7 @@ const TicketDetailModal: React.FC<{
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-[#233DFF] text-[#233DFF]'
+                  ? 'border-brand text-brand'
                   : 'border-transparent text-zinc-400 hover:text-zinc-600'
               }`}
             >
@@ -852,11 +852,11 @@ const TicketDetailModal: React.FC<{
                 </div>
 
                 {isAssignedToMe && ticket.status !== 'closed' && (
-                  <div className="bg-[#233DFF]/5 p-4 rounded-xl border border-[#233DFF]/20">
-                    <div className="flex items-center gap-2 text-[#233DFF] font-bold text-sm mb-2">
+                  <div className="bg-brand/5 p-4 rounded-xl border border-brand/20">
+                    <div className="flex items-center gap-2 text-brand font-bold text-sm mb-2">
                       <Bell size={16} /> This ticket is assigned to you
                     </div>
-                    <p className="text-xs text-[#233DFF]">
+                    <p className="text-xs text-brand">
                       Add notes to track your progress and update the status when resolved.
                     </p>
                   </div>
@@ -877,7 +877,7 @@ const TicketDetailModal: React.FC<{
                           className={`w-full px-3 py-2 rounded-lg text-xs font-bold text-left flex items-center gap-2 transition-colors ${
                             ticket.status === status
                               ? status === 'open' ? 'bg-amber-100 text-amber-700' :
-                                status === 'in_progress' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
+                                status === 'in_progress' ? 'bg-brand/10 text-brand' :
                                 'bg-emerald-100 text-emerald-700'
                               : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100'
                           }`}
@@ -963,7 +963,7 @@ const TicketDetailModal: React.FC<{
                     value={newNote}
                     onChange={e => setNewNote(e.target.value)}
                     placeholder="Add a note or update..."
-                    className="w-full min-h-[100px] px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 resize-none text-sm"
+                    className="w-full min-h-[100px] px-4 py-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-brand/30 resize-none text-sm"
                   />
                   <div className="flex items-center justify-between mt-3">
                     {userMode === 'admin' && (
@@ -980,7 +980,7 @@ const TicketDetailModal: React.FC<{
                     <button
                       onClick={handleAddNote}
                       disabled={!newNote.trim() || isSubmittingNote}
-                      className="px-4 py-2 bg-[#233DFF] text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 ml-auto"
+                      className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 ml-auto"
                     >
                       {isSubmittingNote ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       Add Note
@@ -1040,7 +1040,7 @@ const TicketDetailModal: React.FC<{
                     <div key={act.id} className="relative pl-10 pb-6">
                       <div className={`absolute left-2 w-5 h-5 rounded-full flex items-center justify-center ${
                         act.type === 'created' ? 'bg-emerald-100 text-emerald-600' :
-                        act.type === 'status_change' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
+                        act.type === 'status_change' ? 'bg-brand/10 text-brand' :
                         act.type === 'assigned' ? 'bg-purple-100 text-purple-600' :
                         act.type === 'note_added' ? 'bg-amber-100 text-amber-600' :
                         'bg-zinc-100 text-zinc-600'
@@ -1257,7 +1257,7 @@ const OpsSupportView: React.FC<{
   const getColumnColor = (status: string) => {
     switch (status) {
       case 'open': return 'border-amber-200 bg-amber-50/30';
-      case 'in_progress': return 'border-[#233DFF]/20 bg-[#233DFF]/5';
+      case 'in_progress': return 'border-brand/20 bg-brand/5';
       case 'closed': return 'border-emerald-200 bg-emerald-50/30';
       default: return 'border-zinc-200 bg-zinc-50';
     }
@@ -1276,8 +1276,8 @@ const OpsSupportView: React.FC<{
         draggable={canModify}
         onDragStart={(e) => handleDragStart(e, ticket.id)}
         onClick={() => setSelectedTicket(ticket)}
-        className={`p-4 bg-white rounded-xl border shadow-elevation-1 hover:shadow-md transition-all cursor-pointer ${
-          isAssignedToMe ? 'border-[#233DFF] border-2' : 'border-zinc-100'
+        className={`p-4 bg-white rounded-xl border shadow-elevation-1 hover:shadow-elevation-2 transition-all cursor-pointer ${
+          isAssignedToMe ? 'border-brand border-2' : 'border-zinc-100'
         }`}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
@@ -1311,7 +1311,7 @@ const OpsSupportView: React.FC<{
           <p className="text-[10px] text-zinc-400">By {ticket.submitterName}</p>
           {ticket.assignedTo && (
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded-full bg-[#233DFF] text-white flex items-center justify-center text-[8px] font-bold">
+              <div className="w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center text-[8px] font-bold">
                 {ticket.assignedToName?.charAt(0)}
               </div>
               <span className="text-[10px] text-zinc-500">{ticket.assignedTo === user.id ? 'Me' : ticket.assignedToName}</span>
@@ -1332,7 +1332,7 @@ const OpsSupportView: React.FC<{
         </div>
         <button
           onClick={() => setShowNewTicket(true)}
-          className="px-6 py-3 bg-[#233DFF] text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
+          className="px-6 py-3 bg-brand text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
         >
           <Plus size={14} /> New Ticket
         </button>
@@ -1372,10 +1372,10 @@ const OpsSupportView: React.FC<{
             onDrop={(e) => handleDrop(e, 'in_progress')}
             className={`w-80 rounded-2xl border-2 ${getColumnColor('in_progress')} flex flex-col`}
           >
-            <div className="p-4 border-b border-[#233DFF]/20">
+            <div className="p-4 border-b border-brand/20">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#233DFF]/10 flex items-center justify-center">
-                  <Loader2 size={16} className="text-[#233DFF]" />
+                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <Loader2 size={16} className="text-brand" />
                 </div>
                 <div>
                   <h4 className="font-bold text-zinc-900">In Progress</h4>
@@ -1438,7 +1438,7 @@ const OpsSupportView: React.FC<{
                   <select
                     value={newTicketCategory}
                     onChange={e => setNewTicketCategory(e.target.value as TicketCategory)}
-                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 text-sm font-medium"
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
                   >
                     {TICKET_CATEGORIES.map(cat => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -1452,7 +1452,7 @@ const OpsSupportView: React.FC<{
                   <select
                     value={newTicketPriority}
                     onChange={e => setNewTicketPriority(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 text-sm font-medium"
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
                   >
                     {TICKET_PRIORITIES.map(p => (
                       <option key={p.value} value={p.value}>{p.label}</option>
@@ -1468,7 +1468,7 @@ const OpsSupportView: React.FC<{
                 <select
                   value={newTicketVisibility}
                   onChange={e => setNewTicketVisibility(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 text-sm font-medium"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
                 >
                   <option value="public">Public (all staff can see)</option>
                   <option value="team">My Team Only (coordinators + admins)</option>
@@ -1483,7 +1483,7 @@ const OpsSupportView: React.FC<{
                   value={newTicketSubject}
                   onChange={e => setNewTicketSubject(e.target.value)}
                   placeholder="Brief description of the issue..."
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                 />
               </div>
               <div>
@@ -1492,11 +1492,11 @@ const OpsSupportView: React.FC<{
                   value={newTicketBody}
                   onChange={e => setNewTicketBody(e.target.value)}
                   placeholder="Provide details about your issue..."
-                  className="w-full min-h-[150px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 resize-none"
+                  className="w-full min-h-[150px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 resize-none"
                 />
               </div>
-              <div className="bg-[#233DFF]/5 p-4 rounded-xl border border-[#233DFF]/10">
-                <p className="text-xs text-[#233DFF] font-medium flex items-center gap-2">
+              <div className="bg-brand/5 p-4 rounded-xl border border-brand/10">
+                <p className="text-xs text-brand font-medium flex items-center gap-2">
                   <Bell size={14} />
                   Tech support will be notified via email at tech@healthmatters.clinic when you submit this ticket.
                 </p>
@@ -1504,7 +1504,7 @@ const OpsSupportView: React.FC<{
               <button
                 onClick={handleSubmitTicket}
                 disabled={isSubmitting || !newTicketSubject.trim() || !newTicketBody.trim()}
-                className="w-full py-4 bg-[#233DFF] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50 shadow-elevation-2"
+                className="w-full py-4 bg-brand text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50 shadow-elevation-2"
               >
                 {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Submit Ticket</>}
               </button>
@@ -1535,8 +1535,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
     messages, setMessages, supportTickets, setSupportTickets, initialTab
   } = props;
 
-  const BROADCAST_ROLES_HUB = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-  const canBroadcast = user.isAdmin || BROADCAST_ROLES_HUB.includes(user.role);
+  const canBroadcast = user.isAdmin || BROADCAST_ROLES.includes(user.role);
 
   const [activeTab, setActiveTab] = useState<'broadcasts' | 'briefing' | 'support'>(
     initialTab || 'broadcasts'

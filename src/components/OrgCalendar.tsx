@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Volunteer, Opportunity, OrgCalendarEvent } from '../types';
 import { apiService } from '../services/apiService';
+import { ORG_CALENDAR_ROLES } from '../constants';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Plus, X, Clock, MapPin,
   ExternalLink, Users, Filter, Video, Loader2, Check, Tag, Trash2, Edit3, Navigation
@@ -73,8 +74,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const [showDetailEvent, setShowDetailEvent] = useState<OrgCalendarEvent | null>(null);
 
   const isAdmin = user.isAdmin;
-  const eventMgmtRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Board Member'];
-  const canCreateEvents = isAdmin || eventMgmtRoles.includes(user.role);
+  const canCreateEvents = isAdmin || ORG_CALENDAR_ROLES.includes(user.role);
 
   const fetchEvents = useCallback(async (soft = false) => {
     try {
@@ -91,7 +91,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       } else {
         setEvents(fetched);
       }
-    } catch {
+    } catch (error) {
+      console.error('[OrgCalendar] Failed to fetch events:', error);
       // Only clear events on initial load failure, not on re-fetch
       if (!soft) setEvents([]);
     } finally {
@@ -160,6 +161,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       await fetchEvents();
     } catch (err) {
       console.error('RSVP failed:', err);
+      alert('RSVP failed. Please try again.');
     } finally {
       setRsvpLoading(null);
     }
@@ -173,6 +175,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       await fetchEvents();
     } catch (err) {
       console.error('Delete failed:', err);
+      alert('Failed to delete event. Please try again.');
     }
   };
 
@@ -196,7 +199,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         {canCreateEvents && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full hover:bg-[#1a2fbf] transition-colors shadow-elevation-2"
+            className="flex items-center gap-2 px-5 py-3 font-normal text-base bg-brand text-white border border-brand rounded-full hover:bg-brand-hover transition-colors shadow-elevation-2"
           >
             <span className="w-2 h-2 rounded-full bg-white" /> New Event
           </button>
@@ -239,7 +242,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                   key={i}
                   onClick={() => handleDayClick(day)}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all relative
-                    ${isSelected ? 'bg-[#233DFF] text-white shadow-elevation-2' : isToday ? 'bg-zinc-100 font-black' : 'hover:bg-zinc-50'}
+                    ${isSelected ? 'bg-brand text-white shadow-elevation-2' : isToday ? 'bg-zinc-100 font-black' : 'hover:bg-zinc-50'}
                   `}
                 >
                   <span className={`text-sm font-semibold ${isSelected ? 'text-white' : isToday ? 'text-zinc-900' : 'text-zinc-700'}`}>
@@ -260,7 +263,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           {selectedDay && (
             <button
               onClick={() => setSelectedDay(null)}
-              className="mt-4 text-xs font-bold text-[#233DFF] hover:underline"
+              className="mt-4 text-xs font-bold text-brand hover:underline"
             >
               Clear day filter
             </button>
@@ -277,7 +280,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-700 bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-700 bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               {EVENT_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -338,10 +341,10 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               return (
                 <div
                   key={`${ev.id}-${ev.source}`}
-                  className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}
+                  className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}
                 >
                   {isAttending && (
-                    <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
+                    <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
                       <Check size={14} /> {isSignedUpViaEventFinder ? 'Signed Up' : 'Going'}
                     </div>
                   )}
@@ -359,7 +362,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     </div>
 
                     <h3
-                      className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors"
+                      className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-brand transition-colors"
                       onClick={() => setShowDetailEvent(ev)}
                     >{ev.title}</h3>
 
@@ -389,11 +392,11 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                       <div className="min-w-0">
                         <p className="text-[9px] font-medium text-zinc-300 uppercase tracking-wide mb-2">Date & Time</p>
                         <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
-                          <CalendarDays size={14} className="text-[#233DFF] shrink-0" />
+                          <CalendarDays size={14} className="text-brand shrink-0" />
                           {new Date(ev.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </p>
                         <p className="text-sm font-bold text-zinc-600 mt-1 flex items-center gap-2">
-                          <Clock size={14} className="text-[#233DFF] shrink-0" />
+                          <Clock size={14} className="text-brand shrink-0" />
                           {formatTimeDisplay(ev.startTime)}{ev.endTime ? ` – ${formatTimeDisplay(ev.endTime)}` : ''}
                         </p>
                       </div>
@@ -415,7 +418,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                             onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
                             disabled={rsvpLoading === ev.id}
                             className={`px-6 py-3 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 ${
-                              isAttending ? 'bg-white text-rose-500 border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'
+                              isAttending ? 'bg-white text-rose-500 border border-[#0f0f0f]' : 'bg-brand text-white border border-brand hover:opacity-95'
                             }`}
                           >
                             {rsvpLoading === ev.id ? (
@@ -497,18 +500,18 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               <h3 className="text-2xl font-medium text-zinc-900 tracking-normal">{showDetailEvent.title}</h3>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600">
-                <CalendarDays size={16} className="text-[#233DFF]" />
+                <CalendarDays size={16} className="text-brand" />
                 {new Date(showDetailEvent.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600">
-                <Clock size={16} className="text-[#233DFF]" />
+                <Clock size={16} className="text-brand" />
                 {formatTimeDisplay(showDetailEvent.startTime)}{showDetailEvent.endTime ? ` – ${formatTimeDisplay(showDetailEvent.endTime)}` : ''}
               </div>
 
               {showDetailEvent.location && (
                 <div className="flex items-center gap-2 text-sm text-zinc-600">
-                  <MapPin size={16} className="text-[#233DFF]" />
+                  <MapPin size={16} className="text-brand" />
                   {showDetailEvent.location}
                 </div>
               )}
@@ -645,7 +648,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               value={form.title}
               onChange={e => updateField('title', e.target.value)}
               placeholder="e.g. Monthly All-Hands"
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               required
             />
           </div>
@@ -658,7 +661,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
                 type="date"
                 value={form.date}
                 onChange={e => updateField('date', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+                className="w-full px-3 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 required
               />
             </div>
@@ -668,7 +671,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
                 type="time"
                 value={form.startTime}
                 onChange={e => updateField('startTime', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+                className="w-full px-3 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 required
               />
             </div>
@@ -678,7 +681,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
                 type="time"
                 value={form.endTime}
                 onChange={e => updateField('endTime', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+                className="w-full px-3 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>
           </div>
@@ -689,7 +692,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
             <select
               value={form.type}
               onChange={e => updateField('type', e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="all-hands">All-Hands</option>
               <option value="committee">Committee</option>
@@ -709,7 +712,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               value={form.location}
               onChange={e => updateField('location', e.target.value)}
               placeholder="e.g. Virtual, Office, Palmdale"
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
 
@@ -721,7 +724,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               value={form.meetLink}
               onChange={e => updateField('meetLink', e.target.value)}
               placeholder="https://meet.google.com/..."
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
 
@@ -733,7 +736,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               onChange={e => updateField('description', e.target.value)}
               rows={3}
               placeholder="Event details..."
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
             />
           </div>
 
@@ -743,7 +746,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               type="checkbox"
               checked={form.isRecurring}
               onChange={e => updateField('isRecurring', e.target.checked)}
-              className="w-4 h-4 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]"
+              className="w-4 h-4 rounded border-zinc-300 text-brand focus:ring-brand"
             />
             <label className="text-sm font-medium text-zinc-700">Recurring event</label>
           </div>
@@ -755,7 +758,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
                 value={form.recurrenceNote}
                 onChange={e => updateField('recurrenceNote', e.target.value)}
                 placeholder="e.g. Every 1st Monday"
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+                className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>
           )}
@@ -771,7 +774,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           <button
             type="submit"
             disabled={saving || !form.title || !form.date || !form.startTime}
-            className="w-full py-4 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full hover:bg-[#1a2fbf] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full py-4 font-normal text-base bg-brand text-white border border-brand rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             <span className="w-2 h-2 rounded-full bg-white" />
             {saving ? <Loader2 size={16} className="animate-spin" /> : editingEvent ? <Check size={16} /> : <Plus size={16} />}

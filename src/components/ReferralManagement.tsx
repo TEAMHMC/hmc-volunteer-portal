@@ -64,7 +64,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="animate-spin text-[#233DFF]" size={48} />
+        <Loader2 className="animate-spin text-brand" size={48} />
       </div>
     );
   }
@@ -93,8 +93,8 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
               activeTab === tab.id
-                ? 'bg-[#233DFF] text-white shadow-elevation-2'
-                : 'bg-white text-zinc-600 border border-zinc-200 hover:border-[#233DFF]'
+                ? 'bg-brand text-white shadow-elevation-2'
+                : 'bg-white text-zinc-600 border border-zinc-200 hover:border-brand'
             }`}
           >
             {tab.icon}
@@ -198,7 +198,7 @@ const DashboardView: React.FC<{
               <p className="text-xs text-zinc-500">On Track</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-black text-[#233DFF]">{slaReport.avgResponseTimeHours}h</p>
+              <p className="text-2xl font-black text-brand">{slaReport.avgResponseTimeHours}h</p>
               <p className="text-xs text-zinc-500">Avg Response</p>
             </div>
           </div>
@@ -238,7 +238,7 @@ const DashboardView: React.FC<{
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
                   r.status === 'Completed' ? 'bg-emerald-500' :
-                  r.status === 'In Progress' ? 'bg-[#233DFF]/50' :
+                  r.status === 'In Progress' ? 'bg-brand/50' :
                   r.status === 'Pending' ? 'bg-amber-500' : 'bg-zinc-400'
                 }`}>
                   {r.clientName.charAt(0)}
@@ -251,7 +251,7 @@ const DashboardView: React.FC<{
               <div className="text-right">
                 <p className={`text-xs font-bold ${
                   r.status === 'Completed' ? 'text-emerald-600' :
-                  r.status === 'In Progress' ? 'text-[#233DFF]' :
+                  r.status === 'In Progress' ? 'text-brand' :
                   r.status === 'Pending' ? 'text-amber-600' : 'text-zinc-400'
                 }`}>
                   {r.status}
@@ -287,12 +287,12 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
             placeholder="Search clients..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]"
+            className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand"
           />
         </div>
         <button
           onClick={() => setShowNewClient(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm"
+          className="flex items-center gap-2 px-5 py-3 bg-brand text-white rounded-xl font-bold text-sm"
         >
           <Plus size={18} /> New Client
         </button>
@@ -375,7 +375,7 @@ const ReferralsView: React.FC<{
               key={f}
               onClick={() => setFilter(f as any)}
               className={`px-4 py-2 rounded-lg text-sm font-bold capitalize ${
-                filter === f ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600'
+                filter === f ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600'
               }`}
             >
               {f}
@@ -445,7 +445,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
         </div>
         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
           referral.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
-          referral.status === 'In Progress' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
+          referral.status === 'In Progress' ? 'bg-brand/10 text-brand' :
           referral.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
           'bg-zinc-100 text-zinc-600'
         }`}>
@@ -468,7 +468,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
           <button
             onClick={() => updateStatus('In Progress')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-[#233DFF] text-white rounded-lg text-sm font-bold hover:bg-[#233DFF]/90 disabled:opacity-50"
+            className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-bold hover:bg-brand/90 disabled:opacity-50"
           >
             Mark In Progress
           </button>
@@ -504,14 +504,14 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
             placeholder="Search resources..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]"
+            className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredResources.map((resource, i) => (
-          <div key={i} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 hover:border-[#233DFF]/20 transition-colors">
+          <div key={i} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 hover:border-brand/20 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-zinc-900">{resource['Resource Name']}</h3>
               {resource.averageRating && (
@@ -521,7 +521,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
                 </div>
               )}
             </div>
-            <p className="text-sm text-[#233DFF] font-medium mb-2">{resource['Service Category']}</p>
+            <p className="text-sm text-brand font-medium mb-2">{resource['Service Category']}</p>
             <p className="text-sm text-zinc-500 mb-4 line-clamp-2">{resource['Key Offerings']}</p>
             <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
               {resource['Contact Phone'] && (
@@ -553,7 +553,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowNewPartner(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm"
+          className="flex items-center gap-2 px-5 py-3 bg-brand text-white rounded-xl font-bold text-sm"
         >
           <Plus size={18} /> Add Partner
         </button>
@@ -570,7 +570,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
                 {partner.status}
               </span>
             </div>
-            <p className="text-sm text-[#233DFF] font-medium mb-3">{partner.type}</p>
+            <p className="text-sm text-brand font-medium mb-3">{partner.type}</p>
             <div className="space-y-2 text-sm text-zinc-500">
               {partner.contactName && <p>{partner.contactName}</p>}
               {partner.contactEmail && (
@@ -625,8 +625,8 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
           <p className="text-3xl font-black text-zinc-900">{avgRating}</p>
           <p className="text-sm text-zinc-500">Average Rating</p>
         </div>
-        <div className="p-6 bg-[#233DFF]/5 rounded-2xl border border-[#233DFF]/10 text-center">
-          <FileText size={32} className="mx-auto text-[#233DFF] mb-2" />
+        <div className="p-6 bg-brand/5 rounded-2xl border border-brand/10 text-center">
+          <FileText size={32} className="mx-auto text-brand mb-2" />
           <p className="text-3xl font-black text-zinc-900">{feedback.length}</p>
           <p className="text-sm text-zinc-500">Total Feedback</p>
         </div>
@@ -786,7 +786,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-bold">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-lg font-bold disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand text-white rounded-lg font-bold disabled:opacity-50">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Create Client'}
             </button>
           </div>
@@ -881,7 +881,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-bold">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-[#233DFF] text-white rounded-lg font-bold disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand text-white rounded-lg font-bold disabled:opacity-50">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Add Partner'}
             </button>
           </div>

@@ -86,7 +86,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {canEdit && (
                     <button
                         onClick={() => setShowNewArticleModal(true)}
-                        className="flex items-center gap-3 px-6 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
+                        className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
                     >
                         <Plus size={16} /> New Document
                     </button>
@@ -100,7 +100,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     placeholder="Search documents..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-medium shadow-elevation-1 outline-none focus:ring-2 focus:ring-[#233DFF]"
+                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-medium shadow-elevation-1 outline-none focus:ring-2 focus:ring-brand"
                 />
             </div>
 
@@ -180,13 +180,13 @@ const ArticleModal: React.FC<{
             <div className="bg-white max-w-3xl w-full rounded-2xl shadow-elevation-2 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-6 border-b border-zinc-100 flex items-start justify-between">
                     <div>
-                        <p className="text-xs font-bold text-[#233DFF] uppercase">{article.category}</p>
+                        <p className="text-xs font-bold text-brand uppercase">{article.category}</p>
                         <h2 className="text-2xl font-bold text-zinc-900">{article.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">
                         {canEdit && (
                             <>
-                                <button onClick={() => onEdit(article)} className="p-2 text-zinc-400 hover:text-[#233DFF] transition-colors">
+                                <button onClick={() => onEdit(article)} className="p-2 text-zinc-400 hover:text-brand transition-colors">
                                     <Edit3 size={20}/>
                                 </button>
                                 <button onClick={() => onDelete(article.id)} className="p-2 text-zinc-400 hover:text-rose-500 transition-colors">
@@ -303,7 +303,7 @@ const ArticleEditorModal: React.FC<{
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                                 placeholder="Document title..."
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 font-medium"
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -312,7 +312,7 @@ const ArticleEditorModal: React.FC<{
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
-                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 font-medium"
+                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
                                 >
                                     {existingCategories.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
@@ -326,7 +326,7 @@ const ArticleEditorModal: React.FC<{
                                     value={newCategory}
                                     onChange={e => setNewCategory(e.target.value)}
                                     placeholder="New category name..."
-                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 font-medium"
+                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
                                 />
                             </div>
                         </div>
@@ -348,7 +348,7 @@ const ArticleEditorModal: React.FC<{
                                 value={content}
                                 onChange={e => setContent(e.target.value)}
                                 placeholder="Write your document content here... Use ## for headings and ### for subheadings."
-                                className="w-full min-h-[300px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 font-mono text-sm resize-none"
+                                className="w-full min-h-[300px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-mono text-sm resize-none"
                             />
                         </div>
                         <div>
@@ -358,7 +358,7 @@ const ArticleEditorModal: React.FC<{
                                 value={tags}
                                 onChange={e => setTags(e.target.value)}
                                 placeholder="policy, hipaa, compliance..."
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 font-medium"
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
                             />
                         </div>
                         <div>
@@ -376,7 +376,7 @@ const ArticleEditorModal: React.FC<{
                                         )}
                                         className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                                             visibleTo.includes(role)
-                                                ? 'bg-[#233DFF] text-white'
+                                                ? 'bg-brand text-white'
                                                 : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
                                         }`}
                                     >
@@ -454,7 +454,7 @@ const ArticleEditorModal: React.FC<{
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-8 py-3 bg-[#233DFF] text-white rounded-full font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"
+                        className="px-8 py-3 bg-brand text-white rounded-full font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"
                     >
                         <Save size={16} /> Save Document
                     </button>

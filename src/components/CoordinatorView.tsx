@@ -56,7 +56,7 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }
 };
 
 const statCardThemes = {
-  brand: { border: 'border-l-[#233DFF]', iconBg: 'bg-gradient-to-br from-[#233DFF]/10 to-indigo-100/50', iconText: 'text-[#233DFF]' },
+  brand: { border: 'border-l-brand', iconBg: 'bg-gradient-to-br from-brand/10 to-indigo-100/50', iconText: 'text-brand' },
   emerald: { border: 'border-l-emerald-400', iconBg: 'bg-gradient-to-br from-emerald-500/10 to-emerald-100/50', iconText: 'text-emerald-500' },
   amber: { border: 'border-l-amber-400', iconBg: 'bg-gradient-to-br from-amber-500/10 to-amber-100/50', iconText: 'text-amber-500' },
 };

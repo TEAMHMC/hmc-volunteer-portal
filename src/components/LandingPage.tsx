@@ -102,14 +102,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
             className="w-10 h-10 md:w-12 md:h-12 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:drop-shadow-lg"
           />
           <span className="text-xs font-bold text-zinc-900 uppercase tracking-wider md:hidden">HMC VMS</span>
-          <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider group-hover:text-[#233DFF] transition-colors">HMC VOLUNTEER PLATFORM</span>
+          <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider group-hover:text-brand transition-colors">HMC VOLUNTEER PLATFORM</span>
         </a>
         <div className="flex items-center gap-2">
           <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-[10px] md:text-[11px] uppercase tracking-wide flex items-center gap-2 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
             Admin Portal
           </button>
-          <button onClick={handleVolunteerLoginClick} className="bg-[#233DFF] border border-black text-white px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-[10px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 md:gap-3">
+          <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-[10px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 md:gap-3">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
             Volunteer Login
           </button>
@@ -155,7 +155,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                         required 
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                        className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-[#233DFF]/30 transition-all" 
+                        className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-brand/30 transition-all" 
                         placeholder="name@healthmatters.clinic"
                       />
                     </div>
@@ -167,7 +167,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                             required 
                             value={password}
                             onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                            className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-[#233DFF]/30 transition-all pr-14" 
+                            className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-brand/30 transition-all pr-14" 
                             placeholder="••••••••"
                           />
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
@@ -179,7 +179,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                           type="button"
                           onClick={handleForgotPassword}
                           disabled={resetLoading}
-                          className="text-[11px] font-semibold text-zinc-400 hover:text-[#233DFF] transition-colors"
+                          className="text-[11px] font-semibold text-zinc-400 hover:text-brand transition-colors"
                         >
                           {resetLoading ? 'Sending...' : 'Forgot password?'}
                         </button>
@@ -198,7 +198,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                           )}
                         </div>
                     )}
-                    <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#233DFF] border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
+                    <button type="submit" disabled={isLoading} className="w-full py-5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
                       {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Secure Login <ArrowRight size={16} /></>}
                     </button>
                 </form>
@@ -217,12 +217,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         ) : (
           <div className="max-w-[1200px] text-center space-y-12 md:space-y-16 animate-in fade-in duration-1000">
              <div className="space-y-6 md:space-y-8">
-                <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
+                <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
                    <Zap size={14} className="animate-pulse" /> Community Operations
                 </div>
                 <h1 className="text-4xl sm:text-5xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-8 italic uppercase">
                   Join our<br/>
-                  <span className="bg-gradient-to-r from-[#233dff] to-indigo-400 bg-clip-text text-transparent">Community.</span>
+                  <span className="bg-gradient-to-r from-brand to-indigo-400 bg-clip-text text-transparent">Community.</span>
                 </h1>
                 <p className="text-base md:text-lg lg:text-xl text-zinc-400 font-medium max-w-4xl mx-auto leading-relaxed italic">
                   A central platform for Health Matters Clinic volunteers to find missions, complete training, and track their impact.
@@ -232,7 +232,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
              <div className="pt-8 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
                 <button
                   onClick={onStartOnboarding}
-                  className="bg-[#233DFF] border border-black text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-3 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
+                  className="bg-brand border border-black text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-3 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
                 >
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
@@ -240,7 +240,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 <div className="flex items-center gap-4 p-3 bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1">
                    <div className="flex -space-x-3">
                       {[1,2,3,4].map(i => (
-                        <div key={i} className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-elevation-1 ${i === 1 ? 'bg-[#233DFF]/10' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                        <div key={i} className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-elevation-1 ${i === 1 ? 'bg-brand/10' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
                           <Users size={14} className="text-zinc-600" />
                         </div>
                       ))}
@@ -259,8 +259,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
       <footer className="px-6 md:px-12 py-12 border-t border-zinc-50 flex flex-col md:flex-row justify-between items-center gap-8 mt-auto">
          <p className="text-[10px] md:text-[11px] font-bold text-zinc-300 uppercase tracking-widest text-center md:text-left">© 2026 Health Matters Clinic All rights reserved.</p>
          <div className="flex items-center gap-6 md:gap-10">
-            <a href="https://www.healthmatters.clinic/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-[#233DFF] transition-colors">Privacy Policy</a>
-            <a href="https://www.healthmatters.clinic/terms" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-[#233DFF] transition-colors">Terms of Service</a>
+            <a href="https://www.healthmatters.clinic/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Privacy Policy</a>
+            <a href="https://www.healthmatters.clinic/terms" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Terms of Service</a>
          </div>
       </footer>
     </div>

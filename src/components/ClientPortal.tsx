@@ -55,7 +55,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#233DFF]" size={32}/></div>
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-brand" size={32}/></div>
         ) : (
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {opportunities.map(opp => (
@@ -69,7 +69,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
                   <MapPin size={14}/> {opp.serviceLocation}
                 </div>
                 <div className="mt-auto pt-6">
-                  <button onClick={() => setSelectedOpp(opp)} className="w-full py-3 bg-[#233DFF] text-white font-bold rounded-lg hover:bg-[#233DFF]/90">RSVP Now</button>
+                  <button onClick={() => setSelectedOpp(opp)} className="w-full py-3 bg-brand text-white font-bold rounded-lg hover:bg-brand/90">RSVP Now</button>
                 </div>
               </div>
             ))}
@@ -128,7 +128,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
             <input required type="tel" placeholder="Phone" onChange={e => setFormData(p => ({...p, phone: e.target.value}))} className="w-full p-3 border rounded-lg"/>
             <input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setFormData(p => ({...p, dob: e.target.value}))} className="w-full p-3 border rounded-lg"/>
             {error && <p className="text-rose-500 text-sm">{error}</p>}
-            <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-[#233DFF] text-white font-bold rounded-lg hover:bg-[#233DFF]/90 disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-brand text-white font-bold rounded-lg hover:bg-brand/90 disabled:opacity-50">
               {isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : 'Confirm RSVP'}
             </button>
           </form>

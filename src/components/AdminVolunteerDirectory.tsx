@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Volunteer, Task, ComplianceStep } from '../types';
 import { APP_CONFIG } from '../config';
 import { apiService } from '../services/apiService';
@@ -177,7 +177,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           <div className="flex flex-col md:flex-row items-center gap-4">
             <button onClick={() => setShowImportModal(true)} className="py-5 px-6 bg-white border border-zinc-100 rounded-full text-zinc-400 font-bold text-[11px] uppercase tracking-wide flex items-center gap-3"><UploadCloud size={16}/>Bulk Import</button>
             <div className="relative group w-full md:w-auto">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-[#233DFF] transition-colors" size={18} />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-brand transition-colors" size={18} />
               <input 
                 type="text" 
                 placeholder="Search..." 
@@ -191,8 +191,8 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex bg-white border border-zinc-100 p-1.5 rounded-full shadow-elevation-1 w-fit">
-              <button onClick={() => setViewMode('all')} className={`px-6 py-3 rounded-full text-[11px] font-bold uppercase tracking-wider ${viewMode === 'all' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400'}`}>Directory</button>
-              <button onClick={() => setViewMode('applicants')} className={`px-6 py-3 rounded-full text-[11px] font-bold uppercase tracking-wider relative ${viewMode === 'applicants' ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400'}`}>
+              <button onClick={() => setViewMode('all')} className={`px-6 py-3 rounded-full text-[11px] font-bold uppercase tracking-wider ${viewMode === 'all' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400'}`}>Directory</button>
+              <button onClick={() => setViewMode('applicants')} className={`px-6 py-3 rounded-full text-[11px] font-bold uppercase tracking-wider relative ${viewMode === 'applicants' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400'}`}>
                 Applicants {applicantsCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center">{applicantsCount}</span>}
               </button>
           </div>
@@ -223,7 +223,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                         {v.avatarUrl ? <img src={v.avatarUrl} className="w-full h-full object-cover" /> : v.name.charAt(0)}
                      </div>
                      <div>
-                        <h3 className="text-lg font-black text-zinc-900 leading-tight group-hover:text-[#233DFF] transition-colors">{v.name}</h3>
+                        <h3 className="text-lg font-black text-zinc-900 leading-tight group-hover:text-brand transition-colors">{v.name}</h3>
                         <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.15em] mt-1">{v.applicationStatus === 'pendingReview' ? `Applied for: ${v.appliedRole}` : v.role}</p>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {v.isReturningVolunteer && (
@@ -263,7 +263,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                      <span className="text-zinc-900">{v.onboardingProgress}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-50 rounded-full overflow-hidden border border-zinc-100 shadow-inner">
-                     <div className="h-full bg-[#233DFF] transition-all duration-1000 shadow-elevation-1" style={{ width: `${v.onboardingProgress}%` }} />
+                     <div className="h-full bg-brand transition-all duration-1000 shadow-elevation-1" style={{ width: `${v.onboardingProgress}%` }} />
                   </div>
                </div>
 
@@ -272,17 +272,17 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                      <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mb-1">Hours Contributed</p>
                      <p className="text-2xl font-black text-zinc-900 tracking-tighter leading-none">{Math.floor(v.hoursContributed)} <span className="text-xs font-bold text-zinc-300">HRS</span></p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-200 group-hover:bg-[#233DFF] group-hover:text-white transition-all group-hover:scale-110 shadow-elevation-1">
+                  <div className="w-12 h-12 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-200 group-hover:bg-brand group-hover:text-white transition-all group-hover:scale-110 shadow-elevation-1">
                      <ChevronRight size={24} />
                   </div>
                </div>
-               <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#233DFF]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#233DFF]/10 transition-all" />
+               <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand/5 rounded-full blur-3xl pointer-events-none group-hover:bg-brand/10 transition-all" />
             </div>
           ))}
           
           <button
             onClick={() => setShowAddVolunteerModal(true)}
-            className="bg-white border-2 border-dashed border-zinc-100 rounded-container p-12 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-[#233DFF]/20 hover:text-[#233DFF] transition-all group">
+            className="bg-white border-2 border-dashed border-zinc-100 rounded-container p-12 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
              <div className="w-20 h-20 rounded-full bg-zinc-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-elevation-2 transition-all">
                 <UserPlus size={32} strokeWidth={1.5} />
              </div>
@@ -378,7 +378,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                         <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Assigned Tasks</h4>
                         <button
                           onClick={() => setShowTaskModal(true)}
-                          className="px-3 py-1.5 bg-[#233DFF] text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                          className="px-3 py-1.5 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-1"
                         >
                           <ClipboardList size={12} /> Assign Task
                         </button>
@@ -436,7 +436,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   value={taskTitle}
                   onChange={e => setTaskTitle(e.target.value)}
                   placeholder="e.g., Complete HIPAA Training"
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                 />
               </div>
               <div>
@@ -445,7 +445,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   value={taskDescription}
                   onChange={e => setTaskDescription(e.target.value)}
                   placeholder="Provide details about the task..."
-                  className="w-full min-h-[100px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30 resize-none"
+                  className="w-full min-h-[100px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 resize-none"
                 />
               </div>
               <div>
@@ -454,7 +454,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   type="date"
                   value={taskDueDate}
                   onChange={e => setTaskDueDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                 />
               </div>
             </div>
@@ -462,7 +462,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
             <button
               onClick={handleAssignTask}
               disabled={isAssigningTask || !taskTitle.trim()}
-              className="w-full py-4 bg-[#233DFF] border border-black text-white rounded-full font-black text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50"
+              className="w-full py-4 bg-brand border border-black text-white rounded-full font-black text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50"
             >
               {isAssigningTask ? <Loader2 size={18} className="animate-spin" /> : <><ClipboardList size={18} /> Assign Task</>}
             </button>
@@ -623,9 +623,9 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
                     </div>
                 ) : (
                     <>
-                        <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#233DFF]/5 file:text-[#233DFF] hover:file:bg-[#233DFF]/10"/>
+                        <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"/>
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
-                        <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50">
+                        <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50">
                             {isUploading ? <Loader2 className="animate-spin"/> : "Start Import"}
                         </button>
                     </>
@@ -648,6 +648,13 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+      return () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      };
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -708,7 +715,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
             });
             setVolunteers((prev: Volunteer[]) => [...prev, { id: result.id, ...newVolunteer }]);
             setSuccess(true);
-            setTimeout(onClose, 2000);
+            closeTimerRef.current = setTimeout(onClose, 2000);
         } catch(e) {
             setError((e as Error).message || 'Failed to add volunteer');
         } finally {
@@ -746,7 +753,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                                 type="text"
                                 value={formData.legalFirstName}
                                 onChange={e => setFormData({...formData, legalFirstName: e.target.value})}
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                                 placeholder="John"
                             />
                         </div>
@@ -756,7 +763,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                                 type="text"
                                 value={formData.legalLastName}
                                 onChange={e => setFormData({...formData, legalLastName: e.target.value})}
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                                 placeholder="Doe"
                             />
                         </div>
@@ -767,7 +774,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                             type="email"
                             value={formData.email}
                             onChange={e => setFormData({...formData, email: e.target.value})}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                             placeholder="john@example.com"
                         />
                     </div>
@@ -777,7 +784,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                             type="tel"
                             value={formData.phone}
                             onChange={e => setFormData({...formData, phone: e.target.value})}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                             placeholder="(555) 123-4567"
                         />
                     </div>
@@ -786,7 +793,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                         <select
                             value={formData.role}
                             onChange={e => setFormData({...formData, role: e.target.value})}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                         >
                             {APP_CONFIG.HMC_ROLES.map(role => (
                                 <option key={role.id} value={role.label}>{role.label}</option>
@@ -800,7 +807,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                             type="password"
                             value={formData.password}
                             onChange={e => setFormData({...formData, password: e.target.value})}
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#233DFF]/30"
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30"
                             placeholder="Enter a temporary password"
                         />
                         <p className="text-xs text-zinc-400 mt-1">Min 6 characters. Volunteer will be asked to reset on first login.</p>
@@ -824,7 +831,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="w-full py-4 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full py-4 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><UserPlus size={18} /> Add Volunteer</>}
                     </button>

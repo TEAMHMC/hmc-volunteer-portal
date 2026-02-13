@@ -421,7 +421,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
             <CheckCircle size={64} className="mx-auto text-emerald-500 mb-6" />
             <h2 className="text-3xl font-black text-zinc-900">Application Submitted!</h2>
             <p className="text-zinc-500 mt-4 max-w-md mx-auto">Thank you for applying to volunteer with Health Matters Clinic. Our team will review your application and you will receive an email notification regarding your status soon.</p>
-            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
+            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-white" />
               Return to Home
             </button>
@@ -446,7 +446,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
               <div className="w-2 h-2 rounded-full bg-black" />
               Back
             </button>}
-            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
               {isStepLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
               </button>}
           </div>
@@ -631,7 +631,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
           <button
             onClick={onContinue}
             disabled={!canContinue}
-            className="w-full py-5 bg-[#233DFF] text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" />
           </button>
@@ -741,7 +741,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
               const current = data.languagesSpoken || [];
               onChange('languagesSpoken', current.includes(lang) ? current.filter((l: string) => l !== lang) : [...current, lang]);
             }}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.languagesSpoken || []).includes(lang) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.languagesSpoken || []).includes(lang) ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
           >
             {lang}
           </button>
@@ -833,14 +833,14 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
             <button
               type="button"
               onClick={() => onChange('isReturningVolunteer', true)}
-              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === true ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               Yes, I'm a returning volunteer
             </button>
             <button
               type="button"
               onClick={() => onChange('isReturningVolunteer', false)}
-              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isReturningVolunteer === false ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               No, this is my first time
             </button>
@@ -882,14 +882,14 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
             <button
               type="button"
               onClick={() => onChange('isGroupVolunteer', true)}
-              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === true ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === true ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               Yes, I'm with a group
             </button>
             <button
               type="button"
               onClick={() => onChange('isGroupVolunteer', false)}
-              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === false ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+              className={`px-6 py-3 rounded-full text-sm font-bold transition-all ${data.isGroupVolunteer === false ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
             >
               No, I'm volunteering individually
             </button>
@@ -953,8 +953,8 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
 
       <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-6">Demographics (Optional)</h3>
-      <div className="p-4 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-xl mb-4">
-        <p className="text-[#233DFF] text-sm">This information is collected for grant reporting purposes only and helps HMC demonstrate the diversity of our volunteer workforce to funders. All responses are optional and confidential.</p>
+      <div className="p-4 bg-brand/5 border border-brand/20 rounded-xl mb-4">
+        <p className="text-brand text-sm">This information is collected for grant reporting purposes only and helps HMC demonstrate the diversity of our volunteer workforce to funders. All responses are optional and confidential.</p>
       </div>
 
       <div className="space-y-6">
@@ -969,7 +969,7 @@ const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
                   const current = data.demographicRace || [];
                   onChange('demographicRace', current.includes(race) ? current.filter((r: string) => r !== race) : [...current, race]);
                 }}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.demographicRace || []).includes(race) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${(data.demographicRace || []).includes(race) ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
               >
                 {race}
               </button>
@@ -1033,7 +1033,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
               key={type.value}
               type="button"
               onClick={() => onChange('servicePreference', type.value)}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${data.servicePreference === type.value ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-200 hover:border-zinc-300'}`}
+              className={`p-4 rounded-xl border-2 text-left transition-all ${data.servicePreference === type.value ? 'border-brand bg-brand/5' : 'border-zinc-200 hover:border-zinc-300'}`}
             >
               <span className="font-bold text-zinc-900 block">{type.label}</span>
               <span className="text-xs text-zinc-500">{type.desc}</span>
@@ -1046,7 +1046,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
         <label className="text-sm font-bold text-zinc-600 block mb-4">Which days are you typically available? *</label>
         <div className="flex flex-wrap gap-3">
           {days.map(day => (
-            <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.availDays || []).includes(day) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+            <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.availDays || []).includes(day) ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
               {day}
             </button>
           ))}
@@ -1057,7 +1057,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
         <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time(s) of day? * <span className="font-normal text-zinc-400">(select all that apply)</span></label>
         <div className="flex flex-wrap gap-3">
           {times.map(time => (
-            <button key={time} type="button" onClick={() => toggleTime(time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.preferredTimes || []).includes(time) ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+            <button key={time} type="button" onClick={() => toggleTime(time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.preferredTimes || []).includes(time) ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
               {time}
             </button>
           ))}
@@ -1152,14 +1152,14 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
 
       <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8">
         <div className="flex items-center gap-4 mb-4">
-          <UploadCloud size={32} className="text-[#233DFF]" />
+          <UploadCloud size={32} className="text-brand" />
           <div>
             <h3 className="font-bold text-zinc-900">Upload Your Resume</h3>
             <p className="text-sm text-zinc-500">Our AI will analyze your skills and recommend the best roles</p>
           </div>
         </div>
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFileUpload} />
-        <button onClick={() => fileInputRef.current?.click()} disabled={isStepLoading} className="w-full py-4 border-2 border-dashed border-zinc-300 rounded-xl hover:border-[#233DFF] transition-colors flex items-center justify-center gap-3 text-zinc-600 font-bold">
+        <button onClick={() => fileInputRef.current?.click()} disabled={isStepLoading} className="w-full py-4 border-2 border-dashed border-zinc-300 rounded-xl hover:border-brand transition-colors flex items-center justify-center gap-3 text-zinc-600 font-bold">
           {isStepLoading ? <Loader2 className="animate-spin" /> : data.resumeFile ? <><CheckCircle className="text-emerald-500" /> {data.resumeFile.name}</> : 'Click to upload PDF or DOC'}
         </button>
       </div>
@@ -1179,10 +1179,10 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         <div className="space-y-4">
           <h3 className="font-bold text-zinc-900">AI Recommended Roles</h3>
           {aiRecommendations.map((rec, i) => (
-            <button key={i} onClick={() => onChange('selectedRole', rec.roleName)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${data.selectedRole === rec.roleName ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-200 hover:border-zinc-300'}`}>
+            <button key={i} onClick={() => onChange('selectedRole', rec.roleName)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${data.selectedRole === rec.roleName ? 'border-brand bg-brand/5' : 'border-zinc-200 hover:border-zinc-300'}`}>
               <div className="flex justify-between items-center">
                 <span className="font-bold text-zinc-900">{rec.roleName}</span>
-                <span className="text-sm font-bold text-[#233DFF]">{rec.matchPercentage}% Match</span>
+                <span className="text-sm font-bold text-brand">{rec.matchPercentage}% Match</span>
               </div>
               <p className="text-sm text-zinc-500 mt-2">{rec.reasoning}</p>
             </button>
@@ -1206,7 +1206,7 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         <select
           value={data.selectedRole || ''}
           onChange={(e) => onChange('selectedRole', e.target.value)}
-          className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-bold text-lg focus:border-[#233DFF] focus:ring-2 focus:ring-[#233DFF]/20 outline-none transition-all appearance-none cursor-pointer"
+          className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-bold text-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all appearance-none cursor-pointer"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
         >
           <option value="" disabled>Choose a volunteer role...</option>
@@ -1291,7 +1291,7 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   const ConsentCheckbox = ({ field, label, required = true }: { field: string; label: string; required?: boolean }) => (
     <button type="button" onClick={() => onChange(field, !data[field])} className="flex items-start gap-4 p-4 bg-zinc-50 rounded-xl border border-zinc-200 hover:border-zinc-300 transition-all text-left w-full">
-      <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${data[field] ? 'bg-[#233DFF] border-[#233DFF]' : 'border-zinc-300'}`}>
+      <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${data[field] ? 'bg-brand border-brand' : 'border-zinc-300'}`}>
         {data[field] && <Check size={16} className="text-white" />}
       </div>
       <span className="text-sm text-zinc-700">{label} {required && <span className="text-rose-500">*</span>}</span>
@@ -1386,7 +1386,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
         </div>
       )}
 
-      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-elevation-2">
+      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-elevation-2">
         {isLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Submit Application</>}
       </button>
     </div>

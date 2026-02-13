@@ -91,6 +91,7 @@ const EventDayCheckin: React.FC<{ eventId: string; eventDate: string }> = ({ eve
       if (stats) setStats({ ...stats, checkedInCount: (stats.checkedInCount || 0) + 1 });
     } catch (err) {
       console.error('Manual check-in failed:', err);
+      alert('Check-in failed. Please try again.');
     }
   };
 
@@ -100,7 +101,7 @@ const EventDayCheckin: React.FC<{ eventId: string; eventDate: string }> = ({ eve
     <div className="mt-3 pt-3 border-t border-zinc-100">
       <button
         onClick={() => { setExpanded(!expanded); if (!expanded && !stats) fetchStats(); }}
-        className="flex items-center gap-2 text-[10px] font-bold text-[#233DFF] uppercase tracking-wider hover:underline"
+        className="flex items-center gap-2 text-[10px] font-bold text-brand uppercase tracking-wider hover:underline"
       >
         <ClipboardList size={12} />
         {expanded ? 'Hide' : 'Show'} Event Day Check-in
@@ -258,11 +259,11 @@ const BulkUploadEventsModal: React.FC<{
               <h3 className="text-xl font-bold text-zinc-900 mb-2">Import Complete!</h3>
               <p className="text-zinc-500">
                 Successfully imported <span className="font-bold text-emerald-600">{result.importedCount}</span> events
-                with <span className="font-bold text-[#233DFF]">{result.shiftsCreated}</span> volunteer shifts.
+                with <span className="font-bold text-brand">{result.shiftsCreated}</span> volunteer shifts.
               </p>
               <button
                 onClick={onClose}
-                className="mt-6 px-8 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full flex items-center justify-center gap-2 mx-auto"
+                className="mt-6 px-8 py-3 font-normal text-base bg-brand text-white border border-brand rounded-full flex items-center justify-center gap-2 mx-auto"
               >
                 <span className="w-2 h-2 rounded-full bg-white" /> Done
               </button>
@@ -306,7 +307,7 @@ const BulkUploadEventsModal: React.FC<{
                     <Upload size={40} className="mx-auto text-zinc-300 mb-4" />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="font-bold text-[#233DFF] hover:underline"
+                      className="font-bold text-brand hover:underline"
                     >
                       Click to upload
                     </button>
@@ -334,7 +335,7 @@ const BulkUploadEventsModal: React.FC<{
               <button
                 onClick={handleUpload}
                 disabled={!file || isUploading}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 font-normal text-base bg-brand text-white border border-brand rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? (
                   <>
@@ -597,7 +598,7 @@ const EditEventModal: React.FC<{
             </div>
             <button
               onClick={handleAddQuota}
-              className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] transition-colors"
+              className="mt-2 flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand-hover transition-colors"
             >
               <Plus size={14} /> Add Role
             </button>
@@ -606,13 +607,13 @@ const EditEventModal: React.FC<{
           {/* Service Offerings (collapsible) */}
           <div className="border border-zinc-200 rounded-xl overflow-hidden">
             <button onClick={() => setShowServices(!showServices)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
-              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><Users size={16} /> Service Offerings {serviceOfferingIds.length > 0 && <span className="text-xs bg-[#233DFF]/10 text-[#233DFF] px-2 py-0.5 rounded-full">{serviceOfferingIds.length} selected</span>}</span>
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><Users size={16} /> Service Offerings {serviceOfferingIds.length > 0 && <span className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full">{serviceOfferingIds.length} selected</span>}</span>
               {showServices ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
             </button>
             {showServices && (
               <div className="p-4 grid grid-cols-2 gap-2">
                 {SERVICE_OFFERINGS.map(service => (
-                  <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-3 border-2 rounded-lg text-left transition-colors ${serviceOfferingIds.includes(service.id) ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-100 hover:border-zinc-300'}`}>
+                  <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-3 border-2 rounded-lg text-left transition-colors ${serviceOfferingIds.includes(service.id) ? 'border-brand bg-brand/5' : 'border-zinc-100 hover:border-zinc-300'}`}>
                     <p className="text-sm font-bold">{service.name}</p>
                     <p className="text-[10px] text-zinc-500 mt-0.5">{service.description}</p>
                   </button>
@@ -624,7 +625,7 @@ const EditEventModal: React.FC<{
           {/* Equipment & Resources (collapsible) */}
           <div className="border border-zinc-200 rounded-xl overflow-hidden">
             <button onClick={() => setShowEquipment(!showEquipment)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
-              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><Package size={16} /> Equipment & Resources {selectedEquipment.length > 0 && <span className="text-xs bg-[#233DFF]/10 text-[#233DFF] px-2 py-0.5 rounded-full">{selectedEquipment.length} items</span>}</span>
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><Package size={16} /> Equipment & Resources {selectedEquipment.length > 0 && <span className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full">{selectedEquipment.length} items</span>}</span>
               {showEquipment ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
             </button>
             {showEquipment && (
@@ -636,10 +637,10 @@ const EditEventModal: React.FC<{
                       {items.map(item => {
                         const selected = selectedEquipment.find(e => e.equipmentId === item.id);
                         return (
-                          <div key={item.id} className={`p-2.5 border-2 rounded-lg cursor-pointer transition-all ${selected ? 'border-[#233DFF] bg-[#233DFF]/5' : 'border-zinc-100 hover:border-zinc-300'}`}>
+                          <div key={item.id} className={`p-2.5 border-2 rounded-lg cursor-pointer transition-all ${selected ? 'border-brand bg-brand/5' : 'border-zinc-100 hover:border-zinc-300'}`}>
                             <div className="flex items-center justify-between">
                               <button onClick={() => handleToggleEquipment(item)} className="flex-1 text-left">
-                                <p className={`text-xs font-bold ${selected ? 'text-[#233DFF]' : 'text-zinc-700'}`}>{item.name}</p>
+                                <p className={`text-xs font-bold ${selected ? 'text-brand' : 'text-zinc-700'}`}>{item.name}</p>
                               </button>
                               {selected && (
                                 <input type="number" value={selected.quantity} onChange={e => handleEquipmentQtyChange(item.id, parseInt(e.target.value) || 0)} className="w-12 p-1 text-center text-xs border border-zinc-200 rounded bg-white" onClick={e => e.stopPropagation()} />
@@ -658,7 +659,7 @@ const EditEventModal: React.FC<{
           {/* Pre-Event Checklist (collapsible) */}
           <div className="border border-zinc-200 rounded-xl overflow-hidden">
             <button onClick={() => setShowChecklist(!showChecklist)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
-              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><ClipboardList size={16} /> Pre-Event Checklist {checklist.length > 0 && <span className="text-xs bg-[#233DFF]/10 text-[#233DFF] px-2 py-0.5 rounded-full">{checklist.filter(c => c.done).length}/{checklist.length} done</span>}</span>
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><ClipboardList size={16} /> Pre-Event Checklist {checklist.length > 0 && <span className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full">{checklist.filter(c => c.done).length}/{checklist.length} done</span>}</span>
               {showChecklist ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
             </button>
             {showChecklist && (
@@ -667,7 +668,7 @@ const EditEventModal: React.FC<{
                   <div key={idx} className="flex items-center gap-2 group">
                     <button
                       onClick={() => setChecklist(prev => prev.map((c, i) => i === idx ? { ...c, done: !c.done } : c))}
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-[#233DFF]'}`}
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-brand'}`}
                     >
                       {item.done && <Check size={12} />}
                     </button>
@@ -687,7 +688,7 @@ const EditEventModal: React.FC<{
                 ))}
                 <button
                   onClick={() => setChecklist(prev => [...prev, { text: '', done: false }])}
-                  className="flex items-center gap-1.5 text-xs font-bold text-[#233DFF] hover:text-[#1a2fbf] transition-colors mt-2"
+                  className="flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand-hover transition-colors mt-2"
                 >
                   <Plus size={14} /> Add Item
                 </button>
@@ -697,7 +698,7 @@ const EditEventModal: React.FC<{
         </div>
         <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3">
           <button onClick={onClose} className="px-6 py-3 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</button>
-          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full flex items-center gap-2 disabled:opacity-50">
+          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 font-normal text-base bg-brand text-white border border-brand rounded-full flex items-center gap-2 disabled:opacity-50">
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} Save Changes
           </button>
         </div>
@@ -1196,14 +1197,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-elevation-3" onClick={(e) => e.stopPropagation()}>
              <div className="p-8">
                <div className="flex justify-between items-start mb-6">
-                 <span className="px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-[#233DFF]/10 text-[#233DFF]">{normalizeCategory(showEventDetail.category)}</span>
+                 <span className="px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-brand/10 text-brand">{normalizeCategory(showEventDetail.category)}</span>
                  <button onClick={() => setShowEventDetail(null)} className="p-2 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"><X size={20} /></button>
                </div>
                <h3 className="text-2xl font-medium text-zinc-900 tracking-normal mb-4">{showEventDetail.title}</h3>
                <div className="space-y-3 text-sm text-zinc-600">
-                 <p className="flex items-center gap-3"><Calendar size={16} className="text-[#233DFF] shrink-0" /> {new Date(showEventDetail.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                 <p className="flex items-center gap-3"><Clock size={16} className="text-[#233DFF] shrink-0" /> {showEventDetail.time || 'TBD'}</p>
-                 <p className="flex items-center gap-3"><MapPin size={16} className="text-[#233DFF] shrink-0" /> {showEventDetail.serviceLocation}</p>
+                 <p className="flex items-center gap-3"><Calendar size={16} className="text-brand shrink-0" /> {new Date(showEventDetail.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                 <p className="flex items-center gap-3"><Clock size={16} className="text-brand shrink-0" /> {showEventDetail.time || 'TBD'}</p>
+                 <p className="flex items-center gap-3"><MapPin size={16} className="text-brand shrink-0" /> {showEventDetail.serviceLocation}</p>
                  {showEventDetail.address && showEventDetail.address !== showEventDetail.serviceLocation && (
                    <p className="ml-7 text-zinc-400">{showEventDetail.address}</p>
                  )}
@@ -1241,7 +1242,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
         </div>
         <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-medium uppercase tracking-wide transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-[#233DFF] text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-medium uppercase tracking-wide transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}>
               {tab.label}
             </button>
           ))}
@@ -1251,10 +1252,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity">
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-brand text-white border border-brand rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity">
                   <span className="w-2 h-2 rounded-full bg-white" /> Create New Event
               </button>
-              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-[#233dff] text-white border border-[#233dff] rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity disabled:opacity-50">
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-brand text-white border border-brand rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity disabled:opacity-50">
                   {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
               </button>
               <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full shadow-elevation-1 hover:opacity-80 transition-opacity">
@@ -1285,7 +1286,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                setToastMsg('Event approved and now visible to all volunteers!');
                                setShowToast(true);
                                setTimeout(() => setShowToast(false), 3000);
-                             } catch (e) { console.error('Failed to approve', e); }
+                             } catch (e) { console.error('Failed to approve', e); alert('Failed to approve registration. Please try again.'); }
                            }}
                            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-emerald-600"
                          >
@@ -1299,7 +1300,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                setToastMsg('Event rejected.');
                                setShowToast(true);
                                setTimeout(() => setShowToast(false), 3000);
-                             } catch (e) { console.error('Failed to reject', e); }
+                             } catch (e) { console.error('Failed to reject', e); alert('Failed to reject registration. Please try again.'); }
                            }}
                            className="px-4 py-2 bg-rose-100 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-rose-200"
                          >
@@ -1349,7 +1350,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                               <span className="font-bold">{q.role}</span>
                               <div className="flex items-center gap-2">
                                 <span className={`${actualFilled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{actualFilled} / {q.count} Filled</span>
-                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-[#233DFF]/10 text-[#233DFF] px-2 py-1 rounded-full">Find Volunteer</button>}
+                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-brand/10 text-brand px-2 py-1 rounded-full">Find Volunteer</button>}
                               </div>
                             </div>
                             {assignedVols.length > 0 && (
@@ -1368,7 +1369,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           if (setAllVolunteers) {
                                             setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id), assignedShiftIds: (vol.assignedShiftIds || []).filter(id => id !== matchingShift.id) } : vol));
                                           }
-                                        } catch (e) { console.error('Failed to unassign', e); }
+                                        } catch (e) { console.error('Failed to unassign', e); alert('Failed to unassign volunteer. Please try again.'); }
                                       }}
                                       className="ml-auto p-1 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors shrink-0"
                                       title="Remove volunteer"
@@ -1403,7 +1404,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       if (setAllVolunteers) {
                                         setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id) } : vol));
                                       }
-                                    } catch (e) { console.error('Failed to remove RSVP', e); }
+                                    } catch (e) { console.error('Failed to remove RSVP', e); alert('Failed to remove RSVP. Please try again.'); }
                                   }}
                                   className="ml-auto p-1 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors shrink-0"
                                   title="Remove RSVP"
@@ -1442,14 +1443,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                 placeholder="Search events by name or location..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-zinc-200 rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-4 focus:ring-[#233DFF]/10 transition-all"
+                className="w-full bg-white border border-zinc-200 rounded-2xl py-4 pl-12 pr-4 text-sm font-medium outline-none focus:ring-4 focus:ring-brand/10 transition-all"
               />
               <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" />
             </div>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-white border border-zinc-200 rounded-2xl px-4 py-4 text-sm font-bold text-zinc-700 outline-none focus:ring-4 focus:ring-[#233DFF]/10 min-w-[180px]"
+              className="bg-white border border-zinc-200 rounded-2xl px-4 py-4 text-sm font-bold text-zinc-700 outline-none focus:ring-4 focus:ring-brand/10 min-w-[180px]"
             >
               <option value="all">All Categories</option>
               {EVENT_CATEGORIES.map(cat => (
@@ -1486,9 +1487,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const regStatus = getRegistrationStatus(opp);
                             const isPendingTraining = isRegistered && regStatus.isPending;
                             return (
-                              <div key={shift.id} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-elevation-2' : isRegistered ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
+                              <div key={shift.id} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-elevation-2' : isRegistered ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
                                 {isRegistered && (
-                                  <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-[#233DFF] text-white'}`}>
+                                  <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-brand text-white'}`}>
                                     {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
                                   </div>
                                 )}
@@ -1503,11 +1504,11 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                 )}
                                 <div className="p-6 md:p-8 flex-1">
                                   <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-4">
-                                    <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                    <Calendar size={14} className="text-brand shrink-0" />
                                     {dateLabel}
                                   </div>
-                                  <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
-                                  <h3 className="text-xl font-medium text-zinc-900 tracking-normal leading-tight mb-2 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                  <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
+                                  <h3 className="text-xl font-medium text-zinc-900 tracking-normal leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                   <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-4">
                                     <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                   </div>
@@ -1517,7 +1518,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                   <div className="flex items-center justify-between gap-4">
                                     <div className="min-w-0">
                                       <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
-                                        <Clock size={14} className="text-[#233DFF] shrink-0" />
+                                        <Clock size={14} className="text-brand shrink-0" />
                                         {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                       </p>
                                     </div>
@@ -1530,7 +1531,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                         <button
                                           onClick={() => handleToggleRegistration(shift.id)}
                                           disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
-                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
                                         >
                                           {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                         </button>
@@ -1543,14 +1544,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
                                       const isReg = user.assignedShiftIds?.includes(shift.id);
                                       return isWithinWeek ? (
-                                        <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-normal text-sm bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                        <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-normal text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                           <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                         </button>
                                       ) : (
                                         <button
                                           onClick={() => handleToggleRegistration(shift.id)}
                                           disabled={slotsLeft === 0 && !isReg}
-                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isReg ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                          className={`px-6 py-3 rounded-full font-normal text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isReg ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
                                         >
                                           {isReg ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                         </button>
@@ -1563,19 +1564,19 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           } else {
                             const isRsvped = user.rsvpedEventIds?.includes(opp.id);
                             return (
-                              <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
+                              <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
                                 {isRsvped && (
-                                  <div className="absolute top-0 right-0 px-6 py-2 bg-[#233DFF] text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
+                                  <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2">
                                     <Check size={14} /> Confirmed
                                   </div>
                                 )}
                                 <div className="p-6 md:p-8 flex-1">
                                   <div className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-4">
-                                    <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                    <Calendar size={14} className="text-brand shrink-0" />
                                     {dateLabel}
                                   </div>
-                                  <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
-                                  <h3 className="text-xl font-medium text-zinc-900 tracking-normal leading-tight mb-2 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                  <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
+                                  <h3 className="text-xl font-medium text-zinc-900 tracking-normal leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                   <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-4">
                                     <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                   </div>
@@ -1584,7 +1585,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                 <div className="bg-zinc-50/70 p-4 md:p-6 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
                                   <div className="flex items-center justify-between gap-4">
                                     <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
-                                      <Calendar size={14} className="text-[#233DFF] shrink-0" />
+                                      <Calendar size={14} className="text-brand shrink-0" />
                                       {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </p>
                                     {userMode === 'volunteer' && isRsvped && (
@@ -1672,9 +1673,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const isPendingTraining = isRegistered && regStatus.isPending;
 
                             return (
-                                <div key={shift.id} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-elevation-2' : isRegistered ? 'border-[#233DFF] shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
+                                <div key={shift.id} className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-elevation-2' : isRegistered ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}>
                                     {isRegistered && (
-                                       <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-[#233DFF] text-white'}`}>
+                                       <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-medium uppercase tracking-wide flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-brand text-white'}`}>
                                           {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
                                        </div>
                                     )}
@@ -1704,8 +1705,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                          </div>
                                       </div>
 
-                                      <p className="text-xs font-bold text-[#233DFF] mb-2">{normalizeCategory(opp.category)}</p>
-                                      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-[#233DFF] transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                      <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
+                                      <h3 className="text-2xl font-medium text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                       <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-wide mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>
@@ -1717,7 +1718,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           <div className="min-w-0">
                                             <p className="text-[9px] font-medium text-zinc-300 uppercase tracking-wide mb-2">Time</p>
                                             <p className="text-sm font-medium text-zinc-900 tracking-normal flex items-center gap-2">
-                                              <Clock size={14} className="text-[#233DFF] shrink-0" />
+                                              <Clock size={14} className="text-brand shrink-0" />
                                               {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                             </p>
                                           </div>
@@ -1734,7 +1735,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               <button
                                                 onClick={() => handleToggleRegistration(shift.id)}
                                                 disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
-                                                className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                                className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
                                               >
                                                 {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-[#0f0f0f]'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                               </button>
@@ -1749,14 +1750,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               const isRegistered = user.assignedShiftIds?.includes(shift.id);
 
                                               return isWithinWeek ? (
-                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full font-normal text-base bg-[#233dff] text-white border border-[#233dff] flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full font-normal text-base bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                                    <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                                 </button>
                                               ) : (
                                                 <button
                                                   onClick={() => handleToggleRegistration(shift.id)}
                                                   disabled={slotsLeft === 0 && !isRegistered}
-                                                  className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-[#233dff] text-white border border-[#233dff] hover:opacity-95'}`}
+                                                  className={`px-6 py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
                                                 >
                                                   {isRegistered ? <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                                 </button>

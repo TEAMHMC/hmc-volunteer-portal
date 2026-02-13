@@ -126,7 +126,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-[#233DFF]/5 text-[#233DFF] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-brand/5 text-brand flex items-center justify-center">
                     <Bell size={20} />
                 </div>
                 <div>
@@ -142,7 +142,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
                     return (
                         <div key={meta.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${stage.enabled ? 'bg-white border-zinc-200' : 'bg-zinc-50 border-zinc-100 opacity-60'}`}>
                             <div className="flex items-center gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${stage.enabled ? 'bg-[#233DFF] text-white' : 'bg-zinc-200 text-zinc-500'}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${stage.enabled ? 'bg-brand text-white' : 'bg-zinc-200 text-zinc-500'}`}>
                                     {meta.icon}
                                 </div>
                                 <div>
@@ -161,7 +161,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
                                 </select>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" checked={stage.enabled} onChange={() => setStages(prev => ({ ...prev, [meta.id]: { ...prev[meta.id], enabled: !prev[meta.id].enabled } }))} className="sr-only peer" />
-                                    <div className="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#233DFF]"></div>
+                                    <div className="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand"></div>
                                 </label>
                             </div>
                         </div>
@@ -170,7 +170,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
             </div>
 
             <div className="flex justify-end">
-                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
+                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
                     {saving ? <Loader2 className="animate-spin" size={14} /> : 'Save Cadence Settings'}
                 </button>
             </div>
@@ -298,13 +298,13 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                                         value={editingLink}
                                                         onChange={e => setEditingLink(e.target.value)}
                                                         placeholder="https://meet.google.com/..."
-                                                        className="w-full pl-9 pr-4 py-2.5 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:outline-none"
+                                                        className="w-full pl-9 pr-4 py-2.5 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:outline-none"
                                                     />
                                                 </div>
                                                 <button
                                                     onClick={() => handleSaveMeetLink(cycle.id)}
                                                     disabled={savingLink}
-                                                    className="px-4 py-2.5 bg-[#233DFF] text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                                                    className="px-4 py-2.5 bg-brand text-white rounded-xl text-xs font-bold disabled:opacity-50"
                                                 >
                                                     {savingLink ? <Loader2 className="animate-spin" size={14} /> : 'Save'}
                                                 </button>
@@ -554,7 +554,7 @@ const AutomatedWorkflows: React.FC = () => {
                                         onClick={() => handleChannelChange(opt.value)}
                                         className={`flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold transition-all ${
                                             primaryChannel === opt.value
-                                                ? 'bg-[#233DFF] text-white shadow-elevation-2'
+                                                ? 'bg-brand text-white shadow-elevation-2'
                                                 : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
                                         }`}
                                     >
@@ -571,7 +571,7 @@ const AutomatedWorkflows: React.FC = () => {
                             {workflows.map(wf => (
                                 <div key={wf.id} className="py-6 flex items-center justify-between">
                                     <div className="flex items-center gap-6">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${wf.enabled ? 'bg-[#233DFF]/5 text-[#233DFF]' : 'bg-zinc-100 text-zinc-400'}`}>
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${wf.enabled ? 'bg-brand/5 text-brand' : 'bg-zinc-100 text-zinc-400'}`}>
                                             <wf.icon size={24} />
                                         </div>
                                         <div>
@@ -588,7 +588,7 @@ const AutomatedWorkflows: React.FC = () => {
                                         <button
                                             onClick={() => handleRunNow(wf.id)}
                                             disabled={triggeringId === wf.id}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-500 hover:text-[#233DFF] hover:bg-[#233DFF]/5 rounded-full transition-all disabled:opacity-50"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-500 hover:text-brand hover:bg-brand/5 rounded-full transition-all disabled:opacity-50"
                                             title="Run now"
                                         >
                                             {triggeringId === wf.id ? <Loader2 className="animate-spin" size={12} /> : <Play size={12} />}
@@ -596,7 +596,7 @@ const AutomatedWorkflows: React.FC = () => {
                                         </button>
                                        <label className="relative inline-flex items-center cursor-pointer">
                                           <input type="checkbox" checked={wf.enabled} onChange={() => handleToggle(wf.id)} className="sr-only peer" />
-                                          <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#233DFF]"></div>
+                                          <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
                                        </label>
                                     </div>
                                 </div>
@@ -604,7 +604,7 @@ const AutomatedWorkflows: React.FC = () => {
                         </div>
                         {hasChanges && (
                             <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-end">
-                                <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-[#233DFF] text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
+                                <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
                                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                                 </button>
                             </div>

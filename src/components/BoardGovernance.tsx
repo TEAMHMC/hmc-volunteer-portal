@@ -329,7 +329,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 className="animate-spin text-[#233DFF]" size={32} />
+        <Loader2 className="animate-spin text-brand" size={32} />
       </div>
     );
   }
@@ -385,7 +385,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             {canManageMeetings && (
               <button
                 onClick={() => setShowNewMeetingModal(true)}
-                className="flex items-center gap-3 px-6 py-4 bg-[#233DFF]/5 border border-[#233DFF]/20 text-[#233DFF] rounded-full font-bold text-sm hover:bg-[#233DFF]/10 transition-colors"
+                className="flex items-center gap-3 px-6 py-4 bg-brand/5 border border-brand/20 text-brand rounded-full font-bold text-sm hover:bg-brand/10 transition-colors"
               >
                 <Plus size={18} />
                 Schedule Meeting
@@ -417,7 +417,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                 <div key={meeting.id} className="p-6 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-[#233DFF]/10 flex items-center justify-center text-[#233DFF]">
+                      <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
                         <CalendarDays size={24} />
                       </div>
                       <div>
@@ -431,7 +431,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                             <ul className="text-sm text-zinc-600 space-y-1">
                               {meeting.agenda.slice(0, 4).map((item, idx) => (
                                 <li key={idx} className="flex items-center gap-2">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-[#233DFF]" />
+                                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
                                   {item}
                                 </li>
                               ))}
@@ -463,7 +463,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                       {canManageMeetings && (
                         <button
                           onClick={() => setEditingMeeting(meeting)}
-                          className="flex items-center gap-1.5 px-3 py-1 text-zinc-400 hover:text-[#233DFF] hover:bg-[#233DFF]/5 rounded-full text-xs font-bold transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1 text-zinc-400 hover:text-brand hover:bg-brand/5 rounded-full text-xs font-bold transition-colors"
                         >
                           <Edit3 size={14} />
                           Edit
@@ -491,7 +491,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                       {meeting.googleMeetLink && (
                         <button
                           onClick={() => handleStartMeeting(meeting.googleMeetLink!)}
-                          className="flex items-center gap-2 px-4 py-2 bg-[#233DFF] text-white rounded-full font-bold text-sm hover:bg-[#1a2fbf] transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-full font-bold text-sm hover:bg-brand-hover transition-colors"
                         >
                           <Video size={16} />
                           Join Google Meet
@@ -500,7 +500,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                       {!meeting.googleMeetLink && canManageMeetings && (
                         <button
                           onClick={() => setEditingMeeting(meeting)}
-                          className="flex items-center gap-2 px-4 py-2 border border-dashed border-zinc-300 text-zinc-500 rounded-full font-bold text-xs hover:border-[#233DFF] hover:text-[#233DFF] transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 border border-dashed border-zinc-300 text-zinc-500 rounded-full font-bold text-xs hover:border-brand hover:text-brand transition-colors"
                         >
                           <Video size={14} />
                           Add Meet Link
@@ -623,12 +623,12 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               onClick={() => setShowDocViewer(doc.id)}
               className="p-6 rounded-card-lg border border-zinc-100 bg-white hover:shadow-elevation-2 hover:border-zinc-200 transition-all cursor-pointer group"
             >
-              <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-[#233DFF]/10 group-hover:text-[#233DFF] transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                 <FileText size={24} />
               </div>
               <h4 className="font-black text-zinc-900">{doc.title}</h4>
               <p className="text-sm text-zinc-500 mt-2 line-clamp-2">{doc.description}</p>
-              <div className="flex items-center gap-2 mt-4 text-sm font-bold text-[#233DFF]">
+              <div className="flex items-center gap-2 mt-4 text-sm font-bold text-brand">
                 View Document <ChevronRight size={14} />
               </div>
             </div>
@@ -641,7 +641,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
         <div className="space-y-8">
           {/* Goal Setting */}
           {giveOrGet.goal === 0 && (
-            <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-8 rounded-container">
+            <div className="bg-brand/5 border border-brand/20 p-8 rounded-container">
               <h4 className="font-black text-zinc-900 mb-2">Set Your Annual Commitment</h4>
               <p className="text-sm text-zinc-500 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
               <div className="flex gap-3">
@@ -662,7 +662,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     const val = parseInt(input.value);
                     if (val > 0) handleSaveGiveOrGet({ ...giveOrGet, goal: val });
                   }}
-                  className="px-6 py-3 bg-[#233DFF] text-white rounded-full font-bold text-sm"
+                  className="px-6 py-3 bg-brand text-white rounded-full font-bold text-sm"
                 >
                   Set Goal
                 </button>
@@ -672,7 +672,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Progress Overview */}
           {giveOrGet.goal > 0 && (
-            <div className="bg-gradient-to-br from-[#233DFF] to-[#1a2fbf] p-10 rounded-container text-white">
+            <div className="bg-gradient-to-br from-brand to-brand-hover p-10 rounded-container text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-2xl font-black">Your Give or Get Progress</h3>
@@ -708,7 +708,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                   href={DONATE_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold text-sm hover:bg-[#1a2fbf] transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-brand text-white rounded-full font-bold text-sm hover:bg-brand-hover transition-colors flex items-center justify-center gap-2"
                 >
                   <ExternalLink size={14} />
                   Donate Online
@@ -724,7 +724,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
             <div className="bg-white p-8 rounded-container border border-zinc-100">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-[#233DFF]/10 flex items-center justify-center text-[#233DFF]">
+                <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
                   <TrendingUp size={24} />
                 </div>
                 <div>
@@ -732,7 +732,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                   <p className="text-sm text-zinc-500">From your network</p>
                 </div>
               </div>
-              <p className="text-4xl font-black text-[#233DFF]">${giveOrGet.fundraised.toLocaleString()}</p>
+              <p className="text-4xl font-black text-brand">${giveOrGet.fundraised.toLocaleString()}</p>
               <button
                 onClick={() => setShowDonationModal('fundraised')}
                 className="mt-6 w-full py-3 bg-zinc-100 text-zinc-700 rounded-full font-bold text-sm hover:bg-zinc-200 transition-colors"
@@ -751,7 +751,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
               <button
                 onClick={() => setShowProspectModal(true)}
-                className="px-4 py-2 bg-[#233DFF] text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-[#1a2fbf]"
+                className="px-4 py-2 bg-brand text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-brand-hover"
               >
                 <Plus size={14} />
                 Add Prospect
@@ -799,7 +799,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                         onChange={e => handleUpdateProspect(prospect.id, { status: e.target.value as Prospect['status'] })}
                         className={`px-2 py-1 rounded-full text-xs font-bold border-0 cursor-pointer appearance-auto ${
                           prospect.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
-                          prospect.status === 'contacted' ? 'bg-[#233DFF]/10 text-[#233DFF]' :
+                          prospect.status === 'contacted' ? 'bg-brand/10 text-brand' :
                           prospect.status === 'declined' ? 'bg-zinc-100 text-zinc-500' :
                           prospect.status === 'pending' ? 'bg-amber-100 text-amber-700' :
                           'bg-amber-100 text-amber-700'
@@ -813,7 +813,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                       </select>
                       <button
                         onClick={() => setShowEmailDraft(prospect)}
-                        className="p-2 hover:bg-[#233DFF]/10 rounded-full text-[#233DFF] transition-colors"
+                        className="p-2 hover:bg-brand/10 rounded-full text-brand transition-colors"
                         title="Draft fundraising email"
                       >
                         <Mail size={16} />
@@ -1089,7 +1089,7 @@ I understand I may revoke this authorization in writing at any time.`
             <button
               onClick={() => onSign(signatureRef.current?.toDataURL())}
               disabled={!agreed || !hasSignature}
-              className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sign Form
             </button>
@@ -1142,7 +1142,7 @@ const MinutesReviewModal: React.FC<{
               />
               <div className="flex gap-3">
                 <button onClick={() => { if (meeting.minutesContent) setEditing(false); }} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
-                <button onClick={() => { onSaveMinutes(editContent); setEditing(false); }} className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold">Save Draft</button>
+                <button onClick={() => { onSaveMinutes(editContent); setEditing(false); }} className="flex-1 py-3 bg-brand text-white rounded-full font-bold">Save Draft</button>
               </div>
             </div>
           ) : (
@@ -1290,7 +1290,7 @@ const MeetingFormModal: React.FC<{
                 agenda: agendaText.split('\n').filter(a => a.trim()),
               })}
               disabled={!title || !date}
-              className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50"
+              className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50"
             >
               {isEdit ? 'Save Changes' : 'Create Meeting'}
             </button>
@@ -1325,19 +1325,19 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="text-sm font-bold text-zinc-700">Name / Organization *</label>
-              <input value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="e.g. Jane Smith or ABC Corp" />
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="e.g. Jane Smith or ABC Corp" />
             </div>
             <div>
               <label className="text-sm font-bold text-zinc-700">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="email@example.com" />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="email@example.com" />
             </div>
             <div>
               <label className="text-sm font-bold text-zinc-700">Phone</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="(555) 555-5555" />
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="(555) 555-5555" />
             </div>
             <div>
               <label className="text-sm font-bold text-zinc-700">Prospect Type</label>
-              <select value={prospectType} onChange={e => setProspectType(e.target.value as Prospect['type'])} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm bg-white focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none">
+              <select value={prospectType} onChange={e => setProspectType(e.target.value as Prospect['type'])} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm bg-white focus:border-brand focus:ring-1 focus:ring-brand outline-none">
                 <option value="individual">Individual</option>
                 <option value="corporation">Corporation</option>
                 <option value="foundation">Foundation</option>
@@ -1348,16 +1348,16 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
             </div>
             <div>
               <label className="text-sm font-bold text-zinc-700">Potential Amount ($) *</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="e.g. 500" />
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="e.g. 500" />
             </div>
           </div>
           <div>
             <label className="text-sm font-bold text-zinc-700">Relationship / Connection</label>
-            <input value={relationship} onChange={e => setRelationship(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="e.g. Former colleague, church member, local business owner" />
+            <input value={relationship} onChange={e => setRelationship(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="e.g. Former colleague, church member, local business owner" />
           </div>
           <div>
             <label className="text-sm font-bold text-zinc-700">Notes</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-20 focus:border-[#233DFF] focus:ring-1 focus:ring-[#233DFF] outline-none" placeholder="Any context, warm intro path, or next steps..." />
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-20 focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="Any context, warm intro path, or next steps..." />
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex gap-3">
@@ -1376,7 +1376,7 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
               outreachLog: []
             })}
             disabled={!name || !amount}
-            className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <Plus size={16} /> Add Prospect
           </button>
@@ -1412,7 +1412,7 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
             <button
               onClick={() => onLog(parseInt(amount) || 0, type, note || undefined)}
               disabled={!amount}
-              className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold disabled:opacity-50"
+              className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50"
             >
               Log {type === 'personal' ? 'Donation' : 'Activity'}
             </button>
@@ -1486,15 +1486,15 @@ www.healthmatters.clinic`;
           <div className="bg-zinc-50 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed mb-4 font-mono">
             {emailBody}
           </div>
-          <div className="flex items-center gap-3 bg-[#233DFF]/5 border border-[#233DFF]/20 p-4 rounded-2xl mb-4">
-            <Link2 size={16} className="text-[#233DFF] shrink-0" />
+          <div className="flex items-center gap-3 bg-brand/5 border border-brand/20 p-4 rounded-2xl mb-4">
+            <Link2 size={16} className="text-brand shrink-0" />
             <div className="flex-1">
               <p className="text-xs font-bold text-zinc-500">Donate Link</p>
-              <p className="text-sm font-bold text-[#233DFF]">{DONATE_URL}</p>
+              <p className="text-sm font-bold text-brand">{DONATE_URL}</p>
             </div>
             <button
               onClick={() => { navigator.clipboard.writeText(DONATE_URL); }}
-              className="px-3 py-1 bg-[#233DFF]/10 text-[#233DFF] rounded-full text-xs font-bold hover:bg-[#233DFF]/20"
+              className="px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold hover:bg-brand/20"
             >
               Copy Link
             </button>
@@ -1507,11 +1507,11 @@ www.healthmatters.clinic`;
         </div>
         <div className="p-6 border-t border-zinc-100 flex gap-3">
           {prospect.email && (
-            <button onClick={handleOpenMail} className="flex-1 py-3 border border-[#233DFF] text-[#233DFF] rounded-full font-bold flex items-center justify-center gap-2">
+            <button onClick={handleOpenMail} className="flex-1 py-3 border border-brand text-brand rounded-full font-bold flex items-center justify-center gap-2">
               <Send size={16} /> Open in Mail
             </button>
           )}
-          <button onClick={handleCopy} className="flex-1 py-3 bg-[#233DFF] text-white rounded-full font-bold flex items-center justify-center gap-2">
+          <button onClick={handleCopy} className="flex-1 py-3 bg-brand text-white rounded-full font-bold flex items-center justify-center gap-2">
             {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}
           </button>
         </div>
@@ -1589,13 +1589,13 @@ const DocumentViewerModal: React.FC<{
         <div className="p-6 overflow-y-auto flex-1" ref={contentRef}>
           {loading ? (
             <div className="py-16 flex flex-col items-center gap-4">
-              <Loader2 size={36} className="text-[#233DFF] animate-spin" />
+              <Loader2 size={36} className="text-brand animate-spin" />
               <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Loading document...</p>
             </div>
           ) : content && content.sections.length > 0 ? (
             <div className="space-y-6">
               {content.content && (
-                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-[#233DFF]/30 pl-4">{content.content}</p>
+                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-brand/30 pl-4">{content.content}</p>
               )}
               {content.sections.map((section, idx) => (
                 <div key={idx} className="space-y-2">

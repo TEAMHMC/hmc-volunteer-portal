@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBoundary from './ErrorBoundary';
 import LandingPage from './LandingPage';
 import OnboardingFlow from './OnboardingFlow';
 import Dashboard from './Dashboard';
@@ -46,6 +47,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         const data = await apiService.get('/auth/me');
         if (data.user) {
           setAppData(data);
+          apiService.startSessionHeartbeat();
           if (data.user.isNewUser) {
             setView('migration');
           } else {
@@ -84,6 +86,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     if (data?.user) {
       const fullData = await apiService.get('/auth/me'); // Fetch all data after login
       setAppData(fullData);
+      apiService.startSessionHeartbeat();
       if (fullData.user.isNewUser) {
         setView('migration');
       } else {
@@ -100,6 +103,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     if (data?.user) {
         const fullData = await apiService.get('/auth/me');
         setAppData(fullData);
+        apiService.startSessionHeartbeat();
         if (fullData.user.isNewUser) {
             setView('migration');
         } else {
@@ -134,6 +138,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     } catch(e) {
       console.error("Logout failed, clearing client-side session.", e)
     } finally {
+      apiService.stopSessionHeartbeat();
       localStorage.removeItem('authToken');
       setCurrentUser(null);
       setAllVolunteers([]);
@@ -164,12 +169,12 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
-       <div className="w-20 h-20 border-t-4 border-b-4 border-[#233DFF] rounded-full animate-spin" />
+       <div className="w-20 h-20 border-t-4 border-b-4 border-brand rounded-full animate-spin" />
     </div>
   );
 
   if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} />;
-  
+
   if (view === 'clientPortal') return <ClientPortal onBackToLanding={handleReturnToLanding} />;
 
   if (view === 'migration' && currentUser) return <MigrationFlow user={currentUser} onUpdateUser={handleUpdateUser} onComplete={handleMigrationComplete} />;
@@ -184,8 +189,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   }
 
   return (
-    <LandingPage 
-      onStartOnboarding={handleStartOnboarding} 
+    <LandingPage
+      onStartOnboarding={handleStartOnboarding}
       onLogin={handleLogin}
       onGoogleLogin={handleGoogleLogin}
       googleClientId={googleClientId}
@@ -193,4 +198,10 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   );
 };
 
-export default App;
+const AppWithErrorBoundary: React.FC<AppProps> = (props) => (
+  <ErrorBoundary>
+    <App {...props} />
+  </ErrorBoundary>
+);
+
+export default AppWithErrorBoundary;

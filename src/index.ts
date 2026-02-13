@@ -12,6 +12,7 @@ import process from 'process';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
 import { STATIC_MODULE_CONTENT } from './staticModuleContent';
+import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES } from './constants';
 
 // --- CONFIGURATION ---
 dotenv.config();
@@ -1539,9 +1540,17 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
         const sessionDoc = await db.collection('sessions').doc(sessionToken).get();
         if (!sessionDoc.exists) return res.status(403).json({ error: 'Unauthorized: Invalid session.' });
         const session = sessionDoc.data()!;
-        if (new Date() > session.expires.toDate()) {
+        const expiresDate = session.expires.toDate();
+        if (new Date() > expiresDate) {
             await db.collection('sessions').doc(sessionToken).delete();
             return res.status(403).json({ error: 'Unauthorized: Session expired.' });
+        }
+
+        // Sliding window: auto-extend session if < 30 min remaining
+        const thirtyMinFromNow = new Date(Date.now() + 30 * 60 * 1000);
+        if (expiresDate < thirtyMinFromNow) {
+            const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000); // extend by 2 hours
+            await db.collection('sessions').doc(sessionToken).update({ expires: newExpires });
         }
 
         const userDoc = await db.collection('volunteers').doc(session.uid).get();
@@ -1581,13 +1590,10 @@ const createSession = async (uid: string, res: Response) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// SHARED ROLE CONSTANTS — Single source of truth for all role checks
+// ROLE CONSTANTS — Imported from src/constants.ts (single source of truth)
 // ═══════════════════════════════════════════════════════════════
-const EVENT_MANAGEMENT_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
-const BOARD_ROLES = ['Board Member', 'Community Advisory Board'];
-const COORDINATOR_AND_LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'];
-const REGISTRATION_MANAGEMENT_ROLES = EVENT_MANAGEMENT_ROLES; // roles that can register/unregister others
-const ORG_CALENDAR_ROLES = [...COORDINATOR_AND_LEAD_ROLES, 'Board Member'];
+// Re-exported locally for backward compat with BOARD_ROLES references:
+const BOARD_ROLES = GOVERNANCE_ROLES;
 
 // --- AUTHENTICATION ROUTES ---
 
@@ -2115,8 +2121,26 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
 
 app.post('/auth/logout', async (req: Request, res: Response) => {
     const sessionToken = req.headers.authorization?.split('Bearer ')[1];
-    if (sessionToken) { try { await db.collection('sessions').doc(sessionToken).delete(); } catch (error) {} }
+    if (sessionToken) {
+      try { await db.collection('sessions').doc(sessionToken).delete(); } catch (error) {
+        console.error('[Logout] Failed to delete session:', error);
+      }
+    }
     res.status(204).send();
+});
+
+// Explicit session refresh endpoint (called by frontend heartbeat)
+app.post('/api/auth/refresh-session', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const sessionToken = req.headers.authorization?.split('Bearer ')[1];
+        if (!sessionToken) return res.status(403).json({ error: 'No session token' });
+        const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000); // extend by 2 hours
+        await db.collection('sessions').doc(sessionToken).update({ expires: newExpires });
+        res.json({ success: true, expiresAt: newExpires.toISOString() });
+    } catch (error) {
+        console.error('[Session Refresh] Failed:', error);
+        res.status(500).json({ error: 'Failed to refresh session' });
+    }
 });
 
 app.post('/auth/decode-google-token', async (req: Request, res: Response) => {
@@ -3186,16 +3210,19 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
             createdAt: new Date().toISOString()
         };
 
-        const rsvpRef = await db.collection('public_rsvps').add(rsvp);
-
-        // Update the event's RSVP count atomically
+        // Batch RSVP creation + event count update atomically
+        const rsvpRef = db.collection('public_rsvps').doc();
         const eventRef = db.collection('opportunities').doc(eventId);
         const eventDoc = await eventRef.get();
+
+        const publicBatch = db.batch();
+        publicBatch.set(rsvpRef, rsvp);
         if (eventDoc.exists) {
-            await eventRef.update({
+            publicBatch.update(eventRef, {
                 rsvpCount: admin.firestore.FieldValue.increment(1 + (guests || 0))
             });
         }
+        await publicBatch.commit();
 
         console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
 
@@ -4604,20 +4631,25 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       ? [...new Set([...(volunteerData.assignedShiftIds || []), shiftId])]
       : (volunteerData.assignedShiftIds || []);
 
-    await volunteerRef.update({
+    // Batch volunteer + shift writes atomically to prevent data drift
+    const regBatch = db.batch();
+    regBatch.update(volunteerRef, {
       rsvpedEventIds: updatedRsvpIds,
       assignedShiftIds: updatedShiftIds
     });
 
-    // Update shift slot count atomically if a shift was assigned
     if (shiftId) {
       const shiftRef = db.collection('shifts').doc(shiftId);
-      await shiftRef.update({
+      regBatch.update(shiftRef, {
         slotsFilled: admin.firestore.FieldValue.increment(1),
         assignedVolunteerIds: admin.firestore.FieldValue.arrayUnion(volunteerId)
       });
+    }
+    await regBatch.commit();
 
-      // Read shift for roleType, then update opportunity quotas
+    // Update opportunity quotas (requires reads, so done after batch)
+    if (shiftId) {
+      const shiftRef = db.collection('shifts').doc(shiftId);
       const shiftDoc = await shiftRef.get();
       if (shiftDoc.exists) {
         const shiftData = shiftDoc.data() as any;
@@ -4651,7 +4683,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           eventLocation: eventLocation || 'TBD'
         });
         // Log Stage 1 in reminder_log to prevent duplicate confirmation sends
-        try { await logReminderSent(volunteerId, eventId, 1); } catch {}
+        try { await logReminderSent(volunteerId, eventId, 1); } catch (e) { console.error('[EVENTS] Failed to log reminder sent:', e); }
         console.log(`[EVENTS] Sent registration confirmation to ${maskEmail(volunteerEmail)} for ${eventTitle}`);
       } catch (emailError) {
         console.error('[EVENTS] Failed to send confirmation email:', emailError);
@@ -5295,14 +5327,35 @@ const WORKFLOW_NAMES: Record<string, string> = {
   w7: 'SMO Monthly Cycle',
 };
 
-async function logWorkflowRun(workflowId: string, result: { sent: number; failed: number; skipped: number; details?: string }) {
+interface WorkflowRunDetail {
+  volunteerId: string;
+  email?: string;
+  status: 'sent' | 'failed' | 'skipped';
+  timestamp: string;
+  error?: string;
+}
+
+async function logWorkflowRun(
+  workflowId: string,
+  result: { sent: number; failed: number; skipped: number; details?: string },
+  volunteerDetails?: WorkflowRunDetail[]
+) {
   try {
-    await db.collection('workflow_runs').add({
+    const runRef = await db.collection('workflow_runs').add({
       workflowId,
       workflowName: WORKFLOW_NAMES[workflowId] || workflowId,
       ...result,
       timestamp: new Date().toISOString(),
     });
+    // Write per-volunteer detail records as subcollection
+    if (volunteerDetails && volunteerDetails.length > 0) {
+      const detailBatch = db.batch();
+      for (const detail of volunteerDetails) {
+        const detailRef = runRef.collection('workflow_run_details').doc();
+        detailBatch.set(detailRef, detail);
+      }
+      await detailBatch.commit();
+    }
     // Update last run info on the config doc
     await db.collection('workflow_configs').doc('default').set({
       [`workflows.${workflowId}.lastRun`]: new Date().toISOString(),
@@ -5316,6 +5369,7 @@ async function logWorkflowRun(workflowId: string, result: { sent: number; failed
 async function executeShiftReminder(): Promise<{ sent: number; failed: number; skipped: number }> {
   console.log('[WORKFLOW] Running Shift Reminder (w1)');
   const result = { sent: 0, failed: 0, skipped: 0 };
+  const volDetails: WorkflowRunDetail[] = [];
   try {
     // Dedup: skip if already ran today
     const todayStr = getPacificDate(0);
@@ -5349,7 +5403,7 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
           try {
             const volDoc = await db.collection('volunteers').doc(volId).get();
             const vol = volDoc.data();
-            if (!vol) { result.skipped++; continue; }
+            if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
 
             const phone = normalizePhone(vol.phone);
             const time = opp.time || opp.startTime || 'your scheduled time';
@@ -5358,7 +5412,7 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
 
             if (phone) {
               const smsResult = await sendSMS(volId, `+1${phone}`, msg);
-              if (smsResult.sent) { result.sent++; }
+              if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
               else if (smsResult.reason === 'opted_out' || smsResult.reason === 'not_configured') {
                 // Fallback to email
                 if (vol.email) {
@@ -5371,9 +5425,9 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
                     location: location,
                     userId: volId,
                   });
-                  result.sent++;
-                } else { result.failed++; }
-              } else { result.failed++; }
+                  result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+                } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No email fallback' }); }
+              } else { result.failed++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'failed', timestamp: new Date().toISOString(), error: 'SMS send failed' }); }
             } else if (vol.email) {
               await EmailService.send('shift_reminder_24h', {
                 toEmail: vol.email,
@@ -5384,11 +5438,11 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
                 location: location,
                 userId: volId,
               });
-              result.sent++;
-            } else { result.skipped++; }
+              result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+            } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
           } catch (e) {
             console.error(`[WORKFLOW] Shift reminder failed for volunteer ${volId}:`, e);
-            result.failed++;
+            result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
           }
         }
       }
@@ -5396,7 +5450,7 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
   } catch (e) {
     console.error('[WORKFLOW] executeShiftReminder error:', e);
   }
-  await logWorkflowRun('w1', result);
+  await logWorkflowRun('w1', result, volDetails);
   console.log(`[WORKFLOW] Shift Reminder done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
   return result;
 }
@@ -5404,6 +5458,7 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
 async function executePostShiftThankYou(): Promise<{ sent: number; failed: number; skipped: number }> {
   console.log('[WORKFLOW] Running Post-Shift Thank You (w2)');
   const result = { sent: 0, failed: 0, skipped: 0 };
+  const volDetails: WorkflowRunDetail[] = [];
   try {
     const yesterdayStr = getPacificDate(-1);
 
@@ -5422,14 +5477,14 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
           try {
             const volDoc = await db.collection('volunteers').doc(volId).get();
             const vol = volDoc.data();
-            if (!vol) { result.skipped++; continue; }
+            if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
 
             const phone = normalizePhone(vol.phone);
             const msg = `HMC: Thank you for volunteering at ${opp.title} yesterday! Your service made a real difference.`;
 
             if (phone) {
               const smsResult = await sendSMS(volId, `+1${phone}`, msg);
-              if (smsResult.sent) { result.sent++; }
+              if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
               else if (vol.email) {
                 await EmailService.send('shift_reminder_24h', {
                   toEmail: vol.email,
@@ -5438,8 +5493,8 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
                   eventDate: yesterdayStr,
                   userId: volId,
                 });
-                result.sent++;
-              } else { result.failed++; }
+                result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+              } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No contact method' }); }
             } else if (vol.email) {
               await EmailService.send('shift_reminder_24h', {
                 toEmail: vol.email,
@@ -5448,11 +5503,11 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
                 eventDate: yesterdayStr,
                 userId: volId,
               });
-              result.sent++;
-            } else { result.skipped++; }
+              result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+            } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
           } catch (e) {
             console.error(`[WORKFLOW] Thank you failed for volunteer ${volId}:`, e);
-            result.failed++;
+            result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
           }
         }
       }
@@ -5460,7 +5515,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
   } catch (e) {
     console.error('[WORKFLOW] executePostShiftThankYou error:', e);
   }
-  await logWorkflowRun('w2', result);
+  await logWorkflowRun('w2', result, volDetails);
   console.log(`[WORKFLOW] Post-Shift Thank You done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
   return result;
 }
@@ -5690,6 +5745,7 @@ async function wasReminderSent(volunteerId: string, eventId: string, stage: numb
 async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: number; failed: number; skipped: number }> {
   console.log('[WORKFLOW] Running Event Reminder Cadence (w6)');
   const result = { sent: 0, failed: 0, skipped: 0 };
+  const volDetails: WorkflowRunDetail[] = [];
   try {
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const todayStr = getPacificDate(0);
@@ -5714,10 +5770,6 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
       const daysUntil = hoursUntil / 24;
 
       // Determine applicable stages based on time until event
-      // Each stage is eligible from its window through to the event, so late RSVPs
-      // still get the most relevant reminder they haven't received yet.
-      // When smsOnly=true (3-hour cron), only stage 5 is checked — email stages
-      // only fire from the daily cron to prevent rapid-fire catch-up emails.
       const applicableStages: { stage: number; template: string }[] = [];
       if (!smsOnly) {
         if (daysUntil <= 7.5 && daysUntil > 1.5) { applicableStages.push({ stage: 2, template: 'event_reminder_7day' }); }
@@ -5744,24 +5796,22 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
         for (const s of applicableStages) {
           if (!(await wasReminderSent(volDoc.id, oppDoc.id, s.stage))) {
             stageToSend = s;
-            break; // Send lowest unsent stage first (they'll get higher ones on subsequent runs)
+            break;
           }
         }
 
-        if (!stageToSend) { result.skipped++; continue; }
+        if (!stageToSend) { result.skipped++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
 
         try {
           if (stageToSend.stage === 5) {
-            // SMS for 3-hour reminder
             const phone = normalizePhone(vol.phone);
             if (phone) {
               const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
               const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
-              if (smsResult.sent) { result.sent++; }
-              else { result.skipped++; }
-            } else { result.skipped++; }
+              if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
+              else { result.skipped++; volDetails.push({ volunteerId: volDoc.id, status: 'skipped', timestamp: new Date().toISOString() }); }
+            } else { result.skipped++; volDetails.push({ volunteerId: volDoc.id, status: 'skipped', timestamp: new Date().toISOString() }); }
           } else {
-            // Email for stages 2-4
             if (vol.email) {
               await EmailService.send(stageToSend.template as any, {
                 toEmail: vol.email,
@@ -5771,21 +5821,21 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
                 eventTime: time,
                 location: location,
               });
-              result.sent++;
-            } else { result.skipped++; }
+              result.sent++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+            } else { result.skipped++; volDetails.push({ volunteerId: volDoc.id, status: 'skipped', timestamp: new Date().toISOString() }); }
           }
 
           await logReminderSent(volDoc.id, oppDoc.id, stageToSend.stage);
         } catch (e) {
           console.error(`[WORKFLOW] Reminder stage ${stageToSend.stage} failed for vol ${volDoc.id} event ${oppDoc.id}:`, e);
-          result.failed++;
+          result.failed++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
         }
       }
     }
   } catch (e) {
     console.error('[WORKFLOW] executeEventReminderCadence error:', e);
   }
-  await logWorkflowRun('w6', result);
+  await logWorkflowRun('w6', result, volDetails);
   console.log(`[WORKFLOW] Event Reminder Cadence done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
   return result;
 }
@@ -5904,7 +5954,7 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
                 trainingDate: thuStr,
               });
               result.sent++;
-            } catch { result.failed++; }
+            } catch (e) { console.error('[SMO] Notification failed:', e); result.failed++; }
           }
         }
         continue; // Skip further processing for newly created cycle
@@ -5937,7 +5987,7 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
                   await db.collection('volunteers').doc(volId).update({
                     rsvpedEventIds: admin.firestore.FieldValue.arrayRemove(cycle.saturdayEventId),
                   });
-                } catch {}
+                } catch (e) { console.error(`[SMO] Failed to remove RSVP for ${volId}:`, e); }
               }
               // Notify removed volunteer
               const volDoc = await db.collection('volunteers').doc(volId).get();
@@ -5950,7 +6000,7 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
                     eventDate: satStr,
                   });
                   result.sent++;
-                } catch { result.failed++; }
+                } catch (e) { console.error('[SMO] Notification failed:', e); result.failed++; }
               }
             }
           }
@@ -5967,7 +6017,7 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
                 await db.collection('volunteers').doc(volId).update({
                   rsvpedEventIds: admin.firestore.FieldValue.arrayUnion(cycle.saturdayEventId),
                 });
-              } catch {}
+              } catch (e) { console.error(`[SMO] Failed to add RSVP for ${volId}:`, e); }
             }
             const volDoc = await db.collection('volunteers').doc(volId).get();
             const vol = volDoc.data();
@@ -5980,7 +6030,7 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
                   location: 'See event details',
                 });
                 result.sent++;
-              } catch { result.failed++; }
+              } catch (e) { console.error('[SMO] Notification failed:', e); result.failed++; }
             }
           }
 
@@ -6033,7 +6083,7 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
                 await sendSMS(volId, `+1${phone}`, `HMC: SMO training is tomorrow! ${cycle.googleMeetLink ? 'Join: ' + cycle.googleMeetLink : 'Check your email for details.'} Attendance required for Saturday.`);
               }
             }
-          } catch { result.failed++; }
+          } catch (e) { console.error('[SMO] Notification failed:', e); result.failed++; }
         }
       }
     }
@@ -6165,6 +6215,25 @@ app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Requ
   }
 });
 
+// Per-volunteer drill-down for a specific workflow run
+app.get('/api/admin/workflow-runs/:runId/details', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { runId } = req.params;
+    const runDoc = await db.collection('workflow_runs').doc(runId).get();
+    if (!runDoc.exists) return res.status(404).json({ error: 'Workflow run not found' });
+
+    const detailsSnap = await runDoc.ref.collection('workflow_run_details')
+      .orderBy('timestamp', 'desc')
+      .limit(200)
+      .get();
+    const details = detailsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ run: { id: runDoc.id, ...runDoc.data() }, details });
+  } catch (error: any) {
+    console.error('[WORKFLOW] Failed to load run details:', error);
+    res.status(500).json({ error: error.message || 'Failed to load workflow run details' });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════
 // SMO CYCLE API ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
@@ -6286,7 +6355,7 @@ app.post('/api/smo/cycles/:cycleId/register', verifyToken, async (req: Request, 
           trainingDate: cycle.thursdayDate,
           googleMeetLink: cycle.googleMeetLink || '',
         });
-      } catch {}
+      } catch (e) { console.error(`[SMO] Failed to send registration email:`, e); }
     }
 
     res.json({ success: true, position });
@@ -6752,7 +6821,7 @@ app.get('/api/board/meetings', verifyToken, async (req: Request, res: Response) 
     const meetingsSnap = await db.collection('board_meetings').orderBy('date', 'asc').get();
     const meetings = meetingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     res.json(meetings);
-  } catch (e) { res.json([]); }
+  } catch (e) { console.error('[Board] Failed to fetch meetings:', e); res.status(500).json({ error: 'Failed to fetch meetings' }); }
 });
 
 // Create/update board meeting (admin/board chair only)
@@ -6823,7 +6892,7 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
             reason,
           })
         });
-      } catch {}
+      } catch (e) { console.error('[Board] Failed to send emergency meeting emails:', e); }
     }
     res.json({ success: true });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -6855,7 +6924,7 @@ app.get('/api/board/give-or-get', verifyToken, async (req: Request, res: Respons
     } else {
       res.json(docSnap.data());
     }
-  } catch (e) { res.json({ goal: 0, raised: 0, personalContribution: 0, fundraised: 0, prospects: [], donationLog: [] }); }
+  } catch (e) { console.error('[Board] Failed to fetch give-or-get:', e); res.status(500).json({ error: 'Failed to fetch give-or-get data' }); }
 });
 
 // Update Give or Get data
@@ -6890,7 +6959,7 @@ app.get('/api/board/forms/signed', verifyToken, async (req: Request, res: Respon
     const signed: Record<string, string> = {};
     snap.docs.forEach(d => { const data = d.data(); signed[data.formId] = data.signedAt; });
     res.json(signed);
-  } catch (e) { res.json({}); }
+  } catch (e) { console.error('[Board] Failed to fetch signed forms:', e); res.status(500).json({ error: 'Failed to fetch signed forms' }); }
 });
 
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
@@ -6971,66 +7040,81 @@ app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Re
 // ORG-WIDE CALENDAR API ENDPOINTS
 // =============================================
 
+// Unified event query helper — queries all 3 event collections and normalizes response shape
+async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean; dateFrom?: string; dateTo?: string } = {}): Promise<any[]> {
+  const { callerRole = '', isAdmin = false, dateFrom, dateTo } = filters;
+
+  const [orgSnap, boardSnap, oppsSnap] = await Promise.all([
+    db.collection('org_calendar_events').get(),
+    db.collection('board_meetings').get(),
+    db.collection('opportunities').get(),
+  ]);
+
+  // 1. Org calendar events (native) — filter by visibleTo
+  const orgEvents = orgSnap.docs.map(d => ({
+    id: d.id,
+    ...d.data(),
+    sourceCollection: 'org_calendar_events',
+    source: 'org-calendar',
+  })).filter((e: any) => {
+    if (isAdmin) return true;
+    if (!e.visibleTo || e.visibleTo.length === 0) return true;
+    return e.visibleTo.includes(callerRole);
+  });
+
+  // 2. Board meetings → mapped to OrgCalendarEvent shape (board members + admins only)
+  const boardEvents = (isAdmin || BOARD_ROLES.includes(callerRole)) ? boardSnap.docs.map(d => {
+    const m = d.data();
+    const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
+    return {
+      id: d.id,
+      title: m.title || 'Board Meeting',
+      description: m.agenda ? (Array.isArray(m.agenda) ? m.agenda.join(', ') : m.agenda) : undefined,
+      date: m.date || '',
+      startTime: m.time || '',
+      type: meetingType,
+      location: m.googleMeetLink ? 'Virtual' : undefined,
+      meetLink: m.googleMeetLink || undefined,
+      rsvps: m.rsvps || [],
+      createdBy: m.createdBy,
+      sourceCollection: 'board_meetings',
+      source: 'board-meeting',
+    };
+  }) : [];
+
+  // 3. Opportunities → mapped to OrgCalendarEvent shape
+  const oppEvents = oppsSnap.docs.map(d => {
+    const o = d.data();
+    return {
+      id: d.id,
+      title: o.title || 'Community Event',
+      description: o.description || undefined,
+      date: o.date ? (o.date.includes('T') ? o.date.split('T')[0] : o.date) : '',
+      startTime: o.time || o.dateDisplay || '',
+      type: 'community-event',
+      location: o.serviceLocation || undefined,
+      sourceCollection: 'opportunities',
+      source: 'event-finder',
+    };
+  }).filter(e => e.date);
+
+  let all = [...orgEvents, ...boardEvents, ...oppEvents];
+
+  // Optional date range filtering
+  if (dateFrom) all = all.filter((e: any) => (e.date || '') >= dateFrom);
+  if (dateTo) all = all.filter((e: any) => (e.date || '') <= dateTo);
+
+  return all.sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
+}
+
 // Unified calendar feed — merges org_calendar_events + board_meetings + opportunities
 app.get('/api/org-calendar', verifyToken, async (req: Request, res: Response) => {
   try {
     const callerProfile = (req as any).user?.profile;
-    const callerRole = callerProfile?.role || '';
-    const isAdmin = callerProfile?.isAdmin === true;
-
-    const [orgSnap, boardSnap, oppsSnap] = await Promise.all([
-      db.collection('org_calendar_events').get(),
-      db.collection('board_meetings').get(),
-      db.collection('opportunities').get(),
-    ]);
-
-    // 1. Org calendar events (native) — filter by visibleTo
-    const orgEvents = orgSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data(),
-      source: 'org-calendar',
-    })).filter((e: any) => {
-      if (isAdmin) return true;
-      if (!e.visibleTo || e.visibleTo.length === 0) return true;
-      return e.visibleTo.includes(callerRole);
+    const all = await queryAllEvents({
+      callerRole: callerProfile?.role || '',
+      isAdmin: callerProfile?.isAdmin === true,
     });
-
-    // 2. Board meetings → mapped to OrgCalendarEvent shape (board members + admins only)
-    const boardEvents = (isAdmin || BOARD_ROLES.includes(callerRole)) ? boardSnap.docs.map(d => {
-      const m = d.data();
-      const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
-      return {
-        id: d.id,
-        title: m.title || 'Board Meeting',
-        description: m.agenda ? (Array.isArray(m.agenda) ? m.agenda.join(', ') : m.agenda) : undefined,
-        date: m.date || '',
-        startTime: m.time || '',
-        type: meetingType,
-        location: m.googleMeetLink ? 'Virtual' : undefined,
-        meetLink: m.googleMeetLink || undefined,
-        rsvps: m.rsvps || [],
-        createdBy: m.createdBy,
-        source: 'board-meeting',
-      };
-    }) : [];
-
-    // 3. Opportunities → mapped to OrgCalendarEvent shape
-    const oppEvents = oppsSnap.docs.map(d => {
-      const o = d.data();
-      return {
-        id: d.id,
-        title: o.title || 'Community Event',
-        description: o.description || undefined,
-        date: o.date ? (o.date.includes('T') ? o.date.split('T')[0] : o.date) : '',
-        startTime: o.time || o.dateDisplay || '',
-        type: 'community-event',
-        location: o.serviceLocation || undefined,
-        source: 'event-finder',
-      };
-    }).filter(e => e.date); // Only include events with valid dates
-
-    // Merge and sort
-    const all = [...orgEvents, ...boardEvents, ...oppEvents].sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
     res.json(all);
   } catch (e: any) {
     console.error('[ORG-CALENDAR] GET failed:', e);
@@ -7137,25 +7221,26 @@ app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, re
     if (existingIdx >= 0) rsvps[existingIdx] = rsvpEntry;
     else rsvps.push(rsvpEntry);
 
-    await docRef.update({ rsvps });
+    // Batch event RSVP + volunteer sync atomically to prevent data drift
+    const rsvpBatch = db.batch();
+    rsvpBatch.update(docRef, { rsvps });
 
-    // Sync RSVP status to volunteer's rsvpedEventIds so it appears in
-    // Coming Up / My Schedule (mirrors what /api/events/register does)
     const eventId = req.params.eventId;
     const currentRsvpIds: string[] = userData?.rsvpedEventIds || [];
     if (status === 'attending' || status === 'tentative') {
       if (!currentRsvpIds.includes(eventId)) {
-        await volunteerRef.update({
+        rsvpBatch.update(volunteerRef, {
           rsvpedEventIds: admin.firestore.FieldValue.arrayUnion(eventId)
         });
       }
     } else if (status === 'declined') {
       if (currentRsvpIds.includes(eventId)) {
-        await volunteerRef.update({
+        rsvpBatch.update(volunteerRef, {
           rsvpedEventIds: admin.firestore.FieldValue.arrayRemove(eventId)
         });
       }
     }
+    await rsvpBatch.commit();
 
     res.json({ success: true, rsvps });
   } catch (e: any) {

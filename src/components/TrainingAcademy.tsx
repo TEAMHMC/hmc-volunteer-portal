@@ -403,7 +403,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       <div key={m.id} className={`p-5 rounded-2xl border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-elevation-2 hover:border-zinc-200'}`}>
         <div>
           <div className="flex items-start justify-between mb-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-elevation-1 ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-[#233DFF] text-zinc-300 group-hover:text-white`}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-elevation-1 ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-brand text-zinc-300 group-hover:text-white`}`}>
               {isCompleted ? <CheckCircle2 size={20} /> : m.format === 'read_ack' ? <FileCheck size={20} /> : hasVideo ? <PlayCircle size={20} /> : <BookOpen size={20} />}
             </div>
             <div className="flex flex-col items-end gap-1.5">
@@ -426,7 +426,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </button>
           )}
           {isCompleted && (
-            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-zinc-200 text-zinc-600 rounded-full font-normal text-xs transition-all hover:border-[#233DFF] hover:text-[#233DFF] hover:scale-[1.02] flex items-center justify-center gap-2">
+            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-zinc-200 text-zinc-600 rounded-full font-normal text-xs transition-all hover:border-brand hover:text-brand hover:scale-[1.02] flex items-center justify-center gap-2">
               <BookOpen size={12} /> Review
             </button>
           )}
@@ -445,13 +445,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     if (!activeSession) return null;
     return (
       <div className="space-y-8 animate-in fade-in">
-        <div className={`${reviewMode ? 'bg-[#233DFF]/5 border-[#233DFF]/20' : 'bg-amber-50 border-amber-200'} border rounded-card p-6 flex items-center gap-4`}>
-          <FileCheck size={24} className={reviewMode ? 'text-[#233DFF] shrink-0' : 'text-amber-600 shrink-0'} />
+        <div className={`${reviewMode ? 'bg-brand/5 border-brand/20' : 'bg-amber-50 border-amber-200'} border rounded-card p-6 flex items-center gap-4`}>
+          <FileCheck size={24} className={reviewMode ? 'text-brand shrink-0' : 'text-amber-600 shrink-0'} />
           <div>
-            <p className={`font-bold text-sm ${reviewMode ? 'text-[#233DFF]' : 'text-amber-900'}`}>
+            <p className={`font-bold text-sm ${reviewMode ? 'text-brand' : 'text-amber-900'}`}>
               {reviewMode ? 'Reviewing Completed Module' : 'Read & Acknowledge Module'}
             </p>
-            <p className={`text-xs mt-1 ${reviewMode ? 'text-[#233DFF]/70' : 'text-amber-700'}`}>
+            <p className={`text-xs mt-1 ${reviewMode ? 'text-brand/70' : 'text-amber-700'}`}>
               {reviewMode ? 'You have already completed this module. Review the content below.' : 'Read the content below carefully, then acknowledge your understanding to complete this module.'}
             </p>
           </div>
@@ -462,7 +462,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
           {loadingContent ? (
             <div className="py-12 flex flex-col items-center gap-4">
-              <Loader2 size={36} className="text-[#233DFF] animate-spin" />
+              <Loader2 size={36} className="text-brand animate-spin" />
               <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider animate-pulse">
                 Generating content for your role...
               </p>
@@ -470,7 +470,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           ) : moduleContent && moduleContent.sections.length > 0 ? (
             <div className="space-y-6">
               {moduleContent.content && (
-                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-[#233DFF]/30 pl-4">{moduleContent.content}</p>
+                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-brand/30 pl-4">{moduleContent.content}</p>
               )}
               {moduleContent.sections.map((section, idx) => (
                 <div key={idx} className="space-y-2">
@@ -522,7 +522,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   checked={quizResponse === 'acknowledged'}
                   onChange={(e) => setQuizResponse(e.target.checked ? 'acknowledged' : '')}
                   disabled={loadingContent}
-                  className="mt-1 w-5 h-5 rounded border-zinc-300 text-[#233DFF] focus:ring-[#233DFF]"
+                  className="mt-1 w-5 h-5 rounded border-zinc-300 text-brand focus:ring-brand"
                 />
                 <span className="text-sm font-medium text-zinc-700">
                   I have read and understand the content of this module. I commit to applying these guidelines in my volunteer work.
@@ -533,7 +533,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             {activeSession && requiresSignature(activeSession) && (
               <div className="bg-white border border-zinc-200 rounded-card p-6 space-y-4">
                 <div className="flex items-center gap-3">
-                  <PenLine size={18} className="text-[#233DFF] shrink-0" />
+                  <PenLine size={18} className="text-brand shrink-0" />
                   <div>
                     <p className="text-sm font-bold text-zinc-900">Digital Signature Required</p>
                     <p className="text-xs text-zinc-500 mt-0.5">
@@ -548,7 +548,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     onChange={(e) => setSignatureName(e.target.value)}
                     placeholder="Full Legal Name"
                     disabled={loadingContent}
-                    className="w-full px-4 py-3 border-b-2 border-zinc-300 focus:border-[#233DFF] bg-zinc-50 rounded-t-lg text-lg outline-none transition-colors"
+                    className="w-full px-4 py-3 border-b-2 border-zinc-300 focus:border-brand bg-zinc-50 rounded-t-lg text-lg outline-none transition-colors"
                     style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.5rem' }}
                   />
                   <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider font-bold">
@@ -614,13 +614,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     <div className="space-y-6 animate-in fade-in duration-700 pb-16">
       {/* Tier 1 Complete Banner */}
       {tier1Complete && !tier2CoreComplete && (
-        <div className="bg-[#233DFF]/5 border border-[#233DFF]/20 p-5 rounded-2xl flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center shadow-elevation-1 shrink-0">
+        <div className="bg-brand/5 border border-brand/20 p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center shadow-elevation-1 shrink-0">
             <CheckCircle2 size={20} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-[#233DFF]">Orientation Complete!</h4>
-            <p className="text-[#233DFF] font-medium">Welcome to HMC! Continue with Baseline Training below to unlock My Missions.</p>
+            <h4 className="text-lg font-black text-brand">Orientation Complete!</h4>
+            <p className="text-brand font-medium">Welcome to HMC! Continue with Baseline Training below to unlock My Missions.</p>
           </div>
         </div>
       )}
@@ -645,14 +645,14 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* Header with progress */}
       <div className="bg-white border border-zinc-100 p-8 md:p-10 rounded-container shadow-elevation-1 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
-          <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-[#233DFF]/5 text-[#233DFF] border border-[#233DFF]/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
+          <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
              TRAINING ACADEMY
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tighter leading-none mb-4 italic">HMC Training</h2>
           <p className="text-zinc-500 text-base font-medium leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
-              <span className="block mt-2 text-[#233DFF]">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
+              <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
             )}
           </p>
         </div>
@@ -663,7 +663,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <div className="relative w-16 h-16">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-[#233DFF] transition-all duration-1000" />
+                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-brand transition-all duration-1000" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier1Progress}%</div>
             </div>
@@ -679,7 +679,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               <div className="relative w-16 h-16">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2CoreProgress) / 100} className="text-[#233DFF] transition-all duration-1000" />
+                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2CoreProgress) / 100} className="text-brand transition-all duration-1000" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2CoreProgress}%</div>
               </div>
@@ -695,7 +695,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* ===== TIER 1: ORIENTATION ===== */}
       <div className="border border-zinc-100 rounded-container overflow-hidden">
         <button onClick={() => toggleTier('tier1')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center text-sm font-black shrink-0">1</div>
+          <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center text-sm font-black shrink-0">1</div>
           <div className="flex-1 text-left">
             <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
             <p className="text-zinc-400 text-sm font-medium mt-1">Two intro videos about HMC and volunteering</p>
@@ -760,7 +760,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {!isGovernanceRole && tier1Complete && (
         <div className="border border-zinc-100 rounded-container overflow-hidden">
           <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-[#233DFF] text-white flex items-center justify-center text-sm font-black shrink-0">2</div>
+            <div className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center text-sm font-black shrink-0">2</div>
             <div className="flex-1 text-left">
               <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
               <p className="text-zinc-400 text-sm font-medium mt-1">Required to unlock My Missions and event registration</p>
@@ -921,7 +921,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         user.appliedRole?.includes('Medical') || user.appliedRole?.includes('Licensed')) && (
         <div className={!tier1Complete ? 'opacity-60' : ''}>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-[#233DFF]/50 text-white flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center">
               <Stethoscope size={20} />
             </div>
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Clinical Onboarding</h3>
@@ -1033,7 +1033,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-medium text-center">Watch the video above, then proceed to the assessment.</p>
                       <button
                         onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
-                        className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         <div className="w-2 h-2 rounded-full bg-white" />
                         I've Watched This - Continue to Assessment <ArrowRight size={18} />
@@ -1043,7 +1043,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 </div>
               ) : quizStage !== 'read_ack' && loadingQuiz ? (
                 <div className="py-20 flex flex-col items-center gap-6">
-                   <Loader2 size={48} className="text-[#233DFF] animate-spin" />
+                   <Loader2 size={48} className="text-brand animate-spin" />
                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider animate-pulse">Generating Assessment...</p>
                 </div>
               ) : quizStage === 'concepts' ? (
@@ -1059,7 +1059,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                     <div className="w-2 h-2 rounded-full bg-white" />
                     Proceed to Question
                   </button>
@@ -1071,7 +1071,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   </div>
                   <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border border-zinc-100 rounded-container p-6 font-medium outline-none mt-6" placeholder="Your response..." />
                   {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-bold">{submitError}</p>}
-                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-[#233DFF] border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                      {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <div className="w-2 h-2 rounded-full bg-white" />}
                      Submit & Complete Module
                   </button>
@@ -1102,7 +1102,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
             <button
               onClick={() => setShowCompletionMessage(false)}
-              className="px-12 py-5 bg-[#233DFF] border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 mx-auto"
+              className="px-12 py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 mx-auto"
             >
               <div className="w-2 h-2 rounded-full bg-white" />
               Continue to Dashboard
