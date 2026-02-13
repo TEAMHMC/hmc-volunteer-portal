@@ -1193,13 +1193,15 @@ class EmailService {
       const templateFn = EmailTemplates[templateName];
       const rendered = templateFn(data);
 
-      // Send rendered HTML to Google Apps Script (instead of raw field names,
-      // which may not match Apps Script's expected data keys)
+      // Send pre-rendered HTML to Google Apps Script.
+      // Use type='prerendered' to bypass Apps Script's own templates (which would
+      // try to use data fields that are no longer sent) and force the fallback
+      // path that uses our server-rendered subject/html directly.
       const response = await fetch(EMAIL_SERVICE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: templateName,
+          type: 'prerendered',
           toEmail: data.toEmail,
           subject: rendered.subject,
           html: rendered.html,
@@ -3347,6 +3349,63 @@ app.get('/api/events/:id/rsvp-stats', verifyToken, async (req: Request, res: Res
     } catch (error: any) {
         console.error('[RSVP STATS] Failed to get stats:', error);
         res.status(500).json({ error: 'Failed to get RSVP stats' });
+    }
+});
+
+// GET /api/events/:id/public-rsvps - List all public RSVPs for an event (coordinators/admins)
+app.get('/api/events/:id/public-rsvps', verifyToken, async (req: Request, res: Response) => {
+    const userProfile = (req as any).user?.profile;
+    if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
+        return res.status(403).json({ error: 'Only admins and event coordinators can view public RSVPs' });
+    }
+    try {
+        const rsvpSnapshot = await db.collection('public_rsvps')
+            .where('eventId', '==', req.params.id)
+            .get();
+        const rsvps = rsvpSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json(rsvps);
+    } catch (error: any) {
+        console.error('[PUBLIC RSVPS] Failed to list:', error);
+        res.status(500).json({ error: 'Failed to list RSVPs' });
+    }
+});
+
+// POST /api/events/:id/manual-checkin - Coordinator manually checks in an RSVP attendee
+app.post('/api/events/:id/manual-checkin', verifyToken, async (req: Request, res: Response) => {
+    const userProfile = (req as any).user?.profile;
+    if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
+        return res.status(403).json({ error: 'Only admins and event coordinators can check in attendees' });
+    }
+    try {
+        const { rsvpId } = req.body;
+        if (!rsvpId) return res.status(400).json({ error: 'rsvpId is required' });
+
+        const rsvpRef = db.collection('public_rsvps').doc(rsvpId);
+        const rsvpDoc = await rsvpRef.get();
+        if (!rsvpDoc.exists) return res.status(404).json({ error: 'RSVP not found' });
+
+        const rsvpData = rsvpDoc.data()!;
+        if (rsvpData.checkedIn) {
+            return res.json({ success: true, message: 'Already checked in', checkedInAt: rsvpData.checkedInAt });
+        }
+
+        const checkedInAt = new Date().toISOString();
+        await rsvpRef.update({ checkedIn: true, checkedInAt, checkedInBy: (req as any).user?.uid });
+
+        // Update event check-in count
+        const eventRef = db.collection('opportunities').doc(req.params.id);
+        const eventDoc = await eventRef.get();
+        if (eventDoc.exists) {
+            await eventRef.update({
+                checkinCount: admin.firestore.FieldValue.increment(1 + (rsvpData.guests || 0))
+            });
+        }
+
+        console.log(`[MANUAL CHECKIN] Coordinator checked in RSVP ${rsvpId} for event ${req.params.id}`);
+        res.json({ success: true, checkedInAt });
+    } catch (error: any) {
+        console.error('[MANUAL CHECKIN] Failed:', error);
+        res.status(500).json({ error: 'Failed to check in' });
     }
 });
 
@@ -7022,13 +7081,20 @@ app.put('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: Res
   }
 });
 
-// Delete org calendar event (admin only)
+// Delete org calendar event (admin or creator with calendar role)
 app.delete('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    if (!userData?.isAdmin) {
-      return res.status(403).json({ error: 'Only admins can delete calendar events' });
+    const eventDoc = await db.collection('org_calendar_events').doc(req.params.eventId).get();
+    if (!eventDoc.exists) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const eventData = eventDoc.data()!;
+    const isCreator = eventData.createdBy === user.uid;
+    const hasCalendarRole = ORG_CALENDAR_ROLES.includes(userData?.role);
+    if (!userData?.isAdmin && !(isCreator && hasCalendarRole)) {
+      return res.status(403).json({ error: 'Only admins or the event creator can delete calendar events' });
     }
     await db.collection('org_calendar_events').doc(req.params.eventId).delete();
     res.json({ success: true });
@@ -7041,7 +7107,9 @@ app.delete('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: 
 app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    const volunteerRef = db.collection('volunteers').doc(user.uid);
+    const volunteerDoc = await volunteerRef.get();
+    const userData = volunteerDoc.data();
     const { status } = req.body;
     if (!['attending', 'tentative', 'declined'].includes(status)) {
       return res.status(400).json({ error: 'Invalid RSVP status' });
@@ -7070,6 +7138,25 @@ app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, re
     else rsvps.push(rsvpEntry);
 
     await docRef.update({ rsvps });
+
+    // Sync RSVP status to volunteer's rsvpedEventIds so it appears in
+    // Coming Up / My Schedule (mirrors what /api/events/register does)
+    const eventId = req.params.eventId;
+    const currentRsvpIds: string[] = userData?.rsvpedEventIds || [];
+    if (status === 'attending' || status === 'tentative') {
+      if (!currentRsvpIds.includes(eventId)) {
+        await volunteerRef.update({
+          rsvpedEventIds: admin.firestore.FieldValue.arrayUnion(eventId)
+        });
+      }
+    } else if (status === 'declined') {
+      if (currentRsvpIds.includes(eventId)) {
+        await volunteerRef.update({
+          rsvpedEventIds: admin.firestore.FieldValue.arrayRemove(eventId)
+        });
+      }
+    }
+
     res.json({ success: true, rsvps });
   } catch (e: any) {
     res.status(500).json({ error: e.message });

@@ -13,7 +13,14 @@ export const geminiService = {
       return result;
     } catch (error) {
       console.error("Gemini service error during resume analysis:", error);
-      throw error;
+      // Return a graceful fallback instead of crashing the UI
+      return {
+        summary: 'Resume analysis is temporarily unavailable. Please try again later or contact an administrator.',
+        skills: [],
+        experience: [],
+        suggestedRoles: ['HMC Champion'],
+        confidence: 0,
+      };
     }
   },
 

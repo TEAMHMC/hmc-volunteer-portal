@@ -121,6 +121,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     if (user.isAdmin && viewingAsRole) {
       return { ...user, role: viewingAsRole, isAdmin: false };
     }
+    // Fallback: ensure role is never undefined/empty (prevents blank dashboard)
+    if (!user.role) {
+      return { ...user, role: 'HMC Champion' };
+    }
     return user;
   }, [user, viewingAsRole]);
 

@@ -343,7 +343,8 @@ const BriefingView: React.FC<{
     );
     if (unreadMessages.length === 0) return;
 
-    unreadMessages.forEach(async (msg) => {
+    // Mark all unread messages as read concurrently (Promise.all instead of forEach+async)
+    Promise.all(unreadMessages.map(async (msg) => {
       try {
         await apiService.put(`/api/messages/${msg.id}/read`, {});
         setMessages(prev => prev.map(m =>
@@ -352,7 +353,7 @@ const BriefingView: React.FC<{
       } catch {
         // Silent fail
       }
-    });
+    }));
   }, [activeChannel, activeMessages, user.id, setMessages]);
 
   const handleSendMessage = async () => {

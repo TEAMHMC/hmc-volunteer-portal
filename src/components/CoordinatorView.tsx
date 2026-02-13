@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Volunteer } from '../types';
 import { Users, UserCheck, Calendar, MessageSquare } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 interface CoordinatorViewProps {
   user: Volunteer;
@@ -9,9 +10,19 @@ interface CoordinatorViewProps {
 
 const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }) => {
   const myTeam = allVolunteers.filter(v => v.managedBy === user.id);
-  // These would be calculated from real shift data
-  const pendingApprovals = 5;
-  const upcomingShifts = 3;
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [upcomingShifts, setUpcomingShifts] = useState(0);
+
+  useEffect(() => {
+    // Count volunteers managed by this user that are still onboarding/applicant
+    const pending = myTeam.filter(v => v.status === 'onboarding' || v.status === 'applicant').length;
+    setPendingApprovals(pending);
+
+    // Fetch upcoming shifts assigned to team members
+    const teamIds = myTeam.map(v => v.id);
+    const teamShiftCount = myTeam.reduce((count, v) => count + (v.assignedShiftIds?.length || 0), 0);
+    setUpcomingShifts(teamShiftCount);
+  }, [allVolunteers, user.id]);
 
   return (
     <div className="space-y-10 animate-in fade-in">

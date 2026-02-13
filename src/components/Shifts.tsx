@@ -56,6 +56,111 @@ const normalizeCategory = (cat: string): string => {
   return 'Other';
 };
 
+// Event Day Check-in Panel — shows public RSVP stats and allows manual check-in
+const EventDayCheckin: React.FC<{ eventId: string; eventDate: string }> = ({ eventId, eventDate }) => {
+  const [stats, setStats] = useState<any>(null);
+  const [rsvps, setRsvps] = useState<any[]>([]);
+  const [expanded, setExpanded] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Only show for events today or in the past (event day or post-event)
+  const today = new Date().toISOString().split('T')[0];
+  const isEventDayOrPast = eventDate <= today;
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const data = await apiService.get(`/api/events/${eventId}/rsvp-stats`);
+      setStats(data);
+    } catch {
+      // No public RSVPs for this event — that's ok
+    }
+    try {
+      const data = await apiService.get(`/api/events/${eventId}/public-rsvps`);
+      if (Array.isArray(data)) setRsvps(data);
+    } catch {
+      // Endpoint may not exist yet — graceful
+    }
+    setLoading(false);
+  };
+
+  const handleManualCheckin = async (rsvpId: string) => {
+    try {
+      await apiService.post(`/api/events/${eventId}/manual-checkin`, { rsvpId });
+      setRsvps(prev => prev.map(r => r.id === rsvpId ? { ...r, checkedIn: true, checkedInAt: new Date().toISOString() } : r));
+      if (stats) setStats({ ...stats, checkedInCount: (stats.checkedInCount || 0) + 1 });
+    } catch (err) {
+      console.error('Manual check-in failed:', err);
+    }
+  };
+
+  if (!isEventDayOrPast) return null;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-100">
+      <button
+        onClick={() => { setExpanded(!expanded); if (!expanded && !stats) fetchStats(); }}
+        className="flex items-center gap-2 text-[10px] font-bold text-[#233DFF] uppercase tracking-wider hover:underline"
+      >
+        <ClipboardList size={12} />
+        {expanded ? 'Hide' : 'Show'} Event Day Check-in
+        {stats && <span className="text-zinc-400 normal-case">({stats.checkedInCount || 0}/{stats.totalRsvps || 0} checked in)</span>}
+      </button>
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-zinc-400"><Loader2 size={14} className="animate-spin" /> Loading...</div>
+          ) : stats ? (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-blue-50 p-2 rounded-lg text-center">
+                  <p className="text-lg font-bold text-blue-700">{stats.totalRsvps || 0}</p>
+                  <p className="text-[9px] text-blue-500 font-bold uppercase">RSVPs</p>
+                </div>
+                <div className="bg-emerald-50 p-2 rounded-lg text-center">
+                  <p className="text-lg font-bold text-emerald-700">{stats.checkedInCount || 0}</p>
+                  <p className="text-[9px] text-emerald-500 font-bold uppercase">Checked In</p>
+                </div>
+                <div className="bg-amber-50 p-2 rounded-lg text-center">
+                  <p className="text-lg font-bold text-amber-700">{stats.totalExpectedAttendees || 0}</p>
+                  <p className="text-[9px] text-amber-500 font-bold uppercase">Expected</p>
+                </div>
+              </div>
+              {rsvps.length > 0 && (
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {rsvps.map(r => (
+                    <div key={r.id} className="flex items-center gap-2 text-xs">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${r.checkedIn ? 'bg-emerald-500 text-white' : 'bg-zinc-200 text-zinc-600'}`}>
+                        {r.checkedIn ? <Check size={10} /> : r.name?.charAt(0) || '?'}
+                      </div>
+                      <span className={`flex-1 truncate ${r.checkedIn ? 'text-zinc-400 line-through' : 'text-zinc-700'}`}>{r.name}</span>
+                      {r.guests > 0 && <span className="text-[9px] text-zinc-400">+{r.guests}</span>}
+                      {!r.checkedIn && (
+                        <button
+                          onClick={() => handleManualCheckin(r.id)}
+                          className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold hover:bg-emerald-200"
+                        >
+                          Check In
+                        </button>
+                      )}
+                      {r.checkedIn && <span className="text-[9px] text-emerald-500 font-bold">Done</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {rsvps.length === 0 && stats.totalRsvps > 0 && (
+                <p className="text-xs text-zinc-400 italic">RSVP details loading...</p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-zinc-400 italic">No public RSVPs for this event.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Bulk Upload Modal for Events
 const BulkUploadEventsModal: React.FC<{
   onClose: () => void;
@@ -1311,6 +1416,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         </div>
                       );
                     })()}
+                    {/* Event Day Check-in Panel */}
+                    <EventDayCheckin eventId={opp.id} eventDate={opp.date} />
                     <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center gap-2">
                       <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold transition-colors">
                         <Pencil size={12} /> Edit
