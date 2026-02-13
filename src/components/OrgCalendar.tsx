@@ -116,6 +116,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const eventsByDay = useMemo(() => {
     const map: Record<number, OrgCalendarEvent[]> = {};
     events.forEach(ev => {
+      if (!ev.date) return;
       const d = new Date(ev.date + 'T00:00:00');
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
         const day = d.getDate();

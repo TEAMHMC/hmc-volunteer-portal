@@ -244,8 +244,12 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         .filter(Boolean) as typeof SERVICE_OFFERINGS;
 
     const formatTime = (iso: string) => {
-        try { return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
-        catch { return iso; }
+        if (!iso) return '';
+        try {
+          const d = new Date(iso);
+          if (isNaN(d.getTime())) return iso;
+          return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        } catch { return iso; }
     };
 
     return (

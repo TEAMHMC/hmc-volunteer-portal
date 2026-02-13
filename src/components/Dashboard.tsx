@@ -867,7 +867,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                 </div>
               </div>
               <div className="space-y-4">
-                {Object.values(user.compliance).map((step, key) => (
+                {Object.values(user.compliance || {}).map((step, key) => (
                       <div key={key} className="flex items-center gap-4 p-3 rounded-xl hover:bg-zinc-50 transition-colors">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
                             <CheckCircle size={16} strokeWidth={2.5} />
@@ -1185,7 +1185,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           items.push({
             id: key,
             title: o.title,
-            date: new Date(o.date + 'T00:00:00'),
+            date: o.date ? new Date(o.date + 'T00:00:00') : new Date(),
             time: o.time,
             location: o.serviceLocation,
             category: o.category,
