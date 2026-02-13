@@ -3787,7 +3787,7 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
 
         // Create shifts for each staffing quota
         const createdShifts: any[] = [];
-        const eventDate = opportunity.date || new Date().toISOString().split('T')[0];
+        const eventDate = opportunity.date || getPacificDate();
         const startTimePart = opportunity.startTime || '09:00:00';
         const endTimePart = opportunity.endTime || '14:00:00';
         const defaultStartTime = `${eventDate}T${startTimePart}`;
@@ -4023,7 +4023,7 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
             if (!row.title && !row.Title && !row['Event Title']) continue;
 
             const eventTitle = row.title || row.Title || row['Event Title'] || 'Untitled Event';
-            const eventDate = row.date || row.Date || row['Event Date'] || new Date().toISOString().split('T')[0];
+            const eventDate = row.date || row.Date || row['Event Date'] || getPacificDate();
             const eventLocation = row.location || row.Location || row.serviceLocation || row['Service Location'] || 'TBD';
             const category = row.category || row.Category || 'Health Fair';
             const description = row.description || row.Description || `Community health event: ${eventTitle}`;
@@ -4840,7 +4840,7 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
                 availability: {
                     days: row.availability_days ? row.availability_days.split(';') : [],
                     preferredTime: row.availability_preferredTime || 'Any',
-                    startDate: row.availability_startDate || new Date().toISOString().split('T')[0]
+                    startDate: row.availability_startDate || getPacificDate()
                 },
                 eventEligibility: {
                     canDeployCore: false,
@@ -5452,7 +5452,7 @@ async function executeBirthdayRecognition(): Promise<{ sent: number; failed: num
   console.log('[WORKFLOW] Running Birthday Recognition (w4)');
   const result = { sent: 0, failed: 0, skipped: 0 };
   try {
-    const today = new Date();
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const todayMonth = today.getMonth() + 1; // 1-based
     const todayDay = today.getDate();
 
@@ -5723,7 +5723,10 @@ function getThirdSaturday(year: number, month: number): Date {
 }
 
 function formatDateStr(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped: number }> {
@@ -6309,7 +6312,7 @@ app.post('/api/volunteer/complete-training', verifyToken, async (req: Request, r
         await EmailService.send('hipaa_acknowledgment', {
           toEmail: volData.email,
           volunteerName: volData.name || volData.firstName || 'Volunteer',
-          completionDate: new Date().toLocaleDateString(),
+          completionDate: new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' }),
         });
       }
     }
