@@ -274,7 +274,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                         </div>
                                         <div>
                                             <p className="font-bold text-sm text-zinc-900">Saturday SMO — {cycle.saturdayDate}</p>
-                                            <p className="text-xs text-zinc-500">Training: {cycle.thursdayDate} · {cycle.registeredVolunteers.length} registered · {cycle.waitlist.length} waitlisted</p>
+                                            <p className="text-xs text-zinc-500">Training: {cycle.thursdayDate} · {(cycle.registeredVolunteers || []).length} registered · {(cycle.waitlist || []).length} waitlisted</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -315,13 +315,13 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                         <div>
                                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-3">
                                                 <Users size={12} className="inline mr-1" />
-                                                Registered Volunteers ({cycle.registeredVolunteers.length})
+                                                Registered Volunteers ({(cycle.registeredVolunteers || []).length})
                                             </label>
-                                            {cycle.registeredVolunteers.length === 0 ? (
+                                            {(cycle.registeredVolunteers || []).length === 0 ? (
                                                 <p className="text-xs text-zinc-400 italic">No volunteers registered yet.</p>
                                             ) : (
                                                 <div className="space-y-2">
-                                                    {cycle.registeredVolunteers.map(volId => {
+                                                    {(cycle.registeredVolunteers || []).map(volId => {
                                                         const isLeadConfirmed = (cycle.leadConfirmed || []).includes(volId);
                                                         const isSelfReported = (cycle.selfReported || []).includes(volId);
                                                         return (

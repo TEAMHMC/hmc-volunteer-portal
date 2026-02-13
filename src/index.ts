@@ -1132,6 +1132,39 @@ const EmailTemplates = {
     ${emailFooter()}`,
     text: `Hi ${data.volunteerName}, a spot opened up for Saturday SMO (${data.eventDate}). You've been moved from the waitlist. See you there!`
   }),
+
+  // Birthday Recognition
+  birthday_recognition: (data: EmailTemplateData) => ({
+    subject: `Happy Birthday, ${data.volunteerName}! 🎂`,
+    html: `${emailHeader('Happy Birthday!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Everyone at <strong>Health Matters Clinic</strong> wants to wish you a wonderful birthday!</p>
+      <div style="background: linear-gradient(135deg, #fdf2f8, #fce7f3); padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 48px;">🎂</p>
+        <p style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold; color: #1f2937;">Happy Birthday!</p>
+        <p style="margin: 0; color: #6b7280;">We've added <strong>100 bonus XP</strong> to your profile to celebrate you.</p>
+      </div>
+      <p>Thank you for being part of our team and making a difference in the community.</p>
+      ${actionButton('View My Profile', `${EMAIL_CONFIG.WEBSITE_URL}/profile`)}
+    ${emailFooter()}`,
+    text: `Happy Birthday, ${data.volunteerName}! We've added 100 bonus XP to your profile to celebrate. Thank you for being part of Health Matters Clinic!`
+  }),
+
+  // Compliance Expiry Warning
+  compliance_expiry_warning: (data: EmailTemplateData) => ({
+    subject: `Action Required: ${data.eventName} Expiring Soon`,
+    html: `${emailHeader('Compliance Item Expiring')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>This is a reminder that one of your compliance items is expiring soon:</p>
+      <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937;">${data.eventName}</p>
+        <p style="margin: 0; color: #6b7280;">Please contact your coordinator to renew before it expires.</p>
+      </div>
+      <p>Keeping your compliance up to date ensures you can continue volunteering without interruption.</p>
+      ${actionButton('View Compliance Status', `${EMAIL_CONFIG.WEBSITE_URL}/profile`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, your ${data.eventName} is expiring soon. Please contact your coordinator to renew.`
+  }),
 };
 
 // Email Service Class - Uses Google Apps Script
@@ -1344,7 +1377,7 @@ class GamificationService {
 
   static async updateStreak(volunteerId: string): Promise<{ streakDays: number; bonusXP: number }> {
     const profile = await this.getProfile(volunteerId);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPacificDate();
     const lastActivity = profile.lastActivityDate
       ? new Date(profile.lastActivityDate).toISOString().split('T')[0]
       : null;
@@ -1353,9 +1386,7 @@ class GamificationService {
       return { streakDays: profile.streakDays, bonusXP: 0 };
     }
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = getPacificDate(-1);
 
     const newStreak = lastActivity === yesterdayStr ? profile.streakDays + 1 : 1;
     let bonusXP = 0;
@@ -2861,7 +2892,7 @@ app.get('/api/clients/:id/referrals', verifyToken, requireAdmin, async (req: Req
 // GET /api/public/events - Public endpoint to get approved, public-facing events
 app.get('/api/public/events', async (req: Request, res: Response) => {
     try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getPacificDate();
         const includeAll = req.query.all === 'true'; // ?all=true to get all approved (for internal tools)
 
         // Query approved events with date >= today
@@ -5307,9 +5338,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
   console.log('[WORKFLOW] Running Post-Shift Thank You (w2)');
   const result = { sent: 0, failed: 0, skipped: 0 };
   try {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = getPacificDate(-1);
 
     const oppsSnap = await db.collection('opportunities').where('date', '==', yesterdayStr).get();
     if (oppsSnap.empty) return result;
@@ -5470,10 +5499,9 @@ async function executeBirthdayRecognition(): Promise<{ sent: number; failed: num
           const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
           if (smsResult.sent) { result.sent++; }
           else if (vol.email) {
-            await EmailService.send('shift_reminder_24h', {
+            await EmailService.send('birthday_recognition', {
               toEmail: vol.email,
               volunteerName: vol.name || vol.firstName || 'Volunteer',
-              eventName: 'Birthday Recognition',
               userId: volDoc.id,
             });
             result.sent++;
@@ -5540,7 +5568,7 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
             const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
             if (smsResult.sent) { result.sent++; }
             else if (vol.email) {
-              await EmailService.send('shift_reminder_24h', {
+              await EmailService.send('compliance_expiry_warning', {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
                 eventName: `${itemName} Expiry Warning`,
@@ -5549,7 +5577,7 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
               result.sent++;
             } else { result.failed++; }
           } else if (vol.email) {
-            await EmailService.send('shift_reminder_24h', {
+            await EmailService.send('compliance_expiry_warning', {
               toEmail: vol.email,
               volunteerName: vol.name || vol.firstName || 'Volunteer',
               eventName: `${itemName} Expiry Warning`,
@@ -6010,7 +6038,7 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
     switch (workflowId) {
       case 'w1': result = await executeShiftReminder(); break;
       case 'w2': result = await executePostShiftThankYou(); break;
-      case 'w3': result = await executeNewOpportunityAlert({ id: 'manual', title: 'Manual Test', date: new Date().toISOString().split('T')[0] }); break;
+      case 'w3': result = await executeNewOpportunityAlert({ id: 'manual', title: 'Manual Test', date: getPacificDate() }); break;
       case 'w4': result = await executeBirthdayRecognition(); break;
       case 'w5': result = await executeComplianceExpiryWarning(); break;
       case 'w6': result = await executeEventReminderCadence(); break;
