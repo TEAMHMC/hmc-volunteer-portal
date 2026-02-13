@@ -439,12 +439,13 @@ const sendSMS = async (
     return { sent: false, reason: 'not_configured' };
   }
 
-  // Check user opt-in if userId provided
+  // Check user opt-out if userId provided (default: SMS enabled unless explicitly disabled)
   if (userId) {
     try {
       const userDoc = await db.collection('volunteers').doc(userId).get();
       const prefs = userDoc.data()?.notificationPrefs;
-      if (!prefs?.smsAlerts) {
+      // Only block if user explicitly set smsAlerts to false
+      if (prefs?.smsAlerts === false) {
         console.log(`[SMS] Skipped - user ${userId} has opted out of SMS`);
         return { sent: false, reason: 'opted_out' };
       }
@@ -995,6 +996,141 @@ const EmailTemplates = {
       ${actionButton('View Ticket', `${EMAIL_CONFIG.WEBSITE_URL}/admin/support`)}
     ${emailFooter()}`,
     text: `New support ticket from ${data.submitterName}: ${data.subject}. Description: ${data.description}. Ticket ID: ${data.ticketId}`
+  }),
+
+  // ── Event Reminder Cadence Templates ──
+
+  // Stage 2: 7-Day Reminder
+  event_reminder_7day: (data: EmailTemplateData) => ({
+    subject: `One Week Until ${data.eventName}`,
+    html: `${emailHeader('One Week to Go!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Just a heads up — <strong>${data.eventName}</strong> is one week away!</p>
+      <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px; text-transform: uppercase;">Coming Up</p>
+        <p style="margin: 0 0 16px 0; font-size: 28px; font-weight: bold;">${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${data.eventName}</p>
+        <p style="margin: 0; opacity: 0.9;">${data.location || 'TBD'}</p>
+      </div>
+      <p><strong>What to bring:</strong></p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">Your HMC volunteer badge (if you have one)</li>
+        <li style="margin: 8px 0;">Comfortable closed-toe shoes</li>
+        <li style="margin: 8px 0;">Water bottle</li>
+      </ul>
+      ${actionButton('View Event Details', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, ${data.eventName} is one week away on ${data.eventDate} at ${data.location || 'TBD'}. See you there!`
+  }),
+
+  // Stage 3: 72-Hour Reminder
+  event_reminder_72h: (data: EmailTemplateData) => ({
+    subject: `3 Days Until ${data.eventName}`,
+    html: `${emailHeader('3 Days Away!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p><strong>${data.eventName}</strong> is just 3 days away!</p>
+      <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Time:</strong> ${data.eventTime || 'See event details'}</p>
+        <p style="margin: 0;"><strong>Location:</strong> ${data.location || 'TBD'}</p>
+      </div>
+      <p>If you have any questions or need to make changes, please contact your event coordinator.</p>
+      ${actionButton('View My Schedule', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, ${data.eventName} is in 3 days on ${data.eventDate} at ${data.location || 'TBD'}. Contact your coordinator with any questions.`
+  }),
+
+  // Stage 4: 24-Hour Reminder
+  event_reminder_24h: (data: EmailTemplateData) => ({
+    subject: `Tomorrow: ${data.eventName}`,
+    html: `${emailHeader('See You Tomorrow!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p><strong>${data.eventName}</strong> is <strong>tomorrow</strong>!</p>
+      <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px; text-transform: uppercase;">Tomorrow at</p>
+        <p style="margin: 0 0 16px 0; font-size: 32px; font-weight: bold;">${data.eventTime || 'See event details'}</p>
+        <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${data.eventName}</p>
+        <p style="margin: 0; opacity: 0.9;">${data.location || 'TBD'}</p>
+      </div>
+      <p><strong>Check-in:</strong> Please arrive 15 minutes early and check in with your event coordinator.</p>
+      ${actionButton('View Event Details', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, ${data.eventName} is tomorrow at ${data.eventTime || 'your scheduled time'}, ${data.location || 'TBD'}. Arrive 15 min early for check-in.`
+  }),
+
+  // ── SMO Workflow Templates ──
+
+  smo_registration_open: (data: EmailTemplateData) => ({
+    subject: `Street Medicine Outreach: Registration Open for ${data.eventDate}`,
+    html: `${emailHeader('SMO Registration Open')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Registration is now open for the upcoming <strong>Street Medicine Outreach</strong>!</p>
+      <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #10b981;">
+        <p style="margin: 0 0 8px 0;"><strong>Saturday Event:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Thursday Training:</strong> ${data.trainingDate || 'TBD'}</p>
+        <p style="margin: 0;"><strong>Requirement:</strong> You must attend Thursday training to keep your Saturday spot.</p>
+      </div>
+      <p>Spots are limited — register now to secure your place!</p>
+      ${actionButton('Register Now', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, SMO registration is open for ${data.eventDate}. Thursday training on ${data.trainingDate || 'TBD'} is required. Register now!`
+  }),
+
+  smo_registration_confirmed: (data: EmailTemplateData) => ({
+    subject: `SMO Registration Confirmed — Training Required ${data.trainingDate}`,
+    html: `${emailHeader('SMO Registration Confirmed')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>You're registered for <strong>Street Medicine Outreach</strong>!</p>
+      <div style="background: #eff6ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <p style="margin: 0 0 8px 0;"><strong>Saturday Event:</strong> ${data.eventDate}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Thursday Training (REQUIRED):</strong> ${data.trainingDate}</p>
+        ${data.googleMeetLink ? `<p style="margin: 0;"><strong>Training Link:</strong> <a href="${data.googleMeetLink}" style="color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.googleMeetLink}</a></p>` : ''}
+      </div>
+      <p style="color: #dc2626; font-weight: bold;">Important: If you miss Thursday training, your Saturday spot will be reassigned.</p>
+      ${actionButton('View My Schedule', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, you're registered for SMO on ${data.eventDate}. Thursday training (${data.trainingDate}) is REQUIRED. Miss it and your spot will be reassigned.`
+  }),
+
+  smo_training_reminder: (data: EmailTemplateData) => ({
+    subject: `Tomorrow: SMO Training — Required for Saturday`,
+    html: `${emailHeader('SMO Training Tomorrow')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Your <strong>Street Medicine Outreach training</strong> is <strong>tomorrow</strong> (Thursday).</p>
+      <div style="background: #fef3c7; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0 0 8px 0;"><strong>Training Date:</strong> ${data.trainingDate}</p>
+        ${data.googleMeetLink ? `<p style="margin: 0;"><strong>Join Link:</strong> <a href="${data.googleMeetLink}" style="color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: bold;">${data.googleMeetLink}</a></p>` : ''}
+      </div>
+      <p style="color: #dc2626;"><strong>Reminder:</strong> Attendance is mandatory to keep your Saturday event spot.</p>
+      ${actionButton('View Event Details', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, SMO training is tomorrow (${data.trainingDate}). ${data.googleMeetLink ? 'Join: ' + data.googleMeetLink : ''} Attendance is mandatory for Saturday.`
+  }),
+
+  smo_removed_no_training: (data: EmailTemplateData) => ({
+    subject: `SMO Saturday Spot Reassigned — Missed Thursday Training`,
+    html: `${emailHeader('SMO Registration Update')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Unfortunately, since you did not attend the required Thursday training session, your spot for <strong>Saturday's Street Medicine Outreach (${data.eventDate})</strong> has been reassigned.</p>
+      <p>We understand things come up! You're welcome to register for next month's outreach.</p>
+      ${actionButton('View Upcoming Events', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, your Saturday SMO spot (${data.eventDate}) was reassigned because you missed Thursday training. Register for next month!`
+  }),
+
+  smo_waitlist_promoted: (data: EmailTemplateData) => ({
+    subject: `You're In! SMO Spot Available for ${data.eventDate}`,
+    html: `${emailHeader('SMO Spot Available!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Great news — a spot opened up for <strong>Saturday's Street Medicine Outreach (${data.eventDate})</strong>!</p>
+      <div style="background: #f0fdf4; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid #10b981;">
+        <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        <p style="margin: 0;"><strong>Location:</strong> ${data.location || 'See event details'}</p>
+      </div>
+      <p>You've been moved from the waitlist to the active roster. See you Saturday!</p>
+      ${actionButton('View My Schedule', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, a spot opened up for Saturday SMO (${data.eventDate}). You've been moved from the waitlist. See you there!`
   }),
 };
 
@@ -1571,6 +1707,10 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
 
         const { resume, ...userDataToSave } = user;
         userDataToSave.id = finalUserId;
+        // Default notification prefs — volunteers opt in during application/RSVP
+        if (!userDataToSave.notificationPrefs) {
+            userDataToSave.notificationPrefs = { emailAlerts: true, smsAlerts: true };
+        }
 
         // Check if this email is in the admin bootstrap list
         const bootstrapDoc = await db.collection('admin_bootstrap').doc('pending').get();
@@ -1896,6 +2036,7 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
                  hoursContributed: 0,
                  points: 0,
                  isAdmin: shouldBeAdmin,
+                 notificationPrefs: { emailAlerts: true, smsAlerts: true },
                  compliance: {
                     application: { id: 'c-app', label: 'Application', status: 'verified' },
                     backgroundCheck: { id: 'c-bg', label: 'Background Check', status: 'pending' },
@@ -2898,7 +3039,12 @@ const handleVolunteerMatch = async (
     const volunteerRef = db.collection('volunteers').doc(volunteerId);
     const existingRsvps = volData.rsvpedEventIds || [];
     const updatedRsvpIds = [...new Set([...existingRsvps, rsvpData.eventId])];
-    await volunteerRef.update({ rsvpedEventIds: updatedRsvpIds });
+    // RSVP with phone = SMS consent; ensure notificationPrefs defaults are set
+    const prefUpdates: any = { rsvpedEventIds: updatedRsvpIds };
+    if (!volData.notificationPrefs) {
+      prefUpdates.notificationPrefs = { emailAlerts: true, smsAlerts: true };
+    }
+    await volunteerRef.update(prefUpdates);
 
     // Update opportunity slotsFilled
     const oppRef = db.collection('opportunities').doc(rsvpData.eventId);
@@ -4396,7 +4542,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       }
     }
 
-    // Send confirmation email
+    // Send confirmation email (Stage 1 of event reminder cadence)
     if (volunteerEmail) {
       try {
         await EmailService.send('event_registration_confirmation', {
@@ -4406,6 +4552,8 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           eventDate: formatEventDate(eventDate || 'TBD'),
           eventLocation: eventLocation || 'TBD'
         });
+        // Log Stage 1 in reminder_log to prevent duplicate confirmation sends
+        try { await logReminderSent(volunteerId, eventId, 1); } catch {}
         console.log(`[EVENTS] Sent registration confirmation to ${maskEmail(volunteerEmail)} for ${eventTitle}`);
       } catch (emailError) {
         console.error('[EVENTS] Failed to send confirmation email:', emailError);
@@ -5021,12 +5169,22 @@ app.post('/api/admin/review-application', verifyToken, requireAdmin, async (req:
 // AUTOMATED WORKFLOWS - Execution Functions + API + Scheduler
 // ═══════════════════════════════════════════════════════════════
 
+// Pacific timezone helper — prevents UTC date drift on Cloud Run
+function getPacificDate(offsetDays = 0): string {
+  const now = new Date();
+  const pacific = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  pacific.setDate(pacific.getDate() + offsetDays);
+  return pacific.toISOString().split('T')[0]; // YYYY-MM-DD in Pacific time
+}
+
 const WORKFLOW_DEFAULTS: Record<string, { enabled: boolean }> = {
   w1: { enabled: true },
   w2: { enabled: true },
   w3: { enabled: false },
   w4: { enabled: true },
   w5: { enabled: true },
+  w6: { enabled: true },
+  w7: { enabled: true },
 };
 
 const WORKFLOW_NAMES: Record<string, string> = {
@@ -5035,6 +5193,8 @@ const WORKFLOW_NAMES: Record<string, string> = {
   w3: 'New Opportunity Alert',
   w4: 'Birthday Recognition',
   w5: 'Compliance Expiry Warning',
+  w6: 'Event Reminder Cadence',
+  w7: 'SMO Monthly Cycle',
 };
 
 async function logWorkflowRun(workflowId: string, result: { sent: number; failed: number; skipped: number; details?: string }) {
@@ -5059,9 +5219,19 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
   console.log('[WORKFLOW] Running Shift Reminder (w1)');
   const result = { sent: 0, failed: 0, skipped: 0 };
   try {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Dedup: skip if already ran today
+    const todayStr = getPacificDate(0);
+    const dedupSnap = await db.collection('workflow_runs')
+      .where('workflowId', '==', 'w1')
+      .where('timestamp', '>=', todayStr + 'T00:00:00')
+      .where('timestamp', '<=', todayStr + 'T23:59:59')
+      .limit(1).get();
+    if (!dedupSnap.empty) {
+      console.log(`[WORKFLOW] Shift Reminder already ran today (${todayStr}), skipping`);
+      return result;
+    }
+
+    const tomorrowStr = getPacificDate(1); // Tomorrow in Pacific time
 
     const oppsSnap = await db.collection('opportunities').where('date', '==', tomorrowStr).get();
     if (oppsSnap.empty) {
@@ -5097,10 +5267,10 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
                   await EmailService.send('shift_reminder_24h', {
                     toEmail: vol.email,
                     volunteerName: vol.name || vol.firstName || 'Volunteer',
-                    eventTitle: opp.title,
+                    eventName: opp.title,
                     eventDate: tomorrowStr,
                     eventTime: time,
-                    eventLocation: location,
+                    location: location,
                     userId: volId,
                   });
                   result.sent++;
@@ -5110,10 +5280,10 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
               await EmailService.send('shift_reminder_24h', {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
-                eventTitle: opp.title,
+                eventName: opp.title,
                 eventDate: tomorrowStr,
                 eventTime: time,
-                eventLocation: location,
+                location: location,
                 userId: volId,
               });
               result.sent++;
@@ -5168,7 +5338,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
                 await EmailService.send('shift_reminder_24h', {
                   toEmail: vol.email,
                   volunteerName: vol.name || vol.firstName || 'Volunteer',
-                  eventTitle: opp.title,
+                  eventName: opp.title,
                   eventDate: yesterdayStr,
                   userId: volId,
                 });
@@ -5178,7 +5348,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
               await EmailService.send('shift_reminder_24h', {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
-                eventTitle: opp.title,
+                eventName: opp.title,
                 eventDate: yesterdayStr,
                 userId: volId,
               });
@@ -5303,7 +5473,7 @@ async function executeBirthdayRecognition(): Promise<{ sent: number; failed: num
             await EmailService.send('shift_reminder_24h', {
               toEmail: vol.email,
               volunteerName: vol.name || vol.firstName || 'Volunteer',
-              eventTitle: 'Birthday Recognition',
+              eventName: 'Birthday Recognition',
               userId: volDoc.id,
             });
             result.sent++;
@@ -5373,7 +5543,7 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
               await EmailService.send('shift_reminder_24h', {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
-                eventTitle: `${itemName} Expiry Warning`,
+                eventName: `${itemName} Expiry Warning`,
                 userId: volDoc.id,
               });
               result.sent++;
@@ -5382,7 +5552,7 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
             await EmailService.send('shift_reminder_24h', {
               toEmail: vol.email,
               volunteerName: vol.name || vol.firstName || 'Volunteer',
-              eventTitle: `${itemName} Expiry Warning`,
+              eventName: `${itemName} Expiry Warning`,
               userId: volDoc.id,
             });
             result.sent++;
@@ -5400,9 +5570,358 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
   return result;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// EVENT REMINDER CADENCE - 5-Stage System (w6)
+// ═══════════════════════════════════════════════════════════════
+// Stage 1: Confirmation (on RSVP - triggered from register endpoint)
+// Stage 2: 7-Day Reminder
+// Stage 3: 72-Hour Reminder
+// Stage 4: 24-Hour Reminder
+// Stage 5: 3-Hour SMS
+
+async function logReminderSent(volunteerId: string, eventId: string, stage: number): Promise<void> {
+  const key = `${volunteerId}_${eventId}_s${stage}`;
+  await db.collection('reminder_log').doc(key).set({
+    volunteerId, eventId, stage, sentAt: new Date().toISOString(),
+  });
+}
+
+async function wasReminderSent(volunteerId: string, eventId: string, stage: number): Promise<boolean> {
+  const key = `${volunteerId}_${eventId}_s${stage}`;
+  const doc = await db.collection('reminder_log').doc(key).get();
+  return doc.exists;
+}
+
+async function executeEventReminderCadence(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running Event Reminder Cadence (w6)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const todayStr = getPacificDate(0);
+
+    // Query all upcoming opportunities in the next 8 days
+    const eightDaysOut = getPacificDate(8);
+    const oppsSnap = await db.collection('opportunities')
+      .where('date', '>=', todayStr)
+      .where('date', '<=', eightDaysOut)
+      .get();
+
+    if (oppsSnap.empty) {
+      console.log('[WORKFLOW] No upcoming events in next 8 days for reminder cadence');
+      return result;
+    }
+
+    for (const oppDoc of oppsSnap.docs) {
+      const opp = oppDoc.data();
+      const eventDate = opp.date; // YYYY-MM-DD
+      const eventDateTime = new Date(eventDate + 'T' + (opp.time || opp.startTime || '09:00'));
+      const hoursUntil = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const daysUntil = hoursUntil / 24;
+
+      // Determine which stage(s) to send
+      let stage = 0;
+      let templateName: string = '';
+      if (daysUntil >= 6.5 && daysUntil <= 7.5) { stage = 2; templateName = 'event_reminder_7day'; }
+      else if (daysUntil >= 2.5 && daysUntil <= 3.5) { stage = 3; templateName = 'event_reminder_72h'; }
+      else if (daysUntil >= 0.5 && daysUntil <= 1.5) { stage = 4; templateName = 'event_reminder_24h'; }
+      else if (hoursUntil >= 1 && hoursUntil <= 4) { stage = 5; templateName = 'sms_3h'; }
+
+      if (stage === 0) continue;
+
+      // Find all volunteers registered for this event
+      const volsSnap = await db.collection('volunteers')
+        .where('rsvpedEventIds', 'array-contains', oppDoc.id)
+        .get();
+
+      const location = opp.serviceLocation || opp.location || 'the event location';
+      const time = opp.time || opp.startTime || 'your scheduled time';
+
+      for (const volDoc of volsSnap.docs) {
+        const vol = volDoc.data();
+        try {
+          if (await wasReminderSent(volDoc.id, oppDoc.id, stage)) {
+            result.skipped++;
+            continue;
+          }
+
+          if (stage === 5) {
+            // SMS for 3-hour reminder
+            const phone = normalizePhone(vol.phone);
+            if (phone) {
+              const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
+              const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
+              if (smsResult.sent) { result.sent++; }
+              else { result.skipped++; }
+            } else { result.skipped++; }
+          } else {
+            // Email for stages 2-4
+            if (vol.email) {
+              await EmailService.send(templateName as any, {
+                toEmail: vol.email,
+                volunteerName: vol.name || vol.firstName || 'Volunteer',
+                eventName: opp.title,
+                eventDate: eventDate,
+                eventTime: time,
+                location: location,
+              });
+              result.sent++;
+            } else { result.skipped++; }
+          }
+
+          await logReminderSent(volDoc.id, oppDoc.id, stage);
+        } catch (e) {
+          console.error(`[WORKFLOW] Reminder stage ${stage} failed for vol ${volDoc.id} event ${oppDoc.id}:`, e);
+          result.failed++;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executeEventReminderCadence error:', e);
+  }
+  await logWorkflowRun('w6', result);
+  console.log(`[WORKFLOW] Event Reminder Cadence done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SMO MONTHLY WORKFLOW (w7) - Street Medicine Outreach Cycle
+// ═══════════════════════════════════════════════════════════════
+
+function getThirdSaturday(year: number, month: number): Date {
+  const first = new Date(year, month, 1);
+  const dayOfWeek = first.getDay();
+  const firstSaturday = dayOfWeek <= 6 ? (6 - dayOfWeek + 1) : 1;
+  return new Date(year, month, firstSaturday + 14); // 3rd Saturday
+}
+
+function formatDateStr(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running SMO Monthly Cycle Manager (w7)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  try {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const todayStr = getPacificDate(0);
+
+    // Find or create the upcoming SMO cycle
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Check next 2 months for cycles to manage
+    for (let monthOffset = 0; monthOffset <= 1; monthOffset++) {
+      const targetMonth = (currentMonth + monthOffset) % 12;
+      const targetYear = currentMonth + monthOffset > 11 ? currentYear + 1 : currentYear;
+      const saturdayDate = getThirdSaturday(targetYear, targetMonth);
+      const thursdayDate = new Date(saturdayDate);
+      thursdayDate.setDate(thursdayDate.getDate() - 2); // Thursday before Saturday
+
+      const satStr = formatDateStr(saturdayDate);
+      const thuStr = formatDateStr(thursdayDate);
+      const cycleId = `smo_${satStr}`;
+
+      // Get or create cycle document
+      const cycleRef = db.collection('smo_cycles').doc(cycleId);
+      let cycleDoc = await cycleRef.get();
+
+      const daysUntilSat = (saturdayDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+
+      // Phase 1: Auto-create cycle 30 days before
+      if (!cycleDoc.exists && daysUntilSat <= 30 && daysUntilSat > 0) {
+        console.log(`[SMO] Creating new cycle for ${satStr}`);
+
+        // Create the Saturday SMO event in opportunities
+        const satEventRef = await db.collection('opportunities').add({
+          title: `Street Medicine Outreach — ${saturdayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          date: satStr,
+          time: '9:00 AM',
+          category: 'Street Medicine',
+          serviceLocation: 'TBD — See coordinator',
+          description: 'Monthly Street Medicine Outreach. Thursday pre-meet training is REQUIRED.',
+          slotsTotal: 20,
+          slotsFilled: 0,
+          status: 'published',
+          createdAt: new Date().toISOString(),
+          smoManaged: true,
+        });
+
+        // Create the Thursday training event
+        const thuEventRef = await db.collection('opportunities').add({
+          title: `SMO Pre-Meet Training — ${thursdayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          date: thuStr,
+          time: '6:00 PM',
+          category: 'Street Medicine',
+          serviceLocation: 'Virtual — Google Meet',
+          description: 'Mandatory pre-meet training for Saturday Street Medicine Outreach.',
+          slotsTotal: 30,
+          slotsFilled: 0,
+          status: 'published',
+          createdAt: new Date().toISOString(),
+          smoManaged: true,
+          isTrainingSession: true,
+        });
+
+        await cycleRef.set({
+          saturdayDate: satStr,
+          thursdayDate: thuStr,
+          saturdayEventId: satEventRef.id,
+          thursdayEventId: thuEventRef.id,
+          googleMeetLink: '',
+          registeredVolunteers: [],
+          waitlist: [],
+          thursdayAttendees: [],
+          selfReported: [],
+          leadConfirmed: [],
+          status: 'registration_open',
+          createdAt: new Date().toISOString(),
+        });
+
+        // Notify eligible volunteers that registration is open
+        const eligibleSnap = await db.collection('volunteers')
+          .where('status', '==', 'active')
+          .where('eventEligibility.streetMedicineGate', '==', true)
+          .get();
+
+        for (const volDoc of eligibleSnap.docs) {
+          const vol = volDoc.data();
+          if (vol.email) {
+            try {
+              await EmailService.send('smo_registration_open', {
+                toEmail: vol.email,
+                volunteerName: vol.name || vol.firstName || 'Volunteer',
+                eventDate: satStr,
+                trainingDate: thuStr,
+              });
+              result.sent++;
+            } catch { result.failed++; }
+          }
+        }
+        continue; // Skip further processing for newly created cycle
+      }
+
+      if (!cycleDoc.exists) continue;
+      const cycle = cycleDoc.data()!;
+
+      // Phase 2: Thursday night — check attendance, remove no-shows, promote waitlist
+      if (cycle.status === 'registration_open' && todayStr === thuStr) {
+        const hourNow = now.getHours();
+
+        // After 11 PM Thursday: enforce attendance
+        if (hourNow >= 23) {
+          console.log(`[SMO] Enforcing Thursday attendance for cycle ${cycleId}`);
+          const attendees = new Set([...(cycle.leadConfirmed || []), ...(cycle.selfReported || [])]);
+          const registered: string[] = cycle.registeredVolunteers || [];
+          const waitlist: string[] = cycle.waitlist || [];
+          const removed: string[] = [];
+          const kept: string[] = [];
+
+          for (const volId of registered) {
+            if (attendees.has(volId)) {
+              kept.push(volId);
+            } else {
+              removed.push(volId);
+              // Notify removed volunteer
+              const volDoc = await db.collection('volunteers').doc(volId).get();
+              const vol = volDoc.data();
+              if (vol?.email) {
+                try {
+                  await EmailService.send('smo_removed_no_training', {
+                    toEmail: vol.email,
+                    volunteerName: vol.name || vol.firstName || 'Volunteer',
+                    eventDate: satStr,
+                  });
+                  result.sent++;
+                } catch { result.failed++; }
+              }
+            }
+          }
+
+          // Promote from waitlist to fill vacated spots
+          const slotsAvailable = registered.length - kept.length;
+          const promoted = waitlist.splice(0, slotsAvailable);
+
+          for (const volId of promoted) {
+            kept.push(volId);
+            const volDoc = await db.collection('volunteers').doc(volId).get();
+            const vol = volDoc.data();
+            if (vol?.email) {
+              try {
+                await EmailService.send('smo_waitlist_promoted', {
+                  toEmail: vol.email,
+                  volunteerName: vol.name || vol.firstName || 'Volunteer',
+                  eventDate: satStr,
+                  location: 'See event details',
+                });
+                result.sent++;
+              } catch { result.failed++; }
+            }
+          }
+
+          await cycleRef.update({
+            registeredVolunteers: kept,
+            waitlist: waitlist,
+            thursdayAttendees: Array.from(attendees),
+            status: 'training_complete',
+          });
+
+          console.log(`[SMO] Attendance enforced: ${kept.length} kept, ${removed.length} removed, ${promoted.length} promoted from waitlist`);
+        }
+      }
+
+      // Phase 3: Saturday — mark as event_day
+      if (cycle.status === 'training_complete' && todayStr === satStr) {
+        await cycleRef.update({ status: 'event_day' });
+      }
+
+      // Phase 4: Day after Saturday — mark as completed
+      const dayAfterSat = new Date(saturdayDate);
+      dayAfterSat.setDate(dayAfterSat.getDate() + 1);
+      if (cycle.status === 'event_day' && todayStr === formatDateStr(dayAfterSat)) {
+        await cycleRef.update({ status: 'completed' });
+      }
+
+      // Send Thursday training reminder (24h before Thursday)
+      const dayBeforeThu = new Date(thursdayDate);
+      dayBeforeThu.setDate(dayBeforeThu.getDate() - 1);
+      if (todayStr === formatDateStr(dayBeforeThu) && cycle.status === 'registration_open') {
+        const registered: string[] = cycle.registeredVolunteers || [];
+        for (const volId of registered) {
+          try {
+            if (await wasReminderSent(volId, cycleId, 100)) continue; // stage 100 = SMO training reminder
+            const volDoc = await db.collection('volunteers').doc(volId).get();
+            const vol = volDoc.data();
+            if (vol?.email) {
+              await EmailService.send('smo_training_reminder', {
+                toEmail: vol.email,
+                volunteerName: vol.name || vol.firstName || 'Volunteer',
+                trainingDate: thuStr,
+                googleMeetLink: cycle.googleMeetLink || '',
+              });
+              await logReminderSent(volId, cycleId, 100);
+              result.sent++;
+
+              // Also send SMS if phone available
+              const phone = normalizePhone(vol.phone);
+              if (phone) {
+                await sendSMS(volId, `+1${phone}`, `HMC: SMO training is tomorrow! ${cycle.googleMeetLink ? 'Join: ' + cycle.googleMeetLink : 'Check your email for details.'} Attendance required for Saturday.`);
+              }
+            }
+          } catch { result.failed++; }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] manageSMOCycle error:', e);
+  }
+  await logWorkflowRun('w7', result);
+  console.log(`[WORKFLOW] SMO Cycle Manager done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
 // Scheduler runner functions
 async function runScheduledWorkflows() {
-  console.log('[WORKFLOW] Running scheduled workflows (hourly)');
+  console.log('[WORKFLOW] Running scheduled workflows (daily)');
   try {
     const configDoc = await db.collection('workflow_configs').doc('default').get();
     const config = configDoc.data();
@@ -5410,8 +5929,23 @@ async function runScheduledWorkflows() {
 
     if (workflows.w1?.enabled !== false) await executeShiftReminder();
     if (workflows.w2?.enabled !== false) await executePostShiftThankYou();
+    if (workflows.w6?.enabled !== false) await executeEventReminderCadence();
+    if (workflows.w7?.enabled !== false) await manageSMOCycle();
   } catch (e) {
     console.error('[WORKFLOW] runScheduledWorkflows error:', e);
+  }
+}
+
+// Runs every 3 hours for time-sensitive SMS (Stage 5: 3-hour reminder)
+async function runSMSCheckWorkflows() {
+  console.log('[WORKFLOW] Running SMS check workflows (every 3h)');
+  try {
+    const configDoc = await db.collection('workflow_configs').doc('default').get();
+    const config = configDoc.data();
+    const workflows = config?.workflows || WORKFLOW_DEFAULTS;
+    if (workflows.w6?.enabled !== false) await executeEventReminderCadence();
+  } catch (e) {
+    console.error('[WORKFLOW] runSMSCheckWorkflows error:', e);
   }
 }
 
@@ -5479,6 +6013,8 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
       case 'w3': result = await executeNewOpportunityAlert({ id: 'manual', title: 'Manual Test', date: new Date().toISOString().split('T')[0] }); break;
       case 'w4': result = await executeBirthdayRecognition(); break;
       case 'w5': result = await executeComplianceExpiryWarning(); break;
+      case 'w6': result = await executeEventReminderCadence(); break;
+      case 'w7': result = await manageSMOCycle(); break;
       default: return res.status(400).json({ error: `Unknown workflow: ${workflowId}` });
     }
 
@@ -5500,6 +6036,164 @@ app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Requ
   } catch (error: any) {
     console.error('[WORKFLOW] Failed to load runs:', error);
     res.status(500).json({ error: error.message || 'Failed to load workflow runs' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// SMO CYCLE API ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+// Get all SMO cycles (admin)
+app.get('/api/admin/smo/cycles', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const snap = await db.collection('smo_cycles').orderBy('saturdayDate', 'desc').limit(12).get();
+    const cycles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ cycles });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to load SMO cycles' });
+  }
+});
+
+// Get a single SMO cycle
+app.get('/api/admin/smo/cycles/:cycleId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const doc = await db.collection('smo_cycles').doc(req.params.cycleId).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Cycle not found' });
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to load SMO cycle' });
+  }
+});
+
+// Update SMO cycle (team lead: set Google Meet link, check in volunteers)
+app.put('/api/admin/smo/cycles/:cycleId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { googleMeetLink, leadConfirmed } = req.body;
+    const updates: any = { updatedAt: new Date().toISOString() };
+    if (googleMeetLink !== undefined) updates.googleMeetLink = googleMeetLink;
+    if (leadConfirmed !== undefined) updates.leadConfirmed = leadConfirmed;
+
+    await db.collection('smo_cycles').doc(req.params.cycleId).update(updates);
+    const updated = await db.collection('smo_cycles').doc(req.params.cycleId).get();
+    res.json({ id: updated.id, ...updated.data() });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to update SMO cycle' });
+  }
+});
+
+// Register for SMO cycle
+app.post('/api/smo/cycles/:cycleId/register', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.uid;
+    const cycleRef = db.collection('smo_cycles').doc(req.params.cycleId);
+    const cycleDoc = await cycleRef.get();
+    if (!cycleDoc.exists) return res.status(404).json({ error: 'Cycle not found' });
+    const cycle = cycleDoc.data()!;
+
+    if (cycle.status !== 'registration_open') {
+      return res.status(400).json({ error: 'Registration is closed for this cycle' });
+    }
+
+    const registered: string[] = cycle.registeredVolunteers || [];
+    const waitlist: string[] = cycle.waitlist || [];
+    if (registered.includes(userId) || waitlist.includes(userId)) {
+      return res.status(400).json({ error: 'Already registered or on waitlist' });
+    }
+
+    // Check capacity (use Saturday event's slotsTotal)
+    const satEvent = await db.collection('opportunities').doc(cycle.saturdayEventId).get();
+    const maxSlots = satEvent.data()?.slotsTotal || 20;
+
+    let position: 'registered' | 'waitlist';
+    if (registered.length < maxSlots) {
+      registered.push(userId);
+      position = 'registered';
+    } else {
+      waitlist.push(userId);
+      position = 'waitlist';
+    }
+
+    await cycleRef.update({ registeredVolunteers: registered, waitlist });
+
+    // Send confirmation email
+    const vol = (await db.collection('volunteers').doc(userId).get()).data();
+    if (vol?.email) {
+      try {
+        await EmailService.send('smo_registration_confirmed', {
+          toEmail: vol.email,
+          volunteerName: vol.name || vol.firstName || 'Volunteer',
+          eventDate: cycle.saturdayDate,
+          trainingDate: cycle.thursdayDate,
+          googleMeetLink: cycle.googleMeetLink || '',
+        });
+      } catch {}
+    }
+
+    res.json({ success: true, position });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to register for SMO cycle' });
+  }
+});
+
+// Volunteer self-report attendance for Thursday training
+app.post('/api/smo/cycles/:cycleId/self-report', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.uid;
+    const cycleRef = db.collection('smo_cycles').doc(req.params.cycleId);
+    const cycleDoc = await cycleRef.get();
+    if (!cycleDoc.exists) return res.status(404).json({ error: 'Cycle not found' });
+    const cycle = cycleDoc.data()!;
+
+    const selfReported: string[] = cycle.selfReported || [];
+    if (selfReported.includes(userId)) {
+      return res.status(400).json({ error: 'Already self-reported' });
+    }
+
+    selfReported.push(userId);
+    await cycleRef.update({ selfReported });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to self-report attendance' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT REMINDER CADENCE API ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+// Get reminder cadence config
+app.get('/api/admin/reminder-cadence/config', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const doc = await db.collection('workflow_configs').doc('reminder_cadence').get();
+    if (doc.exists) {
+      res.json(doc.data());
+    } else {
+      const defaults = {
+        stages: {
+          s1: { enabled: true, channel: 'email', label: 'Registration Confirmation' },
+          s2: { enabled: true, channel: 'email', label: '7-Day Reminder' },
+          s3: { enabled: true, channel: 'email', label: '72-Hour Reminder' },
+          s4: { enabled: true, channel: 'email', label: '24-Hour Reminder' },
+          s5: { enabled: true, channel: 'sms', label: '3-Hour SMS' },
+        },
+      };
+      res.json(defaults);
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update reminder cadence config
+app.put('/api/admin/reminder-cadence/config', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await db.collection('workflow_configs').doc('reminder_cadence').set(
+      { ...req.body, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -6333,19 +7027,25 @@ const server = app.listen(PORT, () => {
     console.log("[SERVER] Mode: PRODUCTION");
 
     // --- WORKFLOW SCHEDULER ---
-    // Hourly: shift reminders + post-shift thank you
-    cron.schedule('0 * * * *', () => {
-      console.log('[CRON] Running hourly workflow check');
+    // Daily at 6 PM UTC (10 AM Pacific PST / 11 AM PDT): shift reminders + post-shift thank you + event cadence + SMO
+    cron.schedule('0 18 * * *', () => {
+      console.log('[CRON] Running daily shift workflow check (6 PM UTC)');
       runScheduledWorkflows();
     });
 
-    // Daily at 8am: birthday + compliance
+    // Every 3 hours: SMS check for 3-hour event reminders (Stage 5)
+    cron.schedule('0 */3 * * *', () => {
+      console.log('[CRON] Running SMS check workflows (every 3h)');
+      runSMSCheckWorkflows();
+    });
+
+    // Daily at 8am UTC: birthday + compliance
     cron.schedule('0 8 * * *', () => {
-      console.log('[CRON] Running daily workflow check (8am)');
+      console.log('[CRON] Running daily workflow check (8am UTC)');
       runDailyWorkflows();
     });
 
-    console.log('[CRON] Workflow scheduler started: hourly (shift/thank-you) + daily 8am (birthday/compliance)');
+    console.log('[CRON] Workflow scheduler started: daily 6pm UTC (shift/thank-you/cadence/SMO) + every 3h (SMS) + daily 8am UTC (birthday/compliance)');
 });
 
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---

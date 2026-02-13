@@ -696,14 +696,15 @@ const ChecklistsView: React.FC<{
 };
 
 const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventId?: string, eventTitle?: string}> = ({ surveyKit, user, eventId, eventTitle }) => {
+    // Guard MUST be before all hooks to prevent React hooks violation (error #300)
+    if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
+
     const [submission, setSubmission] = useState<{ [key: string]: any }>({});
     const [clientInfo, setClientInfo] = useState({ firstName: '', lastName: '', phone: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [consentGiven, setConsentGiven] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
-
-    if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

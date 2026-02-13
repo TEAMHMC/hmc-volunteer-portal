@@ -472,8 +472,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               // Optimistic: add immediately so event appears in UI (marked for merge protection)
               setEvents(prev => [...prev, { ...newEvent, _optimistic: true }].sort((a, b) => (a.date || '').localeCompare(b.date || '')));
             }
-            // Soft re-fetch in background — merges with optimistic events to prevent disappearance
-            setTimeout(() => fetchEvents(true), 1000);
+            // Soft re-fetch — merges with optimistic events; _optimistic flag keeps event visible
+            fetchEvents(true);
           }}
           editingEvent={editingEvent}
         />
