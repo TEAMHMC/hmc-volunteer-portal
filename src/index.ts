@@ -5646,15 +5646,16 @@ async function executeEventReminderCadence(): Promise<{ sent: number; failed: nu
       const hoursUntil = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       const daysUntil = hoursUntil / 24;
 
-      // Determine which stage(s) to send
-      let stage = 0;
-      let templateName: string = '';
-      if (daysUntil >= 6.5 && daysUntil <= 7.5) { stage = 2; templateName = 'event_reminder_7day'; }
-      else if (daysUntil >= 2.5 && daysUntil <= 3.5) { stage = 3; templateName = 'event_reminder_72h'; }
-      else if (daysUntil >= 0.5 && daysUntil <= 1.5) { stage = 4; templateName = 'event_reminder_24h'; }
-      else if (hoursUntil >= 1 && hoursUntil <= 4) { stage = 5; templateName = 'sms_3h'; }
+      // Determine applicable stages based on time until event
+      // Each stage is eligible from its window through to the event, so late RSVPs
+      // still get the most relevant reminder they haven't received yet
+      const applicableStages: { stage: number; template: string }[] = [];
+      if (daysUntil <= 7.5 && daysUntil > 1.5) { applicableStages.push({ stage: 2, template: 'event_reminder_7day' }); }
+      if (daysUntil <= 3.5 && daysUntil > 1.5) { applicableStages.push({ stage: 3, template: 'event_reminder_72h' }); }
+      if (daysUntil <= 1.5 && daysUntil > 0) { applicableStages.push({ stage: 4, template: 'event_reminder_24h' }); }
+      if (hoursUntil >= 1 && hoursUntil <= 4) { applicableStages.push({ stage: 5, template: 'sms_3h' }); }
 
-      if (stage === 0) continue;
+      if (applicableStages.length === 0) continue;
 
       // Find all volunteers registered for this event
       const volsSnap = await db.collection('volunteers')
@@ -5666,13 +5667,20 @@ async function executeEventReminderCadence(): Promise<{ sent: number; failed: nu
 
       for (const volDoc of volsSnap.docs) {
         const vol = volDoc.data();
-        try {
-          if (await wasReminderSent(volDoc.id, oppDoc.id, stage)) {
-            result.skipped++;
-            continue;
-          }
 
-          if (stage === 5) {
+        // Find the highest applicable stage not yet sent to this volunteer
+        let stageToSend: { stage: number; template: string } | null = null;
+        for (const s of applicableStages) {
+          if (!(await wasReminderSent(volDoc.id, oppDoc.id, s.stage))) {
+            stageToSend = s;
+            break; // Send lowest unsent stage first (they'll get higher ones on subsequent runs)
+          }
+        }
+
+        if (!stageToSend) { result.skipped++; continue; }
+
+        try {
+          if (stageToSend.stage === 5) {
             // SMS for 3-hour reminder
             const phone = normalizePhone(vol.phone);
             if (phone) {
@@ -5684,7 +5692,7 @@ async function executeEventReminderCadence(): Promise<{ sent: number; failed: nu
           } else {
             // Email for stages 2-4
             if (vol.email) {
-              await EmailService.send(templateName as any, {
+              await EmailService.send(stageToSend.template as any, {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
                 eventName: opp.title,
@@ -5696,9 +5704,9 @@ async function executeEventReminderCadence(): Promise<{ sent: number; failed: nu
             } else { result.skipped++; }
           }
 
-          await logReminderSent(volDoc.id, oppDoc.id, stage);
+          await logReminderSent(volDoc.id, oppDoc.id, stageToSend.stage);
         } catch (e) {
-          console.error(`[WORKFLOW] Reminder stage ${stage} failed for vol ${volDoc.id} event ${oppDoc.id}:`, e);
+          console.error(`[WORKFLOW] Reminder stage ${stageToSend.stage} failed for vol ${volDoc.id} event ${oppDoc.id}:`, e);
           result.failed++;
         }
       }
