@@ -6112,6 +6112,31 @@ app.put('/api/admin/smo/cycles/:cycleId', verifyToken, requireAdmin, async (req:
   }
 });
 
+// Get active SMO cycles for the logged-in volunteer
+app.get('/api/smo/cycles/my', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.uid;
+    const snap = await db.collection('smo_cycles')
+      .where('status', 'in', ['registration_open', 'training_complete', 'event_day'])
+      .get();
+
+    const myCycles = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter((c: any) => (c.registeredVolunteers || []).includes(userId));
+
+    res.json(myCycles.map((c: any) => ({
+      id: c.id,
+      saturdayDate: c.saturdayDate,
+      thursdayDate: c.thursdayDate,
+      status: c.status,
+      selfReported: (c.selfReported || []).includes(userId),
+      leadConfirmed: (c.leadConfirmed || []).includes(userId),
+    })));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch SMO cycles' });
+  }
+});
+
 // Register for SMO cycle
 app.post('/api/smo/cycles/:cycleId/register', verifyToken, async (req: Request, res: Response) => {
   try {

@@ -221,6 +221,28 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
   const totalNotifications = unreadDMs + openTicketsCount + newApplicantsCount;
 
+  // SMO self-report state
+  const [smoCycles, setSmoCycles] = useState<{ id: string; saturdayDate: string; thursdayDate: string; status: string; selfReported: boolean; leadConfirmed: boolean }[]>([]);
+  const [smoReporting, setSmoReporting] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiService.get('/api/smo/cycles/my').then((data: any) => {
+      if (Array.isArray(data)) setSmoCycles(data);
+    }).catch(() => {});
+  }, []);
+
+  const handleSmoSelfReport = async (cycleId: string) => {
+    setSmoReporting(cycleId);
+    try {
+      await apiService.post(`/api/smo/cycles/${cycleId}/self-report`, {});
+      setSmoCycles(prev => prev.map(c => c.id === cycleId ? { ...c, selfReported: true } : c));
+    } catch (e: any) {
+      alert(e.message || 'Failed to report attendance');
+    } finally {
+      setSmoReporting(null);
+    }
+  };
+
   const handleDismissNotifications = () => {
     const now = new Date().toISOString();
     setDismissedNotifTs(now);
@@ -1031,6 +1053,21 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   if (user.isAdmin && newApplicantsCount > 0) {
     actionItems.push({ icon: 'fa-solid fa-user-check', title: 'Review applicants', description: `${newApplicantsCount} new volunteer${newApplicantsCount > 1 ? 's' : ''} waiting for review`, color: 'emerald', onClick: () => onNavigate('directory') });
   }
+
+  // SMO Thursday training self-report action items
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  smoCycles
+    .filter(c => !c.selfReported && !c.leadConfirmed && c.thursdayDate <= todayStr && c.status === 'registration_open')
+    .forEach(c => {
+      actionItems.push({
+        icon: 'fa-solid fa-clipboard-check',
+        title: 'Report SMO training attendance',
+        description: `Confirm you attended Thursday training (${new Date(c.thursdayDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}) to keep your Saturday spot`,
+        color: 'emerald',
+        onClick: () => handleSmoSelfReport(c.id),
+      });
+    });
 
   const colorMap: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
     amber: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', iconBg: 'bg-gradient-to-br from-amber-400 to-amber-500' },
