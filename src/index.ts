@@ -5620,7 +5620,7 @@ async function wasReminderSent(volunteerId: string, eventId: string, stage: numb
   return doc.exists;
 }
 
-async function executeEventReminderCadence(): Promise<{ sent: number; failed: number; skipped: number }> {
+async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: number; failed: number; skipped: number }> {
   console.log('[WORKFLOW] Running Event Reminder Cadence (w6)');
   const result = { sent: 0, failed: 0, skipped: 0 };
   try {
@@ -5648,11 +5648,15 @@ async function executeEventReminderCadence(): Promise<{ sent: number; failed: nu
 
       // Determine applicable stages based on time until event
       // Each stage is eligible from its window through to the event, so late RSVPs
-      // still get the most relevant reminder they haven't received yet
+      // still get the most relevant reminder they haven't received yet.
+      // When smsOnly=true (3-hour cron), only stage 5 is checked — email stages
+      // only fire from the daily cron to prevent rapid-fire catch-up emails.
       const applicableStages: { stage: number; template: string }[] = [];
-      if (daysUntil <= 7.5 && daysUntil > 1.5) { applicableStages.push({ stage: 2, template: 'event_reminder_7day' }); }
-      if (daysUntil <= 3.5 && daysUntil > 1.5) { applicableStages.push({ stage: 3, template: 'event_reminder_72h' }); }
-      if (daysUntil <= 1.5 && daysUntil > 0) { applicableStages.push({ stage: 4, template: 'event_reminder_24h' }); }
+      if (!smsOnly) {
+        if (daysUntil <= 7.5 && daysUntil > 1.5) { applicableStages.push({ stage: 2, template: 'event_reminder_7day' }); }
+        if (daysUntil <= 3.5 && daysUntil > 1.5) { applicableStages.push({ stage: 3, template: 'event_reminder_72h' }); }
+        if (daysUntil <= 1.5 && daysUntil > 0) { applicableStages.push({ stage: 4, template: 'event_reminder_24h' }); }
+      }
       if (hoursUntil >= 1 && hoursUntil <= 4) { applicableStages.push({ stage: 5, template: 'sms_3h' }); }
 
       if (applicableStages.length === 0) continue;
@@ -5982,7 +5986,7 @@ async function runSMSCheckWorkflows() {
     const configDoc = await db.collection('workflow_configs').doc('default').get();
     const config = configDoc.data();
     const workflows = config?.workflows || WORKFLOW_DEFAULTS;
-    if (workflows.w6?.enabled !== false) await executeEventReminderCadence();
+    if (workflows.w6?.enabled !== false) await executeEventReminderCadence(true);
   } catch (e) {
     console.error('[WORKFLOW] runSMSCheckWorkflows error:', e);
   }
