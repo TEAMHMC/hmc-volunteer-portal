@@ -5864,6 +5864,14 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
               kept.push(volId);
             } else {
               removed.push(volId);
+              // Remove Saturday event from rsvpedEventIds so they stop getting reminders
+              if (cycle.saturdayEventId) {
+                try {
+                  await db.collection('volunteers').doc(volId).update({
+                    rsvpedEventIds: admin.firestore.FieldValue.arrayRemove(cycle.saturdayEventId),
+                  });
+                } catch {}
+              }
               // Notify removed volunteer
               const volDoc = await db.collection('volunteers').doc(volId).get();
               const vol = volDoc.data();
@@ -5886,6 +5894,14 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
 
           for (const volId of promoted) {
             kept.push(volId);
+            // Add Saturday event to promoted volunteer's rsvpedEventIds
+            if (cycle.saturdayEventId) {
+              try {
+                await db.collection('volunteers').doc(volId).update({
+                  rsvpedEventIds: admin.firestore.FieldValue.arrayUnion(cycle.saturdayEventId),
+                });
+              } catch {}
+            }
             const volDoc = await db.collection('volunteers').doc(volId).get();
             const vol = volDoc.data();
             if (vol?.email) {
@@ -6182,6 +6198,15 @@ app.post('/api/smo/cycles/:cycleId/register', verifyToken, async (req: Request, 
     }
 
     await cycleRef.update({ registeredVolunteers: registered, waitlist });
+
+    // Add Saturday event to volunteer's rsvpedEventIds so the general
+    // 5-stage reminder cadence (7-day, 72h, 24h, 3h SMS) fires automatically
+    if (position === 'registered' && cycle.saturdayEventId) {
+      const volRef = db.collection('volunteers').doc(userId);
+      await volRef.update({
+        rsvpedEventIds: admin.firestore.FieldValue.arrayUnion(cycle.saturdayEventId),
+      });
+    }
 
     // Send confirmation email
     const vol = (await db.collection('volunteers').doc(userId).get()).data();
