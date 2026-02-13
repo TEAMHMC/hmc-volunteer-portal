@@ -1189,13 +1189,21 @@ class EmailService {
     }
 
     try {
-      // Send to Google Apps Script
+      // Render server-side template to get subject + HTML body
+      const templateFn = EmailTemplates[templateName];
+      const rendered = templateFn(data);
+
+      // Send rendered HTML to Google Apps Script (instead of raw field names,
+      // which may not match Apps Script's expected data keys)
       const response = await fetch(EMAIL_SERVICE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: templateName,
-          ...data
+          toEmail: data.toEmail,
+          subject: rendered.subject,
+          html: rendered.html,
+          text: rendered.text,
         })
       });
 

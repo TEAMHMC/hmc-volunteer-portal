@@ -39,6 +39,16 @@ function doPost(e) {
     }
 
     var email = buildEmail(type, data);
+
+    // If Apps Script doesn't have this template, use pre-rendered HTML from the server
+    if (!email && data.subject && data.html) {
+      email = {
+        subject: data.subject,
+        html: data.html,
+        text: data.text || ""
+      };
+    }
+
     if (!email) {
       return jsonResponse({ success: false, error: "Unknown template: " + type });
     }
