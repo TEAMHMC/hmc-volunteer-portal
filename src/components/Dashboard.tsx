@@ -684,15 +684,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            return (
              <div className="space-y-2 mb-6">
                {visibleAnnouncements.map(a => (
-                 <div key={a.id} className="flex items-center gap-3 px-5 py-3.5 bg-[#233DFF]/5 backdrop-blur-sm border border-[#233DFF]/15 rounded-2xl shadow-sm hover:shadow-elevation-1 transition-all">
-                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
-                     <Megaphone size={14} className="text-white" />
-                   </div>
+                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-[#233DFF]/5 border border-[#233DFF]/15 rounded-2xl">
+                   <Megaphone size={16} className="text-[#233DFF] shrink-0" />
                    <div className="flex-1 min-w-0">
                      <span className="text-sm font-bold text-zinc-900">{a.title}</span>
                      {a.content && <span className="text-sm text-zinc-500 ml-2 truncate">{a.content.length > 80 ? a.content.slice(0, 80) + '...' : a.content}</span>}
                    </div>
-                   <button onClick={() => handleDismiss(a.id)} className="w-7 h-7 flex items-center justify-center hover:bg-[#233DFF]/10 rounded-full transition-colors shrink-0">
+                   <button onClick={() => handleDismiss(a.id)} className="p-1.5 hover:bg-[#233DFF]/10 rounded-lg transition-colors shrink-0">
                      <X size={14} className="text-zinc-400" />
                    </button>
                  </div>
@@ -1042,23 +1040,22 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-zinc-200/50 shadow-elevation-2 overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-zinc-50/30 pointer-events-none" />
+    <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
       {/* Tab Header */}
-      <div className="relative z-10 flex border-b border-zinc-200/50">
+      <div className="flex border-b border-zinc-100">
         <button
           onClick={() => setActiveCardTab('actions')}
-          className={`flex-1 px-6 py-5 text-sm font-bold transition-all relative ${activeCardTab === 'actions' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`flex-1 px-6 py-4 text-sm font-bold transition-colors relative ${activeCardTab === 'actions' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           <i className="fa-solid fa-list-check mr-2" />Actions
           {actionItems.length > 0 && activeCardTab !== 'actions' && (
             <span className="ml-2 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full inline-flex items-center justify-center">{actionItems.length}</span>
           )}
-          {activeCardTab === 'actions' && <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-[#233DFF] to-indigo-500 rounded-full" />}
+          {activeCardTab === 'actions' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#233DFF]" />}
         </button>
         <button
           onClick={() => setActiveCardTab('quests')}
-          className={`flex-1 px-6 py-5 text-sm font-bold transition-all relative ${activeCardTab === 'quests' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`flex-1 px-6 py-4 text-sm font-bold transition-colors relative ${activeCardTab === 'quests' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           <i className="fa-solid fa-scroll mr-2" />Daily Quests
           {!allComplete && activeCardTab !== 'quests' && (
@@ -1067,37 +1064,31 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           {allComplete && activeCardTab !== 'quests' && (
             <span className="ml-2 text-[10px] font-bold text-emerald-500"><i className="fa-solid fa-check" /></span>
           )}
-          {activeCardTab === 'quests' && <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-[#233DFF] to-indigo-500 rounded-full" />}
+          {activeCardTab === 'quests' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#233DFF]" />}
         </button>
       </div>
 
       {/* Tab Content */}
-      <div className="relative z-10 p-6">
+      <div className="p-6">
         {activeCardTab === 'actions' && (
           <div className="space-y-3">
             {actionItems.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle size={20} className="text-emerald-500" />
-                </div>
-                <p className="text-sm text-emerald-600 font-bold">You're all caught up!</p>
-                <p className="text-xs text-zinc-400 mt-1">No pending actions right now.</p>
-              </div>
+              <p className="text-sm text-emerald-600 font-bold italic flex items-center gap-2">
+                <CheckCircle size={16} /> You're all caught up!
+              </p>
             ) : (
               actionItems.map((item, i) => {
                 const c = colorMap[item.color] || colorMap.blue;
                 return (
-                  <button key={i} onClick={item.onClick} className={`w-full p-4 ${c.bg} backdrop-blur-sm border ${c.border} rounded-2xl flex items-center gap-4 text-left hover:-translate-y-0.5 hover:shadow-elevation-2 transition-all group`}>
-                    <div className={`w-10 h-10 rounded-xl ${c.iconBg} text-white flex items-center justify-center shrink-0 shadow-sm`}>
+                  <button key={i} onClick={item.onClick} className={`w-full p-4 ${c.bg} border ${c.border} rounded-2xl flex items-center gap-4 text-left hover:opacity-90 transition-opacity group`}>
+                    <div className={`w-9 h-9 rounded-xl ${c.iconBg} text-white flex items-center justify-center shrink-0`}>
                       <i className={`${item.icon} text-sm`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`font-bold text-sm ${c.text}`}>{item.title}</p>
                       <p className="text-xs text-zinc-500 mt-0.5">{item.description}</p>
                     </div>
-                    <div className="w-7 h-7 rounded-full bg-white/80 border border-zinc-200/50 flex items-center justify-center shrink-0 group-hover:bg-[#233DFF]/10 group-hover:border-[#233DFF]/20 transition-all">
-                      <ChevronRight size={14} className="text-zinc-400 group-hover:text-[#233DFF] transition-colors" />
-                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-zinc-500 shrink-0" />
                   </button>
                 );
               })
@@ -1213,46 +1204,43 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#233DFF] to-indigo-500 flex items-center justify-center shadow-sm">
-            <i className="fa-solid fa-radar text-white text-xs" />
-          </div>
+        <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
+          <i className="fa-solid fa-radar text-[#233DFF] text-sm" />
           Coming Up
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-[#233dff] text-white border border-[#0f0f0f] rounded-full font-normal text-sm hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-white" />View All
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-[#233dff] text-white border border-[#0f0f0f] rounded-full font-normal text-sm hover:opacity-95 transition-all">
+          <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
       </div>
 
       {/* Hero Card */}
       {heroItem ? (
-        <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-3xl p-7 text-white relative overflow-hidden shadow-elevation-3 group">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/8 to-transparent" />
-          <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-white/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-[2s]" />
+        <div className="bg-gradient-to-br from-[#233DFF] via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1.5 bg-white/15 backdrop-blur-sm rounded-full text-[10px] font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="px-3 py-1 bg-white/15 rounded-full text-[10px] font-bold uppercase tracking-wider">
                 {heroItem.type === 'shift' ? 'Next Mission' : 'Next Event'}
               </span>
               {heroItem.category && (
-                <span className="px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-[10px] font-medium">{heroItem.category}</span>
+                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-medium">{heroItem.category}</span>
               )}
             </div>
-            <h4 className="text-2xl md:text-3xl font-medium tracking-normal mb-5">{heroItem.title}</h4>
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/90 font-medium">
+            <h4 className="text-2xl font-medium tracking-normal mb-4">{heroItem.title}</h4>
+            <div className="flex items-center gap-6 text-sm text-white/80 font-medium flex-wrap">
+              <span className="flex items-center gap-2">
                 <i className="fa-solid fa-calendar text-xs" />
                 {heroItem.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
               {heroItem.time && (
-                <span className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/90 font-medium">
+                <span className="flex items-center gap-2">
                   <i className="fa-solid fa-clock text-xs" />
                   {heroItem.time}
                 </span>
               )}
               {heroItem.location && (
-                <span className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/90 font-medium">
+                <span className="flex items-center gap-2">
                   <i className="fa-solid fa-location-dot text-xs" />
                   {heroItem.location}
                 </span>
@@ -1261,61 +1249,56 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           </div>
         </div>
       ) : (
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-10 border border-zinc-200/50 shadow-elevation-2 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-50/50 to-white/30 pointer-events-none" />
-          <div className="relative z-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#233DFF]/10 to-indigo-100 flex items-center justify-center mx-auto mb-4">
-              <i className="fa-solid fa-compass text-[#233DFF]/40 text-2xl" />
-            </div>
-            <p className="text-zinc-500 font-medium text-sm mb-4">No upcoming missions yet.</p>
-            <button onClick={() => onNavigate('missions')} className="px-6 py-3 bg-[#233dff] text-white border border-[#0f0f0f] rounded-full font-normal text-sm flex items-center gap-2 mx-auto hover:scale-[1.02] active:scale-[0.98] transition-all shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />Find a Mission
-            </button>
-          </div>
+        <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
+          <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
+          <p className="text-zinc-400 font-medium text-sm mb-3">No upcoming missions.</p>
+          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-[#233dff] text-white border border-[#0f0f0f] rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
+            <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
+          </button>
         </div>
       )}
 
       {/* Vertical Timeline */}
       {restItems.length > 0 && (
         <div className="relative pl-8">
-          {/* Vertical line - gradient */}
-          <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-[#233DFF]/30 via-[#233DFF]/15 to-transparent" />
+          {/* Vertical line */}
+          <div className="absolute left-[11px] top-2 bottom-2 w-px bg-zinc-200" />
 
           <div className="space-y-4">
             {restItems.map((item, i) => (
-              <div key={item.id} className="relative flex items-start gap-4 group/item">
+              <div key={item.id} className="relative flex items-start gap-4">
                 {/* Timeline dot */}
-                <div className="absolute left-[-21px] top-3 w-[7px] h-[7px] rounded-full bg-[#233DFF] ring-4 ring-white shadow-sm" />
+                <div className="absolute left-[-21px] top-3 w-[7px] h-[7px] rounded-full bg-[#233DFF] ring-4 ring-white" />
 
                 {/* Date pill */}
-                <div className="shrink-0 w-16 pt-1.5">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
+                <div className="shrink-0 w-16 pt-1">
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase">
                     {item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </p>
                 </div>
 
                 {/* Event card */}
-                <div className="flex-1 bg-white/80 backdrop-blur-sm border border-zinc-200/50 rounded-2xl p-4 hover:shadow-elevation-2 hover:-translate-y-0.5 transition-all">
+                <div className="flex-1 bg-white border border-zinc-100 rounded-xl p-4 hover:shadow-elevation-1 transition-shadow">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
+                      <div className="flex items-center gap-4 mt-1.5 text-xs text-zinc-500">
                         {item.time && (
-                          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-50 rounded-full">
-                            <i className="fa-solid fa-clock text-[9px] text-zinc-400" />
+                          <span className="flex items-center gap-1">
+                            <i className="fa-solid fa-clock text-[10px] text-zinc-400" />
                             {item.time}
                           </span>
                         )}
                         {item.location && (
-                          <span className="flex items-center gap-1.5 truncate">
-                            <i className="fa-solid fa-location-dot text-[9px] text-zinc-400" />
+                          <span className="flex items-center gap-1 truncate">
+                            <i className="fa-solid fa-location-dot text-[10px] text-zinc-400" />
                             {item.location}
                           </span>
                         )}
                       </div>
                     </div>
                     {item.category && (
-                      <span className="px-2.5 py-1 rounded-full text-[9px] font-bold text-white bg-gradient-to-r from-[#233DFF] to-indigo-500 shrink-0 shadow-sm">{item.category}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white bg-[#233DFF] shrink-0">{item.category}</span>
                     )}
                   </div>
                 </div>
