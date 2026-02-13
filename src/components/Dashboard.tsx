@@ -221,28 +221,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
   const totalNotifications = unreadDMs + openTicketsCount + newApplicantsCount;
 
-  // SMO self-report state
-  const [smoCycles, setSmoCycles] = useState<{ id: string; saturdayDate: string; thursdayDate: string; status: string; selfReported: boolean; leadConfirmed: boolean }[]>([]);
-  const [smoReporting, setSmoReporting] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiService.get('/api/smo/cycles/my').then((data: any) => {
-      if (Array.isArray(data)) setSmoCycles(data);
-    }).catch(() => {});
-  }, []);
-
-  const handleSmoSelfReport = async (cycleId: string) => {
-    setSmoReporting(cycleId);
-    try {
-      await apiService.post(`/api/smo/cycles/${cycleId}/self-report`, {});
-      setSmoCycles(prev => prev.map(c => c.id === cycleId ? { ...c, selfReported: true } : c));
-    } catch (e: any) {
-      alert(e.message || 'Failed to report attendance');
-    } finally {
-      setSmoReporting(null);
-    }
-  };
-
   const handleDismissNotifications = () => {
     const now = new Date().toISOString();
     setDismissedNotifTs(now);
@@ -910,6 +888,24 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 
 const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: string) => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean, isGovernanceRole?: boolean, newApplicantsCount?: number }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible, isGovernanceRole = false, newApplicantsCount = 0 }) => {
   const getOpp = (oppId: string) => opportunities.find(o => o.id === oppId);
+
+  // SMO self-report state
+  const [smoCycles, setSmoCycles] = React.useState<{ id: string; saturdayDate: string; thursdayDate: string; status: string; selfReported: boolean; leadConfirmed: boolean }[]>([]);
+
+  React.useEffect(() => {
+    apiService.get('/api/smo/cycles/my').then((data: any) => {
+      if (Array.isArray(data)) setSmoCycles(data);
+    }).catch(() => {});
+  }, []);
+
+  const handleSmoSelfReport = async (cycleId: string) => {
+    try {
+      await apiService.post(`/api/smo/cycles/${cycleId}/self-report`, {});
+      setSmoCycles(prev => prev.map(c => c.id === cycleId ? { ...c, selfReported: true } : c));
+    } catch (e: any) {
+      alert(e.message || 'Failed to report attendance');
+    }
+  };
 
   // Get upcoming shifts the user is assigned to
   const upcomingShifts = shifts
