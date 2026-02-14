@@ -367,6 +367,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
           timezone: formData.timezone || 'America/Los_Angeles',
           hoursPerWeek: formData.hoursPerWeek
         },
+        resume: formData.resumeFile ? { name: formData.resumeFile.name, type: formData.resumeFile.type, data: formData.resumeFile.data } : undefined,
         tasks: [],
         achievements: [{ id: 'a-wel', title: 'Welcome to the Team!', icon: 'Heart', dateEarned: new Date().toISOString() }],
         roleAssessment: formData.roleAssessment,
@@ -1116,12 +1117,12 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
     const file = e.target.files?.[0];
     if (!file) return;
 
-    onChange('resumeFile', { name: file.name, type: file.type });
     setIsStepLoading(true);
     setAnalysisError(null);
 
     try {
       const base64 = await fileToBase64(file);
+      onChange('resumeFile', { name: file.name, type: file.type, data: base64 });
       const result = await geminiService.analyzeResume(base64, file.type);
 
       // Check if AI returned recommendations

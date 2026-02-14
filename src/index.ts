@@ -11,8 +11,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import process from 'process';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { STATIC_MODULE_CONTENT } from './staticModuleContent';
-import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES } from './constants';
+import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS } from './constants';
 
 // --- CONFIGURATION ---
 dotenv.config();
@@ -58,6 +59,39 @@ try {
 const db = admin.firestore();
 const auth = admin.auth();
 
+// --- CLOUD STORAGE ---
+const storageBucket = process.env.FIREBASE_STORAGE_BUCKET ||
+  (admin.app().options.projectId ? `${admin.app().options.projectId}.appspot.com` : '');
+let bucket: any = null;
+try {
+  if (storageBucket) {
+    bucket = admin.storage().bucket(storageBucket);
+    console.log(`✅ Cloud Storage initialized: ${storageBucket}`);
+  } else {
+    console.warn('⚠️ FIREBASE_STORAGE_BUCKET not set — file uploads will be disabled');
+  }
+} catch (e) {
+  console.error('❌ Cloud Storage initialization failed:', e);
+}
+
+async function uploadToStorage(base64Data: string, filePath: string, contentType: string): Promise<string> {
+  if (!bucket) throw new Error('Cloud Storage not configured');
+  const buffer = Buffer.from(base64Data, 'base64');
+  const file = bucket.file(filePath);
+  await file.save(buffer, { metadata: { contentType }, resumable: false });
+  return filePath;
+}
+
+async function getSignedDownloadUrl(filePath: string, expiresMinutes = 60): Promise<string> {
+  if (!bucket) throw new Error('Cloud Storage not configured');
+  const file = bucket.file(filePath);
+  const [url] = await file.getSignedUrl({
+    action: 'read',
+    expires: Date.now() + expiresMinutes * 60 * 1000,
+  });
+  return url;
+}
+
 // --- TWILIO ---
 const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || process.env.VITE_FIREBASE_API_KEY || '';
@@ -91,6 +125,9 @@ if (GEMINI_API_KEY) {
     console.warn("No Gemini API key found. Checked: GEMINI_API_KEY, GOOGLE_AI_API_KEY, API_KEY");
     console.warn("Gemini AI features will be disabled.");
 }
+
+// Gemini model — single constant so upgrades are one-line changes
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // Helper for Gemini API calls
 type GeminiPart = string | { inlineData: { mimeType: string; data: string } };
@@ -214,12 +251,11 @@ app.get('/api/gemini/test', async (req: Request, res: Response) => {
 
   // Try multiple model names to find one that works
   const modelsToTry = [
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
     'gemini-1.5-pro',
-    'gemini-2.5-pro',
-    'models/gemini-2.0-flash',
-    'models/gemini-1.5-flash'
   ];
 
   const results: any[] = [];
@@ -1754,6 +1790,24 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
 
         const { resume, ...userDataToSave } = user;
         userDataToSave.id = finalUserId;
+
+        // Upload resume to Cloud Storage if provided
+        if (resume?.data && bucket) {
+          try {
+            const ext = resume.name?.split('.').pop() || 'pdf';
+            const storagePath = `resumes/${finalUserId}/resume.${ext}`;
+            await uploadToStorage(resume.data, storagePath, resume.type || 'application/pdf');
+            userDataToSave.resume = { name: resume.name, type: resume.type, storagePath, uploadedAt: new Date().toISOString() };
+            console.log(`[SIGNUP] Resume uploaded to ${storagePath}`);
+          } catch (uploadErr) {
+            console.error('[SIGNUP] Resume upload failed:', uploadErr);
+            // Still store metadata without storagePath
+            userDataToSave.resume = { name: resume.name, type: resume.type };
+          }
+        } else if (resume) {
+          userDataToSave.resume = { name: resume.name, type: resume.type };
+        }
+
         // Default notification prefs — volunteers opt in during application/RSVP
         if (!userDataToSave.notificationPrefs) {
             userDataToSave.notificationPrefs = { emailAlerts: true, smsAlerts: true };
@@ -2345,8 +2399,7 @@ Return ONLY valid JSON in this exact format:
   "extractedSkills": ["skill1", "skill2", "skill3"]
 }`;
 
-        // Use gemini-2.0-flash for file/image analysis
-        const text = await generateAIContent('gemini-2.0-flash', [
+        const text = await generateAIContent(GEMINI_MODEL, [
             { inlineData: { mimeType, data: base64Data } },
             prompt
         ], true);
@@ -2436,7 +2489,7 @@ Return ONLY valid JSON in this exact format:
   "coachSummary": "A brief personalized message about their training path"
 }`;
 
-        const text = await generateAIContent('gemini-2.0-flash', prompt, true);
+        const text = await generateAIContent(GEMINI_MODEL, prompt, true);
 
         // Parse and validate
         let parsed;
@@ -2483,7 +2536,7 @@ app.post('/api/gemini/generate-quiz', async (req: Request, res: Response) => {
             return res.json(createDefaultQuiz());
         }
 
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Generate a reflective quiz question for the training module "${moduleTitle}" for a ${role} at Health Matters Clinic.
 
 Return ONLY valid JSON in this format:
@@ -2558,7 +2611,7 @@ app.post('/api/gemini/generate-module-content', async (req: Request, res: Respon
             return res.json(fallback);
         }
 
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `You are creating training content for Health Matters Clinic (HMC), a nonprofit providing mobile health services in Los Angeles.
 
 Generate detailed, professional training content for the module: "${moduleTitle}"
@@ -2631,7 +2684,7 @@ app.post('/api/gemini/validate-answer', async (req: Request, res: Response) => {
 
         // Be very lenient - if answer is at least 10 chars and shows effort, accept it
         if (answer && answer.trim().length >= 10) {
-            const text = await generateAIContent('gemini-2.0-flash',
+            const text = await generateAIContent(GEMINI_MODEL,
                 `You are an EXTREMELY lenient volunteer training evaluator. Your job is to ENCOURAGE learners.
 
 Question: "${question}"
@@ -2663,7 +2716,7 @@ app.post('/api/gemini/find-referral-match', async (req: Request, res: Response) 
     try {
         if (!ai) return res.json({ recommendations: [] });
         const { clientNeed } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Suggest 3 generic types of resources for: "${clientNeed}". JSON: { recommendations: [{ "Resource Name": "Example", "reasoning": "Fits need" }] }`,
             true);
         res.send(text);
@@ -2674,7 +2727,7 @@ app.post('/api/gemini/generate-supply-list', async (req: Request, res: Response)
     try {
         if (!ai) return res.json({ supplyList: "- Water\n- Pens" });
         const { serviceNames, attendeeCount } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Generate a checklist of supplies for a health fair with ${attendeeCount} attendees offering: ${serviceNames.join(', ')}. Plain text list.`);
         res.json({ supplyList: text });
     } catch(e) { res.status(500).json({error: "AI failed"}); }
@@ -2684,7 +2737,7 @@ app.post('/api/gemini/generate-summary', async (req: Request, res: Response) => 
     if (!ai) return res.json({ summary: "Thank you for your service!" });
     try {
         const { volunteerName, totalHours } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Write a 2 sentence impact summary for ${volunteerName} who contributed ${totalHours} hours.`);
         res.json({ summary: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -2694,7 +2747,7 @@ app.post('/api/gemini/draft-fundraising-email', async (req: Request, res: Respon
     if (!ai) return res.json({ emailBody: "Please support HMC!" });
     try {
         const { volunteerName, volunteerRole } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Draft a short fundraising email for ${volunteerName}, a ${volunteerRole}, asking friends to support Health Matters Clinic.`);
         res.json({ emailBody: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -2704,7 +2757,7 @@ app.post('/api/gemini/draft-social-post', async (req: Request, res: Response) =>
     if (!ai) return res.json({ postText: "#HealthMatters" });
     try {
         const { topic, platform } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Draft a ${platform} post about ${topic} for a nonprofit.`);
         res.json({ postText: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -2714,7 +2767,7 @@ app.post('/api/gemini/summarize-feedback', async (req: Request, res: Response) =
     try {
         if (!ai) return res.json({ summary: "No feedback to summarize." });
         const { feedback } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Summarize the following volunteer feedback into key themes and sentiment: ${feedback.join('\n')}`);
         res.json({ summary: text });
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
@@ -2724,7 +2777,7 @@ app.post('/api/gemini/generate-document', async (req: Request, res: Response) =>
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { prompt, title } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `You are a professional technical writer for Health Matters Clinic, a community health nonprofit.
             Create a well-structured document based on this request: "${prompt}"
             ${title ? `The document is titled: "${title}"` : ''}
@@ -2748,7 +2801,7 @@ app.post('/api/gemini/improve-document', async (req: Request, res: Response) => 
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { content, instructions } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `You are a professional editor for Health Matters Clinic documents.
 
             Improve the following document according to these instructions: "${instructions || 'Make it more professional and comprehensive'}"
@@ -2775,7 +2828,7 @@ app.post('/api/gemini/draft-announcement', async (req: Request, res: Response) =
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { topic, tenantId } = req.body;
-        const text = await generateAIContent('gemini-2.0-flash',
+        const text = await generateAIContent(GEMINI_MODEL,
             `Draft a professional announcement for Health Matters Clinic volunteers about: "${topic}".
             Keep it warm, professional, and under 150 words. Do not mention AI.`);
         res.json({ content: text });
@@ -3609,7 +3662,7 @@ Return JSON array of top 3-5 matches with format:
 
 Only return valid JSON array.`;
 
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = ai.getGenerativeModel({ model: GEMINI_MODEL });
         const result = await model.generateContent(prompt);
         const text = result.response.text();
         const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -6960,6 +7013,269 @@ app.get('/api/board/forms/signed', verifyToken, async (req: Request, res: Respon
     snap.docs.forEach(d => { const data = d.data(); signed[data.formId] = data.signedAt; });
     res.json(signed);
   } catch (e) { console.error('[Board] Failed to fetch signed forms:', e); res.status(500).json({ error: 'Failed to fetch signed forms' }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 1: Resume download endpoint
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/admin/volunteer/:id/resume', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const volDoc = await db.collection('volunteers').doc(req.params.id).get();
+    if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+    const vol = volDoc.data()!;
+    if (!vol.resume?.storagePath) return res.status(404).json({ error: 'No resume on file' });
+    const url = await getSignedDownloadUrl(vol.resume.storagePath, 15);
+    res.json({ url, name: vol.resume.name });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2: Clinical credential file upload/download
+// ═══════════════════════════════════════════════════════════════
+app.post('/api/volunteer/credential-file', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { field, base64, contentType, fileName } = req.body;
+    if (!field || !base64) return res.status(400).json({ error: 'field and base64 are required' });
+    const ext = fileName?.split('.').pop() || 'pdf';
+    const storagePath = `credentials/${user.uid}/${field}.${ext}`;
+    await uploadToStorage(base64, storagePath, contentType || 'application/pdf');
+    // Update volunteer doc with storage path instead of base64
+    const volRef = db.collection('volunteers').doc(user.uid);
+    await volRef.update({
+      [`clinicalOnboarding.credentials.${field}`]: storagePath,
+    });
+    res.json({ storagePath });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/volunteer/:id/credential-file/:field', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { id, field } = req.params;
+    // Allow self-access or admin access
+    if (user.uid !== id && !user.profile?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    const volDoc = await db.collection('volunteers').doc(id).get();
+    if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+    const creds = volDoc.data()?.clinicalOnboarding?.credentials || {};
+    const storagePath = creds[field];
+    if (!storagePath || typeof storagePath !== 'string' || !storagePath.startsWith('credentials/')) {
+      return res.status(404).json({ error: 'Credential file not found' });
+    }
+    const url = await getSignedDownloadUrl(storagePath, 15);
+    res.json({ url });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3: PDF export — Board forms + Clinical documents
+// ═══════════════════════════════════════════════════════════════
+function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+  const lines: string[] = [];
+  for (const paragraph of text.split('\n')) {
+    if (paragraph.trim() === '') { lines.push(''); continue; }
+    const words = paragraph.split(' ');
+    let currentLine = '';
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+      if (width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+  }
+  return lines;
+}
+
+app.get('/api/board/forms/:formId/pdf', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { formId } = req.params;
+    const volunteerId = (req.query.volunteerId as string) || user.uid;
+
+    // Admin or self-access only
+    if (volunteerId !== user.uid && !user.profile?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    const formContent = BOARD_FORM_CONTENTS[formId];
+    if (!formContent) return res.status(404).json({ error: 'Form not found' });
+
+    // Get signature data
+    const sigDoc = await db.collection('board_form_signatures').doc(`${volunteerId}_${formId}`).get();
+    if (!sigDoc.exists) return res.status(404).json({ error: 'Form not signed' });
+    const sigData = sigDoc.data()!;
+
+    // Get volunteer name
+    const volDoc = await db.collection('volunteers').doc(volunteerId).get();
+    const volName = volDoc.exists ? volDoc.data()?.name || 'Volunteer' : 'Volunteer';
+
+    // Build PDF
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const margin = 50;
+    const pageWidth = 612;
+    const pageHeight = 792;
+    const usableWidth = pageWidth - 2 * margin;
+    const fontSize = 10;
+    const lineHeight = 14;
+
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+
+    // Title
+    const title = formId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, font: fontBold, size: 14, color: rgb(0.1, 0.1, 0.1) });
+    y -= 22;
+    page.drawText(title, { x: margin, y, font: fontBold, size: 12, color: rgb(0.2, 0.2, 0.2) });
+    y -= 24;
+
+    // Body text
+    const wrappedLines = wrapText(formContent, usableWidth, font, fontSize);
+    for (const line of wrappedLines) {
+      if (y < margin + 80) {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+      }
+      page.drawText(line, { x: margin, y, font, size: fontSize, color: rgb(0.15, 0.15, 0.15) });
+      y -= lineHeight;
+    }
+
+    // Signature section
+    if (y < margin + 140) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; }
+    y -= 30;
+    page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
+    y -= 20;
+
+    // Embed signature image if available
+    if (sigData.signatureData && sigData.signatureData.startsWith('data:image/png')) {
+      try {
+        const sigBase64 = sigData.signatureData.split(',')[1];
+        const sigImage = await pdfDoc.embedPng(Buffer.from(sigBase64, 'base64'));
+        const sigDims = sigImage.scale(0.5);
+        const sigWidth = Math.min(sigDims.width, 200);
+        const sigHeight = (sigWidth / sigDims.width) * sigDims.height;
+        page.drawImage(sigImage, { x: margin, y: y - sigHeight, width: sigWidth, height: sigHeight });
+        y -= sigHeight + 10;
+      } catch { /* skip if signature embed fails */ }
+    }
+
+    page.drawText(`Signed by: ${volName}`, { x: margin, y, font: fontBold, size: 10, color: rgb(0.2, 0.2, 0.2) });
+    y -= 16;
+    page.drawText(`Date: ${new Date(sigData.signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { x: margin, y, font, size: 10, color: rgb(0.3, 0.3, 0.3) });
+    y -= 16;
+    page.drawText(`Document ID: ${formId}`, { x: margin, y, font, size: 8, color: rgb(0.5, 0.5, 0.5) });
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="HMC-${formId}-signed.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (e: any) { console.error('[PDF] Board form export error:', e); res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/clinical/forms/:docId/pdf', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { docId } = req.params;
+    const volunteerId = (req.query.volunteerId as string) || user.uid;
+
+    if (volunteerId !== user.uid && !user.profile?.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    const volDoc = await db.collection('volunteers').doc(volunteerId).get();
+    if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+    const vol = volDoc.data()!;
+    const docInfo = vol.clinicalOnboarding?.documents?.[docId];
+    if (!docInfo?.signed) return res.status(404).json({ error: 'Document not signed' });
+    const volName = vol.name || 'Volunteer';
+
+    // Clinical documents: title map
+    const docTitles: Record<string, string> = {
+      clinicalOnboardingGuide: 'Clinical Onboarding & Governance Guide',
+      policiesProcedures: 'Clinical Policies & Procedures Manual',
+      screeningConsent: 'General Screening Consent Form',
+      standingOrders: 'Standing Orders v3.0',
+    };
+
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const page = pdfDoc.addPage([612, 792]);
+    const margin = 50;
+    let y = 792 - margin;
+
+    page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, font: fontBold, size: 16, color: rgb(0.1, 0.1, 0.1) });
+    y -= 28;
+    page.drawText('Clinical Document Acknowledgment Certificate', { x: margin, y, font: fontBold, size: 13, color: rgb(0.2, 0.2, 0.2) });
+    y -= 40;
+
+    page.drawText(`Document: ${docTitles[docId] || docId}`, { x: margin, y, font: fontBold, size: 11, color: rgb(0.15, 0.15, 0.15) });
+    y -= 24;
+    page.drawText(`This certificate confirms that ${volName} has reviewed and acknowledged`, { x: margin, y, font, size: 10, color: rgb(0.2, 0.2, 0.2) });
+    y -= 16;
+    page.drawText(`the above document as required by Health Matters Clinic clinical onboarding.`, { x: margin, y, font, size: 10, color: rgb(0.2, 0.2, 0.2) });
+    y -= 40;
+
+    // Embed signature
+    if (docInfo.signatureData && docInfo.signatureData.startsWith('data:image/png')) {
+      try {
+        const sigBase64 = docInfo.signatureData.split(',')[1];
+        const sigImage = await pdfDoc.embedPng(Buffer.from(sigBase64, 'base64'));
+        const sigDims = sigImage.scale(0.5);
+        const sigWidth = Math.min(sigDims.width, 200);
+        const sigHeight = (sigWidth / sigDims.width) * sigDims.height;
+        page.drawImage(sigImage, { x: margin, y: y - sigHeight, width: sigWidth, height: sigHeight });
+        y -= sigHeight + 10;
+      } catch { /* skip if signature embed fails */ }
+    }
+
+    page.drawLine({ start: { x: margin, y }, end: { x: 300, y }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6) });
+    y -= 18;
+    page.drawText(`Signed by: ${volName}`, { x: margin, y, font: fontBold, size: 10, color: rgb(0.2, 0.2, 0.2) });
+    y -= 16;
+    page.drawText(`Date: ${new Date(docInfo.signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { x: margin, y, font, size: 10, color: rgb(0.3, 0.3, 0.3) });
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="HMC-clinical-${docId}-signed.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (e: any) { console.error('[PDF] Clinical form export error:', e); res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 4: Admin compliance overview
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/admin/compliance-overview', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    // Fetch all board form signatures
+    const sigSnap = await db.collection('board_form_signatures').get();
+    const signaturesByVolunteer: Record<string, Record<string, string>> = {};
+    sigSnap.docs.forEach(d => {
+      const data = d.data();
+      if (!signaturesByVolunteer[data.volunteerId]) signaturesByVolunteer[data.volunteerId] = {};
+      signaturesByVolunteer[data.volunteerId][data.formId] = data.signedAt;
+    });
+
+    // Fetch all volunteers (active + onboarding, not applicants)
+    const volSnap = await db.collection('volunteers').where('applicationStatus', 'in', ['approved', undefined]).get();
+    const overview = volSnap.docs.map(d => {
+      const v = d.data();
+      return {
+        id: d.id,
+        name: v.name,
+        role: v.volunteerRole || v.role,
+        status: v.status,
+        compliance: v.compliance || {},
+        boardFormSignatures: signaturesByVolunteer[d.id] || {},
+        clinicalDocuments: v.clinicalOnboarding?.documents || {},
+        clinicalCompleted: v.clinicalOnboarding?.completed || false,
+      };
+    });
+
+    res.json(overview);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---

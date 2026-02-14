@@ -6,8 +6,9 @@ import { apiService } from '../services/apiService';
 import {
   Search, MoreVertical, ShieldCheck,
   X, Award, Mail, Phone, FileCheck, Fingerprint, Star,
-  Filter, UserPlus, ChevronRight, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2
+  Filter, UserPlus, ChevronRight, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck
 } from 'lucide-react';
+import { GOVERNANCE_ROLES } from '../constants';
 
 interface DirectoryProps {
   volunteers: Volunteer[];
@@ -41,6 +42,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
   const [isAssigningTask, setIsAssigningTask] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCompliance, setShowCompliance] = useState(false);
+  const [complianceData, setComplianceData] = useState<any[]>([]);
+  const [complianceLoading, setComplianceLoading] = useState(false);
 
   const applicantsCount = volunteers.filter(v => v.applicationStatus === 'pendingReview').length;
 
@@ -148,6 +152,32 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
     }
   };
 
+  const loadComplianceData = async () => {
+    setComplianceLoading(true);
+    try {
+      const data = await apiService.get('/api/admin/compliance-overview');
+      setComplianceData(data);
+    } catch (err) {
+      console.error('Failed to load compliance data:', err);
+    } finally {
+      setComplianceLoading(false);
+    }
+  };
+
+  const handleToggleCompliance = () => {
+    if (!showCompliance && complianceData.length === 0) loadComplianceData();
+    setShowCompliance(!showCompliance);
+  };
+
+  const handleDownloadResume = async (volunteerId: string) => {
+    try {
+      const result = await apiService.get(`/api/admin/volunteer/${volunteerId}/resume`);
+      if (result.url) window.open(result.url, '_blank');
+    } catch {
+      alert('No resume on file or download failed.');
+    }
+  };
+
   const handleDeleteVolunteer = async () => {
     if (!selectedVolunteer) return;
     setIsDeleting(true);
@@ -207,8 +237,93 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
               </button>
               <button onClick={() => setGroupFilter('individual')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider ${groupFilter === 'individual' ? 'bg-zinc-900 text-white' : 'text-zinc-400'}`}>Individual</button>
           </div>
+
+          <button
+            onClick={handleToggleCompliance}
+            className={`px-5 py-3 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 border transition-all ${
+              showCompliance ? 'bg-brand text-white border-brand shadow-elevation-2' : 'bg-white text-zinc-400 border-zinc-100 hover:border-brand/40'
+            }`}
+          >
+            <ClipboardCheck size={14} /> Compliance
+          </button>
         </div>
 
+
+        {showCompliance && (
+          <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="p-6 border-b border-zinc-100">
+              <h3 className="text-lg font-black text-zinc-900 flex items-center gap-2"><ClipboardCheck size={20} className="text-brand" /> Compliance Overview</h3>
+              <p className="text-xs text-zinc-400 mt-1">Form completion status across all volunteers</p>
+            </div>
+            {complianceLoading ? (
+              <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-zinc-50 border-b border-zinc-100">
+                      <th className="text-left px-4 py-3 font-bold text-zinc-500 uppercase tracking-wider sticky left-0 bg-zinc-50">Volunteer</th>
+                      <th className="text-left px-3 py-3 font-bold text-zinc-500 uppercase tracking-wider">Role</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">BG Check</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">HIPAA</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Training</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">COI</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Confid.</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Conduct</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Commit.</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Media</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Clin. Guide</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Policies</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Consent</th>
+                      <th className="text-center px-2 py-3 font-bold text-zinc-400 uppercase tracking-wider">Orders</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {complianceData.map(v => {
+                      const isBoardRole = GOVERNANCE_ROLES.includes(v.role);
+                      const isClinical = v.role === 'Licensed Medical Professional' || v.role === 'Medical Admin';
+                      const boardForms = ['coi-disclosure', 'confidentiality-agreement', 'code-of-conduct', 'commitment-agreement', 'media-authorization'];
+                      const clinicalDocs = ['clinicalOnboardingGuide', 'policiesProcedures', 'screeningConsent', 'standingOrders'];
+                      const compCheck = (key: string) => v.compliance?.[key]?.status === 'verified' || v.compliance?.[key]?.status === 'completed';
+
+                      return (
+                        <tr key={v.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                          <td className="px-4 py-3 font-bold text-zinc-800 sticky left-0 bg-white">{v.name}</td>
+                          <td className="px-3 py-3 text-zinc-500">{v.role}</td>
+                          <td className="text-center">{compCheck('backgroundCheck') ? <CheckCircle size={14} className="text-emerald-500 mx-auto" /> : <X size={14} className="text-zinc-200 mx-auto" />}</td>
+                          <td className="text-center">{compCheck('hipaaTraining') ? <CheckCircle size={14} className="text-emerald-500 mx-auto" /> : <X size={14} className="text-zinc-200 mx-auto" />}</td>
+                          <td className="text-center">{compCheck('training') ? <CheckCircle size={14} className="text-emerald-500 mx-auto" /> : <X size={14} className="text-zinc-200 mx-auto" />}</td>
+                          {boardForms.map(fId => (
+                            <td key={fId} className="text-center">
+                              {!isBoardRole ? <span className="text-zinc-100">—</span> :
+                                v.boardFormSignatures[fId] ? (
+                                  <button onClick={() => window.open(`/api/board/forms/${fId}/pdf?volunteerId=${v.id}`, '_blank')} title="Download signed PDF">
+                                    <CheckCircle size={14} className="text-emerald-500 mx-auto hover:text-brand cursor-pointer" />
+                                  </button>
+                                ) : <X size={14} className="text-zinc-200 mx-auto" />
+                              }
+                            </td>
+                          ))}
+                          {clinicalDocs.map(dId => (
+                            <td key={dId} className="text-center">
+                              {!isClinical ? <span className="text-zinc-100">—</span> :
+                                v.clinicalDocuments[dId]?.signed ? (
+                                  <button onClick={() => window.open(`/api/clinical/forms/${dId}/pdf?volunteerId=${v.id}`, '_blank')} title="Download signed PDF">
+                                    <CheckCircle size={14} className="text-emerald-500 mx-auto hover:text-brand cursor-pointer" />
+                                  </button>
+                                ) : <X size={14} className="text-zinc-200 mx-auto" />
+                              }
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {filtered.map(v => (
@@ -370,6 +485,14 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           <p className={`font-bold text-sm ${c.status === 'verified' || c.status === 'completed' ? 'text-zinc-800' : 'text-zinc-400'}`}>{c.label}</p>
                         </div>
                       ))}
+                      {selectedVolunteer.resume?.storagePath && (
+                        <button
+                          onClick={() => handleDownloadResume(selectedVolunteer.id)}
+                          className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-xl text-xs font-bold hover:bg-brand-hover transition-all"
+                        >
+                          <Download size={14} /> Download Resume
+                        </button>
+                      )}
                     </div>
 
                     {/* Task Assignment Section */}

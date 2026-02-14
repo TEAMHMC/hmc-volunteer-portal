@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Volunteer } from '../types';
-import { BOARD_GOVERNANCE_DOCS } from '../constants';
+import { BOARD_GOVERNANCE_DOCS, BOARD_FORM_CONTENTS } from '../constants';
 import { apiService } from '../services/apiService';
 import { geminiService } from '../services/geminiService';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
@@ -607,6 +607,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     <Eye size={16} />
                     {isSigned ? 'View Signed Form' : 'Review & Sign'}
                   </button>
+                  {isSigned && (
+                    <button
+                      onClick={() => window.open(`/api/board/forms/${form.id}/pdf`, '_blank')}
+                      className="py-3 px-5 rounded-full font-bold text-sm flex items-center gap-2 bg-brand text-white hover:bg-brand-hover"
+                    >
+                      <Download size={14} /> PDF
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -952,95 +960,7 @@ const FormSigningModal: React.FC<{
   const [agreed, setAgreed] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
-  const formContents: Record<string, string> = {
-    'coi-disclosure': `CONFLICT OF INTEREST DISCLOSURE FORM
-
-I, the undersigned Board Member of Health Matters Clinic (HMC), hereby disclose the following potential conflicts of interest:
-
-1. I have read and understand the HMC Conflict of Interest Policy.
-
-2. I agree to disclose any actual or potential conflicts of interest that may arise during my term of service.
-
-3. I understand that I must abstain from voting on matters where I have a conflict of interest.
-
-4. I certify that I have disclosed all known conflicts below or have indicated "None" if no conflicts exist.
-
-Known conflicts or potential conflicts:
-_________________________________
-
-By signing below, I affirm that this disclosure is complete and accurate to the best of my knowledge.`,
-
-    'confidentiality-agreement': `BOARD MEMBER CONFIDENTIALITY AGREEMENT
-
-As a Board Member of Health Matters Clinic, I agree to:
-
-1. Maintain strict confidentiality of all non-public information discussed during board meetings and committee work.
-
-2. Not disclose confidential information to any third party without proper authorization.
-
-3. Protect sensitive information including but not limited to: financial data, strategic plans, personnel matters, donor information, and patient/client data.
-
-4. Return or destroy all confidential materials upon completion of my board service.
-
-5. Understand that breach of this agreement may result in removal from the board and potential legal action.
-
-This agreement remains in effect during my board service and for three (3) years thereafter.`,
-
-    'code-of-conduct': `BOARD MEMBER CODE OF CONDUCT
-
-I agree to uphold the following standards:
-
-1. ACT IN GOOD FAITH - Always act in the best interests of Health Matters Clinic and the communities we serve.
-
-2. AVOID CONFLICTS - Disclose and avoid conflicts of interest; recuse myself when necessary.
-
-3. MAINTAIN CONFIDENTIALITY - Protect sensitive organizational information.
-
-4. PARTICIPATE ACTIVELY - Attend meetings, prepare in advance, and engage constructively.
-
-5. SUPPORT DECISIONS - Once a decision is made by the board, support it publicly.
-
-6. REPRESENT APPROPRIATELY - Not speak on behalf of HMC without authorization.
-
-7. RESPECT BOUNDARIES - Understand the difference between governance and management.
-
-8. GIVE AND GET - Fulfill my annual fundraising commitment.`,
-
-    'commitment-agreement': `BOARD SERVICE COMMITMENT AGREEMENT
-
-I commit to the following during my term:
-
-ATTENDANCE:
-- Attend at least 75% of scheduled board meetings
-- Participate in at least one committee
-- Attend the annual board retreat
-
-FINANCIAL SUPPORT:
-- Make an annual personal gift (at a level meaningful to me)
-- Participate in fundraising activities
-- Meet my "Give or Get" commitment
-
-PARTICIPATION:
-- Come prepared to meetings
-- Respond promptly to communications
-- Serve as an ambassador for HMC
-
-TERM:
-- Serve my full term as agreed upon appointment`,
-
-    'media-authorization': `MEDIA & PUBLIC RELATIONS AUTHORIZATION
-
-I authorize Health Matters Clinic to use my name, photograph, and professional biography for:
-
-- Board of Directors listing on website and materials
-- Annual reports and newsletters
-- Press releases and media announcements
-- Grant applications
-- Fundraising materials
-- Social media
-
-I understand I may revoke this authorization in writing at any time.`
-  };
+  const formContents = BOARD_FORM_CONTENTS;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
@@ -1074,12 +994,20 @@ I understand I may revoke this authorization in writing at any time.`
             </>
           )}
           {isSigned && (
-            <div className="bg-emerald-50 p-4 rounded-2xl flex items-center gap-3">
-              <CheckCircle className="text-emerald-600" size={24} />
-              <div>
-                <p className="font-bold text-emerald-800">Form Signed</p>
-                <p className="text-sm text-emerald-600">Signed on {signedAt ? new Date(signedAt).toLocaleDateString() : 'file'}</p>
+            <div className="bg-emerald-50 p-4 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="text-emerald-600" size={24} />
+                <div>
+                  <p className="font-bold text-emerald-800">Form Signed</p>
+                  <p className="text-sm text-emerald-600">Signed on {signedAt ? new Date(signedAt).toLocaleDateString() : 'file'}</p>
+                </div>
               </div>
+              <button
+                onClick={() => window.open(`/api/board/forms/${formId}/pdf`, '_blank')}
+                className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-full text-sm font-bold hover:bg-brand-hover transition-all"
+              >
+                <Download size={14} /> Download PDF
+              </button>
             </div>
           )}
         </div>

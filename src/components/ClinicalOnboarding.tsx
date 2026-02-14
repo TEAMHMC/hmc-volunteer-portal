@@ -4,7 +4,7 @@ import { Volunteer } from '../types';
 import { apiService } from '../services/apiService';
 import {
   FileText, CheckCircle, Lock, Upload, Pen, ChevronRight, ChevronDown,
-  AlertTriangle, Loader2, X, Award, Shield, ClipboardCheck, Stethoscope
+  AlertTriangle, Loader2, X, Award, Shield, ClipboardCheck, Stethoscope, Download
 } from 'lucide-react';
 
 interface ClinicalOnboardingProps {
@@ -159,20 +159,37 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
   const handleFileUpload = async (field: string, file: File) => {
     setUploadingField(field);
     try {
-      // Convert to base64 for storage
       const reader = new FileReader();
       reader.onload = async () => {
-        const base64 = reader.result as string;
-        setCredentials(prev => ({
-          ...prev,
-          [field]: base64
-        }));
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.split(',')[1];
+        try {
+          const result = await apiService.post('/api/volunteer/credential-file', {
+            field,
+            base64,
+            contentType: file.type,
+            fileName: file.name,
+          });
+          setCredentials(prev => ({ ...prev, [field]: result.storagePath }));
+        } catch (uploadErr) {
+          console.error('Cloud upload failed, storing locally:', uploadErr);
+          setCredentials(prev => ({ ...prev, [field]: dataUrl }));
+        }
         setUploadingField(null);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Failed to upload file:', error);
       setUploadingField(null);
+    }
+  };
+
+  const handleViewCredentialFile = async (field: string) => {
+    try {
+      const result = await apiService.get(`/api/volunteer/${user.id}/credential-file/${field}`);
+      if (result.url) window.open(result.url, '_blank');
+    } catch {
+      alert('Unable to open file. It may not be stored in cloud storage.');
     }
   };
 
@@ -264,9 +281,17 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                       <h3 className="font-bold text-zinc-900">{doc.title}</h3>
                       <p className="text-sm text-zinc-500 mt-1">{doc.description}</p>
                       {isSigned && (
-                        <p className="text-xs text-emerald-600 font-medium mt-2">
-                          Signed on {new Date(clinicalOnboarding.documents?.[doc.id as keyof typeof clinicalOnboarding.documents]?.signedAt || '').toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <p className="text-xs text-emerald-600 font-medium">
+                            Signed on {new Date(clinicalOnboarding.documents?.[doc.id as keyof typeof clinicalOnboarding.documents]?.signedAt || '').toLocaleDateString()}
+                          </p>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); window.open(`/api/clinical/forms/${doc.id}/pdf`, '_blank'); }}
+                            className="flex items-center gap-1 text-xs text-brand font-bold hover:underline"
+                          >
+                            <Download size={12} /> PDF
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -376,7 +401,12 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                   />
                 </label>
                 {credentials.licenseFileUrl && (
-                  <CheckCircle className="text-emerald-500" size={24} />
+                  <>
+                    <CheckCircle className="text-emerald-500" size={24} />
+                    {typeof credentials.licenseFileUrl === 'string' && credentials.licenseFileUrl.startsWith('credentials/') && (
+                      <button onClick={() => handleViewCredentialFile('licenseFileUrl')} className="text-xs text-brand font-bold hover:underline">View</button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

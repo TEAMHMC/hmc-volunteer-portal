@@ -319,7 +319,7 @@ export interface Volunteer {
   managedBy?: string;
   registeredOpportunityIds?: string[];
   applicationStatus?: 'pendingReview' | 'approved' | 'rejected';
-  resume?: { name: string; type: string; data?: string; };
+  resume?: { name: string; type: string; data?: string; storagePath?: string; uploadedAt?: string; };
   tags?: string[];
   rsvpedEventIds?: string[];
   trainingFlags?: {
