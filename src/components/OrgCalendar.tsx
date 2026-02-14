@@ -6,6 +6,7 @@ import {
   CalendarDays, ChevronLeft, ChevronRight, Plus, X, Clock, MapPin,
   ExternalLink, Users, Filter, Video, Loader2, Check, Tag, Trash2, Edit3, Navigation
 } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 interface OrgCalendarProps {
   user: Volunteer;
@@ -161,7 +162,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       await fetchEvents();
     } catch (err) {
       console.error('RSVP failed:', err);
-      alert('RSVP failed. Please try again.');
+      toastService.error('RSVP failed. Please try again.');
     } finally {
       setRsvpLoading(null);
     }
@@ -175,7 +176,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       await fetchEvents();
     } catch (err) {
       console.error('Delete failed:', err);
-      alert('Failed to delete event. Please try again.');
+      toastService.error('Failed to delete event. Please try again.');
     }
   };
 

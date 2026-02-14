@@ -9,6 +9,7 @@ import {
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
+import { toastService } from '../services/toastService';
 
 // Training clearance: user has completed all required training (coreVolunteerStatus) or is admin/lead
 const hasOperationalClearance = (user: Volunteer): boolean => {
@@ -229,7 +230,18 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
-          {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={(sig) => { console.log("Shift signed off with signature", sig); onBack(); }} />}
+          {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
+                try {
+                  await apiService.post('/api/ops/signoff', {
+                    shiftId: shift.id,
+                    signatureData: sig,
+                    completedItems: opsRun?.completedItems || [],
+                  });
+                } catch (err) {
+                  console.error('[OPS] Signoff save failed:', err);
+                }
+                onBack();
+              }} />}
           {activeTab === 'audit' && user.isAdmin && <AuditTrailView auditLogs={auditLogs} />}
         </main>
       </div>
@@ -713,7 +725,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!consentGiven) {
-            alert('Client consent is required before submitting.');
+            toastService.error('Client consent is required before submitting.');
             return;
         }
 
@@ -738,7 +750,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
             setIsSubmitted(true);
         } catch (error) {
             console.error('Error submitting survey:', error);
-            alert('Failed to submit survey. Please try again.');
+            toastService.error('Failed to submit survey. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -864,7 +876,10 @@ const SignoffView: React.FC<{shift: Shift, opsRun: MissionOpsRun | null, onSigno
 
     const handleConfirm = () => {
         const sig = sigPadRef.current?.getSignature();
-        if (!sig) return alert("Validation Required: Official signature mandatory for station closure.");
+        if (!sig) {
+            toastService.error("Validation Required: Official signature mandatory for station closure.");
+            return;
+        }
         setSigning(true);
         setTimeout(() => onSignoff(sig), 1500);
     };

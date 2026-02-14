@@ -25,7 +25,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
   useEffect(() => {
     const fetchPublicOpps = async () => {
       try {
-        const publicOpps = await apiService.get('/public/opportunities');
+        const publicOpps = await apiService.get('/api/public/events');
         // Filter out past events
         const upcomingOpps = publicOpps.filter((o: Opportunity) => !isPastEvent(o.date));
         setOpportunities(upcomingOpps);
@@ -94,7 +94,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
     setIsSubmitting(true);
     setError('');
     try {
-      await apiService.post('/public/rsvp', { client: formData, eventId: opportunity.id });
+      await apiService.post('/api/public/rsvp', { client: formData, eventId: opportunity.id });
       setIsSuccess(true);
     } catch (err) {
       setError((err as Error).message);

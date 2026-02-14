@@ -14,6 +14,7 @@ import { APP_CONFIG } from '../config';
 import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS, COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES } from '../constants';
 import { computeLevel } from '../utils/xpLevels';
 import { generateQuests, completeQuest, getAllQuestsComplete, DAILY_QUEST_BONUS_XP, DailyQuest } from '../utils/dailyQuests';
+import { toastService } from '../services/toastService';
 import TrainingAcademy from './TrainingAcademy';
 import ShiftsComponent from './Shifts';
 import CommunicationHub from './CommunicationHub';
@@ -904,7 +905,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
       await apiService.post(`/api/smo/cycles/${cycleId}/self-report`, {});
       setSmoCycles(prev => prev.map(c => c.id === cycleId ? { ...c, selfReported: true } : c));
     } catch (e: any) {
-      alert(e.message || 'Failed to report attendance');
+      toastService.error(e.message || 'Failed to report attendance');
     }
   };
 

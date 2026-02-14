@@ -11,6 +11,7 @@ import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
 import { BROADCAST_ROLES } from '../constants';
+import { toastService } from '../services/toastService';
 
 interface CommunicationHubProps {
   user: Volunteer;
@@ -81,7 +82,7 @@ const BroadcastsView: React.FC<{
         handleCloseComposer();
       }, 3000);
     } catch (error) {
-      alert("Failed to send broadcast. Please try again.");
+      toastService.error("Failed to send broadcast. Please try again.");
     } finally {
       setIsSending(false);
     }
@@ -222,32 +223,51 @@ const BriefingView: React.FC<{
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // SSE: real-time message stream
+  // SSE: real-time message stream (uses short-lived ticket instead of session token in URL)
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) return;
 
     const baseUrl = window.location.origin;
-    const es = new EventSource(`${baseUrl}/api/messages/stream?token=${encodeURIComponent(token)}`);
+    let es: EventSource | null = null;
+    let cancelled = false;
 
-    es.onmessage = (event) => {
+    (async () => {
       try {
-        const newMsg: Message = JSON.parse(event.data);
-        setMessages(prev => {
-          // Deduplicate by id
-          if (prev.some(m => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
+        // Exchange auth token for a short-lived, single-use SSE ticket
+        const ticketRes = await fetch(`${baseUrl}/api/messages/sse-ticket`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
-      } catch (e) {
-        console.warn('[CommunicationHub] SSE parse error:', e);
+        if (!ticketRes.ok || cancelled) return;
+        const { ticket } = await ticketRes.json();
+
+        es = new EventSource(`${baseUrl}/api/messages/stream?ticket=${encodeURIComponent(ticket)}`);
+
+        es.onmessage = (event) => {
+          try {
+            const newMsg: Message = JSON.parse(event.data);
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          } catch (e) {
+            console.warn('[CommunicationHub] SSE parse error:', e);
+          }
+        };
+
+        es.onerror = () => {
+          // EventSource auto-reconnects; nothing to do
+        };
+      } catch (err) {
+        console.warn('[CommunicationHub] SSE ticket exchange failed:', err);
       }
-    };
+    })();
 
-    es.onerror = () => {
-      // EventSource auto-reconnects; nothing to do
+    return () => {
+      cancelled = true;
+      if (es) es.close();
     };
-
-    return () => es.close();
   }, [setMessages]);
 
   // Poll for messages as fallback (immediate fetch + 5s interval)
@@ -593,7 +613,7 @@ const BriefingView: React.FC<{
                             try {
                               await apiService.delete(`/api/messages/${msg.id}`);
                               setMessages(prev => prev.filter(m => m.id !== msg.id));
-                            } catch { alert('Failed to delete message.'); }
+                            } catch { toastService.error('Failed to delete message.'); }
                           }}
                           className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-bold items-center justify-center hidden group-hover/msg:flex hover:bg-rose-600 shadow"
                           title="Delete message"
@@ -1158,7 +1178,7 @@ const OpsSupportView: React.FC<{
       setNewTicketVisibility('public');
     } catch (error) {
       console.error('Failed to submit ticket:', error);
-      alert('Failed to submit ticket. Please try again.');
+      toastService.error('Failed to submit ticket. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1193,7 +1213,7 @@ const OpsSupportView: React.FC<{
       // Rollback on failure
       setSupportTickets(previousTickets);
       setSelectedTicket(previousSelected);
-      alert('Failed to update ticket. Please try again.');
+      toastService.error('Failed to update ticket. Please try again.');
     }
   };
 

@@ -18,6 +18,29 @@ import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, B
 // --- CONFIGURATION ---
 dotenv.config();
 
+// --- SSN ENCRYPTION (AES-256-GCM) ---
+const SSN_KEY = process.env.SSN_ENCRYPTION_KEY || '';
+function encryptSSN(ssn: string): string {
+    if (!SSN_KEY || !ssn) return ssn;
+    const key = crypto.createHash('sha256').update(SSN_KEY).digest();
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    let encrypted = cipher.update(ssn, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
+    return `enc:${iv.toString('hex')}:${tag}:${encrypted}`;
+}
+function decryptSSN(encrypted: string): string {
+    if (!SSN_KEY || !encrypted || !encrypted.startsWith('enc:')) return encrypted;
+    const [, ivHex, tagHex, data] = encrypted.split(':');
+    const key = crypto.createHash('sha256').update(SSN_KEY).digest();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+    let decrypted = decipher.update(data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
+
 // --- FIREBASE ADMIN SDK ---
 let firebaseConfigured = false;
 try {
@@ -1202,6 +1225,33 @@ const EmailTemplates = {
     ${emailFooter()}`,
     text: `Hi ${data.volunteerName}, your ${data.eventName} is expiring soon. Please contact your coordinator to renew.`
   }),
+
+  // New Opportunity Alert (w3)
+  new_opportunity_alert: (data: EmailTemplateData) => ({
+    subject: `New Volunteer Opportunity: ${data.eventName}`,
+    html: `${emailHeader('New Opportunity Available!')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>A new volunteer opportunity matching your role is available:</p>
+      <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937; font-size: 16px;">${data.eventName}</p>
+        <p style="margin: 0; color: #6b7280;">Date: ${data.eventDate || 'TBD'}</p>
+      </div>
+      <p>Log in to your dashboard to sign up before spots fill up!</p>
+      ${actionButton('View Opportunity', `${EMAIL_CONFIG.WEBSITE_URL}/dashboard`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, new opportunity: ${data.eventName} on ${data.eventDate || 'TBD'}. Log in to sign up!`
+  }),
+
+  // Volunteer Deactivation Notice
+  account_deactivated: (data: EmailTemplateData) => ({
+    subject: 'Your Health Matters Clinic Account Has Been Deactivated',
+    html: `${emailHeader('Account Status Update')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>Your volunteer account has been deactivated. If you believe this is an error or would like to reactivate, please contact our team.</p>
+      ${actionButton('Contact Support', `mailto:volunteer@healthmatters.clinic`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, your volunteer account has been deactivated. Contact volunteer@healthmatters.clinic for assistance.`
+  }),
 };
 
 // Email Service Class - Uses Google Apps Script
@@ -1821,6 +1871,11 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
             console.log(`[BOOTSTRAP] Auto-promoted new signup ${maskEmail(user.email)} to admin`);
         }
 
+        // Encrypt SSN before storing
+        if (userDataToSave.ssn) {
+            userDataToSave.ssn = encryptSSN(userDataToSave.ssn);
+        }
+
         await db.collection('volunteers').doc(finalUserId).set(userDataToSave);
 
         // Initialize gamification profile
@@ -2257,6 +2312,12 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
         const fiveMinutesAgo = new Date(Date.now() - 90 * 1000).toISOString();
         const volunteersWithOnlineStatus = volunteersSnap.docs.map(d => {
             const data = d.data();
+            // Decrypt SSN for admin users, strip it for non-admins
+            if (data.ssn && userProfile.isAdmin) {
+                data.ssn = decryptSSN(data.ssn);
+            } else {
+                delete data.ssn;
+            }
             return {
                 ...data,
                 isOnline: data.lastActiveAt ? data.lastActiveAt >= fiveMinutesAgo : false
@@ -2305,6 +2366,9 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
 });
 
 // --- AI & DATA ROUTES ---
+// Rate limit all Gemini AI endpoints (10 requests per minute per IP)
+const aiRateLimit = rateLimit(10, 60000);
+app.use('/api/gemini', aiRateLimit);
 
 app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
     // Define available volunteer roles (excluding admin roles)
@@ -2844,7 +2908,9 @@ app.get('/api/resources', verifyToken, async (req: Request, res: Response) => {
     res.json(snap.docs.map(d => d.data()));
 });
 app.post('/api/resources/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
-    const ref = await db.collection('referral_resources').add(req.body.resource);
+    const resource = req.body.resource;
+    if (!resource || !resource.name) return res.status(400).json({ error: 'Resource name is required' });
+    const ref = await db.collection('referral_resources').add(resource);
     res.json({ success: true, id: ref.id });
 });
 
@@ -2904,8 +2970,12 @@ app.get('/api/referrals', verifyToken, async (req: Request, res: Response) => {
     res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 });
 app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
-    const ref = await db.collection('referrals').add(req.body.referral);
-    res.json({ id: ref.id, ...req.body.referral });
+    const referral = req.body.referral;
+    if (!referral || !referral.clientId || !referral.resourceId) return res.status(400).json({ error: 'clientId and resourceId required' });
+    referral.createdAt = new Date().toISOString();
+    referral.status = referral.status || 'pending';
+    const ref = await db.collection('referrals').add(referral);
+    res.json({ id: ref.id, ...referral });
 });
 app.put('/api/referrals/:id', verifyToken, async (req: Request, res: Response) => {
     await db.collection('referrals').doc(req.params.id).update(req.body.referral);
@@ -2922,8 +2992,10 @@ app.post('/api/clients/search', verifyToken, requireAdmin, async (req: Request, 
     res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
 });
 app.post('/api/clients/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    const clientData = req.body.client;
+    if (!clientData || (!clientData.name && !clientData.firstName)) return res.status(400).json({ error: 'Client name required' });
     const client = {
-        ...req.body.client,
+        ...clientData,
         createdAt: new Date().toISOString(),
         status: 'Active'
     };
@@ -3537,6 +3609,7 @@ app.get('/api/partners', verifyToken, async (req: Request, res: Response) => {
 
 app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
+        if (!req.body.name) return res.status(400).json({ error: 'Partner name required' });
         const partner = {
             ...req.body,
             createdAt: new Date().toISOString(),
@@ -3621,7 +3694,7 @@ app.get('/api/referrals/sla-report', verifyToken, async (req: Request, res: Resp
 });
 
 // --- AI REFERRAL MATCHING ---
-app.post('/api/ai/match-resources', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/ai/match-resources', verifyToken, rateLimit(10, 60000), async (req: Request, res: Response) => {
     try {
         const { clientId, serviceNeeded, clientData } = req.body;
 
@@ -3707,10 +3780,59 @@ app.post('/api/ops/checklist', verifyToken, async (req: Request, res: Response) 
     await db.collection('mission_ops_runs').doc(runId).set({ completedItems }, { merge: true });
     res.json({ success: true });
 });
+
+// POST /api/ops/signoff — Save shift signoff with signature
+app.post('/api/ops/signoff', verifyToken, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const { shiftId, signatureData, completedItems } = req.body;
+    if (!shiftId || !signatureData) return res.status(400).json({ error: 'shiftId and signatureData required' });
+
+    const runId = `${shiftId}_${user.uid}`;
+    try {
+        // Upload signature to Cloud Storage if bucket available
+        let signatureStoragePath: string | undefined;
+        if (bucket) {
+            try {
+                signatureStoragePath = `signoffs/${runId}/signature.png`;
+                const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
+                await uploadToStorage(base64Data, signatureStoragePath, 'image/png');
+            } catch { signatureStoragePath = undefined; }
+        }
+
+        await db.collection('mission_ops_runs').doc(runId).set({
+            shiftId,
+            userId: user.uid,
+            completedItems: completedItems || [],
+            signedOff: true,
+            signedOffAt: new Date().toISOString(),
+            signatureStoragePath: signatureStoragePath || null,
+            // Fall back to storing in Firestore if no Cloud Storage
+            signatureData: signatureStoragePath ? null : signatureData,
+        }, { merge: true });
+
+        console.log(`[OPS] Shift ${shiftId} signed off by ${user.uid}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[OPS] Signoff failed:', error);
+        res.status(500).json({ error: 'Failed to save signoff' });
+    }
+});
+
 app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
-    const updatedUser = req.body;
-    await db.collection('volunteers').doc(updatedUser.id).set(updatedUser, { merge: true });
-    res.json(updatedUser);
+    const user = (req as any).user;
+    const updates = req.body;
+    // SECURITY: Whitelist fields volunteers can update on their own profile
+    const { isAdmin, compliance, points, hoursContributed, status,
+            applicationStatus, coreVolunteerStatus, eventEligibility,
+            volunteerRole, role, appliedRole, appliedRoleStatus,
+            ...safeUpdates } = updates;
+    // Encrypt SSN if being updated
+    if (safeUpdates.ssn) safeUpdates.ssn = encryptSSN(safeUpdates.ssn);
+    // Ensure they can only update their own doc
+    const docId = user.uid;
+    await db.collection('volunteers').doc(docId).set(safeUpdates, { merge: true });
+    const updated = (await db.collection('volunteers').doc(docId).get()).data();
+    res.json({ ...updated, id: docId });
 });
 
 // User presence tracking - update last active time
@@ -3786,22 +3908,42 @@ app.get('/api/messages', verifyToken, async (req: Request, res: Response) => {
     }
 });
 
+// --- SSE TICKET EXCHANGE (short-lived, single-use) ---
+const sseTickets = new Map<string, { uid: string; expires: number }>();
+app.post('/api/messages/sse-ticket', verifyToken, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const ticket = crypto.randomBytes(32).toString('hex');
+    sseTickets.set(ticket, { uid: user.uid, expires: Date.now() + 30_000 }); // 30s TTL
+    res.json({ ticket });
+});
+
 // --- SSE STREAM ENDPOINT ---
 app.get('/api/messages/stream', async (req: Request, res: Response) => {
-    // EventSource can't send headers, so auth via query param
-    const token = req.query.token as string;
-    if (!token) return res.status(403).json({ error: 'No token' });
+    // Use short-lived ticket instead of session token in URL
+    const ticket = req.query.ticket as string;
+    const token = req.query.token as string; // legacy fallback
+    let userId: string;
 
     try {
-        const sessionDoc = await db.collection('sessions').doc(token).get();
-        if (!sessionDoc.exists) return res.status(403).json({ error: 'Invalid session' });
-        const session = sessionDoc.data()!;
-        if (new Date() > session.expires.toDate()) return res.status(403).json({ error: 'Session expired' });
+        if (ticket && sseTickets.has(ticket)) {
+            const t = sseTickets.get(ticket)!;
+            sseTickets.delete(ticket); // single-use
+            if (Date.now() > t.expires) return res.status(403).json({ error: 'Ticket expired' });
+            userId = t.uid;
+        } else if (token) {
+            // Legacy fallback for existing clients
+            const sessionDoc = await db.collection('sessions').doc(token).get();
+            if (!sessionDoc.exists) return res.status(403).json({ error: 'Invalid session' });
+            const session = sessionDoc.data()!;
+            if (new Date() > session.expires.toDate()) return res.status(403).json({ error: 'Session expired' });
+            userId = session.uid;
+        } else {
+            return res.status(403).json({ error: 'No ticket or token' });
+        }
 
-        const userDoc = await db.collection('volunteers').doc(session.uid).get();
+        // Verify user exists
+        const userDoc = await db.collection('volunteers').doc(userId).get();
         if (!userDoc.exists) return res.status(403).json({ error: 'User not found' });
-
-        const userId = session.uid;
 
         // Set SSE headers
         res.writeHead(200, {
@@ -5363,7 +5505,7 @@ function getPacificDate(offsetDays = 0): string {
 const WORKFLOW_DEFAULTS: Record<string, { enabled: boolean }> = {
   w1: { enabled: true },
   w2: { enabled: true },
-  w3: { enabled: false },
+  w3: { enabled: true },
   w4: { enabled: true },
   w5: { enabled: true },
   w6: { enabled: true },
@@ -5606,11 +5748,24 @@ async function executeNewOpportunityAlert(opportunity: { id: string; title: stri
       const msg = `HMC: New opportunity — ${opportunity.title} on ${opportunity.date}. Log in to sign up!`;
 
       try {
+        let sent = false;
+        // Send email notification
+        if (vol.email) {
+          const emailResult = await EmailService.send('new_opportunity_alert', {
+            toEmail: vol.email,
+            volunteerName: vol.name || vol.legalFirstName || 'Volunteer',
+            eventName: opportunity.title,
+            eventDate: opportunity.date,
+            userId: volDoc.id,
+          });
+          if (emailResult.sent) sent = true;
+        }
+        // Also send SMS if phone available
         if (phone) {
           const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
-          if (smsResult.sent) { result.sent++; }
-          else { result.skipped++; }
-        } else { result.skipped++; }
+          if (smsResult.sent) sent = true;
+        }
+        if (sent) { result.sent++; } else { result.skipped++; }
       } catch (e) {
         result.failed++;
       }
@@ -6989,15 +7144,27 @@ app.put('/api/board/give-or-get', verifyToken, async (req: Request, res: Respons
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// Save form signature
+// Save form signature (store in Cloud Storage when available)
 app.post('/api/board/forms/:formId/sign', verifyToken, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const { signatureData } = req.body;
-    await db.collection('board_form_signatures').doc(`${user.uid}_${req.params.formId}`).set({
+    const docId = `${user.uid}_${req.params.formId}`;
+
+    let signatureStoragePath: string | undefined;
+    if (bucket && signatureData?.startsWith('data:image/')) {
+        try {
+            signatureStoragePath = `signatures/board/${docId}.png`;
+            const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
+            await uploadToStorage(base64Data, signatureStoragePath, 'image/png');
+        } catch { signatureStoragePath = undefined; }
+    }
+
+    await db.collection('board_form_signatures').doc(docId).set({
       volunteerId: user.uid,
       formId: req.params.formId,
-      signatureData,
+      signatureStoragePath: signatureStoragePath || null,
+      signatureData: signatureStoragePath ? null : signatureData,
       signedAt: new Date().toISOString(),
     });
     res.json({ success: true });
@@ -7064,6 +7231,24 @@ app.get('/api/volunteer/:id/credential-file/:field', verifyToken, async (req: Re
     }
     const url = await getSignedDownloadUrl(storagePath, 15);
     res.json({ url });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- FLYER / DOCUMENT UPLOAD TO CLOUD STORAGE ---
+app.post('/api/events/:id/flyer', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { base64, contentType, fileName } = req.body;
+    if (!base64) return res.status(400).json({ error: 'base64 data required' });
+    const ext = fileName?.split('.').pop() || 'png';
+    const storagePath = `flyers/${req.params.id}/flyer.${ext}`;
+    await uploadToStorage(base64, storagePath, contentType || 'image/png');
+    const url = await getSignedDownloadUrl(storagePath, 60 * 24 * 7); // 7-day URL
+    await db.collection('opportunities').doc(req.params.id).update({
+        flyerUrl: url,
+        flyerStoragePath: storagePath,
+        flyerBase64: admin.firestore.FieldValue.delete(),
+    });
+    res.json({ flyerUrl: url, storagePath });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -7150,10 +7335,20 @@ app.get('/api/board/forms/:formId/pdf', verifyToken, async (req: Request, res: R
     page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
     y -= 20;
 
-    // Embed signature image if available
-    if (sigData.signatureData && sigData.signatureData.startsWith('data:image/png')) {
+    // Embed signature image if available (from Cloud Storage or inline)
+    let sigBase64: string | null = null;
+    if (sigData.signatureStoragePath && bucket) {
       try {
-        const sigBase64 = sigData.signatureData.split(',')[1];
+        const file = bucket.file(sigData.signatureStoragePath);
+        const [contents] = await file.download();
+        sigBase64 = contents.toString('base64');
+      } catch { /* fall through to inline */ }
+    }
+    if (!sigBase64 && sigData.signatureData && sigData.signatureData.startsWith('data:image/png')) {
+      sigBase64 = sigData.signatureData.split(',')[1];
+    }
+    if (sigBase64) {
+      try {
         const sigImage = await pdfDoc.embedPng(Buffer.from(sigBase64, 'base64'));
         const sigDims = sigImage.scale(0.5);
         const sigWidth = Math.min(sigDims.width, 200);
@@ -7218,11 +7413,21 @@ app.get('/api/clinical/forms/:docId/pdf', verifyToken, async (req: Request, res:
     page.drawText(`the above document as required by Health Matters Clinic clinical onboarding.`, { x: margin, y, font, size: 10, color: rgb(0.2, 0.2, 0.2) });
     y -= 40;
 
-    // Embed signature
-    if (docInfo.signatureData && docInfo.signatureData.startsWith('data:image/png')) {
+    // Embed signature (from Cloud Storage or inline)
+    let clinicalSigBase64: string | null = null;
+    if (docInfo.signatureStoragePath && bucket) {
       try {
-        const sigBase64 = docInfo.signatureData.split(',')[1];
-        const sigImage = await pdfDoc.embedPng(Buffer.from(sigBase64, 'base64'));
+        const file = bucket.file(docInfo.signatureStoragePath);
+        const [contents] = await file.download();
+        clinicalSigBase64 = contents.toString('base64');
+      } catch { /* fall through to inline */ }
+    }
+    if (!clinicalSigBase64 && docInfo.signatureData && docInfo.signatureData.startsWith('data:image/png')) {
+      clinicalSigBase64 = docInfo.signatureData.split(',')[1];
+    }
+    if (clinicalSigBase64) {
+      try {
+        const sigImage = await pdfDoc.embedPng(Buffer.from(clinicalSigBase64, 'base64'));
         const sigDims = sigImage.scale(0.5);
         const sigWidth = Math.min(sigDims.width, 200);
         const sigHeight = (sigWidth / sigDims.width) * sigDims.height;
@@ -7276,6 +7481,223 @@ app.get('/api/admin/compliance-overview', verifyToken, requireAdmin, async (req:
 
     res.json(overview);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- DATA EXPORT ENDPOINTS (Admin only) ---
+app.get('/api/admin/export/:collection', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    const { collection } = req.params;
+    const allowed = ['incidents', 'screenings', 'clients', 'referrals', 'audit_logs', 'feedback'];
+    if (!allowed.includes(collection)) return res.status(400).json({ error: `Invalid collection. Allowed: ${allowed.join(', ')}` });
+
+    try {
+        const snap = await db.collection(collection).get();
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const format = req.query.format as string;
+        if (format === 'csv') {
+            if (data.length === 0) return res.status(200).send('');
+            const headers = Object.keys(data[0]);
+            const csvRows = [headers.join(',')];
+            data.forEach(row => {
+                csvRows.push(headers.map(h => {
+                    const val = (row as any)[h];
+                    const str = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
+                    return `"${str.replace(/"/g, '""')}"`;
+                }).join(','));
+            });
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="${collection}_export.csv"`);
+            return res.send(csvRows.join('\n'));
+        }
+
+        res.json(data);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- KNOWLEDGE BASE PERSISTENCE ---
+app.get('/api/knowledge-base', verifyToken, async (_req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('knowledge_base').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/knowledge-base', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const article = { ...req.body, updatedAt: new Date().toISOString() };
+        if (!article.title || !article.content) return res.status(400).json({ error: 'title and content required' });
+        const ref = await db.collection('knowledge_base').add(article);
+        res.json({ id: ref.id, ...article });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/knowledge-base/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const updates = { ...req.body, updatedAt: new Date().toISOString() };
+        await db.collection('knowledge_base').doc(req.params.id).update(updates);
+        res.json({ id: req.params.id, ...updates });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/knowledge-base/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        await db.collection('knowledge_base').doc(req.params.id).delete();
+        res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- INCIDENT & AUDIT LOG ADMIN DASHBOARD ---
+app.get('/api/admin/incidents', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('incidents').orderBy('timestamp', 'desc').get()
+            .catch(() => db.collection('incidents').get());
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/audit-logs', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit as string) || 200, 1000);
+        const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get()
+            .catch(() => db.collection('audit_logs').limit(limit).get());
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- BULK OPERATIONS (Admin) ---
+app.post('/api/admin/bulk/approve', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { volunteerIds } = req.body;
+        if (!Array.isArray(volunteerIds) || volunteerIds.length === 0) return res.status(400).json({ error: 'volunteerIds array required' });
+        if (volunteerIds.length > 50) return res.status(400).json({ error: 'Max 50 volunteers at a time' });
+
+        const batch = db.batch();
+        volunteerIds.forEach((id: string) => {
+            batch.update(db.collection('volunteers').doc(id), {
+                applicationStatus: 'approved',
+                status: 'onboarding',
+                'compliance.application.status': 'completed',
+                'compliance.application.dateCompleted': new Date().toISOString(),
+            });
+        });
+        await batch.commit();
+        res.json({ success: true, count: volunteerIds.length });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/bulk/role-change', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { volunteerIds, newRole } = req.body;
+        if (!Array.isArray(volunteerIds) || !newRole) return res.status(400).json({ error: 'volunteerIds and newRole required' });
+        if (volunteerIds.length > 50) return res.status(400).json({ error: 'Max 50 volunteers at a time' });
+
+        const batch = db.batch();
+        volunteerIds.forEach((id: string) => {
+            batch.update(db.collection('volunteers').doc(id), { volunteerRole: newRole, role: newRole });
+        });
+        await batch.commit();
+        res.json({ success: true, count: volunteerIds.length });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/export-volunteers', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('volunteers').get();
+        const volunteers = snap.docs.map(d => {
+            const v = d.data();
+            return {
+                id: d.id,
+                name: v.name,
+                email: v.email,
+                phone: v.phone,
+                role: v.volunteerRole || v.role,
+                status: v.status,
+                applicationStatus: v.applicationStatus,
+                joinedDate: v.joinedDate,
+                hoursContributed: v.hoursContributed || 0,
+                points: v.points || 0,
+            };
+        });
+        const headers = Object.keys(volunteers[0] || {});
+        const csvRows = [headers.join(',')];
+        volunteers.forEach(v => {
+            csvRows.push(headers.map(h => `"${String((v as any)[h] ?? '').replace(/"/g, '""')}"`).join(','));
+        });
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="volunteers_export.csv"');
+        res.send(csvRows.join('\n'));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- ACCOUNT DEACTIVATION ---
+app.post('/api/admin/deactivate-volunteer', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { volunteerId, reason } = req.body;
+        if (!volunteerId) return res.status(400).json({ error: 'volunteerId required' });
+
+        await db.collection('volunteers').doc(volunteerId).update({
+            status: 'inactive',
+            deactivatedAt: new Date().toISOString(),
+            deactivationReason: reason || 'Admin deactivation',
+        });
+
+        // Log the deactivation
+        await db.collection('audit_logs').add({
+            actionType: 'DEACTIVATE_ACCOUNT',
+            targetId: volunteerId,
+            performedBy: (req as any).user.uid,
+            timestamp: new Date().toISOString(),
+            summary: `Volunteer ${volunteerId} deactivated: ${reason || 'Admin deactivation'}`,
+        });
+
+        res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/reactivate-volunteer', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { volunteerId } = req.body;
+        if (!volunteerId) return res.status(400).json({ error: 'volunteerId required' });
+
+        await db.collection('volunteers').doc(volunteerId).update({
+            status: 'active',
+            deactivatedAt: admin.firestore.FieldValue.delete(),
+            deactivationReason: admin.firestore.FieldValue.delete(),
+        });
+
+        res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- ANNOUNCEMENT CRUD ---
+app.post('/api/announcements', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { title, content, priority } = req.body;
+        if (!title || !content) return res.status(400).json({ error: 'title and content required' });
+        const announcement = {
+            title, content,
+            priority: priority || 'normal',
+            date: new Date().toISOString(),
+            createdBy: (req as any).user.uid,
+        };
+        const ref = await db.collection('announcements').add(announcement);
+        res.json({ id: ref.id, ...announcement });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/announcements/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const updates = { ...req.body, updatedAt: new Date().toISOString() };
+        await db.collection('announcements').doc(req.params.id).update(updates);
+        res.json({ id: req.params.id, ...updates });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/announcements/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        await db.collection('announcements').doc(req.params.id).delete();
+        res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---

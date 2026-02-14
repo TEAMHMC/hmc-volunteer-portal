@@ -5,9 +5,11 @@ import OnboardingFlow from './OnboardingFlow';
 import Dashboard from './Dashboard';
 import MigrationFlow from './MigrationFlow';
 import ClientPortal from './ClientPortal';
+import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
 import { analyticsService } from '../services/analyticsService';
+import { toastService } from '../services/toastService';
 
 interface AppProps {
   googleClientId?: string;
@@ -163,7 +165,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         setView('dashboard');
     } catch(e) {
         console.error("Failed to finalize migration.", e);
-        alert("There was an error completing your profile setup. Please try logging in again.");
+        toastService.error("There was an error completing your profile setup. Please try logging in again.");
     }
   }
 
@@ -201,6 +203,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 const AppWithErrorBoundary: React.FC<AppProps> = (props) => (
   <ErrorBoundary>
     <App {...props} />
+    <Toast />
   </ErrorBoundary>
 );
 

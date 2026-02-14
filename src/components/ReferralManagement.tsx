@@ -7,6 +7,7 @@ import {
   Search, Plus, X, Loader2, ChevronRight, Filter, BarChart3, TrendingUp,
   Phone, Mail, MapPin, Globe, Calendar, ArrowRight, RefreshCw
 } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 interface ReferralManagementProps {
   isAdmin: boolean;
@@ -684,7 +685,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
       await apiService.post('/api/clients/create', { client: formData });
       onComplete();
     } catch (error) {
-      alert('Failed to create client');
+      toastService.error('Failed to create client');
     } finally {
       setIsSaving(false);
     }
@@ -808,7 +809,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
       await apiService.post('/api/partners', formData);
       onComplete();
     } catch (error) {
-      alert('Failed to create partner');
+      toastService.error('Failed to create partner');
     } finally {
       setIsSaving(false);
     }

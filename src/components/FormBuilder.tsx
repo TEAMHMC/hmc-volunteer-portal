@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Save, Trash2, PlusCircle, X, Loader2, CheckCircle, Eye, ChevronRight, TextCursorInput, List, CheckSquare as CheckSquareIcon, Star, BarChart3, Download } from 'lucide-react';
 import { FormField } from '../types';
 import surveyService, { FormDefinition, SurveyResponse } from '../services/surveyService';
+import { toastService } from '../services/toastService';
 
 const DEFAULT_FORMS: FormDefinition[] = [
     { id: 'client-intake', title: 'Client Intake Form', description: 'Collect comprehensive client information, demographics, and social determinant needs.', fields: [], isActive: true, category: 'intake' },
@@ -103,7 +104,7 @@ const FormBuilder: React.FC = () => {
             setActiveForm(null);
         } catch (error) {
             console.error('Error saving form:', error);
-            alert('Failed to save form. Please try again.');
+            toastService.error('Failed to save form. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -117,7 +118,7 @@ const FormBuilder: React.FC = () => {
             setForms(forms.filter(f => f.id !== formId));
         } catch (error) {
             console.error('Error deleting form:', error);
-            alert('Failed to delete form.');
+            toastService.error('Failed to delete form.');
         }
     };
 
@@ -127,7 +128,7 @@ const FormBuilder: React.FC = () => {
             setViewingResponses({ formId, responses });
         } catch (error) {
             console.error('Error loading responses:', error);
-            alert('Failed to load responses.');
+            toastService.error('Failed to load responses.');
         }
     };
 

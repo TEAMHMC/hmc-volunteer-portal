@@ -1,10 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { KnowledgeBaseArticle, Volunteer } from '../types';
 import { KNOWLEDGE_BASE_ARTICLES } from '../docs';
 import { geminiService } from '../services/geminiService';
+import { apiService } from '../services/apiService';
 import { APP_CONFIG } from '../config';
 import { BookOpen, Search, ChevronDown, X, FileText, Plus, Edit3, Save, Trash2, Sparkles, Loader2, Wand2, RefreshCw, Eye } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 interface DocumentationHubProps {
     currentUser?: Volunteer;
@@ -17,6 +19,22 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     const [articles, setArticles] = useState<KnowledgeBaseArticle[]>(KNOWLEDGE_BASE_ARTICLES);
     const [showNewArticleModal, setShowNewArticleModal] = useState(false);
     const [editingArticle, setEditingArticle] = useState<KnowledgeBaseArticle | null>(null);
+
+    // Load persisted articles from backend on mount
+    useEffect(() => {
+        apiService.get('/api/knowledge-base').then((serverArticles: KnowledgeBaseArticle[]) => {
+            if (serverArticles?.length) {
+                // Merge: server articles override defaults by ID, plus any new server-only articles
+                const merged = [...KNOWLEDGE_BASE_ARTICLES];
+                serverArticles.forEach((sa: KnowledgeBaseArticle) => {
+                    const idx = merged.findIndex(a => a.id === sa.id);
+                    if (idx >= 0) merged[idx] = sa;
+                    else merged.push(sa);
+                });
+                setArticles(merged);
+            }
+        }).catch(() => { /* Use defaults if API unavailable */ });
+    }, []);
 
     // Allow admins and coordinator roles to edit documents
     const coordinatorRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator'];
@@ -53,19 +71,32 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
         );
     };
 
-    const handleSaveArticle = (article: KnowledgeBaseArticle) => {
+    const handleSaveArticle = async (article: KnowledgeBaseArticle) => {
         const existingIndex = articles.findIndex(a => a.id === article.id);
-        if (existingIndex >= 0) {
-            setArticles(articles.map(a => a.id === article.id ? article : a));
-        } else {
-            setArticles([...articles, article]);
+        try {
+            if (existingIndex >= 0) {
+                await apiService.put(`/api/knowledge-base/${article.id}`, article);
+                setArticles(articles.map(a => a.id === article.id ? article : a));
+            } else {
+                const saved = await apiService.post('/api/knowledge-base', article);
+                setArticles([...articles, { ...article, id: saved.id }]);
+            }
+        } catch (error) {
+            // Fallback to local state if API fails
+            if (existingIndex >= 0) {
+                setArticles(articles.map(a => a.id === article.id ? article : a));
+            } else {
+                setArticles([...articles, article]);
+            }
+            toastService.error('Failed to save article to server. Changes saved locally.');
         }
         setShowNewArticleModal(false);
         setEditingArticle(null);
     };
 
-    const handleDeleteArticle = (articleId: string) => {
+    const handleDeleteArticle = async (articleId: string) => {
         if (confirm('Are you sure you want to delete this document?')) {
+            try { await apiService.delete(`/api/knowledge-base/${articleId}`); } catch { /* proceed anyway */ }
             setArticles(articles.filter(a => a.id !== articleId));
             setSelectedArticle(null);
         }
@@ -222,7 +253,7 @@ const ArticleEditorModal: React.FC<{
 
     const handleSave = () => {
         if (!title.trim() || !content.trim()) {
-            alert('Please fill in both title and content.');
+            toastService.error('Please fill in both title and content.');
             return;
         }
 
@@ -256,7 +287,7 @@ const ArticleEditorModal: React.FC<{
             setAiPrompt('');
         } catch (error) {
             console.error('AI generation failed:', error);
-            alert('Failed to generate content. Please try again.');
+            toastService.error('Failed to generate content. Please try again.');
         } finally {
             setIsGenerating(false);
         }
@@ -272,7 +303,7 @@ const ArticleEditorModal: React.FC<{
             }
         } catch (error) {
             console.error('AI improvement failed:', error);
-            alert('Failed to improve content. Please try again.');
+            toastService.error('Failed to improve content. Please try again.');
         } finally {
             setIsGenerating(false);
         }
