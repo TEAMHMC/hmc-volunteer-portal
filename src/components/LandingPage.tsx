@@ -87,7 +87,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFEFE] flex flex-col font-['Inter'] overflow-x-hidden">
+    <div className="min-h-screen bg-white flex flex-col font-['Inter'] overflow-x-hidden">
       
       <nav className="max-w-[1400px] mx-auto w-full px-6 md:px-12 py-10 flex justify-between items-center z-50">
         <a

@@ -10,8 +10,8 @@ interface PillButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 const variantStyles: Record<PillVariant, string> = {
-  primary: 'bg-brand border border-[#0f0f0f] text-white hover:bg-brand-hover',
-  secondary: 'bg-white border border-[#0f0f0f] text-zinc-900 hover:bg-zinc-50',
+  primary: 'bg-brand border border-zinc-950 text-white hover:bg-brand-hover',
+  secondary: 'bg-white border border-zinc-950 text-zinc-900 hover:bg-zinc-50',
   danger: 'bg-rose-500 border border-rose-600 text-white hover:bg-rose-600',
   ghost: 'bg-transparent text-zinc-700 hover:bg-zinc-100',
 };

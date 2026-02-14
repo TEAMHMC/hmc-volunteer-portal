@@ -264,6 +264,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       }
     }
     mainItems.push({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
+    mainItems.push({ id: 'application', label: 'My Application', icon: FileText });
     groups.push({ label: 'MAIN', items: mainItems });
 
     // TOOLS
@@ -822,6 +823,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'livechat' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
            <LiveChatDashboard currentUser={displayUser} />
          )}
+         {activeTab === 'application' && <MyApplicationView user={displayUser} />}
 
       </main>
     </div>
@@ -849,8 +851,8 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full font-normal text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
-                    <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-normal text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                    <span className="w-2 h-2 rounded-full bg-zinc-950" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
                 </button>
@@ -887,6 +889,121 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
         </div>
     </div>
 )};
+
+const MyApplicationView = ({ user }: { user: Volunteer }) => {
+  const statusColor = user.applicationStatus === 'approved' ? 'emerald' : user.applicationStatus === 'rejected' ? 'rose' : 'amber';
+  const statusLabel = user.applicationStatus === 'approved' ? 'Approved' : user.applicationStatus === 'rejected' ? 'Declined' : 'Under Review';
+
+  const infoRows: { label: string; value: string | undefined }[] = [
+    { label: 'Applied Role', value: user.appliedRole || user.role },
+    { label: 'Email', value: user.email },
+    { label: 'Phone', value: user.phone },
+    { label: 'Location', value: [user.city, user.state].filter(Boolean).join(', ') || undefined },
+    { label: 'Time Commitment', value: user.timeCommitment },
+    { label: 'Service Preference', value: user.availability?.servicePreference },
+    { label: 'Available Days', value: user.availability?.days?.join(', ') },
+    { label: 'Preferred Time', value: user.availability?.preferredTime },
+    { label: 'Start Date', value: user.availability?.startDate },
+    { label: 'Applied On', value: user.joinedDate ? new Date(user.joinedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : undefined },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-container border border-zinc-200/50 shadow-elevation-2 p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-zinc-900 tracking-tight">My Application</h2>
+            <p className="text-sm text-zinc-500 mt-1">Your volunteer application details and status</p>
+          </div>
+          <span className={`px-4 py-2 rounded-full text-sm font-bold bg-${statusColor}-100 text-${statusColor}-700 border border-${statusColor}-200`}>
+            {statusLabel}
+          </span>
+        </div>
+
+        {/* Compliance Steps */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Object.values(user.compliance || {}).map((step, i) => (
+            <div key={i} className="flex items-center gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-100">
+              <CheckCircle size={16} className={step.status === 'completed' || step.status === 'verified' ? 'text-emerald-500' : 'text-zinc-300'} />
+              <span className="text-xs font-medium text-zinc-600 truncate">{step.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Application Details */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-container border border-zinc-200/50 shadow-elevation-2 p-8">
+          <h3 className="text-lg font-bold text-zinc-900 tracking-tight mb-6 flex items-center gap-2">
+            <User size={18} className="text-brand" /> Application Details
+          </h3>
+          <div className="space-y-4">
+            {infoRows.filter(r => r.value).map((row, i) => (
+              <div key={i} className="flex items-start justify-between py-2 border-b border-zinc-100 last:border-0">
+                <span className="text-sm font-medium text-zinc-500">{row.label}</span>
+                <span className="text-sm font-semibold text-zinc-900 text-right max-w-[60%]">{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Resume */}
+          {user.resume?.name && (
+            <div className="mt-6 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+              <div className="flex items-center gap-3">
+                <FileText size={18} className="text-brand" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{user.resume.name}</p>
+                  <p className="text-xs text-zinc-400">{user.resume.type}</p>
+                </div>
+                {user.resume.storagePath && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await apiService.get(`/api/admin/volunteer/${user.id}/resume`);
+                        if (res?.url) window.open(res.url, '_blank');
+                      } catch { toastService.error('Could not download resume.'); }
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-brand border border-brand/20 rounded-full hover:bg-brand/5 transition-colors"
+                  >
+                    Download
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Role Assessment Q&A */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-container border border-zinc-200/50 shadow-elevation-2 p-8">
+          <h3 className="text-lg font-bold text-zinc-900 tracking-tight mb-6 flex items-center gap-2">
+            <Info size={18} className="text-brand" /> Role Assessment
+          </h3>
+          {user.roleAssessment && user.roleAssessment.length > 0 ? (
+            <div className="space-y-5">
+              {user.roleAssessment.map((qa, i) => (
+                <div key={i} className="space-y-1.5">
+                  <p className="text-sm font-semibold text-zinc-700">{qa.question}</p>
+                  <p className="text-sm text-zinc-500 bg-zinc-50 rounded-lg p-3 border border-zinc-100">{qa.answer}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400 italic">No role assessment responses recorded.</p>
+          )}
+
+          {/* Skills & Interests */}
+          {user.gainFromExperience && (
+            <div className="mt-6 pt-6 border-t border-zinc-100">
+              <p className="text-sm font-semibold text-zinc-700 mb-2">What I hope to gain</p>
+              <p className="text-sm text-zinc-500 bg-zinc-50 rounded-lg p-3 border border-zinc-100">{user.gainFromExperience}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: string) => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean, isGovernanceRole?: boolean, newApplicantsCount?: number }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible, isGovernanceRole = false, newApplicantsCount = 0 }) => {
   const getOpp = (oppId: string) => opportunities.find(o => o.id === oppId);
@@ -1008,11 +1125,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-[#0f0f0f] shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
+                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
             </div>
           </div>
@@ -1243,7 +1360,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           <i className="fa-solid fa-radar text-brand text-sm" />
           Coming Up
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-[#0f0f0f] rounded-full font-normal text-sm hover:opacity-95 transition-all">
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-normal text-sm hover:opacity-95 transition-all">
           <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
@@ -1287,7 +1404,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
         <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
           <p className="text-zinc-400 font-medium text-sm mb-3">No upcoming missions.</p>
-          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-[#0f0f0f] rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
+          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
             <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
           </button>
         </div>

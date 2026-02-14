@@ -1,6 +1,7 @@
 /* HMC Volunteer Portal - Global Styles */
 
 :root {
+  --color-brand: #233DFF;
   --color-primary: #233dff;
   --color-secondary: #ff6e40;
   --color-accent: #f9c74f;

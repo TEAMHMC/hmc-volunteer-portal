@@ -64,12 +64,12 @@ input:-webkit-autofill:active {
 
 /* Selection Color */
 ::selection {
-  background-color: #233dff;
+  background-color: var(--color-brand);
   color: white;
 }
 
 ::-moz-selection {
-  background-color: #233dff;
+  background-color: var(--color-brand);
   color: white;
 }
 
@@ -83,7 +83,7 @@ code {
 
 /* Links */
 a {
-  color: #233dff;
+  color: var(--color-brand);
   text-decoration: none;
   transition: all 0.2s ease;
 }
@@ -95,7 +95,7 @@ a:hover {
 
 /* Focus Outline */
 *:focus-visible {
-  outline: 2px solid #233dff;
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 

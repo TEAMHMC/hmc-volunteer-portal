@@ -419,13 +419,13 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                             onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
                             disabled={rsvpLoading === ev.id}
                             className={`px-6 py-3 rounded-full font-normal text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 ${
-                              isAttending ? 'bg-white text-rose-500 border border-[#0f0f0f]' : 'bg-brand text-white border border-brand hover:opacity-95'
+                              isAttending ? 'bg-white text-rose-500 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'
                             }`}
                           >
                             {rsvpLoading === ev.id ? (
                               <Loader2 size={14} className="animate-spin" />
                             ) : isAttending ? (
-                              <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Cancel</>
+                              <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</>
                             ) : (
                               <><span className="w-2 h-2 rounded-full bg-white" /> RSVP</>
                             )}
@@ -549,9 +549,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showDetailEvent.location)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-3 rounded-full font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
+                    className="flex-1 py-3 rounded-full font-normal text-base bg-white text-zinc-900 border border-zinc-950 flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
                   >
-                    <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> <Navigation size={16} /> Get Directions
+                    <span className="w-2 h-2 rounded-full bg-zinc-950" /> <Navigation size={16} /> Get Directions
                   </a>
                 )}
               </div>
@@ -560,9 +560,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => { setEditingEvent(showDetailEvent); setShowDetailEvent(null); setShowCreateModal(true); }}
-                    className="flex-1 py-3 rounded-full font-normal text-base bg-white text-[#1a1a1a] border border-[#0f0f0f] flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
+                    className="flex-1 py-3 rounded-full font-normal text-base bg-white text-zinc-900 border border-zinc-950 flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
                   >
-                    <span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> <Edit3 size={16} /> Edit
+                    <span className="w-2 h-2 rounded-full bg-zinc-950" /> <Edit3 size={16} /> Edit
                   </button>
                   <button
                     onClick={() => handleDeleteEvent(showDetailEvent.id)}

@@ -11,6 +11,8 @@ interface AnalyticsDashboardProps {
   volunteers: Volunteer[];
 }
 
+const BRAND_COLOR = '#233DFF';
+
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) => {
   const [activeTab, setActiveTab] = useState<'operations' | 'experience'>('operations');
     
@@ -34,7 +36,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
     return Object.entries(roleMap).map(([name, value]) => ({ name, value }));
   }, [volunteers]);
 
-  const COLORS = ['#233DFF', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
+  const COLORS = [BRAND_COLOR, '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
@@ -65,7 +67,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} interval={0} angle={-45} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
                     <Tooltip cursor={{fill: 'rgba(35, 61, 255, 0.05)'}} contentStyle={{ backgroundColor: '#fff', border: '1px solid #f1f1f1', borderRadius: '16px' }} />
-                    <Bar dataKey="hours" fill="#233DFF" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="hours" fill={BRAND_COLOR} radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -198,7 +200,7 @@ const VolunteerExperienceView = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} />
                   <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#233DFF" strokeWidth={3} dot={{ fill: '#233DFF', r: 4 }} />
+                  <Line type="monotone" dataKey="count" stroke={BRAND_COLOR} strokeWidth={3} dot={{ fill: BRAND_COLOR, r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -216,7 +218,7 @@ const VolunteerExperienceView = () => {
                                <XAxis type="number" domain={[0, 5]} hide />
                                <YAxis type="category" dataKey="name" width={200} tick={{ fontSize: 10, fill: '#6b7280' }} />
                                <Tooltip />
-                               <Bar dataKey="rating" fill="#233DFF" radius={[0, 8, 8, 0]} barSize={15} />
+                               <Bar dataKey="rating" fill={BRAND_COLOR} radius={[0, 8, 8, 0]} barSize={15} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

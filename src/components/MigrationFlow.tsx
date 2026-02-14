@@ -135,7 +135,7 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
   };
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
       <div className="w-full max-w-4xl my-4 text-center">
          <h1 className="text-2xl font-black">Welcome Back, {user.name}!</h1>
          <p className="text-zinc-500">Let's get your new profile up and running.</p>

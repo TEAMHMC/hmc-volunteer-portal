@@ -2981,7 +2981,7 @@ app.put('/api/referrals/:id', verifyToken, async (req: Request, res: Response) =
     await db.collection('referrals').doc(req.params.id).update(req.body.referral);
     res.json({ id: req.params.id, ...req.body.referral });
 });
-app.post('/api/clients/search', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.post('/api/clients/search', verifyToken, async (req: Request, res: Response) => {
     const { phone, email } = req.body;
     let query: admin.firestore.Query = db.collection('clients');
     if (phone) query = query.where('phone', '==', phone);
@@ -7697,6 +7697,59 @@ app.delete('/api/announcements/:id', verifyToken, requireAdmin, async (req: Requ
     try {
         await db.collection('announcements').doc(req.params.id).delete();
         res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- HEALTH SCREENINGS ---
+app.post('/api/screenings/create', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const screening = { ...req.body, createdAt: new Date().toISOString() };
+        const ref = await db.collection('screenings').add(screening);
+        res.json({ id: ref.id, ...screening });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { clientId, shiftId } = req.query;
+        let query: admin.firestore.Query = db.collection('screenings');
+        if (clientId) query = query.where('clientId', '==', clientId);
+        if (shiftId) query = query.where('shiftId', '==', shiftId);
+        const snap = await query.get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- INCIDENT PERSISTENCE ---
+app.post('/api/incidents/create', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const incident = { ...req.body, createdAt: new Date().toISOString() };
+        const ref = await db.collection('incidents').add(incident);
+        res.json({ id: ref.id, ...incident });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- AUDIT LOG PERSISTENCE ---
+app.post('/api/audit-logs/create', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const log = { ...req.body, createdAt: new Date().toISOString() };
+        const ref = await db.collection('audit_logs').add(log);
+        res.json({ id: ref.id, ...log });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- STANDALONE DATA ENDPOINTS (for post-sync reload) ---
+app.get('/api/opportunities', verifyToken, async (_req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('opportunities').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/shifts', verifyToken, async (_req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('shifts').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 

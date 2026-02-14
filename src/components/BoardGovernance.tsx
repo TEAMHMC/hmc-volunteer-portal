@@ -3,6 +3,7 @@ import { Volunteer } from '../types';
 import { BOARD_GOVERNANCE_DOCS, BOARD_FORM_CONTENTS } from '../constants';
 import { apiService } from '../services/apiService';
 import { geminiService } from '../services/geminiService';
+import { toastService } from '../services/toastService';
 import SignaturePad, { SignaturePadRef } from './SignaturePad';
 import {
   Briefcase, FileSignature, FileText, Download, ExternalLink, Video,
@@ -190,7 +191,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
         if (Array.isArray(meetingsData)) setMeetings(meetingsData);
         if (giveOrGetData) setGiveOrGet(giveOrGetData);
         if (signaturesData) setFormSignatures(signaturesData);
-      } catch {}
+      } catch {
+        toastService.error('Operation failed. Please try again.');
+      }
       setLoading(false);
     };
     loadData();
@@ -211,7 +214,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     }));
     try {
       await apiService.post(`/api/board/meetings/${meetingId}/rsvp`, { status });
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
   };
 
   const handleStartMeeting = (meetingLink: string) => {
@@ -222,7 +227,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     try {
       await apiService.put(`/api/board/meetings/${meetingId}/minutes`, { minutesStatus: 'approved' });
       setMeetings(prev => prev.map(m => m.id === meetingId ? { ...m, minutesStatus: 'approved' as const } : m));
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
     setShowMinutesModal(null);
   };
 
@@ -230,14 +237,18 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     try {
       await apiService.put(`/api/board/meetings/${meetingId}/minutes`, { minutesStatus: 'draft', revisionNote: note });
       setMeetings(prev => prev.map(m => m.id === meetingId ? { ...m, minutesStatus: 'draft' as const } : m));
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
     setShowMinutesModal(null);
   };
 
   const handleEmergencyMeetingRequest = async (reason: string) => {
     try {
       await apiService.post('/api/board/emergency-meeting', { reason });
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
     setShowEmergencyModal(false);
   };
 
@@ -245,7 +256,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     try {
       await apiService.post(`/api/board/forms/${formId}/sign`, { signatureData });
       setFormSignatures(prev => ({ ...prev, [formId]: new Date().toISOString() }));
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
     setShowFormModal(null);
   };
 
@@ -253,7 +266,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     setGiveOrGet(updated);
     try {
       await apiService.put('/api/board/give-or-get', updated);
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
   };
 
   const handleAddProspect = (prospect: Prospect) => {
@@ -309,7 +324,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     try {
       const result = await apiService.post('/api/board/meetings', meetingData);
       if (result?.id) setMeetings(prev => [...prev, result as BoardMeeting]);
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
     setShowNewMeetingModal(false);
   };
 
@@ -318,7 +335,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     try {
       await apiService.post('/api/board/meetings', { id: editingMeeting.id, ...meetingData });
       setMeetings(prev => prev.map(m => m.id === editingMeeting.id ? { ...m, ...meetingData } : m));
-    } catch {}
+    } catch {
+      toastService.error('Operation failed. Please try again.');
+    }
     setEditingMeeting(null);
   };
 
@@ -886,7 +905,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               await apiService.put(`/api/board/meetings/${showMinutesModal.id}/minutes`, { minutesContent: content, minutesStatus: 'draft' });
               setMeetings(prev => prev.map(m => m.id === showMinutesModal.id ? { ...m, minutesContent: content, minutesStatus: 'draft' as const } : m));
               setShowMinutesModal({ ...showMinutesModal, minutesContent: content, minutesStatus: 'draft' });
-            } catch {}
+            } catch {
+              toastService.error('Operation failed. Please try again.');
+            }
           }}
         />
       )}

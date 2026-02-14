@@ -130,9 +130,9 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   };
 
   const handleLogAndSetAudit = (log: Omit<AuditLog, 'id' | 'timestamp' | 'actorUserId' | 'actorRole' | 'shiftId' | 'eventId'>) => {
-    const newLog: AuditLog = { 
-        ...log, 
-        id: `log-${Date.now()}`, 
+    const newLog: AuditLog = {
+        ...log,
+        id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
         actorUserId: user.id,
         actorRole: user.role,
@@ -140,6 +140,8 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         eventId: opportunity.id
     };
     setAuditLogs(prev => [newLog, ...prev]);
+    // Persist to backend
+    apiService.post('/api/audit-logs/create', newLog).catch(() => {});
   };
 
   const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
@@ -229,7 +231,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
-          {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
+          {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => {}); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
                 try {
                   await apiService.post('/api/ops/signoff', {
@@ -501,7 +503,7 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
                     <textarea placeholder="Event description..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full h-32 p-6 bg-white border border-rose-200 rounded-3xl outline-none font-medium resize-none" />
                     <textarea placeholder="Actions taken in field..." value={form.actionsTaken} onChange={e => setForm({...form, actionsTaken: e.target.value})} className="w-full h-24 p-6 bg-white border border-rose-200 rounded-3xl outline-none font-medium resize-none" />
                     <div className="flex gap-4">
-                        <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 bg-white text-[#1a1a1a] border border-[#0f0f0f] rounded-full font-normal text-base flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Discard</button>
+                        <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 bg-white text-zinc-900 border border-zinc-950 rounded-full font-normal text-base flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-zinc-950" /> Discard</button>
                         <button type="submit" className="flex-[2] py-4 bg-brand text-white border border-brand rounded-full font-normal text-base shadow-elevation-2 flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-white" /> Transmit Report</button>
                     </div>
                 </form>

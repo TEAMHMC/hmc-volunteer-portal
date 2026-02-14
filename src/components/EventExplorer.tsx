@@ -315,13 +315,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           placeholder="Search by location, event name, or category..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white border border-[#e8e6e3] rounded-2xl py-3 pl-11 pr-4 text-sm font-normal outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand/30 transition-all"
+          className="w-full bg-white border border-zinc-200 rounded-2xl py-3 pl-11 pr-4 text-sm font-normal outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand/30 transition-all"
         />
       </div>
 
       {/* Event card grid */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center bg-zinc-50 rounded-2xl border border-[#e8e6e3]">
+        <div className="py-16 text-center bg-zinc-50 rounded-2xl border border-zinc-200">
           <Calendar size={32} className="mx-auto text-zinc-300 mb-3" />
           <p className="text-zinc-400 font-medium text-sm">No events found.</p>
           {search && <p className="text-zinc-400 text-xs mt-1">Try a different search term.</p>}
@@ -334,7 +334,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <button
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
-                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-elevation-1 group ${isSignedUp ? 'border-brand/30 shadow-elevation-1' : 'border-[#e8e6e3] hover:border-zinc-300'}`}
+                className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-elevation-1 group ${isSignedUp ? 'border-brand/30 shadow-elevation-1' : 'border-zinc-200 hover:border-zinc-300'}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span
@@ -388,12 +388,12 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-zinc-50 p-4 rounded-xl border border-[#e8e6e3]">
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
                     <Calendar className="text-brand mb-1.5" size={16} />
                     <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Date</p>
                     <p className="text-sm font-medium text-zinc-900">{selectedEvent.dateDisplay}</p>
                   </div>
-                  <div className="bg-zinc-50 p-4 rounded-xl border border-[#e8e6e3]">
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
                     <Clock className="text-brand mb-1.5" size={16} />
                     <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Time</p>
                     <p className="text-sm font-medium text-zinc-900">{selectedEvent.time}</p>
@@ -430,14 +430,14 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                         disabled={isSigningUp}
                         className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 ${
                           user.rsvpedEventIds?.includes(selectedEvent.id)
-                            ? 'bg-white text-[#1a1a1a] border border-[#0f0f0f]'
+                            ? 'bg-white text-zinc-900 border border-zinc-950'
                             : 'bg-brand text-white border border-brand hover:opacity-95'
                         }`}
                       >
                         {isSigningUp ? (
                           <><Loader2 size={18} className="animate-spin" /> Processing...</>
                         ) : user.rsvpedEventIds?.includes(selectedEvent.id) ? (
-                          <><span className="w-2 h-2 rounded-full bg-[#0f0f0f]" /> Signed up — click to cancel</>
+                          <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Signed up — click to cancel</>
                         ) : (
                           <><span className="w-2 h-2 rounded-full bg-white" /> Sign up</>
                         )}

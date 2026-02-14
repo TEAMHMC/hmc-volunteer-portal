@@ -432,7 +432,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   }
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
        <div className="w-full max-w-4xl my-4 flex items-center justify-between">
          <button onClick={handleBackToLanding} className="text-sm font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
          {step !== 'account' && savedProgress.step !== 'account' && (
