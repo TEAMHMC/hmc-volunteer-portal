@@ -669,39 +669,55 @@ const EmailTemplates = {
 
   // 5. Shift Confirmation
   shift_confirmation: (data: EmailTemplateData) => ({
-    subject: `You're Assigned: ${data.eventName}`,
+    subject: `You're Assigned: ${data.eventName || 'Upcoming Event'}`,
     html: `${emailHeader("You're Assigned to a Shift")}
-      <p>Hi ${data.volunteerName},</p>
+      <p>Hi ${data.volunteerName || 'Volunteer'},</p>
       <p>Great news! You've been assigned to an upcoming shift:</p>
       <div style="background: #f9fafb; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; padding: 20px; margin: 24px 0; border-radius: 4px;">
-        <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventName}</p>
-        <p style="margin: 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
-        <p style="margin: 8px 0;"><strong>Time:</strong> ${data.eventTime}</p>
-        <p style="margin: 8px 0;"><strong>Location:</strong> ${data.location}</p>
-        <p style="margin: 8px 0;"><strong>Duration:</strong> ${data.duration}</p>
-        <p style="margin: 8px 0;"><strong>Your Role:</strong> <span style="color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: 600;">${data.role}</span></p>
+        <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventName || 'Upcoming Event'}</p>
+        <p style="margin: 8px 0;"><strong>Date:</strong> ${data.eventDate || 'See event details'}</p>
+        <p style="margin: 8px 0;"><strong>Time:</strong> ${data.eventTime || 'See event details'}</p>
+        <p style="margin: 8px 0;"><strong>Location:</strong> ${data.location || 'See event details'}</p>
+        ${data.duration ? `<p style="margin: 8px 0;"><strong>Duration:</strong> ${data.duration}</p>` : ''}
+        ${data.role ? `<p style="margin: 8px 0;"><strong>Your Role:</strong> <span style="color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: 600;">${data.role}</span></p>` : ''}
       </div>
       ${actionButton('Confirm Attendance', `${EMAIL_CONFIG.WEBSITE_URL}/shifts/confirm`)}
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, You're assigned to ${data.eventName} on ${data.eventDate} at ${data.eventTime}. Location: ${data.location}. Role: ${data.role}.`
+    text: `Hi ${data.volunteerName || 'Volunteer'}, You're assigned to ${data.eventName || 'an event'} on ${data.eventDate || 'TBD'} at ${data.eventTime || 'TBD'}. Location: ${data.location || 'TBD'}.`
   }),
 
   // 6. Shift Reminder (24h)
   shift_reminder_24h: (data: EmailTemplateData) => ({
-    subject: `Reminder: Your Shift Tomorrow at ${data.eventTime}`,
+    subject: `Reminder: Your Shift Tomorrow${data.eventTime ? ' at ' + data.eventTime : ''}`,
     html: `${emailHeader('Your Shift is Tomorrow!')}
-      <p>Hi ${data.volunteerName},</p>
+      <p>Hi ${data.volunteerName || 'Volunteer'},</p>
       <p>Just a friendly reminder—you have a shift <strong>tomorrow</strong>!</p>
       <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0;">
-        <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px; text-transform: uppercase;">Tomorrow at</p>
-        <p style="margin: 0 0 16px 0; font-size: 32px; font-weight: bold;">${data.eventTime}</p>
-        <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${data.eventName}</p>
-        <p style="margin: 0; opacity: 0.9;">${data.location}</p>
+        <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px; text-transform: uppercase;">Tomorrow${data.eventTime ? ' at' : ''}</p>
+        ${data.eventTime ? `<p style="margin: 0 0 16px 0; font-size: 32px; font-weight: bold;">${data.eventTime}</p>` : ''}
+        <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${data.eventName || 'Your Scheduled Event'}</p>
+        <p style="margin: 0; opacity: 0.9;">${data.location || 'See event details for location'}</p>
       </div>
       <p><strong>Arrive 15 minutes early</strong> to get oriented.</p>
       ${actionButton('View Shift Details', `${EMAIL_CONFIG.WEBSITE_URL}/shifts/upcoming`)}
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, Reminder: ${data.eventName} tomorrow at ${data.eventTime}. Location: ${data.location}. Arrive 15 min early.`
+    text: `Hi ${data.volunteerName || 'Volunteer'}, Reminder: ${data.eventName || 'Your event'} tomorrow${data.eventTime ? ' at ' + data.eventTime : ''}. ${data.location ? 'Location: ' + data.location + '. ' : ''}Arrive 15 min early.`
+  }),
+
+  // 6b. Post-Shift Thank You
+  post_shift_thank_you: (data: EmailTemplateData) => ({
+    subject: `Thank You for Volunteering at ${data.eventName || 'Our Event'}`,
+    html: `${emailHeader('Thank You!')}
+      <p>Hi ${data.volunteerName || 'Volunteer'},</p>
+      <p>Thank you for volunteering at <strong>${data.eventName || 'our event'}</strong> yesterday! Your service made a real difference in our community.</p>
+      <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #065f46;">Your impact matters</p>
+        <p style="margin: 0; color: #047857;">Every hour you contribute helps improve health outcomes for the people in our community who need it most.</p>
+      </div>
+      <p>Your volunteer hours have been recorded and your dashboard has been updated.</p>
+      ${actionButton('View Your Dashboard', `${EMAIL_CONFIG.WEBSITE_URL}/dashboard`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName || 'Volunteer'}, Thank you for volunteering at ${data.eventName || 'our event'} yesterday! Your service made a real difference.`
   }),
 
   // 7. Shift Cancellation
@@ -1278,7 +1294,30 @@ class EmailService {
     try {
       // Render server-side template to get subject + HTML body
       const templateFn = EmailTemplates[templateName];
-      const rendered = templateFn(data);
+      // Normalize data with safe defaults to prevent "undefined" in emails
+      const safeData: EmailTemplateData = {
+        ...data,
+        volunteerName: data.volunteerName || 'Volunteer',
+        eventName: data.eventName || 'Upcoming Event',
+        eventTitle: data.eventTitle || data.eventName || 'Upcoming Event',
+        eventDate: data.eventDate || 'See event details',
+        eventTime: data.eventTime || 'See event details',
+        location: data.location || 'See event details',
+        eventLocation: data.eventLocation || data.location || 'See event details',
+        reason: data.reason || 'No additional details provided',
+        trainingName: data.trainingName || 'Training Module',
+        trainingDate: data.trainingDate || 'See portal for details',
+        completionDate: data.completionDate || 'today',
+        appliedRole: data.appliedRole || 'Volunteer',
+        approvedRole: data.approvedRole || 'Volunteer',
+        coordinatorName: data.coordinatorName || 'Coordinator',
+        rsvpName: data.rsvpName || 'Guest',
+        rsvpEmail: data.rsvpEmail || '',
+        subject: data.subject || 'Support Request',
+        submitterName: data.submitterName || 'A user',
+        submitterEmail: data.submitterEmail || '',
+      };
+      const rendered = templateFn(safeData);
 
       // Send pre-rendered HTML to Google Apps Script.
       // Use type='prerendered' to bypass Apps Script's own templates (which would
@@ -5681,7 +5720,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
               const smsResult = await sendSMS(volId, `+1${phone}`, msg);
               if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
               else if (vol.email) {
-                await EmailService.send('shift_reminder_24h', {
+                await EmailService.send('post_shift_thank_you', {
                   toEmail: vol.email,
                   volunteerName: vol.name || vol.firstName || 'Volunteer',
                   eventName: opp.title,
@@ -5691,7 +5730,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
                 result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
               } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No contact method' }); }
             } else if (vol.email) {
-              await EmailService.send('shift_reminder_24h', {
+              await EmailService.send('post_shift_thank_you', {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
                 eventName: opp.title,
