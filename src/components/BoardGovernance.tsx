@@ -356,14 +356,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-32">
       {/* Header */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-10 rounded-container text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-8 rounded-2xl text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
         <div className="relative z-10 flex items-center gap-6">
           <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-elevation-2">
             {meetingsOnly ? <CalendarDays size={28} /> : <Briefcase size={28} />}
           </div>
           <div>
-            <h2 className="text-3xl font-black tracking-tight">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h2>
+            <h2 className="text-2xl font-black tracking-tight">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h2>
             <p className="text-zinc-400 mt-1">
               {meetingsOnly ? 'Schedule and manage team meetings' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal`}
             </p>
@@ -420,13 +420,13 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Upcoming Meetings */}
-          <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
             <div className="p-8 border-b border-zinc-100">
               <h3 className="text-xl font-black text-zinc-900">Upcoming Meetings</h3>
             </div>
             <div className="divide-y divide-zinc-100">
               {meetings.filter(m => m.status === 'scheduled').length === 0 && (
-                <div className="p-12 text-center text-zinc-400">
+                <div className="p-8 text-center text-zinc-400">
                   <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="font-bold">No upcoming meetings scheduled</p>
                   <p className="text-sm mt-1">New meetings will appear here once scheduled.</p>
@@ -501,7 +501,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                           </span>
                         ) : (
                           <div className="flex gap-1">
-                            <button onClick={() => handleRSVP(meeting.id, 'attending')} className="px-3 py-1 bg-emerald-500 text-white rounded-full text-xs font-bold hover:bg-emerald-600">Attend</button>
+                            <button onClick={() => handleRSVP(meeting.id, 'attending')} className="px-3 py-1 bg-brand text-white rounded-full text-xs font-bold hover:bg-brand">Attend</button>
                             <button onClick={() => handleRSVP(meeting.id, 'tentative')} className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold hover:bg-amber-600">Maybe</button>
                             <button onClick={() => handleRSVP(meeting.id, 'not_attending')} className="px-3 py-1 bg-zinc-300 text-zinc-700 rounded-full text-xs font-bold hover:bg-zinc-400">Can't</button>
                           </div>
@@ -533,14 +533,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Past Meetings with Minutes */}
-          <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
             <div className="p-8 border-b border-zinc-100">
               <h3 className="text-xl font-black text-zinc-900">Meeting Minutes</h3>
               <p className="text-sm text-zinc-500 mt-1">Review and approve minutes from past meetings</p>
             </div>
             <div className="divide-y divide-zinc-100">
               {meetings.filter(m => m.status === 'completed').length === 0 && (
-                <div className="p-12 text-center text-zinc-400">
+                <div className="p-8 text-center text-zinc-400">
                   <FileText size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="font-bold">No completed meetings yet</p>
                 </div>
@@ -589,7 +589,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             return (
               <div
                 key={form.id}
-                className={`p-8 rounded-container border-2 transition-all ${
+                className={`p-8 rounded-2xl border-2 transition-all ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' :
                   form.required ? 'border-rose-200 bg-rose-50/30' : 'border-zinc-100 bg-white'
                 }`}
@@ -620,7 +620,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                   <button
                     onClick={() => setShowFormModal(form.id)}
                     className={`flex-1 py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 ${
-                      isSigned ? 'bg-zinc-100 text-zinc-500' : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                      isSigned ? 'bg-zinc-100 text-zinc-500' : 'bg-brand text-white hover:bg-brand-hover'
                     }`}
                   >
                     <Eye size={16} />
@@ -648,7 +648,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             <div
               key={doc.id}
               onClick={() => setShowDocViewer(doc.id)}
-              className="p-6 rounded-card-lg border border-zinc-100 bg-white hover:shadow-elevation-2 hover:border-zinc-200 transition-all cursor-pointer group"
+              className="p-8 rounded-2xl border border-zinc-100 bg-white hover:shadow-elevation-2 hover:border-zinc-200 transition-all cursor-pointer group"
             >
               <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                 <FileText size={24} />
@@ -668,7 +668,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
         <div className="space-y-8">
           {/* Goal Setting */}
           {giveOrGet.goal === 0 && (
-            <div className="bg-brand/5 border border-brand/20 p-8 rounded-container">
+            <div className="bg-brand/5 border border-brand/20 p-8 rounded-2xl">
               <h4 className="font-black text-zinc-900 mb-2">Set Your Annual Commitment</h4>
               <p className="text-sm text-zinc-500 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
               <div className="flex gap-3">
@@ -699,14 +699,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Progress Overview */}
           {giveOrGet.goal > 0 && (
-            <div className="bg-gradient-to-br from-brand to-brand-hover p-10 rounded-container text-white">
+            <div className="bg-gradient-to-br from-brand to-brand-hover p-8 rounded-2xl text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-2xl font-black">Your Give or Get Progress</h3>
                   <p className="text-white/70 mt-1">Annual commitment: ${giveOrGet.goal.toLocaleString()}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-5xl font-black">${giveOrGet.raised.toLocaleString()}</p>
+                  <p className="text-2xl font-black">${giveOrGet.raised.toLocaleString()}</p>
                   <p className="text-white/70">of ${giveOrGet.goal.toLocaleString()} goal</p>
                 </div>
               </div>
@@ -719,7 +719,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-container border border-zinc-100">
+            <div className="bg-white p-8 rounded-2xl border border-zinc-100">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Gift size={24} />
@@ -729,7 +729,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                   <p className="text-sm text-zinc-500">Your direct contributions</p>
                 </div>
               </div>
-              <p className="text-4xl font-black text-emerald-600">${giveOrGet.personalContribution.toLocaleString()}</p>
+              <p className="text-2xl font-black text-emerald-600">${giveOrGet.personalContribution.toLocaleString()}</p>
               <div className="flex gap-3 mt-6">
                 <a
                   href={DONATE_URL}
@@ -749,7 +749,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-container border border-zinc-100">
+            <div className="bg-white p-8 rounded-2xl border border-zinc-100">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
                   <TrendingUp size={24} />
@@ -759,7 +759,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                   <p className="text-sm text-zinc-500">From your network</p>
                 </div>
               </div>
-              <p className="text-4xl font-black text-brand">${giveOrGet.fundraised.toLocaleString()}</p>
+              <p className="text-2xl font-black text-brand">${giveOrGet.fundraised.toLocaleString()}</p>
               <button
                 onClick={() => setShowDonationModal('fundraised')}
                 className="mt-6 w-full py-3 bg-zinc-100 text-zinc-700 rounded-full font-bold text-sm hover:bg-zinc-200 transition-colors"
@@ -770,8 +770,8 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Prospects */}
-          <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
-            <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+            <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
               <div>
                 <h4 className="font-black text-zinc-900">Fundraising Prospects</h4>
                 <p className="text-sm text-zinc-500 mt-1">Track potential donors and outreach</p>
@@ -861,8 +861,8 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Donation History */}
           {(giveOrGet.donationLog?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-container border border-zinc-100 overflow-hidden">
-              <div className="p-6 border-b border-zinc-100">
+            <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+              <div className="p-8 border-b border-zinc-100">
                 <h4 className="font-black text-zinc-900">Donation Log</h4>
               </div>
               <div className="divide-y divide-zinc-100">
@@ -985,7 +985,7 @@ const FormSigningModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">{form.title}</h3>
@@ -1064,7 +1064,7 @@ const MinutesReviewModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-3xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-3xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Meeting Minutes</h3>
@@ -1118,7 +1118,7 @@ const MinutesReviewModal: React.FC<{
                     <button onClick={() => setShowRevisionForm(true)} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold flex items-center justify-center gap-2">
                       <Edit3 size={16} /> Request Revisions
                     </button>
-                    <button onClick={onApprove} className="flex-1 py-3 bg-emerald-600 text-white rounded-full font-bold flex items-center justify-center gap-2">
+                    <button onClick={onApprove} className="flex-1 py-3 bg-brand text-white rounded-full font-bold flex items-center justify-center gap-2">
                       <CheckCircle size={16} /> Approve Minutes
                     </button>
                   </div>
@@ -1141,7 +1141,7 @@ const EmergencyMeetingModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-3xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
@@ -1182,7 +1182,7 @@ const MeetingFormModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-3xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-xl font-black text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
@@ -1262,7 +1262,7 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Add Prospect</h3>
@@ -1342,7 +1342,7 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-3xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-md w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-xl font-black text-zinc-900">Log {type === 'personal' ? 'Personal Donation' : 'Fundraising Activity'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
@@ -1423,7 +1423,7 @@ www.healthmatters.clinic`;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">Fundraising Email Draft</h3>
@@ -1518,7 +1518,7 @@ const DocumentViewerModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-4xl w-full rounded-3xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-zinc-900">{doc.title}</h3>
@@ -1544,7 +1544,7 @@ const DocumentViewerModal: React.FC<{
           ) : content && content.sections.length > 0 ? (
             <div className="space-y-6">
               {content.content && (
-                <p className="text-zinc-600 text-sm font-medium italic border-l-4 border-brand/30 pl-4">{content.content}</p>
+                <p className="text-zinc-600 text-sm font-bold italic border-l-4 border-brand/30 pl-4">{content.content}</p>
               )}
               {content.sections.map((section, idx) => (
                 <div key={idx} className="space-y-2">

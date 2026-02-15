@@ -97,9 +97,9 @@ const BroadcastsView: React.FC<{
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-10 border-b border-zinc-50 flex items-center justify-between shrink-0">
+      <div className="p-8 border-b border-zinc-50 flex items-center justify-between shrink-0">
         <div>
-          <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{canBroadcast ? 'Leadership Broadcasts' : 'Announcements'}</h3>
+          <h3 className="text-lg font-black text-zinc-900 tracking-tight">{canBroadcast ? 'Leadership Broadcasts' : 'Announcements'}</h3>
           <p className="text-sm text-zinc-500 mt-1">{canBroadcast ? 'Send targeted announcements to volunteer groups' : 'Team announcements and updates'}</p>
         </div>
         {canBroadcast && !showNewAnnouncer && (
@@ -112,9 +112,9 @@ const BroadcastsView: React.FC<{
         )}
       </div>
 
-      <div className="flex-1 p-10 space-y-8 overflow-y-auto no-scrollbar bg-zinc-50/20">
+      <div className="flex-1 p-8 space-y-8 overflow-y-auto no-scrollbar bg-zinc-50/20">
         {showNewAnnouncer && (
-          <div className="p-10 bg-white rounded-container border-2 border-dashed border-brand/20 animate-in slide-in-from-top-4 duration-500 shadow-elevation-1 mb-12 relative">
+          <div className="p-8 bg-white rounded-2xl border-2 border-dashed border-brand/20 animate-in slide-in-from-top-4 duration-500 shadow-elevation-1 mb-12 relative">
             <button onClick={handleCloseComposer} className="absolute top-6 right-6 p-2 rounded-full bg-zinc-100 text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors">
               <X size={20} />
             </button>
@@ -162,7 +162,7 @@ const BroadcastsView: React.FC<{
               placeholder="Message content..."
               value={newAnnounceBody}
               onChange={e => setNewAnnounceBody(e.target.value)}
-              className="w-full min-h-[120px] text-zinc-600 font-medium outline-none resize-none leading-relaxed"
+              className="w-full min-h-[120px] text-zinc-600 font-bold outline-none resize-none leading-relaxed"
             />
             <div className="flex items-center gap-4 pt-4 border-t border-zinc-100">
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50">
@@ -173,7 +173,7 @@ const BroadcastsView: React.FC<{
                 onClick={postAnnouncement}
                 disabled={isSending || isSent || !newAnnounceTitle || !newAnnounceBody}
                 className={`flex-1 py-4 rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 transition-all flex items-center justify-center gap-3
-                  ${isSent ? 'bg-emerald-500 text-white' : 'bg-zinc-900 border border-black text-white'}
+                  ${isSent ? 'bg-emerald-500 text-white' : 'bg-brand border border-black text-white'}
                   disabled:opacity-70`}
               >
                 {isSending ? <Loader2 size={16} className="animate-spin" /> : isSent ? <><Check size={16} /> Sent!</> : 'Send Broadcast'}
@@ -183,7 +183,7 @@ const BroadcastsView: React.FC<{
         )}
 
         {visibleAnnouncements.map(a => (
-          <div key={a.id} className="p-10 bg-white rounded-container border border-zinc-100/80 transition-all shadow-elevation-1 group relative">
+          <div key={a.id} className="p-8 bg-white rounded-2xl border border-zinc-100 transition-all shadow-elevation-1 group relative">
             <div className="flex items-start justify-between mb-4">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{new Date(a.date).toLocaleDateString()}</span>
               {a.targetRoles && a.targetRoles.length > 0 && canBroadcast && (
@@ -192,8 +192,8 @@ const BroadcastsView: React.FC<{
                 </span>
               )}
             </div>
-            <h4 className="text-2xl font-bold text-zinc-900 mb-4 tracking-tight leading-tight">{a.title}</h4>
-            <p className="text-[15px] text-zinc-500 leading-relaxed font-medium max-w-2xl">{a.content}</p>
+            <h4 className="text-2xl font-black text-zinc-900 mb-4 tracking-tight leading-tight">{a.title}</h4>
+            <p className="text-[15px] text-zinc-500 leading-relaxed font-bold max-w-2xl">{a.content}</p>
           </div>
         ))}
 
@@ -434,7 +434,7 @@ const BriefingView: React.FC<{
             }`}
           >
             <Hash size={18} />
-            <span className="font-semibold text-sm">General</span>
+            <span className="font-bold text-sm">General</span>
           </button>
         </div>
 
@@ -475,7 +475,7 @@ const BriefingView: React.FC<{
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-zinc-700 truncate block">{v.name}</span>
+                      <span className="text-sm font-bold text-zinc-700 truncate block">{v.name}</span>
                       <span className={`text-[10px] ${isUserOnline(v.id) ? 'text-emerald-600' : 'text-zinc-400'}`}>
                         {isUserOnline(v.id) ? 'Online' : 'Offline'}
                       </span>
@@ -514,7 +514,7 @@ const BriefingView: React.FC<{
                     )}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="font-semibold text-sm truncate">{conv.recipientName}</p>
+                    <p className="font-bold text-sm truncate">{conv.recipientName}</p>
                     <p className={`text-[11px] truncate ${activeChannel === conv.recipientId ? 'text-white/60' : 'text-zinc-400'}`}>
                       {conv.lastMessage.content.substring(0, 30)}...
                     </p>
@@ -554,7 +554,7 @@ const BriefingView: React.FC<{
                 <p className="font-bold text-zinc-900">{getChannelName()}</p>
                 <p className="text-xs text-zinc-400">
                   {isUserOnline(activeChannel) ? (
-                    <span className="text-emerald-600 font-medium">Online now</span>
+                    <span className="text-emerald-600 font-bold">Online now</span>
                   ) : (
                     'Offline'
                   )}
@@ -571,7 +571,7 @@ const BriefingView: React.FC<{
               <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center mb-4">
                 <MessageSquare size={28} className="text-zinc-300" />
               </div>
-              <p className="text-zinc-400 font-medium">No messages yet</p>
+              <p className="text-zinc-400 font-bold">No messages yet</p>
               <p className="text-sm text-zinc-300">Start the conversation!</p>
             </div>
           )}
@@ -590,7 +590,7 @@ const BriefingView: React.FC<{
                   </div>
                   <div>
                     <div className={`flex items-center gap-2 mb-1 ${isMyMessage ? 'flex-row-reverse' : ''}`}>
-                      <span className="text-xs font-semibold text-zinc-700">{msg.sender}</span>
+                      <span className="text-xs font-bold text-zinc-700">{msg.sender}</span>
                       <span className="text-[10px] text-zinc-400">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -808,7 +808,7 @@ const TicketDetailModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-elevation-3 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl max-w-4xl w-full shadow-elevation-3 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-zinc-100 flex items-start justify-between shrink-0">
           <div className="flex-1 min-w-0 pr-4">
@@ -847,7 +847,7 @@ const TicketDetailModal: React.FC<{
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-brand text-brand'
                   : 'border-transparent text-zinc-400 hover:text-zinc-600'
@@ -919,7 +919,7 @@ const TicketDetailModal: React.FC<{
                     <select
                       value={ticket.priority}
                       onChange={(e) => handlePriorityChange(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium"
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-bold"
                     >
                       {TICKET_PRIORITIES.map(p => (
                         <option key={p.value} value={p.value}>{p.label}</option>
@@ -935,7 +935,7 @@ const TicketDetailModal: React.FC<{
                     value={ticket.assignedTo || ''}
                     onChange={(e) => handleAssign(e.target.value || null)}
                     disabled={!canModify}
-                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium disabled:opacity-60"
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-bold disabled:opacity-60"
                   >
                     <option value="">Unassigned</option>
                     <option value={user.id}>{user.name} (Me)</option>
@@ -1028,7 +1028,7 @@ const TicketDetailModal: React.FC<{
                         <div className="w-6 h-6 rounded-full bg-zinc-200 flex items-center justify-center text-[10px] font-bold">
                           {note.authorName.charAt(0)}
                         </div>
-                        <span className="text-sm font-semibold text-zinc-700">{note.authorName}</span>
+                        <span className="text-sm font-bold text-zinc-700">{note.authorName}</span>
                         {note.isInternal && (
                           <span className="px-2 py-0.5 bg-amber-200 text-amber-700 text-[10px] font-bold rounded-full">
                             INTERNAL
@@ -1313,7 +1313,7 @@ const OpsSupportView: React.FC<{
             <GripVertical size={14} className="text-zinc-300 shrink-0" />
           )}
         </div>
-        <h4 className="font-semibold text-zinc-900 text-sm leading-tight mb-2">{ticket.subject}</h4>
+        <h4 className="font-bold text-zinc-900 text-sm leading-tight mb-2">{ticket.subject}</h4>
         <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{ticket.description}</p>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold text-zinc-400">
@@ -1347,7 +1347,7 @@ const OpsSupportView: React.FC<{
       {/* Header */}
       <div className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0 bg-white">
         <div>
-          <h3 className="text-xl font-bold text-zinc-900 tracking-tight">Ops Support</h3>
+          <h3 className="text-lg font-black text-zinc-900 tracking-tight">Ops Support</h3>
           <p className="text-sm text-zinc-500 mt-1">Track and manage support tickets</p>
         </div>
         <button
@@ -1441,7 +1441,7 @@ const OpsSupportView: React.FC<{
       {/* New Ticket Modal */}
       {showNewTicket && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-elevation-3 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-elevation-3 max-h-[90vh] overflow-y-auto">
             <div className="p-8 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-2xl font-black text-zinc-900">New Support Ticket</h2>
               <button onClick={() => setShowNewTicket(false)} className="p-2 hover:bg-zinc-100 rounded-full">
@@ -1458,7 +1458,7 @@ const OpsSupportView: React.FC<{
                   <select
                     value={newTicketCategory}
                     onChange={e => setNewTicketCategory(e.target.value as TicketCategory)}
-                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-bold"
                   >
                     {TICKET_CATEGORIES.map(cat => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -1472,7 +1472,7 @@ const OpsSupportView: React.FC<{
                   <select
                     value={newTicketPriority}
                     onChange={e => setNewTicketPriority(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-bold"
                   >
                     {TICKET_PRIORITIES.map(p => (
                       <option key={p.value} value={p.value}>{p.label}</option>
@@ -1488,7 +1488,7 @@ const OpsSupportView: React.FC<{
                 <select
                   value={newTicketVisibility}
                   onChange={e => setNewTicketVisibility(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm font-bold"
                 >
                   <option value="public">Public (all staff can see)</option>
                   <option value="team">My Team Only (coordinators + admins)</option>
@@ -1516,7 +1516,7 @@ const OpsSupportView: React.FC<{
                 />
               </div>
               <div className="bg-brand/5 p-4 rounded-xl border border-brand/10">
-                <p className="text-xs text-brand font-medium flex items-center gap-2">
+                <p className="text-xs text-brand font-bold flex items-center gap-2">
                   <Bell size={14} />
                   Tech support will be notified via email at tech@healthmatters.clinic when you submit this ticket.
                 </p>
@@ -1577,18 +1577,18 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div>
-          <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Communication Hub</h2>
-          <p className="text-[15px] text-zinc-500 font-medium mt-1">
+          <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Communication Hub</h2>
+          <p className="text-[15px] text-zinc-500 font-bold mt-1">
             Your command center for team communication and support.
           </p>
         </div>
-        <div className="flex bg-white border border-zinc-200/50 p-1.5 rounded-card shadow-elevation-1">
+        <div className="flex bg-white border border-zinc-100 p-1.5 rounded-2xl shadow-elevation-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[13px] font-bold transition-all ${
-                activeTab === tab.id ? 'bg-zinc-900 text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'
+                activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'
               }`}
             >
               <tab.icon size={18} /> {tab.label}
@@ -1598,7 +1598,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 bg-white border border-zinc-200/50 rounded-container shadow-elevation-1 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1 overflow-hidden flex flex-col">
         {activeTab === 'broadcasts' && (
           <BroadcastsView
             user={user}

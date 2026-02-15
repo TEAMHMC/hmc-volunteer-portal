@@ -124,7 +124,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         
         {showLogin ? (
           <div className="w-full max-w-[1200px] flex justify-center animate-in fade-in">
-            <div className="max-w-md w-full bg-white p-8 md:p-12 rounded-container shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
+            <div className="max-w-md w-full bg-white p-8 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
               <div className="flex justify-between items-center mb-8">
                   <h2 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin Portal' : 'Welcome Back'}</h2>
                   <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>
@@ -179,7 +179,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                           type="button"
                           onClick={handleForgotPassword}
                           disabled={resetLoading}
-                          className="text-[11px] font-semibold text-zinc-400 hover:text-brand transition-colors"
+                          className="text-[11px] font-bold text-zinc-400 hover:text-brand transition-colors"
                         >
                           {resetLoading ? 'Sending...' : 'Forgot password?'}
                         </button>
@@ -194,7 +194,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                         <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-center text-xs font-bold border border-rose-100 space-y-2">
                           <div className="flex items-center justify-center gap-2"><Zap size={14} /> {error}</div>
                           {!isAdmin && error.toLowerCase().includes('invalid') && (
-                            <p className="text-rose-400 font-medium">Don't have an account? Click <button type="button" onClick={handleSignUpClick} className="underline font-bold text-rose-600 hover:text-rose-800">Apply to Volunteer</button> below to get started.</p>
+                            <p className="text-rose-400 font-bold">Don't have an account? Click <button type="button" onClick={handleSignUpClick} className="underline font-bold text-rose-600 hover:text-rose-800">Apply to Volunteer</button> below to get started.</p>
                           )}
                         </div>
                     )}
@@ -204,7 +204,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 </form>
                 {!isAdmin && (
                     <div className="text-center pt-2">
-                        <p className="text-xs font-medium text-zinc-400">Don't have an account yet?</p>
+                        <p className="text-xs font-bold text-zinc-400">Don't have an account yet?</p>
                         <button onClick={handleSignUpClick} className="mt-3 bg-white border border-black text-zinc-900 px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-wide flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-elevation-1 mx-auto">
                             <div className="w-1.5 h-1.5 rounded-full bg-black" />
                             Apply to Volunteer
@@ -220,11 +220,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
                    <Zap size={14} className="animate-pulse" /> Community Operations
                 </div>
-                <h1 className="text-4xl sm:text-5xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-8 italic uppercase">
+                <h1 className="text-2xl sm:text-2xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-8 italic uppercase">
                   Join our<br/>
                   <span className="bg-gradient-to-r from-brand to-indigo-400 bg-clip-text text-transparent">Community.</span>
                 </h1>
-                <p className="text-base md:text-lg lg:text-xl text-zinc-400 font-medium max-w-4xl mx-auto leading-relaxed italic">
+                <p className="text-base md:text-lg lg:text-xl text-zinc-400 font-bold max-w-4xl mx-auto leading-relaxed italic">
                   A central platform for Health Matters Clinic volunteers to find missions, complete training, and track their impact.
                 </p>
              </div>
@@ -237,7 +237,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
                 </button>
-                <div className="flex items-center gap-4 p-3 bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1">
+                <div className="flex items-center gap-4 p-3 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1">
                    <div className="flex -space-x-3">
                       {[1,2,3,4].map(i => (
                         <div key={i} className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-elevation-1 ${i === 1 ? 'bg-brand/10' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>

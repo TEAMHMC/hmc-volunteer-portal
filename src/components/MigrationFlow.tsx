@@ -83,8 +83,8 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
       case 'profile':
         return (
           <>
-            <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none">Complete Your Profile</h2>
-            <p className="text-zinc-500 font-medium">To finalize your transition to our new portal, please fill in the missing details below.</p>
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none">Complete Your Profile</h2>
+            <p className="text-zinc-500 font-bold">To finalize your transition to our new portal, please fill in the missing details below.</p>
             <div className="space-y-6 pt-8">
                 <div><label className="text-xs font-bold">Phone Number</label><input type="tel" value={formData.phone} onChange={e => handleDataChange('phone', formatPhoneNumber(e.target.value))} placeholder="Phone Number" className={`w-full px-6 py-4 bg-zinc-50 border rounded-xl font-bold ${formErrors.phone ? 'border-rose-500' : 'border-zinc-100'}`} />{formErrors.phone && <p className="text-rose-500 text-xs font-bold mt-1">{formErrors.phone}</p>}</div>
                 <div>
@@ -103,8 +103,8 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
       case 'orientation':
         return (
             <>
-                <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Core Orientation</h2>
-                <p className="text-zinc-500 font-medium">To ensure everyone is up-to-date, please review our two core orientation modules.</p>
+                <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Core Orientation</h2>
+                <p className="text-zinc-500 font-bold">To ensure everyone is up-to-date, please review our two core orientation modules.</p>
                 <div className="space-y-6 pt-8">
                     {[HMC_MODULES.hmcIntro, HMC_MODULES.champion].map(m => (
                         <div key={m.id} className="bg-zinc-50/50 p-8 rounded-2xl border border-zinc-100 space-y-6">
@@ -112,7 +112,7 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
                             <div className="aspect-video bg-zinc-200 rounded-xl overflow-hidden"><iframe src={m.embed} className="w-full h-full" allow="autoplay; fullscreen; picture-in-picture;" allowFullScreen></iframe></div>
                             <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl bg-white" onClick={() => (m.id === 'hmc_orientation' ? setWatchedIntro(!watchedIntro) : setWatchedChampion(!watchedChampion))}>
                                 {(m.id === 'hmc_orientation' ? watchedIntro : watchedChampion) ? <CheckSquare className="text-brand" /> : <Square className="text-zinc-300" />}
-                                <span className="text-sm font-medium text-zinc-600">I have watched and understood this module.</span>
+                                <span className="text-sm font-bold text-zinc-600">I have watched and understood this module.</span>
                             </label>
                         </div>
                     ))}
@@ -123,8 +123,8 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
       case 'training':
         return (
             <>
-                <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Finalize Training</h2>
-                <p className="text-zinc-500 font-medium">Please complete your required training plan to fully activate your account.</p>
+                <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Finalize Training</h2>
+                <p className="text-zinc-500 font-bold">Please complete your required training plan to fully activate your account.</p>
                 <div className="pt-8 -mx-12">
                     <TrainingAcademy user={migratingUser} onUpdate={onUpdateUser} />
                 </div>
@@ -136,18 +136,18 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-8 font-['Inter']">
       <div className="w-full max-w-4xl my-4 text-center">
          <h1 className="text-2xl font-black">Welcome Back, {user.name}!</h1>
          <p className="text-zinc-500">Let's get your new profile up and running.</p>
       </div>
-      <div className="max-w-4xl w-full bg-white rounded-container shadow-elevation-3 border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
+      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 md:p-8 relative overflow-hidden">
         <div className="space-y-8 animate-in fade-in">
           {renderContent()}
         </div>
         <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
           {step === 'training' ? (
-            <button onClick={onComplete} disabled={!isTrainingComplete || isLoading} className="flex-1 py-5 bg-emerald-600 text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={onComplete} disabled={!isTrainingComplete || isLoading} className="flex-1 py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? <Loader2 className="animate-spin" /> : <>Complete Activation <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           ) : (

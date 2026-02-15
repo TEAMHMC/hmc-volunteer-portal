@@ -418,10 +418,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   
   if (isComplete) {
     return (
-      <div className="max-w-4xl w-full bg-white rounded-container shadow-elevation-3 border border-zinc-100 p-10 md:p-16 relative overflow-hidden">
+      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 md:p-8 relative overflow-hidden">
         <div className="text-center py-20 animate-in fade-in">
             <CheckCircle size={64} className="mx-auto text-emerald-500 mb-6" />
-            <h2 className="text-3xl font-black text-zinc-900">Application Submitted!</h2>
+            <h2 className="text-2xl font-black text-zinc-900">Application Submitted!</h2>
             <p className="text-zinc-500 mt-4 max-w-md mx-auto">Thank you for applying to volunteer with Health Matters Clinic. Our team will review your application and you will receive an email notification regarding your status soon.</p>
             <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-white" />
@@ -433,14 +433,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-12 font-['Inter']">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-8 font-['Inter']">
        <div className="w-full max-w-4xl my-4 flex items-center justify-between">
          <button onClick={handleBackToLanding} className="text-sm font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
          {step !== 'account' && savedProgress.step !== 'account' && (
            <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
          )}
        </div>
-       <div className={`max-w-4xl w-full bg-white rounded-container shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-10 md:p-12' : 'p-10 md:p-16'} relative overflow-hidden`}>
+       <div className={`max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-8 md:p-8' : 'p-8 md:p-8'} relative overflow-hidden`}>
         {renderStepContent()}
         {step !== 'account' && (
           <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
@@ -550,7 +550,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 
   return (
      <div className="space-y-8 animate-in fade-in">
-        <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none">Create Your Volunteer Account</h2>
+        <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none">Create Your Volunteer Account</h2>
         
         {googleClientId && (
             <>
@@ -565,7 +565,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
                 </div>
                 <div className="flex items-center gap-4 py-2">
                     <div className="flex-1 h-px bg-zinc-100" />
-                    <span className="text-xs font-medium text-zinc-400 uppercase">Or</span>
+                    <span className="text-xs font-bold text-zinc-400 uppercase">Or</span>
                     <div className="flex-1 h-px bg-zinc-100" />
                 </div>
             </>
@@ -575,7 +575,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
             <div>
                 <label className="text-sm font-bold text-zinc-600 block mb-2">Email Address</label>
                 <div className="flex gap-3">
-                  <input type="email" value={data.email || ''} onChange={handleEmailChange} placeholder="your.email@example.com" readOnly={sent && data.emailVerified} autoComplete="off" className={`flex-1 px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-medium ${errors.email ? 'border-rose-500' : 'border-zinc-200'} read-only:bg-zinc-100`} />
+                  <input type="email" value={data.email || ''} onChange={handleEmailChange} placeholder="your.email@example.com" readOnly={sent && data.emailVerified} autoComplete="off" className={`flex-1 px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-bold ${errors.email ? 'border-rose-500' : 'border-zinc-200'} read-only:bg-zinc-100`} />
                   {data.emailVerified ? (
                      <div className="py-4 px-6 rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 bg-[#86EFAC] text-emerald-800">
                         <Check size={16} /> Verified
@@ -608,12 +608,12 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="relative">
                     <label className="text-sm font-bold text-zinc-600 block mb-2">Password</label>
-                    <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={data.password || ''} onChange={e => onChange('password', e.target.value)} autoComplete="new-password" className={`w-full px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-medium pr-12 ${errors.password ? 'border-rose-500' : 'border-zinc-200'}`} />
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={data.password || ''} onChange={e => onChange('password', e.target.value)} autoComplete="new-password" className={`w-full px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-bold pr-12 ${errors.password ? 'border-rose-500' : 'border-zinc-200'}`} />
                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 bottom-4 text-zinc-400 hover:text-zinc-600">{showPassword ? <EyeOff size={20}/>:<Eye size={20}/>}</button>
                 </div>
                  <div className="relative">
                     <label className="text-sm font-bold text-zinc-600 block mb-2">Verify Password</label>
-                    <input type={showVerifyPassword ? 'text' : 'password'} placeholder="Verify Password" value={data.verifyPassword || ''} onChange={e => onChange('verifyPassword', e.target.value)} autoComplete="new-password" className={`w-full px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-medium pr-12 ${errors.verifyPassword ? 'border-rose-500' : 'border-zinc-200'}`} />
+                    <input type={showVerifyPassword ? 'text' : 'password'} placeholder="Verify Password" value={data.verifyPassword || ''} onChange={e => onChange('verifyPassword', e.target.value)} autoComplete="new-password" className={`w-full px-5 py-4 bg-zinc-50 border rounded-lg outline-none font-bold pr-12 ${errors.verifyPassword ? 'border-rose-500' : 'border-zinc-200'}`} />
                     <button type="button" onClick={() => setShowVerifyPassword(!showVerifyPassword)} className="absolute right-4 bottom-4 text-zinc-400 hover:text-zinc-600">{showVerifyPassword ? <EyeOff size={20}/>:<Eye size={20}/>}</button>
                 </div>
             </div>
@@ -646,7 +646,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Personal Information</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Personal Information</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="text-sm font-bold text-zinc-600 block mb-2">Legal First Name *</label>
@@ -755,7 +755,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
         <div className="flex items-start gap-3">
           <Shield size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-amber-800 text-sm font-medium">Social Security Number (SSN)</p>
+            <p className="text-amber-800 text-sm font-bold">Social Security Number (SSN)</p>
             <p className="text-amber-700 text-xs mt-1">Required for background check purposes only. This information is encrypted and stored securely in compliance with data protection regulations. It will only be used to verify your identity and conduct the required background screening.</p>
           </div>
         </div>
@@ -780,7 +780,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
 const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Background & Education</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Background & Education</h2>
       <p className="text-zinc-500">Tell us a bit about your background. This helps us match you with the right volunteer opportunities.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -1024,7 +1024,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Availability</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Availability</h2>
 
       <div>
         <label className="text-sm font-bold text-zinc-600 block mb-4">Service Preference *</label>
@@ -1056,7 +1056,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
       </div>
 
       <div>
-        <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time(s) of day? * <span className="font-normal text-zinc-400">(select all that apply)</span></label>
+        <label className="text-sm font-bold text-zinc-600 block mb-4">Preferred time(s) of day? * <span className="font-bold text-zinc-400">(select all that apply)</span></label>
         <div className="flex flex-wrap gap-3">
           {times.map(time => (
             <button key={time} type="button" onClick={() => toggleTime(time)} className={`px-5 py-3 rounded-full text-sm font-bold transition-all ${(data.preferredTimes || []).includes(time) ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
@@ -1150,7 +1150,7 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Role Selection</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Role Selection</h2>
 
       <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8">
         <div className="flex items-center gap-4 mb-4">
@@ -1171,7 +1171,7 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
           <AlertTriangle className="text-amber-500 flex-shrink-0 mt-0.5" size={20} />
           <div>
-            <p className="text-amber-800 text-sm font-medium">{analysisError}</p>
+            <p className="text-amber-800 text-sm font-bold">{analysisError}</p>
             <p className="text-amber-600 text-xs mt-1">You can still select a role from the dropdown below.</p>
           </div>
         </div>
@@ -1245,7 +1245,7 @@ const DetailsStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Role-Specific Questions</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Role-Specific Questions</h2>
       <p className="text-zinc-500">Please answer the following questions for the <strong>{data.selectedRole}</strong> role.</p>
       <div className="space-y-6">
         {(data.roleAssessment || []).map((item: any, index: number) => (
@@ -1302,7 +1302,7 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Compliance & Consent</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Compliance & Consent</h2>
       <p className="text-zinc-500">Please review and agree to the following requirements.</p>
 
       <div className="space-y-4">
@@ -1333,7 +1333,7 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError }) => {
   return (
     <div className="space-y-8 animate-in fade-in">
-      <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
+      <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
       <p className="text-zinc-500">Complete the following orientation modules to finalize your application.</p>
 
       <div className="space-y-4">
@@ -1343,7 +1343,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
             <span className="text-xs font-bold text-zinc-500">~12 min</span>
           </div>
           <p className="text-sm text-zinc-500 mb-4">Who we are, who we serve in Los Angeles, and how our programs work together.</p>
-          <div className="aspect-video bg-zinc-900 rounded-xl mb-4 overflow-hidden">
+          <div className="aspect-video bg-brand rounded-xl mb-4 overflow-hidden">
             <iframe
               className="w-full h-full"
               src="https://hmc.screencasthost.com/player/cTQ6cDnowch?width=100%&height=100%&ff=1&title=0"
@@ -1364,7 +1364,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
             <span className="text-xs font-bold text-zinc-500">~6 min</span>
           </div>
           <p className="text-sm text-zinc-500 mb-4">Our values, expectations, and what it means to show up for community with HMC.</p>
-          <div className="aspect-video bg-zinc-900 rounded-xl mb-4 overflow-hidden">
+          <div className="aspect-video bg-brand rounded-xl mb-4 overflow-hidden">
             <iframe
               className="w-full h-full"
               src="https://hmc.screencasthost.com/player/cTQQcxnoth6?width=100%&height=100%&ff=1&title=0"
@@ -1384,7 +1384,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
       {submitError && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
           <AlertTriangle className="text-rose-500 flex-shrink-0" />
-          <p className="text-rose-700 text-sm font-medium">{submitError}</p>
+          <p className="text-rose-700 text-sm font-bold">{submitError}</p>
         </div>
       )}
 

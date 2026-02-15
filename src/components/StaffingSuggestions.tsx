@@ -186,14 +186,14 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             <button
                                 onClick={handleSendInvite}
                                 disabled={inviteSending || !inviteName.trim() || !inviteEmail.trim()}
-                                className="px-4 py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-zinc-800 transition-colors"
+                                className="px-4 py-2.5 bg-brand text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-brand/90 transition-colors"
                             >
                                 {inviteSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                 Send Invite
                             </button>
                         </div>
                         {inviteResult && (
-                            <div className={`mt-3 p-3 rounded-lg text-xs font-medium ${
+                            <div className={`mt-3 p-3 rounded-lg text-xs font-bold ${
                                 inviteResult.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                                 inviteResult.type === 'exists' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                                 'bg-rose-50 text-rose-700 border border-rose-200'

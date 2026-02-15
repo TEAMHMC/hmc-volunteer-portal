@@ -24,7 +24,7 @@ const Toast: React.FC = () => {
       {toasts.map(t => (
         <div
           key={t.id}
-          className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-elevation-3 border text-sm font-medium animate-in slide-in-from-right duration-300 ${
+          className={`flex items-center gap-3 px-5 py-4 rounded-2xl shadow-elevation-3 border text-sm font-bold animate-in slide-in-from-right duration-300 ${
             t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
             t.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' :
             'bg-blue-50 border-blue-200 text-blue-800'

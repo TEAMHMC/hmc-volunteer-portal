@@ -75,7 +75,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Referral Management</h1>
+          <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Referral Management</h1>
           <p className="text-zinc-500 mt-1">Client intake, referrals, and service coordination</p>
         </div>
         <button
@@ -112,7 +112,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
         {activeTab === 'dashboard' && (
           <DashboardView
             clients={clients}
@@ -174,7 +174,7 @@ const DashboardView: React.FC<{
               {kpi.icon}
             </div>
             <p className="text-3xl font-black text-zinc-900">{kpi.value}</p>
-            <p className="text-sm text-zinc-500 font-medium">{kpi.label}</p>
+            <p className="text-sm text-zinc-500 font-bold">{kpi.label}</p>
           </div>
         ))}
       </div>
@@ -476,7 +476,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
           <button
             onClick={() => updateStatus('Completed')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
+            className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-bold hover:bg-brand/90 disabled:opacity-50"
           >
             Mark Completed
           </button>
@@ -522,7 +522,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
                 </div>
               )}
             </div>
-            <p className="text-sm text-brand font-medium mb-2">{resource['Service Category']}</p>
+            <p className="text-sm text-brand font-bold mb-2">{resource['Service Category']}</p>
             <p className="text-sm text-zinc-500 mb-4 line-clamp-2">{resource['Key Offerings']}</p>
             <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
               {resource['Contact Phone'] && (
@@ -571,7 +571,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
                 {partner.status}
               </span>
             </div>
-            <p className="text-sm text-brand font-medium mb-3">{partner.type}</p>
+            <p className="text-sm text-brand font-bold mb-3">{partner.type}</p>
             <div className="space-y-2 text-sm text-zinc-500">
               {partner.contactName && <p>{partner.contactName}</p>}
               {partner.contactEmail && (

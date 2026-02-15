@@ -364,6 +364,18 @@ const requireAdmin = async (req: Request, res: Response, next: NextFunction) => 
   next();
 };
 
+// Editor authorization middleware - allows admins AND coordinator roles (for Doc Hub, etc.)
+const COORDINATOR_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator'];
+const requireEditor = async (req: Request, res: Response, next: NextFunction) => {
+  const user = (req as any).user;
+  const profile = user?.profile;
+  if (profile?.isAdmin || COORDINATOR_ROLES.includes(profile?.role)) {
+    return next();
+  }
+  console.warn(`[SECURITY] Non-editor attempted edit: ${maskEmail(profile?.email || 'unknown')} (role: ${profile?.role}) on ${req.path}`);
+  return res.status(403).json({ error: 'Editor access required' });
+};
+
 // --- reCAPTCHA MIDDLEWARE ---
 const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) => {
   const { captchaToken } = req.body;
@@ -7636,7 +7648,7 @@ app.get('/api/knowledge-base', verifyToken, async (_req: Request, res: Response)
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/knowledge-base', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.post('/api/knowledge-base', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
         const article = { ...req.body, updatedAt: new Date().toISOString() };
         if (!article.title || !article.content) return res.status(400).json({ error: 'title and content required' });
@@ -7645,7 +7657,7 @@ app.post('/api/knowledge-base', verifyToken, requireAdmin, async (req: Request, 
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/knowledge-base/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.put('/api/knowledge-base/:id', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
         const updates = { ...req.body, updatedAt: new Date().toISOString() };
         await db.collection('knowledge_base').doc(req.params.id).update(updates);
@@ -7653,7 +7665,7 @@ app.put('/api/knowledge-base/:id', verifyToken, requireAdmin, async (req: Reques
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/knowledge-base/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.delete('/api/knowledge-base/:id', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
         await db.collection('knowledge_base').doc(req.params.id).delete();
         res.json({ success: true });

@@ -85,17 +85,17 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
                 <div className="max-w-xl mx-auto space-y-6">
                     <form onSubmit={handleSearch}>
                          <div className="relative">
-                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-medium" />
-                            <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-zinc-900 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-bold" />
+                            <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
                         </div>
                     </form>
                     {searchResult === 'not_found' && (
-                        <div className="text-center p-8 bg-amber-50 rounded-xl border border-amber-200"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button></div>
+                        <div className="text-center p-8 bg-amber-50 rounded-xl border border-amber-200"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button></div>
                     )}
                     {searchResult && searchResult !== 'not_found' && (
-                        <div className="p-8 bg-emerald-50 rounded-xl border border-emerald-200"><p className="text-xs font-bold text-emerald-800">Client Found</p><p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p><button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-2"><Send size={14}/> Create Referral</button></div>
+                        <div className="p-8 bg-emerald-50 rounded-xl border border-emerald-200"><p className="text-xs font-bold text-emerald-800">Client Found</p><p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p><button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-2"><Send size={14}/> Create Referral</button></div>
                     )}
                 </div>
             )}
@@ -119,7 +119,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
         } catch(err) { toastService.error('Failed to save new client.'); } finally { setIsSaving(false); }
     };
     return (
-        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in"><h3 className="text-lg font-black text-zinc-900">Register New Client</h3><form onSubmit={handleSave} className="space-y-4"><input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><div className="flex gap-4"><button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-bold">Cancel</button><button type="submit" disabled={isSaving} className="flex-1 py-3 bg-zinc-900 text-white rounded-lg text-sm font-bold disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button></div></form></div>
+        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in"><h3 className="text-lg font-black text-zinc-900">Register New Client</h3><form onSubmit={handleSave} className="space-y-4"><input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><div className="flex gap-4"><button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-bold">Cancel</button><button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand text-white rounded-lg text-sm font-bold disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button></div></form></div>
     );
 };
 
@@ -174,14 +174,14 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
         }
     }
 
-    if (isSent) { return ( <div className="text-center p-12 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500" /><h3 className="font-bold mt-4">Referral Sent!</h3></div>); }
+    if (isSent) { return ( <div className="text-center p-8 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500" /><h3 className="font-bold mt-4">Referral Sent!</h3></div>); }
     if (selectedResource) {
         return (
             <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
                 <p className="text-xs font-bold text-zinc-500">Confirm Referral to:</p>
                 <h3 className="text-2xl font-black">{selectedResource["Resource Name"]}</h3>
                 <p className="text-sm italic text-zinc-600">Based on need: "{clientNeed}"</p>
-                <div className="flex gap-4 pt-4 border-t"><button type="button" onClick={() => setSelectedResource(null)} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-bold">Back</button><button onClick={handleCreateReferral} disabled={isSaving} className="flex-1 py-3 bg-zinc-900 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">{isSaving && <Loader2 className="animate-spin" size={16}/>} Confirm & Create Referral</button></div>
+                <div className="flex gap-4 pt-4 border-t"><button type="button" onClick={() => setSelectedResource(null)} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-bold">Back</button><button onClick={handleCreateReferral} disabled={isSaving} className="flex-1 py-3 bg-brand text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">{isSaving && <Loader2 className="animate-spin" size={16}/>} Confirm & Create Referral</button></div>
             </div>
         );
     }

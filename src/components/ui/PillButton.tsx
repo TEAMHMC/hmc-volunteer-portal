@@ -31,7 +31,7 @@ const PillButton: React.FC<PillButtonProps> = ({
 }) => {
   return (
     <button
-      className={`rounded-full font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`rounded-full font-bold uppercase tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       {...props}
     >
       {children}

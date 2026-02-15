@@ -295,15 +295,15 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {showToast && (
         <div className="fixed bottom-4 md:bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-6 py-4 rounded-full shadow-elevation-3 flex items-center gap-3 z-[5000] animate-in slide-in-from-bottom-10 max-w-[90vw]">
           <CheckCircle2 size={18} className={toastIsError ? 'text-rose-400' : 'text-emerald-400'} />
-          <span className="text-sm font-medium">{toastMessage}</span>
+          <span className="text-sm font-bold">{toastMessage}</span>
         </div>
       )}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
         <div>
-          <h2 className="text-xl md:text-2xl font-medium text-zinc-900 tracking-normal">Volunteer Opportunities</h2>
-          <p className="text-zinc-500 text-sm font-normal">Find and sign up for upcoming community health events.</p>
+          <h2 className="text-xl md:text-2xl font-bold text-zinc-900 tracking-normal">Volunteer Opportunities</h2>
+          <p className="text-zinc-500 text-sm font-bold">Find and sign up for upcoming community health events.</p>
         </div>
       </div>
 
@@ -315,7 +315,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           placeholder="Search by location, event name, or category..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white border border-zinc-200 rounded-2xl py-3 pl-11 pr-4 text-sm font-normal outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand/30 transition-all"
+          className="w-full bg-white border border-zinc-200 rounded-2xl py-3 pl-11 pr-4 text-sm font-bold outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand/30 transition-all"
         />
       </div>
 
@@ -323,7 +323,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {filtered.length === 0 ? (
         <div className="py-16 text-center bg-zinc-50 rounded-2xl border border-zinc-200">
           <Calendar size={32} className="mx-auto text-zinc-300 mb-3" />
-          <p className="text-zinc-400 font-medium text-sm">No events found.</p>
+          <p className="text-zinc-400 font-bold text-sm">No events found.</p>
           {search && <p className="text-zinc-400 text-xs mt-1">Try a different search term.</p>}
         </div>
       ) : (
@@ -338,18 +338,18 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span
-                    className="px-2.5 py-1 rounded-full text-[10px] font-medium text-white"
+                    className="px-2.5 py-1 rounded-full text-[10px] font-bold text-white"
                     style={{ backgroundColor: PROGRAM_COLORS[event.program] || PROGRAM_COLORS['default'] }}
                   >
                     {event.program}
                   </span>
                   {isSignedUp && (
-                    <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
                       <CheckCircle2 size={10} /> Signed up
                     </span>
                   )}
                 </div>
-                <h3 className="text-base font-medium text-zinc-900 mb-2 group-hover:text-brand transition-colors leading-snug">{event.title}</h3>
+                <h3 className="text-base font-bold text-zinc-900 mb-2 group-hover:text-brand transition-colors leading-snug">{event.title}</h3>
                 <div className="space-y-1.5 text-xs text-zinc-500">
                   <p className="flex items-center gap-1.5"><MapPin size={13} className="text-zinc-400 shrink-0" /> {event.address}</p>
                   <p className="flex items-center gap-1.5"><Calendar size={13} className="text-zinc-400 shrink-0" /> {event.dateDisplay}</p>
@@ -370,7 +370,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <div className="p-6 space-y-5">
                 <div className="flex justify-between items-start">
                   <span
-                    className="px-3 py-1.5 rounded-full text-[10px] font-medium text-white"
+                    className="px-3 py-1.5 rounded-full text-[10px] font-bold text-white"
                     style={{ backgroundColor: PROGRAM_COLORS[selectedEvent.program] || PROGRAM_COLORS['default'] }}
                   >
                     {selectedEvent.program}
@@ -381,7 +381,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-medium text-zinc-900 leading-tight mb-2">{selectedEvent.title}</h3>
+                  <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2">{selectedEvent.title}</h3>
                   <p className="text-zinc-500 text-xs flex items-center gap-1.5">
                     <MapPin size={13} /> {selectedEvent.address}, {selectedEvent.city}
                   </p>
@@ -390,13 +390,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
                     <Calendar className="text-brand mb-1.5" size={16} />
-                    <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Date</p>
-                    <p className="text-sm font-medium text-zinc-900">{selectedEvent.dateDisplay}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Date</p>
+                    <p className="text-sm font-bold text-zinc-900">{selectedEvent.dateDisplay}</p>
                   </div>
                   <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
                     <Clock className="text-brand mb-1.5" size={16} />
-                    <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">Time</p>
-                    <p className="text-sm font-medium text-zinc-900">{selectedEvent.time}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Time</p>
+                    <p className="text-sm font-bold text-zinc-900">{selectedEvent.time}</p>
                   </div>
                 </div>
 
@@ -407,18 +407,18 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                     <>
                       <div className="w-full py-5 px-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
                         <CheckCircle2 size={28} className="mx-auto text-emerald-500 mb-2" />
-                        <p className="font-medium text-emerald-800 text-sm">You're signed up!</p>
+                        <p className="font-bold text-emerald-800 text-sm">You're signed up!</p>
                         <p className="text-emerald-600 text-xs mt-1">A confirmation email has been sent to you.</p>
                       </div>
                       <button
                         onClick={() => downloadICS(selectedEvent)}
-                        className="w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-brand hover:opacity-95"
+                        className="w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-brand hover:opacity-95"
                       >
                         <Calendar size={16} /> Save to Calendar (.ics)
                       </button>
                       <button
                         onClick={() => setJustRsvped(false)}
-                        className="w-full py-3 rounded-full font-normal text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+                        className="w-full py-3 rounded-full font-bold text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
                       >
                         Dismiss
                       </button>
@@ -428,7 +428,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       <button
                         onClick={() => handleSignUp(selectedEvent.id)}
                         disabled={isSigningUp}
-                        className={`w-full py-4 rounded-full font-normal text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 ${
+                        className={`w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 ${
                           user.rsvpedEventIds?.includes(selectedEvent.id)
                             ? 'bg-white text-zinc-900 border border-zinc-950'
                             : 'bg-brand text-white border border-brand hover:opacity-95'
@@ -445,7 +445,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       {user.rsvpedEventIds?.includes(selectedEvent.id) && (
                         <button
                           onClick={() => downloadICS(selectedEvent)}
-                          className="w-full py-3 rounded-full font-normal text-sm text-brand hover:bg-brand/5 border border-brand/20 transition-all flex items-center justify-center gap-2"
+                          className="w-full py-3 rounded-full font-bold text-sm text-brand hover:bg-brand/5 border border-brand/20 transition-all flex items-center justify-center gap-2"
                         >
                           <Calendar size={14} /> Save to Calendar
                         </button>
@@ -453,11 +453,11 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                     </>
                   ) : (
                     <div className="w-full py-4 px-4 rounded-2xl bg-amber-50 border border-amber-200 text-center">
-                      <p className="font-medium text-amber-800 text-sm">Complete required training to sign up</p>
+                      <p className="font-bold text-amber-800 text-sm">Complete required training to sign up</p>
                       <p className="text-amber-600 text-xs mt-1">Visit Training Academy to complete your orientation modules</p>
                     </div>
                   )}
-                  <p className="text-center text-[10px] text-zinc-400 font-normal">Earn impact points for participating in community events.</p>
+                  <p className="text-center text-[10px] text-zinc-400 font-bold">Earn impact points for participating in community events.</p>
                 </div>
               </div>
             </div>
@@ -470,19 +470,19 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
         <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-elevation-2 relative overflow-hidden group">
           <Calendar className="absolute -bottom-8 -right-8 w-36 h-36 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
           <div className="relative z-10">
-            <h4 className="text-[10px] font-medium text-indigo-400 uppercase tracking-wide mb-4">My Confirmed Events</h4>
+            <h4 className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide mb-4">My Confirmed Events</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {user.rsvpedEventIds.map(id => {
                 const event = allEvents.find(e => e.id === id);
                 if (!event) return null;
                 return (
                   <div key={id} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                    <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white flex-shrink-0">
                       <CheckCircle2 size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{event.title}</p>
-                      <p className="text-[10px] font-normal text-indigo-300">{event.dateDisplay}</p>
+                      <p className="text-sm font-bold truncate">{event.title}</p>
+                      <p className="text-[10px] font-bold text-indigo-300">{event.dateDisplay}</p>
                     </div>
                     <button
                       onClick={() => downloadICS(event)}

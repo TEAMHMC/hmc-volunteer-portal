@@ -161,7 +161,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       {/* Weekly Availability Reminder Banner */}
       {showReminderBanner && (
-        <div className="bg-amber-50 border border-amber-200 p-6 rounded-container flex items-center justify-between animate-in slide-in-from-top">
+        <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center justify-between animate-in slide-in-from-top">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
               <Bell size={24} />
@@ -191,7 +191,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-8">
           <div className="relative group">
-            <div className="w-32 h-32 rounded-container bg-zinc-900 border-2 border-white shadow-elevation-3 overflow-hidden flex items-center justify-center text-white text-4xl font-black">
+            <div className="w-32 h-32 rounded-2xl bg-brand border-2 border-white shadow-elevation-3 overflow-hidden flex items-center justify-center text-white text-2xl font-black">
               {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} className="w-full h-full object-cover" /> : currentUser.name.charAt(0)}
             </div>
             <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-12 h-12 bg-white border border-black rounded-full flex items-center justify-center shadow-elevation-2 hover:scale-110 active:scale-95 transition-all"><Camera size={20} /></button>
@@ -203,13 +203,13 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 type="text"
                 value={profileData.name}
                 onChange={e => setProfileData({...profileData, name: e.target.value})}
-                className="text-4xl font-black text-zinc-900 tracking-tight bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-2 outline-none focus:bg-white transition-all w-full max-w-md"
+                className="text-2xl font-black text-zinc-900 tracking-tight bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-2 outline-none focus:bg-white transition-all w-full max-w-md"
                 placeholder="Your Name"
               />
             ) : (
-              <h2 className="text-4xl font-black text-zinc-900 tracking-tight">{currentUser.name}</h2>
+              <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{currentUser.name}</h2>
             )}
-            <p className="text-zinc-500 mt-2 font-medium flex items-center gap-2"><Shield size={16} className="text-brand" /> {currentUser.role}</p>
+            <p className="text-zinc-500 mt-2 font-bold flex items-center gap-2"><Shield size={16} className="text-brand" /> {currentUser.role}</p>
           </div>
         </div>
         <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3 border border-black shadow-elevation-2 ${isEditing ? 'bg-brand text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
@@ -219,7 +219,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
-          <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
+          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
              <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Profile Details</h3>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
@@ -252,14 +252,14 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 </div>
              </div>
           </div>
-          <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
+          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Availability</h3>
             {isEditing ? (
                  <div className="space-y-6">
                     <div>
                         <label className="text-sm font-bold text-zinc-600 mb-3 block">Available Days & Hours</label>
                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`py-4 rounded-xl text-[10px] font-black border transition-all ${profileData.availDays?.includes(day) ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200'}`}>{day}</button>)}
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`py-4 rounded-xl text-[10px] font-black border transition-all ${profileData.availDays?.includes(day) ? 'bg-brand text-white border-brand' : 'bg-white border-zinc-200'}`}>{day}</button>)}
                         </div>
                         {profileData.availDays.length > 0 && (
                           <div className="space-y-3">
@@ -344,11 +344,11 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         </div>
 
         <div className="space-y-10">
-          <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1 space-y-10">
+          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-10">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Legacy Badges</h3>
             <div className="grid grid-cols-1 gap-4">
-              {currentUser.achievements.length === 0 ? <p className="text-zinc-400 text-sm font-medium italic">No badges earned yet.</p> : currentUser.achievements.map(ach => (
-                <div key={ach.id} className="flex items-center gap-5 p-5 bg-zinc-50 rounded-card-lg border border-zinc-100/50">
+              {currentUser.achievements.length === 0 ? <p className="text-zinc-400 text-sm font-bold italic">No badges earned yet.</p> : currentUser.achievements.map(ach => (
+                <div key={ach.id} className="flex items-center gap-5 p-5 bg-zinc-50 rounded-2xl border border-zinc-100/50">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-400 shadow-elevation-1"><Star size={24} fill="currentColor"/></div>
                   <div>
                     <p className="text-sm font-black text-zinc-900">{ach.title}</p>

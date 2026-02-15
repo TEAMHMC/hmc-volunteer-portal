@@ -111,8 +111,8 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
             <header className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Documentation Hub</h1>
-                    <p className="text-zinc-500 mt-2 font-medium text-lg">Your central source for policies, procedures, and organizational knowledge.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Documentation Hub</h1>
+                    <p className="text-zinc-500 mt-2 font-bold text-lg">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
                 {canEdit && (
                     <button
@@ -131,7 +131,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     placeholder="Search documents..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-medium shadow-elevation-1 outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-bold shadow-elevation-1 outline-none focus:ring-2 focus:ring-brand"
                 />
             </div>
 
@@ -139,7 +139,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {Object.keys(articlesByCategory).map((category) => {
                     const categoryArticles = articlesByCategory[category];
                     return (
-                    <div key={category} className="bg-white border border-zinc-100 rounded-container overflow-hidden">
+                    <div key={category} className="bg-white border border-zinc-100 rounded-2xl overflow-hidden">
                         <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-6">
                             <h2 className="text-xl font-bold text-zinc-800">{category}</h2>
                             <ChevronDown className={`transition-transform ${expandedCategories.includes(category) ? 'rotate-180' : ''}`} />
@@ -149,7 +149,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                                 {categoryArticles.map(article => (
                                     <button key={article.id} onClick={() => setSelectedArticle(article)} className="w-full text-left p-4 rounded-xl hover:bg-zinc-50 flex items-center gap-4">
                                         <FileText className="text-zinc-400" size={18} />
-                                        <span className="font-medium text-zinc-700">{article.title}</span>
+                                        <span className="font-bold text-zinc-700">{article.title}</span>
                                     </button>
                                 ))}
                             </div>
@@ -311,7 +311,7 @@ const ArticleEditorModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white max-w-5xl w-full rounded-container shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-5xl w-full rounded-2xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900">{article ? 'Edit Document' : 'New Document'}</h2>
                     <div className="flex items-center gap-3">
@@ -334,7 +334,7 @@ const ArticleEditorModal: React.FC<{
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                                 placeholder="Document title..."
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -343,7 +343,7 @@ const ArticleEditorModal: React.FC<{
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
-                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
+                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
                                 >
                                     {existingCategories.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
@@ -357,7 +357,7 @@ const ArticleEditorModal: React.FC<{
                                     value={newCategory}
                                     onChange={e => setNewCategory(e.target.value)}
                                     placeholder="New category name..."
-                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
+                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
                                 />
                             </div>
                         </div>
@@ -389,7 +389,7 @@ const ArticleEditorModal: React.FC<{
                                 value={tags}
                                 onChange={e => setTags(e.target.value)}
                                 placeholder="policy, hipaa, compliance..."
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-medium"
+                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
                             />
                         </div>
                         <div>

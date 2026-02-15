@@ -6,7 +6,7 @@ import { apiService } from '../services/apiService';
 import {
   Search, MoreVertical, ShieldCheck,
   X, Award, Mail, Phone, FileCheck, Fingerprint, Star,
-  Filter, UserPlus, ChevronRight, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck
+  Filter, UserPlus, ChevronRight, ChevronDown, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck, User, MapPin, AlertCircle, Clock, Briefcase, FileText, Calendar, Globe
 } from 'lucide-react';
 import { GOVERNANCE_ROLES } from '../constants';
 import { toastService } from '../services/toastService';
@@ -46,6 +46,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
   const [showCompliance, setShowCompliance] = useState(false);
   const [complianceData, setComplianceData] = useState<any[]>([]);
   const [complianceLoading, setComplianceLoading] = useState(false);
+  const [showFullApplication, setShowFullApplication] = useState(false);
 
   const applicantsCount = volunteers.filter(v => v.applicationStatus === 'pendingReview').length;
 
@@ -199,8 +200,8 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       <div className="space-y-12 animate-in fade-in duration-500 pb-32">
         <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
           <div className="max-w-xl">
-            <h2 className="text-5xl font-black text-zinc-900 tracking-tighter">Volunteer Directory</h2>
-            <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tighter">Volunteer Directory</h2>
+            <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
               Authorized personnel management for <span className="text-zinc-900 font-black">{volunteers.filter(v => v.applicationStatus !== 'pendingReview').length}</span> verified community contributors.
             </p>
           </div>
@@ -214,7 +215,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                 placeholder="Search..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-16 pr-8 py-5 bg-white border border-zinc-100 rounded-container text-sm w-full md:w-64 outline-none shadow-elevation-1 focus:border-zinc-300 transition-all font-bold placeholder:text-zinc-200" 
+                className="pl-16 pr-8 py-5 bg-white border border-zinc-100 rounded-2xl text-sm w-full md:w-64 outline-none shadow-elevation-1 focus:border-zinc-300 transition-all font-bold placeholder:text-zinc-200" 
               />
             </div>
           </div>
@@ -229,14 +230,14 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           </div>
 
           <div className="flex bg-white border border-zinc-100 p-1.5 rounded-full shadow-elevation-1">
-              <button onClick={() => setGroupFilter('all')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider ${groupFilter === 'all' ? 'bg-zinc-900 text-white' : 'text-zinc-400'}`}>All</button>
+              <button onClick={() => setGroupFilter('all')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider ${groupFilter === 'all' ? 'bg-brand text-white' : 'text-zinc-400'}`}>All</button>
               <button onClick={() => setGroupFilter('group')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider relative ${groupFilter === 'group' ? 'bg-purple-600 text-white' : 'text-zinc-400'}`}>
                 Groups {groupVolunteersCount > 0 && <span className="ml-1 text-purple-400">({groupVolunteersCount})</span>}
               </button>
-              <button onClick={() => setGroupFilter('returning')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider relative ${groupFilter === 'returning' ? 'bg-emerald-600 text-white' : 'text-zinc-400'}`}>
+              <button onClick={() => setGroupFilter('returning')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider relative ${groupFilter === 'returning' ? 'bg-brand text-white' : 'text-zinc-400'}`}>
                 Returning {returningVolunteersCount > 0 && <span className="ml-1 text-emerald-400">({returningVolunteersCount})</span>}
               </button>
-              <button onClick={() => setGroupFilter('individual')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider ${groupFilter === 'individual' ? 'bg-zinc-900 text-white' : 'text-zinc-400'}`}>Individual</button>
+              <button onClick={() => setGroupFilter('individual')} className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider ${groupFilter === 'individual' ? 'bg-brand text-white' : 'text-zinc-400'}`}>Individual</button>
           </div>
 
           <button
@@ -251,13 +252,13 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
 
         {showCompliance && (
-          <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
             <div className="p-6 border-b border-zinc-100">
               <h3 className="text-lg font-black text-zinc-900 flex items-center gap-2"><ClipboardCheck size={20} className="text-brand" /> Compliance Overview</h3>
               <p className="text-xs text-zinc-400 mt-1">Form completion status across all volunteers</p>
             </div>
             {complianceLoading ? (
-              <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
+              <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -330,12 +331,12 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           {filtered.map(v => (
             <div 
               key={v.id} 
-              onClick={() => setSelectedVolunteer(v)}
-              className="bg-white p-10 rounded-container border border-zinc-100 shadow-elevation-1 hover:shadow-elevation-2 hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+              onClick={() => { setSelectedVolunteer(v); setShowFullApplication(false); }}
+              className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 hover:shadow-elevation-2 hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
             >
                <div className="flex justify-between items-start mb-8 relative z-10">
                   <div className="flex items-center gap-5">
-                     <div className="w-16 h-16 rounded-card bg-zinc-900 text-white flex items-center justify-center font-black text-xl shadow-elevation-2 overflow-hidden border border-black/10">
+                     <div className="w-16 h-16 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-xl shadow-elevation-2 overflow-hidden border border-black/10">
                         {v.avatarUrl ? <img src={v.avatarUrl} className="w-full h-full object-cover" /> : v.name.charAt(0)}
                      </div>
                      <div>
@@ -354,7 +355,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   <button className="p-3 bg-zinc-50 rounded-full text-zinc-200 hover:text-zinc-900 transition-colors"><MoreVertical size={20} /></button>
                </div>
 
-               <div className="bg-zinc-50/50 p-6 rounded-container border border-zinc-100/50 mb-8 relative z-10">
+               <div className="bg-zinc-50/50 p-6 rounded-2xl border border-zinc-100/50 mb-8 relative z-10">
                   <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mb-4">Compliance Status</p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
@@ -398,13 +399,13 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           
           <button
             onClick={() => setShowAddVolunteerModal(true)}
-            className="bg-white border-2 border-dashed border-zinc-100 rounded-container p-12 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
+            className="bg-white border-2 border-dashed border-zinc-100 rounded-2xl p-8 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
              <div className="w-20 h-20 rounded-full bg-zinc-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-elevation-2 transition-all">
                 <UserPlus size={32} strokeWidth={1.5} />
              </div>
              <div className="text-center">
                <p className="text-[11px] font-black uppercase tracking-[0.2em]">Add Volunteer</p>
-               <p className="text-[10px] font-medium text-zinc-400 mt-2">Add a new volunteer manually</p>
+               <p className="text-[10px] font-bold text-zinc-400 mt-2">Add a new volunteer manually</p>
              </div>
           </button>
         </div>
@@ -412,14 +413,14 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       
       {selectedVolunteer && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setSelectedVolunteer(null)}>
-           <div className="bg-white max-w-4xl w-full rounded-container shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              <header className="p-10 border-b border-zinc-100 flex items-center justify-between shrink-0">
+           <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+              <header className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
                  <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-card-lg bg-zinc-900 text-white flex items-center justify-center font-black text-2xl shadow-elevation-2 overflow-hidden">
+                    <div className="w-20 h-20 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-2xl shadow-elevation-2 overflow-hidden">
                        {selectedVolunteer.avatarUrl ? <img src={selectedVolunteer.avatarUrl} className="w-full h-full object-cover" /> : selectedVolunteer.name.charAt(0)}
                     </div>
                     <div>
-                       <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{selectedVolunteer.name}</h2>
+                       <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{selectedVolunteer.name}</h2>
                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs mt-1">{selectedVolunteer.applicationStatus === 'pendingReview' ? `Applied for: ${selectedVolunteer.appliedRole}` : selectedVolunteer.role}</p>
                     </div>
                  </div>
@@ -430,7 +431,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                    <button onClick={() => setSelectedVolunteer(null)} className="p-4 bg-zinc-50 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24} /></button>
                  </div>
               </header>
-              <main className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto">
+              <main className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto">
                  <div className="space-y-8">
                     <div className="space-y-2">
                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Contact Info</h4>
@@ -478,7 +479,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                     </div>
                  </div>
                  <div className="space-y-6">
-                    <div className="bg-zinc-50/70 p-8 rounded-container border border-zinc-100 space-y-6">
+                    <div className="bg-zinc-50/70 p-8 rounded-2xl border border-zinc-100 space-y-6">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Compliance Checklist</h4>
                       {Object.values(selectedVolunteer.compliance).map((c: ComplianceStep) => (
                         <div key={c.id} className="flex items-center gap-4">
@@ -496,8 +497,299 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                       )}
                     </div>
 
+                    {/* Full Application Details (Collapsible) */}
+                    <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+                      <button
+                        onClick={() => setShowFullApplication(!showFullApplication)}
+                        className="w-full p-6 flex items-center justify-between hover:bg-zinc-50/50 transition-colors"
+                      >
+                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                          <FileText size={14} className="text-brand" /> Full Application
+                        </h4>
+                        <ChevronDown size={16} className={`text-zinc-400 transition-transform duration-200 ${showFullApplication ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showFullApplication && (
+                        <div className="px-6 pb-6 space-y-6 animate-in fade-in">
+
+                          {/* Application Metadata */}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {selectedVolunteer.joinedDate && (
+                              <span className="px-3 py-1.5 bg-zinc-100 text-zinc-600 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <Calendar size={10} /> Applied {new Date(selectedVolunteer.joinedDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            {selectedVolunteer.applicationStatus && (
+                              <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                selectedVolunteer.applicationStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                selectedVolunteer.applicationStatus === 'rejected' ? 'bg-rose-100 text-rose-700' :
+                                'bg-amber-100 text-amber-700'
+                              }`}>
+                                {selectedVolunteer.applicationStatus === 'pendingReview' ? 'Pending Review' : selectedVolunteer.applicationStatus}
+                              </span>
+                            )}
+                            {selectedVolunteer.appliedRole && (
+                              <span className="px-3 py-1.5 bg-brand/10 text-brand rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                Applied: {selectedVolunteer.appliedRole}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Personal Info */}
+                          <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                            <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><User size={10} /> Personal Information</p>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Legal First Name</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.legalFirstName || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Legal Last Name</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.legalLastName || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Middle Name</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.middleName || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Preferred First Name</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.preferredFirstName || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Preferred Last Name</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.preferredLastName || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Date of Birth</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.dob ? new Date(selectedVolunteer.dob).toLocaleDateString() : '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Gender</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.gender || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">T-Shirt Size</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.tshirtSize || '---'}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Contact Info */}
+                          <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                            <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Mail size={10} /> Contact Information</p>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Email</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.email || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Phone</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.phone || '---'}</p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Address</p>
+                                <p className="text-sm font-bold text-zinc-800">
+                                  {selectedVolunteer.address ? `${selectedVolunteer.address}, ${selectedVolunteer.city || ''}, ${selectedVolunteer.state || ''} ${selectedVolunteer.zipCode || ''}` : '---'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Emergency Contact */}
+                          <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                            <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><AlertCircle size={10} /> Emergency Contact</p>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Name</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.name || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Relationship</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.relationship || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Phone</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.cellPhone || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Email</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.email || '---'}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Background */}
+                          <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                            <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={10} /> Background</p>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Languages Spoken</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.languagesSpoken?.length ? selectedVolunteer.languagesSpoken.join(', ') : '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Student</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isStudent ? 'Yes' : 'No'}</p>
+                              </div>
+                              {selectedVolunteer.isStudent && (
+                                <>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">School</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.school || '---'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Degree/Program</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.degree || '---'}</p>
+                                  </div>
+                                </>
+                              )}
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Employed</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isEmployed ? 'Yes' : 'No'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">How Heard About HMC</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.howDidYouHear || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Returning Volunteer</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isReturningVolunteer ? 'Yes' : 'No'}</p>
+                              </div>
+                              {selectedVolunteer.isReturningVolunteer && (
+                                <>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Previous Period</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.previousVolunteerPeriod || '---'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Previous Role</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.previousVolunteerRole || '---'}</p>
+                                  </div>
+                                </>
+                              )}
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Veteran Status</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.demographics?.veteranStatus === true ? 'Yes' : selectedVolunteer.demographics?.veteranStatus === false ? 'No' : 'Not disclosed'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Disability Status</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.demographics?.disabilityStatus === true ? 'Yes' : selectedVolunteer.demographics?.disabilityStatus === false ? 'No' : 'Not disclosed'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Volunteer</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isGroupVolunteer ? 'Yes' : 'No'}</p>
+                              </div>
+                              {selectedVolunteer.isGroupVolunteer && (
+                                <>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Type</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupType || '---'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Name</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupName || '---'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Size</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupSize || '---'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Contact Email</p>
+                                    <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupContactEmail || '---'}</p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Availability */}
+                          <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                            <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Clock size={10} /> Availability</p>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Time Commitment</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.timeCommitment || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Service Preference</p>
+                                <p className="text-sm font-bold text-zinc-800 capitalize">{selectedVolunteer.availability?.servicePreference || '---'}</p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Available Days</p>
+                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                  {selectedVolunteer.availability?.days?.length ? selectedVolunteer.availability.days.map(day => (
+                                    <span key={day} className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-bold">{day}</span>
+                                  )) : <p className="text-sm text-zinc-400">---</p>}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Preferred Time</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.preferredTime || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Start Date</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.startDate ? new Date(selectedVolunteer.availability.startDate).toLocaleDateString() : '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Timezone</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.timezone || '---'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Hours Per Week</p>
+                                <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.hoursPerWeek || '---'}</p>
+                              </div>
+                              {selectedVolunteer.availability?.notes && (
+                                <div className="col-span-2">
+                                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Scheduling Limitations</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Role Assessment Q&A */}
+                          {(selectedVolunteer.roleAssessment && selectedVolunteer.roleAssessment.length > 0) && (
+                            <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                              <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList size={10} /> Role Assessment Q&A</p>
+                              <div className="space-y-3">
+                                {selectedVolunteer.roleAssessment.map((qa, i) => (
+                                  <div key={i} className="p-3 bg-white rounded-xl border border-zinc-100">
+                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{qa.question}</p>
+                                    <p className="text-sm text-zinc-700 mt-1 italic">"{qa.answer}"</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* What I Hope to Gain */}
+                          {selectedVolunteer.gainFromExperience && (
+                            <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                              <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Star size={10} /> What I Hope to Gain</p>
+                              <p className="text-sm text-zinc-700 italic">"{selectedVolunteer.gainFromExperience}"</p>
+                            </div>
+                          )}
+
+                          {/* Resume */}
+                          {selectedVolunteer.resume && (
+                            <div className="p-4 bg-zinc-50/70 rounded-xl border border-zinc-100 space-y-3">
+                              <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><FileText size={10} /> Resume</p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-zinc-700">{selectedVolunteer.resume.name || 'Resume on file'}</p>
+                                <button
+                                  onClick={() => handleDownloadResume(selectedVolunteer.id)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-lg text-[10px] font-bold hover:bg-brand-hover transition-all"
+                                >
+                                  <Download size={12} /> Download
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                        </div>
+                      )}
+                    </div>
+
                     {/* Task Assignment Section */}
-                    <div className="bg-white p-6 rounded-container border border-zinc-100 space-y-4">
+                    <div className="bg-white p-6 rounded-2xl border border-zinc-100 space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Assigned Tasks</h4>
                         <button
@@ -543,7 +835,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       {/* Task Assignment Modal */}
       {showTaskModal && selectedVolunteer && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setShowTaskModal(false)}>
-          <div className="bg-white max-w-lg w-full rounded-container shadow-elevation-3 border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Assign Task</h2>
               <button onClick={() => setShowTaskModal(false)} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
@@ -598,7 +890,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedVolunteer && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="bg-white max-w-md w-full rounded-3xl shadow-elevation-3 border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white max-w-md w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
             <div className="text-center">
               <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 size={28} className="text-rose-500" />
@@ -671,7 +963,7 @@ const RoleManagementPanel: React.FC<{currentUser: Volunteer, selectedVolunteer: 
 const ApplicationReviewPanel: React.FC<{volunteer: Volunteer, onReview: (action: 'approve' | 'reject', notes: string) => void, isReviewing: boolean}> = ({ volunteer, onReview, isReviewing }) => {
     const [notes, setNotes] = useState('');
     return (
-        <div className="md:col-span-2 bg-amber-50 p-6 rounded-container border-2 border-amber-200 space-y-4 animate-in fade-in">
+        <div className="md:col-span-2 bg-amber-50 p-6 rounded-2xl border-2 border-amber-200 space-y-4 animate-in fade-in">
             <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Application Review for: {volunteer.appliedRole}</h3>
             {volunteer.roleAssessment && volunteer.roleAssessment.length > 0 && (
                 <div className="space-y-3">
@@ -685,10 +977,10 @@ const ApplicationReviewPanel: React.FC<{volunteer: Volunteer, onReview: (action:
             )}
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add review notes (optional)..." className="w-full h-24 p-4 text-sm bg-white border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-400" />
             <div className="flex items-center gap-4">
-                <button onClick={() => onReview('approve', notes)} disabled={isReviewing} className="flex-1 py-4 bg-emerald-600 text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-emerald-700 disabled:opacity-50">
+                <button onClick={() => onReview('approve', notes)} disabled={isReviewing} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-emerald-700 disabled:opacity-50">
                     {isReviewing ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16}/> Approve for Role</>}
                 </button>
-                <button onClick={() => onReview('reject', notes)} disabled={isReviewing} className="flex-1 py-4 bg-indigo-600 text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-indigo-700 disabled:opacity-50">
+                <button onClick={() => onReview('reject', notes)} disabled={isReviewing} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-indigo-700 disabled:opacity-50">
                     {isReviewing ? <Loader2 size={16} className="animate-spin" /> : <><Award size={16}/> Keep as Champion</>}
                 </button>
             </div>
@@ -730,8 +1022,8 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-container shadow-elevation-3 border border-zinc-100 p-12 space-y-8" onClick={e => e.stopPropagation()}>
-                <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Bulk Import Volunteers</h2>
+            <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 space-y-8" onClick={e => e.stopPropagation()}>
+                <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Import Volunteers</h2>
                 <p className="text-zinc-500">Upload a CSV file to migrate existing volunteers. The system will create their accounts and send them a welcome email to set their password and complete their profile.</p>
                 
                 <div className="p-6 bg-zinc-50 border border-zinc-100 rounded-2xl text-xs text-zinc-500">
@@ -744,11 +1036,11 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} volunteers have been imported and sent a welcome email.</p>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg">Done</button>
                     </div>
                 ) : (
                     <>
-                        <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"/>
+                        <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"/>
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
                         <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50">
                             {isUploading ? <Loader2 className="animate-spin"/> : "Start Import"}
@@ -851,7 +1143,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
     if (success) {
         return (
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-                <div className="bg-white max-w-lg w-full rounded-container shadow-elevation-3 border border-zinc-100 p-12 text-center">
+                <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 text-center">
                     <CheckCircle className="mx-auto text-emerald-500 mb-4" size={64} />
                     <h3 className="text-2xl font-black text-emerald-800">Volunteer Added!</h3>
                     <p className="text-zinc-500 mt-2">They will receive a welcome email to set up their account.</p>
@@ -862,7 +1154,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-lg w-full rounded-container shadow-elevation-3 border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add Volunteer</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">

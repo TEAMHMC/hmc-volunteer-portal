@@ -294,7 +294,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Create New Event</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
             </header>
-            <main className="flex-1 p-8 md:p-12 overflow-y-auto space-y-10">
+            <main className="flex-1 p-8 md:p-8 overflow-y-auto space-y-10">
                 {/* Basic Details */}
                 <section>
                     <h3 className="text-lg font-bold mb-4">1. Event Details</h3>
@@ -576,7 +576,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                     setManualSupplyItem('');
                                 }}
                                 disabled={!manualSupplyItem.trim()}
-                                className="px-4 py-3 bg-zinc-900 text-white rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+                                className="px-4 py-3 bg-brand text-white rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-brand/90 transition-colors flex items-center gap-1.5"
                             >
                                 <Plus size={14} /> Add
                             </button>
@@ -587,7 +587,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
             </main>
             <footer className="p-8 border-t border-zinc-100 space-y-4">
                 {saveError && (
-                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium flex items-center gap-2">
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-bold flex items-center gap-2">
                         <AlertTriangle size={16} className="shrink-0" /> {saveError}
                     </div>
                 )}

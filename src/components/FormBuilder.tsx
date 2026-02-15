@@ -187,19 +187,19 @@ const FormBuilder: React.FC = () => {
                 <header className="flex items-center justify-between">
                     <div>
                         <button onClick={() => setViewingResponses(null)} className="text-sm font-bold text-zinc-500 mb-2">← Back to Forms</button>
-                        <h1 className="text-4xl font-black text-zinc-900 tracking-tighter">Survey Responses</h1>
+                        <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Survey Responses</h1>
                         <p className="text-zinc-500 mt-1">{viewingResponses.responses.length} responses collected</p>
                     </div>
                     <button
                         onClick={() => handleExportResponses(viewingResponses.responses)}
-                        className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-full text-xs font-bold uppercase tracking-wide"
+                        className="flex items-center gap-2 px-5 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide"
                     >
                         <Download size={16} /> Export CSV
                     </button>
                 </header>
 
                 {viewingResponses.responses.length === 0 ? (
-                    <div className="bg-zinc-50 rounded-3xl p-12 text-center">
+                    <div className="bg-zinc-50 rounded-2xl p-8 text-center">
                         <BarChart3 className="mx-auto text-zinc-300 mb-4" size={48} />
                         <p className="text-zinc-500">No responses collected yet.</p>
                     </div>
@@ -218,7 +218,7 @@ const FormBuilder: React.FC = () => {
                                 <div className="space-y-2">
                                     {Object.entries(response.responses || {}).map(([key, value]) => (
                                         <div key={key} className="flex gap-4">
-                                            <span className="text-sm font-medium text-zinc-500 min-w-[120px]">{key}:</span>
+                                            <span className="text-sm font-bold text-zinc-500 min-w-[120px]">{key}:</span>
                                             <span className="text-sm text-zinc-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
                                         </div>
                                     ))}
@@ -239,8 +239,8 @@ const FormBuilder: React.FC = () => {
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
             <header className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Forms Dashboard</h1>
-                    <p className="text-zinc-500 mt-2 font-medium text-lg">Manage data collection forms for surveys, applications, and feedback.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Forms Dashboard</h1>
+                    <p className="text-zinc-500 mt-2 font-bold text-lg">Manage data collection forms for surveys, applications, and feedback.</p>
                 </div>
                 <button
                     onClick={handleCreateNewForm}
@@ -252,7 +252,7 @@ const FormBuilder: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {forms.map(form => (
-                    <div key={form.id} className="bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1 flex flex-col">
+                    <div key={form.id} className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 flex flex-col">
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-6">
                             <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 border border-zinc-100"><FileText /></div>
@@ -346,7 +346,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
             </div>
 
             <div className="grid grid-cols-12 gap-8 items-start">
-                <div className="col-span-8 bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1 space-y-8">
+                <div className="col-span-8 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-8">
                     <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-black text-zinc-900 outline-none p-2 -ml-2 rounded-lg focus:bg-zinc-50" />
                     {fields.map(field => (
                         <div key={field.id} className="p-6 bg-zinc-50 border border-zinc-100 rounded-2xl relative group">
@@ -368,7 +368,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                         </div>
                     ))}
                 </div>
-                <div className="col-span-4 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1 space-y-4">
+                <div className="col-span-4 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
                      <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider">Add Field</h3>
                      {fieldTypes.map(field => (
                          <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-brand/30 hover:bg-brand/5">

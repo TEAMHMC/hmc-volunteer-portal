@@ -41,8 +41,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       <header>
-        <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Analytics Dashboard</h1>
-        <p className="text-zinc-500 mt-2 font-medium text-lg">Program-wide volunteer operations and experience overview.</p>
+        <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Analytics Dashboard</h1>
+        <p className="text-zinc-500 mt-2 font-bold text-lg">Program-wide volunteer operations and experience overview.</p>
       </header>
 
       <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 w-fit">
@@ -59,7 +59,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
-            <div className="xl:col-span-3 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
+            <div className="xl:col-span-3 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
               <h3 className="text-lg font-bold text-zinc-900 mb-6 uppercase tracking-wider flex items-center gap-3"><BarChart3 size={20} /> Volunteer Hours by Role</h3>
               <div style={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
@@ -73,7 +73,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
               </div>
             </div>
 
-            <div className="xl:col-span-2 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
+            <div className="xl:col-span-2 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
               <h3 className="text-lg font-bold text-zinc-900 mb-6 uppercase tracking-wider">Volunteer Distribution</h3>
                <div style={{ width: '100%', height: 300 }}>
                  <ResponsiveContainer>
@@ -98,12 +98,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
 };
 
 const StatCard: React.FC<{title: string, value: number | string, icon: React.ElementType, unit?: string}> = ({ title, value, icon: Icon, unit }) => (
-    <div className="bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
+    <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
         <div className="flex items-center justify-center w-12 h-12 bg-zinc-50 rounded-2xl text-zinc-500 mb-4">
             <Icon size={24} />
         </div>
         <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{title}</p>
-        <p className="text-4xl font-black text-zinc-900 mt-1">{value}{unit && <span className="text-2xl text-zinc-300 ml-1">{unit}</span>}</p>
+        <p className="text-2xl font-black text-zinc-900 mt-1">{value}{unit && <span className="text-2xl text-zinc-300 ml-1">{unit}</span>}</p>
     </div>
 );
 
@@ -192,7 +192,7 @@ const VolunteerExperienceView = () => {
 
         {/* Responses Over Time Chart */}
         {surveyStats?.responsesOverTime && surveyStats.responsesOverTime.length > 0 && (
-          <div className="bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
+          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
             <h3 className="text-lg font-bold text-zinc-900 mb-6 uppercase tracking-wider">Survey Collection Trend</h3>
             <div style={{ width: '100%', height: 250 }}>
               <ResponsiveContainer>
@@ -210,7 +210,7 @@ const VolunteerExperienceView = () => {
         {surveyResponses.length > 0 ? (
           <>
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
-                <div className="xl:col-span-3 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
+                <div className="xl:col-span-3 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
                     <h3 className="text-lg font-bold text-zinc-900 mb-6 uppercase tracking-wider">Satisfaction by Role</h3>
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
@@ -223,12 +223,12 @@ const VolunteerExperienceView = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
-                 <div className="xl:col-span-2 bg-white p-8 rounded-container border border-zinc-100 shadow-elevation-1">
+                 <div className="xl:col-span-2 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
                     <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider flex items-center gap-3"><Sparkles size={20} className="text-brand"/> Feedback Summary</h3>
                     {isLoadingSummary ? (
                         <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-brand" /></div>
                     ) : aiSummary ? (
-                        <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-medium">
+                        <div className="text-sm text-zinc-600 whitespace-pre-wrap leading-relaxed font-bold">
                             {/* SECURITY: Render as text, not HTML, to prevent XSS */}
                             {aiSummary.replace(/\*/g, '•')}
                         </div>
@@ -239,7 +239,7 @@ const VolunteerExperienceView = () => {
             </div>
           </>
         ) : (
-            <div className="text-center py-20 bg-zinc-50 rounded-container border border-dashed">
+            <div className="text-center py-20 bg-zinc-50 rounded-2xl border border-dashed">
                 <MessageSquare size={48} className="mx-auto text-zinc-300 mb-4" />
                 <h3 className="font-bold text-zinc-500">No feedback data available.</h3>
                 <p className="text-sm text-zinc-400">Collect surveys at events to start seeing insights here.</p>

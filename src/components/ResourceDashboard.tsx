@@ -35,8 +35,8 @@ const ResourceDashboard: React.FC = () => {
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Resource Directory</h1>
-                    <p className="text-zinc-500 mt-2 font-medium text-lg">Manage community referral resources.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Resource Directory</h1>
+                    <p className="text-zinc-500 mt-2 font-bold text-lg">Manage community referral resources.</p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
@@ -48,7 +48,7 @@ const ResourceDashboard: React.FC = () => {
                 </div>
             </header>
 
-            <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
@@ -121,7 +121,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-container shadow-elevation-3 border border-zinc-100 p-10 space-y-6" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Upload Resources</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
@@ -141,7 +141,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} resources have been imported.</p>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg">Done</button>
                     </div>
                 ) : (
                     <>
@@ -150,7 +150,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                             type="file"
                             accept=".csv"
                             onChange={handleFileChange}
-                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"
+                            className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"
                         />
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
                         <button
@@ -169,7 +169,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
 
 const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }> = ({ onClose, onComplete }) => (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
-        <div className="bg-white max-w-4xl w-full rounded-container shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Resource</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>

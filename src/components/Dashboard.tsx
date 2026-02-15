@@ -264,7 +264,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       }
     }
     mainItems.push({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
-    mainItems.push({ id: 'application', label: 'My Application', icon: FileText });
     groups.push({ label: 'MAIN', items: mainItems });
 
     // TOOLS
@@ -368,7 +367,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {viewingAsRole && (
           <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] z-[101] md:pl-[320px] shadow-elevation-2`}>
              <Eye size={16} className="mr-3"/> Viewing as {viewingAsRole}
-             <button onClick={() => setViewingAsRole(null)} className="ml-6 bg-zinc-900 text-white px-4 py-1 rounded-full text-[9px] hover:opacity-80">Return to Admin View</button>
+             <button onClick={() => setViewingAsRole(null)} className="ml-6 bg-brand text-white px-4 py-1 rounded-full text-[9px] hover:opacity-80">Return to Admin View</button>
           </div>
       )}
       
@@ -419,7 +418,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-4 mb-1.5">{group.label}</p>
                   <div className="flex flex-col gap-0.5">
                     {group.items.map(item => (
-                      <button key={item.id + '-' + group.label} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3 rounded-full font-medium text-[13px] transition-all ${activeTab === item.id ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
+                      <button key={item.id + '-' + group.label} onClick={() => { setActiveTab(item.id as any); setShowMobileMenu(false); }} className={`flex items-center gap-3 px-4 py-3 rounded-full font-bold text-[13px] transition-all ${activeTab === item.id ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
                         <item.icon size={18} /> {item.label}
                         {item.badge && item.badge > 0 ? (
                           <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? 'bg-white text-brand' : 'bg-rose-500 text-white'}`}>
@@ -446,7 +445,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   <p className="text-[10px] text-zinc-400 truncate">{displayUser.role}</p>
                 </div>
               </button>
-              <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-zinc-400 font-medium text-sm hover:text-rose-500 rounded-xl transition-all">
+              <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-zinc-400 font-bold text-sm hover:text-rose-500 rounded-xl transition-all">
                 <LogOut size={16} /> Sign Out
               </button>
             </div>
@@ -478,7 +477,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </div>
             <div className="flex-1">
               <span className="text-sm font-black text-zinc-900 tracking-tight block">HMC Portal</span>
-              <span className="text-[10px] font-medium text-zinc-400">Volunteer Hub</span>
+              <span className="text-[10px] font-bold text-zinc-400">Volunteer Hub</span>
             </div>
             <div className="relative">
               <button
@@ -501,7 +500,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-5 mb-2">{group.label}</p>
                 <div className="flex flex-col gap-1">
                   {group.items.map(item => (
-                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-medium text-[13px] transition-all relative ${activeTab === item.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-elevation-1'}`}>
+                    <button key={item.id + '-' + group.label} onClick={() => setActiveTab(item.id as any)} className={`flex items-center gap-4 px-5 py-3.5 rounded-full font-bold text-[13px] transition-all relative ${activeTab === item.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-elevation-1'}`}>
                         <item.icon size={18} strokeWidth={activeTab === item.id ? 2.5 : 2} /> {item.label}
                         {item.badge && item.badge > 0 ? (
                           <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${
@@ -528,7 +527,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                </div>
                <div className="min-w-0 flex-1 text-left">
                   <p className="text-sm font-bold text-zinc-900 truncate group-hover:text-brand transition-colors">{displayUser.name}</p>
-                  <p className="text-[10px] font-medium text-zinc-400 truncate">{displayUser.role}</p>
+                  <p className="text-[10px] font-bold text-zinc-400 truncate">{displayUser.role}</p>
                </div>
                <ChevronRight size={16} className="text-zinc-300 group-hover:text-brand transition-colors" />
             </button>
@@ -536,7 +535,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               <div className="relative">
                 <select
                   onChange={(e) => setViewingAsRole(e.target.value)}
-                  className="w-full bg-zinc-900 text-white border-0 rounded-full font-bold text-[10px] uppercase tracking-wide pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-elevation-2"
+                  className="w-full bg-brand text-white border-0 rounded-full font-bold text-[10px] uppercase tracking-wide pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-elevation-2"
                 >
                   <option value="">View as Role...</option>
                   {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
@@ -544,7 +543,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <Eye size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
               </div>
             )}
-            <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-zinc-400 font-medium text-sm hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+            <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-zinc-400 font-bold text-sm hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                <LogOut size={16} /> Sign Out
             </button>
          </div>
@@ -573,9 +572,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto">
               {totalNotifications === 0 ? (
-                <div className="p-12 text-center">
+                <div className="p-8 text-center">
                   <Bell size={28} className="mx-auto text-zinc-200 mb-3" />
-                  <p className="text-sm text-zinc-400 font-medium">All caught up!</p>
+                  <p className="text-sm text-zinc-400 font-bold">All caught up!</p>
                   <p className="text-xs text-zinc-300 mt-1">No new notifications</p>
                 </div>
               ) : (
@@ -616,7 +615,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                           onClick={() => { setCommHubTab('support'); setActiveTab('briefing'); setShowNotifications(false); }}
                           className="w-full px-5 py-3 pl-[72px] hover:bg-zinc-50 text-left transition-colors"
                         >
-                          <p className="text-xs font-medium text-zinc-700 truncate">{t.subject}</p>
+                          <p className="text-xs font-bold text-zinc-700 truncate">{t.subject}</p>
                           <p className="text-[10px] text-zinc-400 mt-0.5">{t.status === 'open' ? 'Open' : 'In Progress'} · {t.priority}</p>
                         </button>
                       ))}
@@ -656,7 +655,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         </>
       )}
 
-      <main className={`flex-1 p-6 md:p-10 space-y-8 md:space-y-10 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
+      <main className={`flex-1 p-6 md:p-8 space-y-8 md:space-y-10 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {/* Announcement Banner */}
          {(() => {
            const DISMISSED_KEY = 'hmcDismissedAnnouncements';
@@ -708,11 +707,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 {/* Greeting + Stat Chips */}
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-4xl md:text-5xl font-medium text-zinc-900 tracking-normal leading-[1.1]">
+                    <p className="text-sm font-bold text-zinc-400">{getFormattedDate()}</p>
+                    <h1 className="text-2xl md:text-2xl font-bold text-zinc-900 tracking-normal leading-[1.1]">
                       {getGreeting(displayUser.name)}.
                     </h1>
-                    <p className="text-base text-zinc-500 font-medium max-w-lg">
+                    <p className="text-base text-zinc-500 font-bold max-w-lg">
                       {isOnboarding
                         ? "Complete your orientation to unlock missions."
                         : "Ready to continue making a difference?"}
@@ -750,7 +749,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   if (lvl.isMaxLevel) {
                     return (
                       <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-4 text-center">
-                        <p className="text-sm font-medium text-amber-700">
+                        <p className="text-sm font-bold text-amber-700">
                           <i className="fa-solid fa-crown text-amber-500 mr-2" />
                           Max Level Reached — {lvl.title}
                         </p>
@@ -823,7 +822,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'livechat' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
            <LiveChatDashboard currentUser={displayUser} />
          )}
-         {activeTab === 'application' && <MyApplicationView user={displayUser} />}
 
       </main>
     </div>
@@ -836,7 +834,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
                 <div>
@@ -844,14 +842,14 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                       <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
                       Getting Started
                     </div>
-                    <h3 className="text-4xl md:text-5xl font-medium tracking-normal leading-[1.1] mb-6">
+                    <h3 className="text-2xl md:text-2xl font-bold tracking-normal leading-[1.1] mb-6">
                       Welcome to the team, {user.name?.split(' ')[0]}.
                     </h3>
-                    <p className="text-lg font-medium text-white/80 max-w-lg leading-relaxed">
+                    <p className="text-lg font-bold text-white/80 max-w-lg leading-relaxed">
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-normal text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-bold text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
                     <span className="w-2 h-2 rounded-full bg-zinc-950" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -863,7 +861,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 
         <div className="space-y-6">
           {/* Profile Status Card - Glass effect */}
-          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-container border border-zinc-200/50 shadow-elevation-2 space-y-6">
+          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zinc-200/50 shadow-elevation-2 space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-bold text-zinc-900 tracking-tight">Profile Status</h4>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
@@ -877,7 +875,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                             <CheckCircle size={16} strokeWidth={2.5} />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className={`text-sm font-semibold transition-colors ${step.status === 'completed' || step.status === 'verified' ? 'text-zinc-900' : 'text-zinc-400'}`}>{step.label}</p>
+                            <p className={`text-sm font-bold transition-colors ${step.status === 'completed' || step.status === 'verified' ? 'text-zinc-900' : 'text-zinc-400'}`}>{step.label}</p>
                         </div>
                         <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-400'}`}>
                           {step.status}
@@ -890,120 +888,6 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     </div>
 )};
 
-const MyApplicationView = ({ user }: { user: Volunteer }) => {
-  const statusColor = user.applicationStatus === 'approved' ? 'emerald' : user.applicationStatus === 'rejected' ? 'rose' : 'amber';
-  const statusLabel = user.applicationStatus === 'approved' ? 'Approved' : user.applicationStatus === 'rejected' ? 'Declined' : 'Under Review';
-
-  const infoRows: { label: string; value: string | undefined }[] = [
-    { label: 'Applied Role', value: user.appliedRole || user.role },
-    { label: 'Email', value: user.email },
-    { label: 'Phone', value: user.phone },
-    { label: 'Location', value: [user.city, user.state].filter(Boolean).join(', ') || undefined },
-    { label: 'Time Commitment', value: user.timeCommitment },
-    { label: 'Service Preference', value: user.availability?.servicePreference },
-    { label: 'Available Days', value: user.availability?.days?.join(', ') },
-    { label: 'Preferred Time', value: user.availability?.preferredTime },
-    { label: 'Start Date', value: user.availability?.startDate },
-    { label: 'Applied On', value: user.joinedDate ? new Date(user.joinedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : undefined },
-  ];
-
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-container border border-zinc-200/50 shadow-elevation-2 p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-zinc-900 tracking-tight">My Application</h2>
-            <p className="text-sm text-zinc-500 mt-1">Your volunteer application details and status</p>
-          </div>
-          <span className={`px-4 py-2 rounded-full text-sm font-bold bg-${statusColor}-100 text-${statusColor}-700 border border-${statusColor}-200`}>
-            {statusLabel}
-          </span>
-        </div>
-
-        {/* Compliance Steps */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {Object.values(user.compliance || {}).map((step, i) => (
-            <div key={i} className="flex items-center gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-100">
-              <CheckCircle size={16} className={step.status === 'completed' || step.status === 'verified' ? 'text-emerald-500' : 'text-zinc-300'} />
-              <span className="text-xs font-medium text-zinc-600 truncate">{step.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Application Details */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-container border border-zinc-200/50 shadow-elevation-2 p-8">
-          <h3 className="text-lg font-bold text-zinc-900 tracking-tight mb-6 flex items-center gap-2">
-            <User size={18} className="text-brand" /> Application Details
-          </h3>
-          <div className="space-y-4">
-            {infoRows.filter(r => r.value).map((row, i) => (
-              <div key={i} className="flex items-start justify-between py-2 border-b border-zinc-100 last:border-0">
-                <span className="text-sm font-medium text-zinc-500">{row.label}</span>
-                <span className="text-sm font-semibold text-zinc-900 text-right max-w-[60%]">{row.value}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Resume */}
-          {user.resume?.name && (
-            <div className="mt-6 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
-              <div className="flex items-center gap-3">
-                <FileText size={18} className="text-brand" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-900 truncate">{user.resume.name}</p>
-                  <p className="text-xs text-zinc-400">{user.resume.type}</p>
-                </div>
-                {user.resume.storagePath && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await apiService.get(`/api/admin/volunteer/${user.id}/resume`);
-                        if (res?.url) window.open(res.url, '_blank');
-                      } catch { toastService.error('Could not download resume.'); }
-                    }}
-                    className="px-3 py-1.5 text-xs font-bold text-brand border border-brand/20 rounded-full hover:bg-brand/5 transition-colors"
-                  >
-                    Download
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Role Assessment Q&A */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-container border border-zinc-200/50 shadow-elevation-2 p-8">
-          <h3 className="text-lg font-bold text-zinc-900 tracking-tight mb-6 flex items-center gap-2">
-            <Info size={18} className="text-brand" /> Role Assessment
-          </h3>
-          {user.roleAssessment && user.roleAssessment.length > 0 ? (
-            <div className="space-y-5">
-              {user.roleAssessment.map((qa, i) => (
-                <div key={i} className="space-y-1.5">
-                  <p className="text-sm font-semibold text-zinc-700">{qa.question}</p>
-                  <p className="text-sm text-zinc-500 bg-zinc-50 rounded-lg p-3 border border-zinc-100">{qa.answer}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400 italic">No role assessment responses recorded.</p>
-          )}
-
-          {/* Skills & Interests */}
-          {user.gainFromExperience && (
-            <div className="mt-6 pt-6 border-t border-zinc-100">
-              <p className="text-sm font-semibold text-zinc-700 mb-2">What I hope to gain</p>
-              <p className="text-sm text-zinc-500 bg-zinc-50 rounded-lg p-3 border border-zinc-100">{user.gainFromExperience}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportunities: Opportunity[], onNavigate: (tab: string) => void, hasCompletedCoreTraining: boolean, isOperationalEligible: boolean, isGovernanceRole?: boolean, newApplicantsCount?: number }> = ({ user, shifts, opportunities, onNavigate, hasCompletedCoreTraining, isOperationalEligible, isGovernanceRole = false, newApplicantsCount = 0 }) => {
   const getOpp = (oppId: string) => opportunities.find(o => o.id === oppId);
@@ -1060,7 +944,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Training Required Card - Modern gradient */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-container p-8 md:p-10 border border-amber-200/50 shadow-elevation-2 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-8 md:p-8 border border-amber-200/50 shadow-elevation-2 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="relative z-10">
               <div className="flex items-start gap-5 mb-6">
@@ -1071,7 +955,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                   <h3 className="text-2xl font-bold text-amber-900 tracking-tight mb-2">
                     {trainingDone && !roleApproved ? 'Awaiting Role Approval' : 'Complete Your Training'}
                   </h3>
-                  <p className="text-amber-700 font-medium">
+                  <p className="text-amber-700 font-bold">
                     {trainingDone && !roleApproved
                       ? 'Your training is complete! Your role application is being reviewed.'
                       : `${completedCount} of ${coreModules.length} modules completed`}
@@ -1086,13 +970,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                 </div>
               </div>
 
-              <p className="text-amber-800 font-medium leading-relaxed mb-4">
+              <p className="text-amber-800 font-bold leading-relaxed mb-4">
                 {trainingDone && !roleApproved
                   ? 'Your orientation is complete! Your role application is being reviewed. You can continue exploring the portal while you wait.'
                   : 'Complete these 2 orientation videos to unlock community missions and event signups.'}
               </p>
               {!trainingDone && (
-                <p className="text-amber-700/70 text-sm font-medium mb-6">
+                <p className="text-amber-700/70 text-sm font-bold mb-6">
                   You can already explore Training Academy, Communication Hub, Doc Hub, and Impact Hub using the menu.
                 </p>
               )}
@@ -1107,13 +991,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isComplete ? 'bg-emerald-500 text-white' : 'bg-amber-200 text-amber-400'}`}>
                         <CheckCircle size={14} strokeWidth={3} />
                       </div>
-                      <span className={`text-sm font-medium ${isComplete ? 'text-emerald-700' : 'text-amber-700'}`}>{item.label}</span>
+                      <span className={`text-sm font-bold ${isComplete ? 'text-emerald-700' : 'text-amber-700'}`}>{item.label}</span>
                     </div>
                   );
                 })}
               </div>
 
-              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-normal text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-white" />
                 Continue Training
                 <ArrowRight size={18} />
@@ -1123,13 +1007,13 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         </div>
         <div className="space-y-10">
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
-            <h4 className="text-xl font-medium text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
+            <h4 className="text-xl font-bold text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
+                <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
               <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
-                <span className="font-normal text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
+                <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
             </div>
           </div>
@@ -1274,7 +1158,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${quest.completed ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`}>
                       {quest.completed ? <i className="fa-solid fa-check text-xs" /> : <i className={`${quest.icon} text-xs`} />}
                     </div>
-                    <span className={`text-sm font-medium flex-1 ${quest.completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>{quest.title}</span>
+                    <span className={`text-sm font-bold flex-1 ${quest.completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>{quest.title}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${quest.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>+{quest.xpReward} XP</span>
                   </div>
                 ))}
@@ -1360,7 +1244,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           <i className="fa-solid fa-radar text-brand text-sm" />
           Coming Up
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-normal text-sm hover:opacity-95 transition-all">
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm hover:opacity-95 transition-all">
           <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
@@ -1376,11 +1260,11 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                 {heroItem.type === 'shift' ? 'Next Mission' : 'Next Event'}
               </span>
               {heroItem.category && (
-                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-medium">{heroItem.category}</span>
+                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold">{heroItem.category}</span>
               )}
             </div>
-            <h4 className="text-2xl font-medium tracking-normal mb-4">{heroItem.title}</h4>
-            <div className="flex items-center gap-6 text-sm text-white/80 font-medium flex-wrap">
+            <h4 className="text-2xl font-bold tracking-normal mb-4">{heroItem.title}</h4>
+            <div className="flex items-center gap-6 text-sm text-white/80 font-bold flex-wrap">
               <span className="flex items-center gap-2">
                 <i className="fa-solid fa-calendar text-xs" />
                 {heroItem.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -1403,8 +1287,8 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
       ) : (
         <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
-          <p className="text-zinc-400 font-medium text-sm mb-3">No upcoming missions.</p>
-          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-normal text-sm flex items-center gap-2 mx-auto">
+          <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming missions.</p>
+          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm flex items-center gap-2 mx-auto">
             <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
           </button>
         </div>

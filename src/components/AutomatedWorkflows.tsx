@@ -255,7 +255,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
             {cycles.length === 0 ? (
                 <div className="text-center py-12 text-zinc-400">
                     <Stethoscope size={32} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-medium">No SMO cycles yet. They'll be auto-created 30 days before the next 3rd Saturday.</p>
+                    <p className="text-sm font-bold">No SMO cycles yet. They'll be auto-created 30 days before the next 3rd Saturday.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -514,8 +514,8 @@ const AutomatedWorkflows: React.FC = () => {
                 </div>
             )}
             <header>
-                <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Automated Workflows</h1>
-                <p className="text-zinc-500 mt-2 font-medium text-lg">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
+                <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Automated Workflows</h1>
+                <p className="text-zinc-500 mt-2 font-bold text-lg">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
             </header>
 
             {/* Tab Navigation */}
@@ -539,7 +539,7 @@ const AutomatedWorkflows: React.FC = () => {
             {/* Workflows Tab */}
             {activeTab === 'workflows' && (
                 <>
-                    <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
+                    <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
                         {/* Channel preference */}
                         <div className="mb-8 pb-8 border-b border-zinc-100">
                             <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Notification Channel</h3>
@@ -613,7 +613,7 @@ const AutomatedWorkflows: React.FC = () => {
 
                     {/* Recent Activity */}
                     {runs.length > 0 && (
-                        <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
+                        <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
                             <h3 className="text-lg font-bold text-zinc-900 mb-6 uppercase tracking-wider flex items-center gap-3">
                                 <History size={18} />
                                 Recent Activity
@@ -641,14 +641,14 @@ const AutomatedWorkflows: React.FC = () => {
 
             {/* Event Reminder Cadence Tab */}
             {activeTab === 'cadence' && (
-                <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
+                <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
                     <ReminderCadencePanel showNotification={showNotification} />
                 </div>
             )}
 
             {/* SMO Monthly Cycle Tab */}
             {activeTab === 'smo' && (
-                <div className="bg-white p-12 rounded-container border border-zinc-100 shadow-elevation-1">
+                <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
                     <SMOCyclePanel showNotification={showNotification} />
                 </div>
             )}

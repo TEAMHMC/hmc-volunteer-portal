@@ -73,15 +73,15 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Referral Dashboard</h1>
-                    <p className="text-zinc-500 mt-2 font-medium text-lg">Manage and track all client referrals and SLA compliance.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Referral Dashboard</h1>
+                    <p className="text-zinc-500 mt-2 font-bold text-lg">Manage and track all client referrals and SLA compliance.</p>
                 </div>
                 <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
                     <Plus size={16} /> New Referral
                 </button>
             </header>
 
-            <div className="bg-white rounded-container border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
@@ -144,7 +144,7 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
-            <div className="bg-white max-w-4xl w-full rounded-container shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{isNew ? 'New Referral' : `Referral for ${formData.clientName}`}</h2>
                     <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>

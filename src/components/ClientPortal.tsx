@@ -50,7 +50,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
 
       <main className="max-w-[1200px] mx-auto w-full px-6 py-16">
         <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-5xl font-black text-zinc-900 tracking-tighter">Community Events</h1>
+          <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Community Events</h1>
           <p className="text-lg text-zinc-500 mt-4">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
         </div>
 
@@ -59,9 +59,9 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
         ) : (
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {opportunities.map(opp => (
-              <div key={opp.id} className="bg-white p-8 rounded-3xl border border-zinc-100 shadow-elevation-1 flex flex-col">
+              <div key={opp.id} className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 flex flex-col">
                 <h3 className="text-xl font-bold text-zinc-800">{opp.title}</h3>
-                <p className="text-sm text-zinc-400 font-medium mt-1">{opp.category}</p>
+                <p className="text-sm text-zinc-400 font-bold mt-1">{opp.category}</p>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 my-4">
                   <Calendar size={14}/> {opp.date}
                 </div>

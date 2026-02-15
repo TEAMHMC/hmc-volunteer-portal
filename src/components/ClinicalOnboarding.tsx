@@ -206,7 +206,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
+          <h2 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
             <Stethoscope className="text-brand" />
             Clinical Onboarding
           </h2>
@@ -286,7 +286,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                       <p className="text-sm text-zinc-500 mt-1">{doc.description}</p>
                       {isSigned && (
                         <div className="flex items-center gap-3 mt-2">
-                          <p className="text-xs text-emerald-600 font-medium">
+                          <p className="text-xs text-emerald-600 font-bold">
                             Signed on {new Date(clinicalOnboarding.documents?.[doc.id as keyof typeof clinicalOnboarding.documents]?.signedAt || '').toLocaleDateString()}
                           </p>
                           <button
@@ -394,7 +394,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
               <div className="flex items-center gap-4">
                 <label className="flex-1 flex items-center justify-center gap-3 px-4 py-4 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-all">
                   <Upload size={20} className="text-zinc-400" />
-                  <span className="text-sm text-zinc-600 font-medium">
+                  <span className="text-sm text-zinc-600 font-bold">
                     {credentials.licenseFileUrl ? 'License uploaded' : 'Click to upload'}
                   </span>
                   <input
@@ -478,7 +478,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                   onChange={(e) => setCredentials({ ...credentials, malpracticeInsurance: e.target.checked })}
                   className="w-5 h-5 rounded border-zinc-300"
                 />
-                <span className="text-sm font-medium text-zinc-700">
+                <span className="text-sm font-bold text-zinc-700">
                   I have current malpractice insurance coverage
                 </span>
               </label>
@@ -628,7 +628,7 @@ const DocumentViewerModal: React.FC<{
               ) : !hasScrolledToBottom ? (
                 <div className="flex items-center justify-center gap-2 text-amber-600">
                   <AlertTriangle size={18} />
-                  <span className="text-sm font-medium">Please scroll through the entire document to enable signing</span>
+                  <span className="text-sm font-bold">Please scroll through the entire document to enable signing</span>
                 </div>
               ) : (
                 <button
@@ -663,7 +663,7 @@ const DocumentViewerModal: React.FC<{
               </div>
               <button
                 onClick={clearSignature}
-                className="mt-3 text-sm text-zinc-500 hover:text-zinc-700 font-medium"
+                className="mt-3 text-sm text-zinc-500 hover:text-zinc-700 font-bold"
               >
                 Clear Signature
               </button>
@@ -680,7 +680,7 @@ const DocumentViewerModal: React.FC<{
               <button
                 onClick={submitSignature}
                 disabled={!hasSignature || isSaving}
-                className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-full hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-brand text-white font-bold rounded-full hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                 Submit Signature

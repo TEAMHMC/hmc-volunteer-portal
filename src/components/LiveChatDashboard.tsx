@@ -214,7 +214,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
         <div className="flex items-center gap-3">
           <button
             onClick={() => setView('queue')}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border-2 ${
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${
               view === 'queue'
                 ? 'bg-brand text-white border-brand'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-brand/40'
@@ -224,7 +224,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
           </button>
           <button
             onClick={() => setView('chat')}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border-2 ${
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${
               view === 'chat'
                 ? 'bg-brand text-white border-brand'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-brand/40'
@@ -259,7 +259,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
           {/* Pending Requests */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-200 bg-yellow-50">
-              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
                 Waiting for Help ({pendingSessions.length})
               </h3>
@@ -270,7 +270,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <p className="font-medium">No pending chat requests</p>
+                <p className="font-bold">No pending chat requests</p>
                 <p className="text-sm mt-1">New requests will appear here</p>
               </div>
             ) : (
@@ -280,10 +280,10 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="w-8 h-8 rounded-full bg-brand/10 text-brand flex items-center justify-center text-sm font-semibold">
+                          <span className="w-8 h-8 rounded-full bg-brand/10 text-brand flex items-center justify-center text-sm font-bold">
                             {session.userInfo?.name?.[0] || 'V'}
                           </span>
-                          <span className="font-semibold text-slate-900">
+                          <span className="font-bold text-slate-900">
                             {session.userInfo?.name || 'Visitor'}
                           </span>
                           <span className="text-xs text-slate-400">
@@ -296,7 +296,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                       </div>
                       <button
                         onClick={() => handleClaimSession(session)}
-                        className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
+                        className="px-4 py-2 bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
                       >
                         Accept Chat
                       </button>
@@ -311,7 +311,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
           {activeSessions.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               <div className="p-4 border-b border-slate-200 bg-green-50">
-                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-500 rounded-full" />
                   Your Active Chats ({activeSessions.length})
                 </h3>
@@ -328,10 +328,10 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-semibold">
+                        <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-bold">
                           {session.userInfo?.name?.[0] || 'V'}
                         </span>
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-bold text-slate-900">
                           {session.userInfo?.name || 'Visitor'}
                         </span>
                       </div>
@@ -364,7 +364,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                     </svg>
                   </button>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
+                    <h3 className="font-bold text-slate-900">
                       {activeSession.userInfo?.name || 'Visitor'}
                     </h3>
                     <p className="text-xs text-slate-500">
@@ -374,7 +374,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 </div>
                 <button
                   onClick={handleCloseSession}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-full hover:bg-slate-300 transition-colors"
+                  className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-bold rounded-full hover:bg-slate-300 transition-colors"
                 >
                   End Chat
                 </button>
@@ -399,7 +399,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                       } px-4 py-3`}
                     >
                       {message.type !== 'volunteer' && message.senderName && (
-                        <p className="text-xs font-semibold mb-1 text-brand">
+                        <p className="text-xs font-bold mb-1 text-brand">
                           {message.senderName}
                         </p>
                       )}
@@ -427,7 +427,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                   <button
                     type="submit"
                     disabled={!messageInput.trim()}
-                    className="px-6 py-3 bg-brand text-white text-sm font-semibold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
+                    className="px-6 py-3 bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
                   >
                     Send
                   </button>
@@ -459,11 +459,11 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 <svg className="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <p className="font-medium text-lg">No active chat selected</p>
+                <p className="font-bold text-lg">No active chat selected</p>
                 <p className="text-sm mt-1">Accept a chat from the queue to get started</p>
                 <button
                   onClick={() => setView('queue')}
-                  className="mt-4 px-6 py-2 bg-brand text-white text-sm font-semibold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
+                  className="mt-4 px-6 py-2 bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
                 >
                   View Queue
                 </button>
