@@ -9,6 +9,7 @@ import EventOpsMode from './EventOpsMode';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
 import { apiService } from '../services/apiService';
+import { toastService } from '../services/toastService';
 import { AlertTriangle } from 'lucide-react';
 
 // Map event category to program training requirement key
@@ -91,7 +92,7 @@ const EventDayCheckin: React.FC<{ eventId: string; eventDate: string }> = ({ eve
       if (stats) setStats({ ...stats, checkedInCount: (stats.checkedInCount || 0) + 1 });
     } catch (err) {
       console.error('Manual check-in failed:', err);
-      alert('Check-in failed. Please try again.');
+      toastService.error('Check-in failed. Please try again.');
     }
   };
 
@@ -1286,7 +1287,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                setToastMsg('Event approved and now visible to all volunteers!');
                                setShowToast(true);
                                setTimeout(() => setShowToast(false), 3000);
-                             } catch (e) { console.error('Failed to approve', e); alert('Failed to approve registration. Please try again.'); }
+                             } catch (e) { console.error('Failed to approve', e); toastService.error('Failed to approve registration. Please try again.'); }
                            }}
                            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-emerald-600"
                          >
@@ -1300,7 +1301,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                setToastMsg('Event rejected.');
                                setShowToast(true);
                                setTimeout(() => setShowToast(false), 3000);
-                             } catch (e) { console.error('Failed to reject', e); alert('Failed to reject registration. Please try again.'); }
+                             } catch (e) { console.error('Failed to reject', e); toastService.error('Failed to reject registration. Please try again.'); }
                            }}
                            className="px-4 py-2 bg-rose-100 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-rose-200"
                          >
@@ -1369,7 +1370,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           if (setAllVolunteers) {
                                             setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id), assignedShiftIds: (vol.assignedShiftIds || []).filter(id => id !== matchingShift.id) } : vol));
                                           }
-                                        } catch (e) { console.error('Failed to unassign', e); alert('Failed to unassign volunteer. Please try again.'); }
+                                        } catch (e) { console.error('Failed to unassign', e); toastService.error('Failed to unassign volunteer. Please try again.'); }
                                       }}
                                       className="ml-auto p-1 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors shrink-0"
                                       title="Remove volunteer"
@@ -1404,7 +1405,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       if (setAllVolunteers) {
                                         setAllVolunteers(prev => prev.map(vol => vol.id === v.id ? { ...vol, rsvpedEventIds: (vol.rsvpedEventIds || []).filter(id => id !== opp.id) } : vol));
                                       }
-                                    } catch (e) { console.error('Failed to remove RSVP', e); alert('Failed to remove RSVP. Please try again.'); }
+                                    } catch (e) { console.error('Failed to remove RSVP', e); toastService.error('Failed to remove RSVP. Please try again.'); }
                                   }}
                                   className="ml-auto p-1 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors shrink-0"
                                   title="Remove RSVP"

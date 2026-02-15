@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Volunteer, Task } from '../types';
-import { 
+import {
   Save, Edit3, Mail, Phone, Calendar, Globe, Clock, Smartphone, Bell, Zap, ClipboardList, Check, TrendingUp, Award, CheckCircle2, Star, Camera, Upload, Shield, XCircle, Plus, Trash2
 } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 const formatPhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10).replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
 
@@ -73,7 +74,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
     onUpdate(updatedUser);
     setIsEditing(false);
     setShowReminderBanner(false);
-    alert("Profile Updated: Your changes have been saved.");
+    toastService.success("Profile updated. Your changes have been saved.");
   };
 
   const handleTaskStatusChange = (taskId: string) => {

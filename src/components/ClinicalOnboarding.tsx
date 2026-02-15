@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Volunteer } from '../types';
 import { apiService } from '../services/apiService';
+import { toastService } from '../services/toastService';
 import {
   FileText, CheckCircle, Lock, Upload, Pen, ChevronRight, ChevronDown,
   AlertTriangle, Loader2, X, Award, Shield, ClipboardCheck, Stethoscope, Download
@@ -116,6 +117,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       setShowSignatureModal(false);
     } catch (error) {
       console.error('Failed to save signature:', error);
+      toastService.error('Failed to save signature. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -151,6 +153,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       onUpdate(updatedUser);
     } catch (error) {
       console.error('Failed to save credentials:', error);
+      toastService.error('Failed to save credentials. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -180,6 +183,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Failed to upload file:', error);
+      toastService.error('Failed to upload file. Please try again.');
       setUploadingField(null);
     }
   };
@@ -189,7 +193,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       const result = await apiService.get(`/api/volunteer/${user.id}/credential-file/${field}`);
       if (result.url) window.open(result.url, '_blank');
     } catch {
-      alert('Unable to open file. It may not be stored in cloud storage.');
+      toastService.error('Unable to open file. It may not be stored in cloud storage.');
     }
   };
 

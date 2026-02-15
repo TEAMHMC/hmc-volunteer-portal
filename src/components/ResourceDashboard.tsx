@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
 import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 const ResourceDashboard: React.FC = () => {
     const [resources, setResources] = useState<ReferralResource[]>([]);
@@ -210,7 +211,7 @@ const NewResourceForm: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
             setIsSuccess(true);
             setTimeout(() => onComplete(), 2000);
         } catch (error) {
-            alert(`Error: ${(error as Error).message}`);
+            toastService.error(`Error: ${(error as Error).message}`);
         } finally {
             setIsSaving(false);
         }

@@ -6,9 +6,10 @@ import { apiService } from '../services/apiService';
 interface CoordinatorViewProps {
   user: Volunteer;
   allVolunteers: Volunteer[];
+  onNavigate?: (tab: string) => void;
 }
 
-const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }) => {
+const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, onNavigate }) => {
   const myTeam = allVolunteers.filter(v => v.managedBy === user.id);
   const [pendingApprovals, setPendingApprovals] = useState(0);
   const [upcomingShifts, setUpcomingShifts] = useState(0);
@@ -44,7 +45,10 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers }
                   <p className="text-xs text-zinc-500">{v.role}</p>
                 </div>
               </div>
-              <button className="text-xs font-bold bg-white border border-zinc-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-zinc-100">
+              <button
+                onClick={() => onNavigate?.('messages')}
+                className="text-xs font-bold bg-white border border-zinc-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-zinc-100"
+              >
                 <MessageSquare size={14}/> Message
               </button>
             </div>

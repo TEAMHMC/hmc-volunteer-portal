@@ -11,6 +11,7 @@ import { APP_CONFIG } from '../config';
 import { HMC_MODULES } from '../constants';
 import { Volunteer } from '../types';
 import { GoogleLogin } from '@react-oauth/google';
+import { toastService } from '../services/toastService';
 
 
 interface OnboardingFlowProps {
@@ -512,14 +513,14 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
         // useEffect will auto-proceed once state updates
     } catch (e) {
         console.error("Google Sign-up failed", e);
-        alert("Could not process Google sign-up. Please sign up manually.");
+        toastService.error("Could not process Google sign-up. Please sign up manually.");
     }
   };
 
   const handleSendVerification = async () => {
     if (!isValidEmail || verifying || data.emailVerified) return;
     if (recaptchaSiteKey && !captchaToken) {
-        alert("Please complete the reCAPTCHA verification first.");
+        toastService.error("Please complete the reCAPTCHA verification first.");
         return;
     }
     setVerifying(true);
@@ -527,7 +528,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
         await apiService.post('/auth/send-verification', { email: data.email, captchaToken });
         setSent(true);
     } catch (err) {
-        alert((err as Error).message || "Failed to send verification code. Please try again.");
+        toastService.error((err as Error).message || "Failed to send verification code. Please try again.");
     } finally {
         setVerifying(false);
     }
@@ -556,7 +557,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
                 <div className="w-full">
                     <GoogleLogin 
                         onSuccess={handleGoogleSuccess} 
-                        onError={() => alert("Google sign-up failed. Please try again.")} 
+                        onError={() => toastService.error("Google sign-up failed. Please try again.")}
                         theme="outline" 
                         shape="pill" 
                         text="signup_with"

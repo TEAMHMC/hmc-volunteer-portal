@@ -184,9 +184,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
       setLoading(true);
       try {
         const [meetingsData, giveOrGetData, signaturesData] = await Promise.all([
-          apiService.get('/api/board/meetings').catch(() => []),
-          apiService.get('/api/board/give-or-get').catch(() => null),
-          apiService.get('/api/board/forms/signed').catch(() => ({})),
+          apiService.get('/api/board/meetings').catch((e) => { toastService.error('Failed to load board meetings'); return []; }),
+          apiService.get('/api/board/give-or-get').catch((e) => { toastService.error('Failed to load give-or-get data'); return null; }),
+          apiService.get('/api/board/forms/signed').catch((e) => { toastService.error('Failed to load signed forms'); return {}; }),
         ]);
         if (Array.isArray(meetingsData)) setMeetings(meetingsData);
         if (giveOrGetData) setGiveOrGet(giveOrGetData);

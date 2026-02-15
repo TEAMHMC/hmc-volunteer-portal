@@ -4,6 +4,7 @@ import { Volunteer, Shift, ClinicEvent, ClientRecord, ReferralRecord, AuditLog, 
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
 import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 interface IntakeReferralsViewProps {
     user: Volunteer;
@@ -115,7 +116,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
             setActiveClient(newClient);
             setView('referral');
             onLog({ actionType: 'CREATE_CLIENT', targetSystem: 'FIRESTORE', targetId: newClient.id, summary: `Created new client: ${newClient.firstName} ${newClient.lastName}` });
-        } catch(err) { alert('Failed to save new client.'); } finally { setIsSaving(false); }
+        } catch(err) { toastService.error('Failed to save new client.'); } finally { setIsSaving(false); }
     };
     return (
         <div className="max-w-xl mx-auto space-y-6 animate-in fade-in"><h3 className="text-lg font-black text-zinc-900">Register New Client</h3><form onSubmit={handleSave} className="space-y-4"><input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><div className="flex gap-4"><button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-zinc-300 rounded-lg text-sm font-bold">Cancel</button><button type="submit" disabled={isSaving} className="flex-1 py-3 bg-zinc-900 text-white rounded-lg text-sm font-bold disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button></div></form></div>
@@ -139,7 +140,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
             setRecommendations(result.recommendations);
             onLog({ actionType: 'AI_REFERRAL_MATCH', targetSystem: 'FIRESTORE', targetId: client.id, summary: `AI referral match requested for need: "${clientNeed}"` });
         } catch(e) {
-            alert("AI Match failed. Please try again.");
+            toastService.error("AI Match failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -167,7 +168,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
             setIsSent(true);
             setTimeout(() => onComplete(), 2000);
         } catch(e) {
-            alert("Failed to create referral.");
+            toastService.error("Failed to create referral.");
         } finally {
             setIsSaving(false);
         }

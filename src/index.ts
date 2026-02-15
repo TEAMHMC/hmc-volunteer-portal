@@ -536,6 +536,9 @@ const EMAIL_CONFIG = {
   BRAND_COLOR: '#233DFF',
   FROM_NAME: 'Health Matters Clinic',
   WEBSITE_URL: process.env.PORTAL_URL || '',
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || 'volunteer@healthmatters.clinic',
+  TECH_EMAIL: process.env.TECH_EMAIL || 'tech@healthmatters.clinic',
+  ADMIN_EMAILS: (process.env.ADMIN_EMAILS || 'admin@healthmatters.clinic,erica@healthmatters.clinic').split(',').map(e => e.trim()),
 };
 
 if (!EMAIL_CONFIG.WEBSITE_URL) {
@@ -1264,9 +1267,9 @@ const EmailTemplates = {
     html: `${emailHeader('Account Status Update')}
       <p>Hi ${data.volunteerName},</p>
       <p>Your volunteer account has been deactivated. If you believe this is an error or would like to reactivate, please contact our team.</p>
-      ${actionButton('Contact Support', `mailto:volunteer@healthmatters.clinic`)}
+      ${actionButton('Contact Support', `mailto:${EMAIL_CONFIG.SUPPORT_EMAIL}`)}
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, your volunteer account has been deactivated. Contact volunteer@healthmatters.clinic for assistance.`
+    text: `Hi ${data.volunteerName}, your volunteer account has been deactivated. Contact ${EMAIL_CONFIG.SUPPORT_EMAIL} for assistance.`
   }),
 };
 
@@ -1938,7 +1941,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
         // Notify admin team about new applicant
         try {
           await EmailService.send('admin_new_applicant', {
-            toEmail: 'volunteer@healthmatters.clinic',
+            toEmail: EMAIL_CONFIG.SUPPORT_EMAIL,
             volunteerName: user.name || user.firstName || 'New Applicant',
             volunteerEmail: user.email,
             appliedRole: user.appliedRole || 'HMC Champion',
@@ -2943,14 +2946,24 @@ app.post('/api/gemini/draft-announcement', async (req: Request, res: Response) =
 
 // --- DATA & OPS ROUTES ---
 app.get('/api/resources', verifyToken, async (req: Request, res: Response) => {
-    const snap = await db.collection('referral_resources').get();
-    res.json(snap.docs.map(d => d.data()));
+    try {
+        const snap = await db.collection('referral_resources').get();
+        res.json(snap.docs.map(d => d.data()));
+    } catch (error: any) {
+        console.error('[RESOURCES] Failed to fetch:', error);
+        res.status(500).json({ error: 'Failed to fetch resources' });
+    }
 });
 app.post('/api/resources/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
-    const resource = req.body.resource;
-    if (!resource || !resource.name) return res.status(400).json({ error: 'Resource name is required' });
-    const ref = await db.collection('referral_resources').add(resource);
-    res.json({ success: true, id: ref.id });
+    try {
+        const resource = req.body.resource;
+        if (!resource || !resource.name) return res.status(400).json({ error: 'Resource name is required' });
+        const ref = await db.collection('referral_resources').add(resource);
+        res.json({ success: true, id: ref.id });
+    } catch (error: any) {
+        console.error('[RESOURCES] Failed to create:', error);
+        res.status(500).json({ error: 'Failed to create resource' });
+    }
 });
 
 // Bulk import resources from CSV
@@ -3005,41 +3018,69 @@ app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Re
 });
 
 app.get('/api/referrals', verifyToken, async (req: Request, res: Response) => {
-    const snap = await db.collection('referrals').orderBy('createdAt', 'desc').get();
-    res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    try {
+        const snap = await db.collection('referrals').orderBy('createdAt', 'desc').get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error: any) {
+        console.error('[REFERRALS] Failed to fetch:', error);
+        res.status(500).json({ error: 'Failed to fetch referrals' });
+    }
 });
 app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
-    const referral = req.body.referral;
-    if (!referral || !referral.clientId || !referral.resourceId) return res.status(400).json({ error: 'clientId and resourceId required' });
-    referral.createdAt = new Date().toISOString();
-    referral.status = referral.status || 'pending';
-    const ref = await db.collection('referrals').add(referral);
-    res.json({ id: ref.id, ...referral });
+    try {
+        const referral = req.body.referral;
+        if (!referral || !referral.clientId || !referral.resourceId) return res.status(400).json({ error: 'clientId and resourceId required' });
+        referral.createdAt = new Date().toISOString();
+        referral.status = referral.status || 'pending';
+        const ref = await db.collection('referrals').add(referral);
+        res.json({ id: ref.id, ...referral });
+    } catch (error: any) {
+        console.error('[REFERRALS] Failed to create:', error);
+        res.status(500).json({ error: 'Failed to create referral' });
+    }
 });
 app.put('/api/referrals/:id', verifyToken, async (req: Request, res: Response) => {
-    await db.collection('referrals').doc(req.params.id).update(req.body.referral);
-    res.json({ id: req.params.id, ...req.body.referral });
+    try {
+        if (!req.body.referral) return res.status(400).json({ error: 'Referral data required' });
+        const doc = await db.collection('referrals').doc(req.params.id).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Referral not found' });
+        await db.collection('referrals').doc(req.params.id).update(req.body.referral);
+        res.json({ id: req.params.id, ...req.body.referral });
+    } catch (error: any) {
+        console.error('[REFERRALS] Failed to update:', error);
+        res.status(500).json({ error: 'Failed to update referral' });
+    }
 });
 app.post('/api/clients/search', verifyToken, async (req: Request, res: Response) => {
-    const { phone, email } = req.body;
-    let query: admin.firestore.Query = db.collection('clients');
-    if (phone) query = query.where('phone', '==', phone);
-    else if (email) query = query.where('email', '==', email);
-    
-    const snap = await query.get();
-    if (snap.empty) return res.status(404).json({ error: "Not found" });
-    res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    try {
+        const { phone, email } = req.body;
+        let query: admin.firestore.Query = db.collection('clients');
+        if (phone) query = query.where('phone', '==', phone);
+        else if (email) query = query.where('email', '==', email);
+
+        const snap = await query.get();
+        if (snap.empty) return res.status(404).json({ error: "Not found" });
+        res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    } catch (error: any) {
+        console.error('[CLIENTS] Search failed:', error);
+        res.status(500).json({ error: 'Client search failed' });
+    }
 });
 app.post('/api/clients/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
-    const clientData = req.body.client;
-    if (!clientData || (!clientData.name && !clientData.firstName)) return res.status(400).json({ error: 'Client name required' });
-    const client = {
-        ...clientData,
-        createdAt: new Date().toISOString(),
-        status: 'Active'
-    };
-    const ref = await db.collection('clients').add(client);
-    res.json({ id: ref.id, ...client });
+    try {
+        const clientData = req.body.client;
+        if (!clientData || (!clientData.name && !clientData.firstName)) return res.status(400).json({ error: 'Client name required' });
+        const client = {
+            ...clientData,
+            createdAt: new Date().toISOString(),
+            status: 'Active'
+        };
+        const ref = await db.collection('clients').add(client);
+        res.json({ id: ref.id, ...client });
+    } catch (error: any) {
+        console.error('[CLIENTS] Failed to create:', error);
+        res.status(500).json({ error: 'Failed to create client' });
+    }
 });
 
 // Get all clients (admin)
@@ -3858,20 +3899,25 @@ app.post('/api/ops/signoff', verifyToken, async (req: Request, res: Response) =>
 });
 
 app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const updates = req.body;
-    // SECURITY: Whitelist fields volunteers can update on their own profile
-    const { isAdmin, compliance, points, hoursContributed, status,
-            applicationStatus, coreVolunteerStatus, eventEligibility,
-            volunteerRole, role, appliedRole, appliedRoleStatus,
-            ...safeUpdates } = updates;
-    // Encrypt SSN if being updated
-    if (safeUpdates.ssn) safeUpdates.ssn = encryptSSN(safeUpdates.ssn);
-    // Ensure they can only update their own doc
-    const docId = user.uid;
-    await db.collection('volunteers').doc(docId).set(safeUpdates, { merge: true });
-    const updated = (await db.collection('volunteers').doc(docId).get()).data();
-    res.json({ ...updated, id: docId });
+    try {
+        const user = (req as any).user;
+        const updates = req.body;
+        // SECURITY: Whitelist fields volunteers can update on their own profile
+        const { isAdmin, compliance, points, hoursContributed, status,
+                applicationStatus, coreVolunteerStatus, eventEligibility,
+                volunteerRole, role, appliedRole, appliedRoleStatus,
+                ...safeUpdates } = updates;
+        // Encrypt SSN if being updated
+        if (safeUpdates.ssn) safeUpdates.ssn = encryptSSN(safeUpdates.ssn);
+        // Ensure they can only update their own doc
+        const docId = user.uid;
+        await db.collection('volunteers').doc(docId).set(safeUpdates, { merge: true });
+        const updated = (await db.collection('volunteers').doc(docId).get()).data();
+        res.json({ ...updated, id: docId });
+    } catch (error: any) {
+        console.error('[VOLUNTEER] Failed to update profile:', error);
+        res.status(500).json({ error: 'Failed to update profile' });
+    }
 });
 
 // User presence tracking - update last active time
@@ -4740,50 +4786,61 @@ app.post('/api/events/unregister', verifyToken, async (req: Request, res: Respon
       return res.status(403).json({ error: 'You can only unregister yourself or must be a coordinator' });
     }
 
-    // Update shift: remove volunteer and decrement count atomically (if shift provided)
-    if (shiftId) {
-      const shiftRef = db.collection('shifts').doc(shiftId);
-      const shiftDoc = await shiftRef.get();
-      if (shiftDoc.exists) {
-        const shiftData = shiftDoc.data()!;
-        // Only decrement if volunteer is actually assigned
-        const isAssigned = (shiftData.assignedVolunteerIds || []).includes(volunteerId);
-        if (isAssigned) {
-          await shiftRef.update({
-            slotsFilled: admin.firestore.FieldValue.increment(-1),
-            assignedVolunteerIds: admin.firestore.FieldValue.arrayRemove(volunteerId),
-          });
+    // Use a Firestore transaction to atomically update volunteer, shift, and opportunity
+    await db.runTransaction(async (transaction) => {
+      // --- Read phase: fetch all documents inside the transaction ---
+      const volRef = db.collection('volunteers').doc(volunteerId);
+      const volSnap = await transaction.get(volRef);
 
-          // Update opportunity staffingQuotas
-          const oppRef = db.collection('opportunities').doc(eventId);
-          const oppDoc = await oppRef.get();
-          if (oppDoc.exists) {
-            const oppData = oppDoc.data()!;
-            const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
-              q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
-            );
-            await oppRef.update({
-              staffingQuotas: updatedQuotas,
-              slotsFilled: admin.firestore.FieldValue.increment(-1),
-            });
-          }
+      let shiftSnap: FirebaseFirestore.DocumentSnapshot | null = null;
+      let shiftData: any = null;
+      const shiftRef = shiftId ? db.collection('shifts').doc(shiftId) : null;
+      if (shiftRef) {
+        shiftSnap = await transaction.get(shiftRef);
+        shiftData = shiftSnap.exists ? shiftSnap.data() : null;
+      }
+
+      let oppSnap: FirebaseFirestore.DocumentSnapshot | null = null;
+      let oppData: any = null;
+      const oppRef = shiftId ? db.collection('opportunities').doc(eventId) : null;
+      if (oppRef) {
+        oppSnap = await transaction.get(oppRef);
+        oppData = oppSnap.exists ? oppSnap.data() : null;
+      }
+
+      // --- Write phase ---
+      // Update shift: remove volunteer and decrement count (if shift provided and volunteer is assigned)
+      const isAssigned = shiftData ? (shiftData.assignedVolunteerIds || []).includes(volunteerId) : false;
+      if (shiftRef && shiftSnap?.exists && isAssigned) {
+        transaction.update(shiftRef, {
+          slotsFilled: admin.firestore.FieldValue.increment(-1),
+          assignedVolunteerIds: admin.firestore.FieldValue.arrayRemove(volunteerId),
+        });
+
+        // Update opportunity staffingQuotas
+        if (oppRef && oppData) {
+          const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
+            q.role === shiftData.roleType ? { ...q, filled: Math.max(0, (q.filled || 0) - 1) } : q
+          );
+          transaction.update(oppRef, {
+            staffingQuotas: updatedQuotas,
+            slotsFilled: admin.firestore.FieldValue.increment(-1),
+          });
         }
       }
-    }
 
-    // Remove from volunteer's assignedShiftIds and rsvpedEventIds
-    const volRef = db.collection('volunteers').doc(volunteerId);
-    const volDoc = await volRef.get();
-    if (volDoc.exists) {
-      const volData = volDoc.data()!;
-      const updates: any = {
-        rsvpedEventIds: (volData.rsvpedEventIds || []).filter((id: string) => id !== eventId),
-      };
-      if (shiftId) {
-        updates.assignedShiftIds = (volData.assignedShiftIds || []).filter((id: string) => id !== shiftId);
+      // Remove from volunteer's assignedShiftIds and rsvpedEventIds
+      if (volSnap.exists) {
+        const volData = volSnap.data()!;
+        const updates: any = {
+          rsvpedEventIds: (volData.rsvpedEventIds || []).filter((id: string) => id !== eventId),
+        };
+        if (shiftId) {
+          updates.assignedShiftIds = (volData.assignedShiftIds || []).filter((id: string) => id !== shiftId);
+        }
+        transaction.update(volRef, updates);
       }
-      await volRef.update(updates);
-    }
+    });
 
     console.log(`[EVENTS] Unregistered volunteer ${volunteerId} from event ${eventId}${shiftId ? ` shift ${shiftId}` : ''}`);
     res.json({ success: true });
@@ -4843,67 +4900,82 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       }
     }
 
-    // Check for duplicate registration on this shift
-    if (shiftId) {
-      const shiftRef = db.collection('shifts').doc(shiftId);
-      const shiftDoc = await shiftRef.get();
-      if (shiftDoc.exists) {
-        const shiftData = shiftDoc.data() as any;
-        if ((shiftData.assignedVolunteerIds || []).includes(volunteerId)) {
-          return res.json({ success: true, message: 'Already registered', alreadyRegistered: true,
-            rsvpedEventIds: volunteerData.rsvpedEventIds || [], assignedShiftIds: volunteerData.assignedShiftIds || [] });
-        }
-        // Check slot capacity
-        if ((shiftData.slotsFilled || 0) >= (shiftData.slotsTotal || 0)) {
-          return res.status(409).json({ error: 'This shift is full' });
-        }
+    // Use a Firestore transaction to atomically check constraints and update
+    // volunteer, shift, and opportunity documents together
+    const { updatedRsvpIds, updatedShiftIds, alreadyRegistered } = await db.runTransaction(async (transaction) => {
+      // --- Read phase: fetch all documents we need inside the transaction ---
+      const volSnap = await transaction.get(volunteerRef);
+      const volData = volSnap.data() as any;
+
+      let shiftSnap: FirebaseFirestore.DocumentSnapshot | null = null;
+      let shiftData: any = null;
+      const shiftRef = shiftId ? db.collection('shifts').doc(shiftId) : null;
+      if (shiftRef) {
+        shiftSnap = await transaction.get(shiftRef);
+        shiftData = shiftSnap.exists ? shiftSnap.data() : null;
       }
-    }
 
-    const updatedRsvpIds = [...new Set([...(volunteerData.rsvpedEventIds || []), eventId])];
-    const updatedShiftIds = shiftId
-      ? [...new Set([...(volunteerData.assignedShiftIds || []), shiftId])]
-      : (volunteerData.assignedShiftIds || []);
+      let oppSnap: FirebaseFirestore.DocumentSnapshot | null = null;
+      let oppData: any = null;
+      const oppRef = shiftId ? db.collection('opportunities').doc(eventId) : null;
+      if (oppRef) {
+        oppSnap = await transaction.get(oppRef);
+        oppData = oppSnap.exists ? oppSnap.data() : null;
+      }
 
-    // Batch volunteer + shift writes atomically to prevent data drift
-    const regBatch = db.batch();
-    regBatch.update(volunteerRef, {
-      rsvpedEventIds: updatedRsvpIds,
-      assignedShiftIds: updatedShiftIds
+      // --- Validation phase ---
+      // Check for duplicate registration on this shift
+      if (shiftData && (shiftData.assignedVolunteerIds || []).includes(volunteerId)) {
+        return {
+          updatedRsvpIds: volData.rsvpedEventIds || [],
+          updatedShiftIds: volData.assignedShiftIds || [],
+          alreadyRegistered: true,
+        };
+      }
+      // Check slot capacity
+      if (shiftData && (shiftData.slotsFilled || 0) >= (shiftData.slotsTotal || 0)) {
+        throw new Error('SHIFT_FULL');
+      }
+
+      // --- Write phase: compute new values and apply all updates ---
+      const newRsvpIds = [...new Set([...(volData.rsvpedEventIds || []), eventId])];
+      const newShiftIds = shiftId
+        ? [...new Set([...(volData.assignedShiftIds || []), shiftId])]
+        : (volData.assignedShiftIds || []);
+
+      transaction.update(volunteerRef, {
+        rsvpedEventIds: newRsvpIds,
+        assignedShiftIds: newShiftIds,
+      });
+
+      if (shiftRef && shiftSnap?.exists) {
+        transaction.update(shiftRef, {
+          slotsFilled: admin.firestore.FieldValue.increment(1),
+          assignedVolunteerIds: admin.firestore.FieldValue.arrayUnion(volunteerId),
+        });
+      }
+
+      if (oppRef && oppData && shiftData) {
+        const roleType = shiftData.roleType || 'Core Volunteer';
+        const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) => {
+          if (q.role === roleType) {
+            return { ...q, filled: (q.filled || 0) + 1 };
+          }
+          return q;
+        });
+        transaction.update(oppRef, {
+          staffingQuotas: updatedQuotas,
+          slotsFilled: admin.firestore.FieldValue.increment(1),
+        });
+      }
+
+      return { updatedRsvpIds: newRsvpIds, updatedShiftIds: newShiftIds, alreadyRegistered: false };
     });
 
-    if (shiftId) {
-      const shiftRef = db.collection('shifts').doc(shiftId);
-      regBatch.update(shiftRef, {
-        slotsFilled: admin.firestore.FieldValue.increment(1),
-        assignedVolunteerIds: admin.firestore.FieldValue.arrayUnion(volunteerId)
-      });
-    }
-    await regBatch.commit();
-
-    // Update opportunity quotas (requires reads, so done after batch)
-    if (shiftId) {
-      const shiftRef = db.collection('shifts').doc(shiftId);
-      const shiftDoc = await shiftRef.get();
-      if (shiftDoc.exists) {
-        const shiftData = shiftDoc.data() as any;
-        const opportunityRef = db.collection('opportunities').doc(eventId);
-        const oppDoc = await opportunityRef.get();
-        if (oppDoc.exists) {
-          const oppData = oppDoc.data() as any;
-          const roleType = shiftData.roleType || 'Core Volunteer';
-          const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) => {
-            if (q.role === roleType) {
-              return { ...q, filled: (q.filled || 0) + 1 };
-            }
-            return q;
-          });
-          await opportunityRef.update({
-            staffingQuotas: updatedQuotas,
-            slotsFilled: admin.firestore.FieldValue.increment(1)
-          });
-        }
-      }
+    // If already registered, short-circuit before side-effects
+    if (alreadyRegistered) {
+      return res.json({ success: true, message: 'Already registered', alreadyRegistered: true,
+        rsvpedEventIds: updatedRsvpIds, assignedShiftIds: updatedShiftIds });
     }
 
     // Send confirmation email (Stage 1 of event reminder cadence)
@@ -4967,6 +5039,9 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       assignedShiftIds: updatedShiftIds
     });
   } catch (error: any) {
+    if (error.message === 'SHIFT_FULL') {
+      return res.status(409).json({ error: 'This shift is full' });
+    }
     console.error('[EVENTS] Failed to register for event:', error);
     res.status(500).json({ error: error.message || 'Failed to register for event' });
   }
@@ -5067,7 +5142,7 @@ app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response
         // Send email notification to tech support
         try {
             await EmailService.send('support_ticket_notification', {
-                toEmail: 'tech@healthmatters.clinic',
+                toEmail: EMAIL_CONFIG.TECH_EMAIL,
                 ticketId: docRef.id,
                 subject: ticket.subject || 'New Support Ticket',
                 description: ticket.description || ticket.message || 'No description provided',
@@ -5076,7 +5151,7 @@ app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response
                 submitterName: ticket.submitterName || 'Unknown',
                 submitterEmail: ticket.submitterEmail || 'Unknown',
             });
-            console.log(`[SUPPORT] Ticket ${docRef.id} created and notification sent to tech@healthmatters.clinic`);
+            console.log(`[SUPPORT] Ticket ${docRef.id} created and notification sent to ${EMAIL_CONFIG.TECH_EMAIL}`);
         } catch (emailError) {
             console.error('[SUPPORT] Failed to send ticket notification email:', emailError);
             // Don't fail the ticket creation if email fails
@@ -6497,7 +6572,7 @@ app.get('/api/admin/smo/cycles', verifyToken, requireAdmin, async (req: Request,
 });
 
 // Get a single SMO cycle
-app.get('/api/admin/smo/cycles/:cycleId', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/admin/smo/cycles/:cycleId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const doc = await db.collection('smo_cycles').doc(req.params.cycleId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Cycle not found' });
@@ -7133,7 +7208,7 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'emergency_board_meeting',
-            toEmail: 'volunteer@healthmatters.clinic',
+            toEmail: EMAIL_CONFIG.SUPPORT_EMAIL,
             subject: `Emergency Board Meeting Requested by ${userData?.name || 'Board Member'}`,
             requestedBy: userData?.name,
             reason,
@@ -8084,9 +8159,8 @@ const bootstrapAdmin = async () => {
   const adminEmailsEnv = process.env.INITIAL_ADMIN_EMAIL || '';
   const adminEmails = adminEmailsEnv.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
-  // Always include these core admins
-  const coreAdmins = ['admin@healthmatters.clinic', 'erica@healthmatters.clinic'];
-  const allAdminEmails = [...new Set([...adminEmails, ...coreAdmins])];
+  // Always include core admins from config
+  const allAdminEmails = [...new Set([...adminEmails, ...EMAIL_CONFIG.ADMIN_EMAILS])];
 
   if (allAdminEmails.length === 0) return;
 

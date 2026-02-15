@@ -9,6 +9,7 @@ import {
   Filter, UserPlus, ChevronRight, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck
 } from 'lucide-react';
 import { GOVERNANCE_ROLES } from '../constants';
+import { toastService } from '../services/toastService';
 
 interface DirectoryProps {
   volunteers: Volunteer[];
@@ -81,7 +82,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         setVolunteers(prev => prev.map(v => v.id === updatedVolunteer.id ? updatedVolunteer : v));
         setSelectedVolunteer(updatedVolunteer); // Keep modal updated
       } catch (error) {
-        alert(`Failed to update volunteer: ${(error as Error).message}`);
+        toastService.error(`Failed to update volunteer: ${(error as Error).message}`);
       }
   };
   
@@ -108,7 +109,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         setVolunteers(prev => prev.map(v => v.id === updatedVolunteer.id ? updatedVolunteer : v));
         setSelectedVolunteer(null); // Close modal on success
     } catch (error) {
-        alert(`Failed to review application: ${(error as Error).message}`);
+        toastService.error(`Failed to review application: ${(error as Error).message}`);
     } finally {
         setIsReviewing(false);
     }
@@ -146,7 +147,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         onAssignTask(selectedVolunteer.id, { title: taskTitle, description: taskDescription, dueDate: taskDueDate });
       }
     } catch (error) {
-      alert(`Failed to assign task: ${(error as Error).message}`);
+      toastService.error(`Failed to assign task: ${(error as Error).message}`);
     } finally {
       setIsAssigningTask(false);
     }
@@ -174,7 +175,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       const result = await apiService.get(`/api/admin/volunteer/${volunteerId}/resume`);
       if (result.url) window.open(result.url, '_blank');
     } catch {
-      alert('No resume on file or download failed.');
+      toastService.error('No resume on file or download failed.');
     }
   };
 
@@ -187,7 +188,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       setSelectedVolunteer(null);
       setShowDeleteConfirm(false);
     } catch (error) {
-      alert(`Failed to delete volunteer: ${(error as Error).message}`);
+      toastService.error(`Failed to delete volunteer: ${(error as Error).message}`);
     } finally {
       setIsDeleting(false);
     }
@@ -556,6 +557,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Task Title *</label>
                 <input
                   type="text"
+                  required
                   value={taskTitle}
                   onChange={e => setTaskTitle(e.target.value)}
                   placeholder="e.g., Complete HIPAA Training"

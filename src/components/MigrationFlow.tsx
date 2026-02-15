@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Volunteer } from '../types';
 import { HMC_MODULES, TIER_1_MODULES, TIER_2_MODULES, ALL_TRAINING_MODULES, hasCompletedAllModules, TIER_1_IDS, TIER_2_IDS } from '../constants';
 import { ArrowRight, CheckSquare, Loader2, Square } from 'lucide-react';
+import { toastService } from '../services/toastService';
 import TrainingAcademy from './TrainingAcademy';
 
 interface MigrationFlowProps {
@@ -62,7 +63,7 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
           setStep('training');
         }
       } catch (e) {
-        alert("Failed to save progress. Please try again.");
+        toastService.error("Failed to save progress. Please try again.");
       } finally {
         setIsLoading(false);
       }

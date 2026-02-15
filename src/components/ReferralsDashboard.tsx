@@ -3,6 +3,7 @@ import { ReferralRecord, Volunteer, ClientRecord, ReferralResource } from '../ty
 import { apiService } from '../services/apiService';
 import { REFERRAL_RESOURCES } from '../referralResources';
 import { Send, Plus, X, Search, ChevronDown, Clock, AlertTriangle, CheckCircle, Sparkles, Loader2, Save, User } from 'lucide-react';
+import { toastService } from '../services/toastService';
 
 // --- HELPER FUNCTIONS ---
 const getSlaStatus = (referral: ReferralRecord): { status: ReferralRecord['slaComplianceStatus'], color: string } => {
@@ -61,7 +62,7 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
             }
             setSelectedReferral(null);
         } catch (err) {
-            alert(`Failed to save referral: ${(err as Error).message}`);
+            toastService.error(`Failed to save referral: ${(err as Error).message}`);
         }
     };
     
@@ -191,7 +192,7 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
         try {
             const result = await apiService.post('/api/gemini/find-referral-match', { clientNeed: serviceNeed });
             setRecommendations(result.recommendations);
-        } catch(e) { alert("AI Match failed."); } 
+        } catch(e) { toastService.error("AI Match failed."); }
         finally { setIsLoading(false); }
     };
     

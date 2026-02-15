@@ -194,6 +194,14 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
 
   return (
     <div className="space-y-6">
+      {/* Preview Notice */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <span className="text-amber-500 font-bold text-lg leading-none mt-0.5">!</span>
+        <div>
+          <p className="text-sm font-bold text-amber-800">Preview Feature</p>
+          <p className="text-xs text-amber-600 mt-0.5">Live Chat is in preview mode using local data. Real-time WebSocket integration is coming soon. Use the <strong>Communication Hub</strong> for messaging in the meantime.</p>
+        </div>
+      </div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
