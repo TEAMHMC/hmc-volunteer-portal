@@ -7660,7 +7660,7 @@ app.post('/api/knowledge-base', verifyToken, requireEditor, async (req: Request,
 app.put('/api/knowledge-base/:id', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
         const updates = { ...req.body, updatedAt: new Date().toISOString() };
-        await db.collection('knowledge_base').doc(req.params.id).update(updates);
+        await db.collection('knowledge_base').doc(req.params.id).set(updates, { merge: true });
         res.json({ id: req.params.id, ...updates });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
