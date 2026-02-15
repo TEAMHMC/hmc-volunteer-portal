@@ -798,22 +798,251 @@ function escAttr(str) {
 
 
 // ════════════════════════════════════════
-// TEST — run manually in Apps Script editor
+// COMPREHENSIVE TEST SUITE
+// Run each function manually in Apps Script editor
+// Set TEST_EMAIL below to receive test emails
 // ════════════════════════════════════════
 
-function testEmailVerification() {
-  var mockEvent = {
-    postData: {
-      contents: JSON.stringify({
-        type: "email_verification",
-        toEmail: "tech@healthmatters.clinic",
-        volunteerName: "Test User",
-        verificationCode: "123456",
-        expiresIn: 15
-      })
-    }
-  };
+var TEST_EMAIL = "tech@healthmatters.clinic"; // ← Change to your email
 
-  var result = doPost(mockEvent);
-  Logger.log(result.getContent());
+// Helper: simulate doPost and optionally send
+function _runTest(type, data, sendReal) {
+  data.type = type;
+  data.toEmail = TEST_EMAIL;
+  var mockEvent = { postData: { contents: JSON.stringify(data) } };
+
+  if (sendReal) {
+    var result = doPost(mockEvent);
+    Logger.log("[" + type + "] " + result.getContent());
+    return result;
+  }
+
+  // Dry run — just build and log
+  var email = buildEmail(type, data);
+  if (!email) {
+    Logger.log("[" + type + "] FAIL — template returned null");
+    return null;
+  }
+  Logger.log("[" + type + "] OK — Subject: " + email.subject);
+  Logger.log("[" + type + "] HTML length: " + email.html.length);
+  Logger.log("[" + type + "] Text preview: " + (email.text || "").substring(0, 120));
+  return email;
+}
+
+// ─── Run ALL templates (dry run — no emails sent) ───
+function testAllTemplates() {
+  var results = { pass: 0, fail: 0 };
+  var tests = _getAllTestData();
+
+  for (var i = 0; i < tests.length; i++) {
+    var t = tests[i];
+    var email = _runTest(t.type, t.data, false);
+    if (email) {
+      results.pass++;
+    } else {
+      results.fail++;
+      Logger.log("  ⚠ FAILED: " + t.type);
+    }
+  }
+
+  Logger.log("\n══════════════════════════════");
+  Logger.log("RESULTS: " + results.pass + " passed, " + results.fail + " failed out of " + tests.length);
+  Logger.log("══════════════════════════════");
+}
+
+// ─── Send ALL test emails (real delivery) ───
+function sendAllTestEmails() {
+  var tests = _getAllTestData();
+  for (var i = 0; i < tests.length; i++) {
+    _runTest(tests[i].type, tests[i].data, true);
+    Utilities.sleep(500); // Rate limit
+  }
+  Logger.log("✓ Sent " + tests.length + " test emails to " + TEST_EMAIL);
+}
+
+// ─── Individual template tests (for targeted debugging) ───
+function testEmailVerification()       { _runTest("email_verification", _getAllTestData()[0].data, true); }
+function testWelcomeVolunteer()        { _runTest("welcome_volunteer", _getAllTestData()[1].data, true); }
+function testAdminAddedVolunteer()     { _runTest("admin_added_volunteer", _getAllTestData()[2].data, true); }
+function testPasswordReset()           { _runTest("password_reset", _getAllTestData()[3].data, true); }
+function testLoginConfirmation()       { _runTest("login_confirmation", _getAllTestData()[4].data, true); }
+function testShiftConfirmation()       { _runTest("shift_confirmation", _getAllTestData()[5].data, true); }
+function testShiftReminder24h()        { _runTest("shift_reminder_24h", _getAllTestData()[6].data, true); }
+function testShiftCancellation()       { _runTest("shift_cancellation", _getAllTestData()[7].data, true); }
+function testTrainingAssigned()        { _runTest("training_assigned", _getAllTestData()[8].data, true); }
+function testTrainingReminder()        { _runTest("training_reminder", _getAllTestData()[9].data, true); }
+function testHipaaAcknowledgment()     { _runTest("hipaa_acknowledgment", _getAllTestData()[10].data, true); }
+function testApplicationReceived()     { _runTest("application_received", _getAllTestData()[11].data, true); }
+function testAdminNewApplicant()       { _runTest("admin_new_applicant", _getAllTestData()[12].data, true); }
+function testApplicationApproved()     { _runTest("application_approved", _getAllTestData()[13].data, true); }
+function testApplicationRejected()     { _runTest("application_rejected", _getAllTestData()[14].data, true); }
+function testMonthlySummary()          { _runTest("monthly_summary", _getAllTestData()[15].data, true); }
+function testAchievementUnlocked()     { _runTest("achievement_unlocked", _getAllTestData()[16].data, true); }
+function testReferralConverted()       { _runTest("referral_converted", _getAllTestData()[17].data, true); }
+function testEventRegistration()       { _runTest("event_registration_confirmation", _getAllTestData()[18].data, true); }
+function testCoordinatorAlert()        { _runTest("coordinator_registration_alert", _getAllTestData()[19].data, true); }
+function testPublicRsvpTrainingNudge() { _runTest("public_rsvp_training_nudge", _getAllTestData()[20].data, true); }
+function testPublicRsvpVolunteerInvite() { _runTest("public_rsvp_volunteer_invite", _getAllTestData()[21].data, true); }
+function testEventVolunteerInvite()    { _runTest("event_volunteer_invite", _getAllTestData()[22].data, true); }
+function testCoordinatorNameMatch()    { _runTest("coordinator_public_rsvp_name_match", _getAllTestData()[23].data, true); }
+function testSupportTicket()           { _runTest("support_ticket_notification", _getAllTestData()[24].data, true); }
+
+// ─── Test pre-rendered HTML fallback (server-side rendering) ───
+function testPrerenderedFallback() {
+  _runTest("custom_server_template", {
+    subject: "Test Pre-rendered Email",
+    html: "<html><body><h1>Server-rendered content</h1><p>This email was rendered by the portal server and sent through Apps Script.</p></body></html>"
+  }, true);
+}
+
+// ─── Test error handling ───
+function testErrorHandling() {
+  // Missing toEmail
+  var r1 = doPost({ postData: { contents: JSON.stringify({ type: "email_verification" }) } });
+  Logger.log("Missing toEmail: " + r1.getContent());
+
+  // Missing type
+  var r2 = doPost({ postData: { contents: JSON.stringify({ toEmail: TEST_EMAIL }) } });
+  Logger.log("Missing type: " + r2.getContent());
+
+  // Unknown template (no fallback HTML)
+  var r3 = doPost({ postData: { contents: JSON.stringify({ type: "nonexistent", toEmail: TEST_EMAIL }) } });
+  Logger.log("Unknown template: " + r3.getContent());
+
+  // Missing postData
+  var r4 = doPost({});
+  Logger.log("Missing postData: " + r4.getContent());
+
+  // Invalid JSON
+  var r5 = doPost({ postData: { contents: "not json" } });
+  Logger.log("Invalid JSON: " + r5.getContent());
+}
+
+// ─── Test data for all 25 templates ───
+function _getAllTestData() {
+  var now = new Date();
+  var dateStr = (now.getMonth() + 1) + "/" + now.getDate() + "/" + now.getFullYear();
+  var tomorrow = new Date(now.getTime() + 86400000);
+  var tomorrowStr = (tomorrow.getMonth() + 1) + "/" + tomorrow.getDate() + "/" + tomorrow.getFullYear();
+
+  return [
+    // 1. Email Verification
+    { type: "email_verification", data: {
+      volunteerName: "Maria Garcia", verificationCode: "847293", expiresIn: 15
+    }},
+    // 2. Welcome Volunteer
+    { type: "welcome_volunteer", data: {
+      volunteerName: "James Wilson", appliedRole: "Core Volunteer"
+    }},
+    // 2b. Admin Added Volunteer
+    { type: "admin_added_volunteer", data: {
+      volunteerName: "Sarah Chen", appliedRole: "Licensed Medical Professional",
+      hasPasswordReset: true, passwordResetLink: CONFIG.WEBSITE_URL + "/reset?token=abc123"
+    }},
+    // 3. Password Reset
+    { type: "password_reset", data: {
+      volunteerName: "David Kim", resetLink: CONFIG.WEBSITE_URL + "/reset?token=xyz789", expiresInHours: 24
+    }},
+    // 4. Login Confirmation
+    { type: "login_confirmation", data: {
+      volunteerName: "Emily Johnson", deviceInfo: "Chrome on MacOS", location: "Los Angeles, CA"
+    }},
+    // 5. Shift Confirmation
+    { type: "shift_confirmation", data: {
+      volunteerName: "Marcus Thompson", eventName: "Hollywood Community Health Fair",
+      eventDate: tomorrowStr, eventTime: "8:00 AM - 2:00 PM", location: "Hollywood Blvd & Vine St",
+      duration: "6 hours", role: "Intake Volunteer"
+    }},
+    // 6. Shift Reminder (24h)
+    { type: "shift_reminder_24h", data: {
+      volunteerName: "Lisa Park", eventName: "Street Medicine Outreach - Skid Row",
+      eventTime: "7:00 AM", location: "5th & San Pedro, Downtown LA"
+    }},
+    // 7. Shift Cancellation
+    { type: "shift_cancellation", data: {
+      volunteerName: "Robert Brown", eventName: "Clinic at Union Rescue Mission",
+      eventDate: tomorrowStr, reason: "Inclement weather — rescheduled to next Saturday"
+    }},
+    // 8. Training Assigned
+    { type: "training_assigned", data: {
+      volunteerName: "Angela Martinez", trainingName: "Street Medicine Safety Protocol",
+      estimatedMinutes: 45, deadline: tomorrowStr
+    }},
+    // 9. Training Reminder
+    { type: "training_reminder", data: {
+      volunteerName: "Kevin Wright", trainingName: "HIPAA Compliance Training", daysRemaining: 3
+    }},
+    // 10. HIPAA Acknowledgment
+    { type: "hipaa_acknowledgment", data: {
+      volunteerName: "Rachel Green", completionDate: dateStr
+    }},
+    // 11. Application Received
+    { type: "application_received", data: {
+      volunteerName: "Michael Scott", appliedRole: "Events Coordinator", applicationId: "APP-2026-0214"
+    }},
+    // 11b. Admin New Applicant
+    { type: "admin_new_applicant", data: {
+      volunteerName: "Priya Patel", volunteerEmail: "priya@example.com",
+      appliedRole: "Medical Admin", applicationId: "APP-2026-0215"
+    }},
+    // 12. Application Approved
+    { type: "application_approved", data: {
+      volunteerName: "Chris Evans", approvedRole: "Core Volunteer"
+    }},
+    // 13. Application Rejected
+    { type: "application_rejected", data: {
+      volunteerName: "Alex Morgan",
+      reason: "We currently have all positions filled for this role. We encourage you to reapply in 3 months."
+    }},
+    // 14. Monthly Summary
+    { type: "monthly_summary", data: {
+      volunteerName: "Taylor Swift", hoursContributed: 24, shiftsCompleted: 6, peopleHelped: 142
+    }},
+    // 15. Achievement Unlocked
+    { type: "achievement_unlocked", data: {
+      volunteerName: "Jordan Lee", achievementName: "First Responder",
+      achievementDescription: "Completed your first street medicine outreach shift",
+      xpReward: 500, currentLevel: 3
+    }},
+    // 16. Referral Converted
+    { type: "referral_converted", data: {
+      volunteerName: "Sam Rivera", referredName: "Casey Jones", referralBonus: 250
+    }},
+    // 17. Event Registration Confirmation
+    { type: "event_registration_confirmation", data: {
+      volunteerName: "Olivia Davis", eventTitle: "Saturday Morning Outreach - Venice Beach",
+      eventDate: tomorrowStr, eventLocation: "Venice Beach Boardwalk"
+    }},
+    // 18. Coordinator Registration Alert
+    { type: "coordinator_registration_alert", data: {
+      coordinatorName: "Dr. Williams", volunteerName: "New Volunteer",
+      eventTitle: "Health Fair at Dodger Stadium", eventDate: tomorrowStr
+    }},
+    // 19. Public RSVP Training Nudge
+    { type: "public_rsvp_training_nudge", data: {
+      volunteerName: "Jamie Fox", eventTitle: "Community Wellness Day", eventDate: tomorrowStr
+    }},
+    // 20. Public RSVP Volunteer Invite
+    { type: "public_rsvp_volunteer_invite", data: {
+      rsvpName: "Pat Robinson", eventTitle: "Free Health Screenings at Echo Park", eventDate: tomorrowStr
+    }},
+    // 21. Event Volunteer Invite
+    { type: "event_volunteer_invite", data: {
+      volunteerName: "Morgan Freeman", eventTitle: "Holiday Health Fair", eventDate: "12/20/2026"
+    }},
+    // 22. Coordinator RSVP Name Match
+    { type: "coordinator_public_rsvp_name_match", data: {
+      coordinatorName: "Admin Team", rsvpName: "John Smith", rsvpEmail: "john.smith@gmail.com",
+      rsvpPhone: "(310) 555-1234", eventTitle: "Street Medicine - Downtown", eventDate: tomorrowStr,
+      volunteerName: "John A. Smith", volunteerEmail: "jsmith@email.com",
+      volunteerPhone: "(310) 555-9876", volunteerStatus: "Active"
+    }},
+    // 23. Support Ticket
+    { type: "support_ticket_notification", data: {
+      subject: "Cannot access training module", submitterName: "Linda Carter",
+      submitterEmail: "linda@example.com", category: "Technical Issue",
+      priority: "High", ticketId: "TKT-2026-0087",
+      description: "When I click on the HIPAA training module, the page shows a blank white screen. I've tried Chrome and Safari."
+    }}
+  ];
 }
