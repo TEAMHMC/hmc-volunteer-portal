@@ -39,10 +39,10 @@ const ResourceDashboard: React.FC = () => {
                     <p className="text-zinc-500 mt-2 font-bold text-lg">Manage community referral resources.</p>
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
+                    <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
                         <UploadCloud size={16} /> Bulk Upload
                     </button>
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
                         <Plus size={16} /> Add Resource
                     </button>
                 </div>
@@ -141,7 +141,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} resources have been imported.</p>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide">Done</button>
                     </div>
                 ) : (
                     <>
@@ -156,7 +156,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                         <button
                             onClick={handleUpload}
                             disabled={isUploading || !file}
-                            className="w-full py-4 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isUploading ? <Loader2 className="animate-spin" size={18} /> : <><UploadCloud size={18} /> Import Resources</>}
                         </button>
@@ -239,7 +239,7 @@ const NewResourceForm: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
                 <FormField label="SPA (Service Planning Area)"><input type="text" value={formData['SPA'] || ''} onChange={e => handleChange('SPA', e.target.value)} /></FormField>
              </div>
              <div className="flex justify-end pt-6 border-t border-zinc-100">
-                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 disabled:opacity-50">
+                <button type="submit" disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 disabled:opacity-50">
                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Resource</>}
                 </button>
              </div>

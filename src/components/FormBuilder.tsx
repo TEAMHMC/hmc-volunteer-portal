@@ -192,7 +192,7 @@ const FormBuilder: React.FC = () => {
                     </div>
                     <button
                         onClick={() => handleExportResponses(viewingResponses.responses)}
-                        className="flex items-center gap-2 px-5 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide"
+                        className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2"
                     >
                         <Download size={16} /> Export CSV
                     </button>
@@ -244,7 +244,7 @@ const FormBuilder: React.FC = () => {
                 </div>
                 <button
                     onClick={handleCreateNewForm}
-                    className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
+                    className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
                 >
                     <Plus size={16} /> New Form
                 </button>
@@ -338,7 +338,7 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                 <button
                     onClick={() => onSave({ ...form, title: formTitle, fields })}
                     disabled={isSaving}
-                    className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50"
+                    className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}

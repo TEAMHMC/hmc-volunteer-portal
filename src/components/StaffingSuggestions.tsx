@@ -146,7 +146,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                                 <p className="text-xs text-zinc-500">{v.role} · {v.hoursContributed || 0} hrs{isRoleMatch && !isRecommended ? ' · Role match' : ''}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0">
+                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center gap-2 shrink-0">
                                             <UserPlus size={14} /> Assign
                                         </button>
                                     </div>
@@ -186,7 +186,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             <button
                                 onClick={handleSendInvite}
                                 disabled={inviteSending || !inviteName.trim() || !inviteEmail.trim()}
-                                className="px-4 py-2.5 bg-brand text-white text-xs font-bold rounded-lg flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-brand/90 transition-colors"
+                                className="px-4 py-2.5 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-brand/90 transition-colors"
                             >
                                 {inviteSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                 Send Invite

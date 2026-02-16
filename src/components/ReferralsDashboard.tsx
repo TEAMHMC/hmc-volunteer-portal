@@ -76,7 +76,7 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                     <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Referral Dashboard</h1>
                     <p className="text-zinc-500 mt-2 font-bold text-lg">Manage and track all client referrals and SLA compliance.</p>
                 </div>
-                <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
+                <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
                     <Plus size={16} /> New Referral
                 </button>
             </header>
@@ -172,7 +172,7 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
 
                 </main>
                 <footer className="p-8 border-t border-zinc-100 flex justify-end">
-                    <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 disabled:opacity-50">
+                    <button onClick={handleSubmit} disabled={isSaving} className="flex items-center gap-3 px-6 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 disabled:opacity-50">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Referral</>}
                     </button>
                 </footer>
@@ -200,7 +200,7 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
         <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10 space-y-4">
             <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-brand uppercase flex items-center gap-2"><Sparkles size={14}/> AI Matching Assistant</h4>
-                <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="px-3 py-1 bg-white border border-brand/20 text-brand text-xs font-bold rounded-lg disabled:opacity-50">
+                <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="px-3 py-1 bg-white border border-black text-brand text-xs font-bold rounded-full uppercase tracking-wide disabled:opacity-50">
                     {isLoading ? <Loader2 size={14} className="animate-spin"/> : 'Find Matches'}
                 </button>
             </div>

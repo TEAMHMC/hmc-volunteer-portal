@@ -421,12 +421,12 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
         <div className="mt-5">
           {!isCompleted && !isLocked && (
-            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand text-white rounded-full font-bold text-xs transition-all hover:scale-[1.02] shadow-elevation-2">
+            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide transition-all hover:scale-[1.02] shadow-elevation-2">
               {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Assessment'}
             </button>
           )}
           {isCompleted && (
-            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-zinc-200 text-zinc-600 rounded-full font-bold text-xs transition-all hover:border-brand hover:text-brand hover:scale-[1.02] flex items-center justify-center gap-2">
+            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-black text-zinc-600 rounded-full font-bold text-xs uppercase tracking-wide transition-all hover:border-brand hover:text-brand hover:scale-[1.02] flex items-center justify-center gap-2">
               <BookOpen size={12} /> Review
             </button>
           )}
@@ -508,7 +508,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             )}
             <button
               onClick={() => { setQuizMode(false); setActiveSession(null); }}
-              className="w-full py-6 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               Done Reviewing
             </button>
@@ -565,7 +565,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 }
               }}
               disabled={quizResponse !== 'acknowledged' || loadingContent || (activeSession && requiresSignature(activeSession) && signatureName.trim().length < 2)}
-              className="w-full py-6 bg-emerald-500 text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
+              className="w-full py-6 bg-emerald-500 border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30"
             >
               {activeSession && requiresSignature(activeSession) ? (
                 <><PenLine size={18} /> Sign & Complete Module</>
@@ -980,7 +980,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                         <div className="flex gap-4">
                           <button
                             onClick={() => { setVideoError(false); setVideoLoading(true); }}
-                            className="px-6 py-3 bg-zinc-800 text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-zinc-700"
+                            className="px-6 py-3 bg-zinc-800 border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 hover:bg-zinc-700"
                           >
                             <RefreshCw size={16} /> Try Again
                           </button>
@@ -1013,7 +1013,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-bold text-center">Reviewing completed module. Watch the video above as needed.</p>
                       <button
                         onClick={() => { setQuizMode(false); setActiveSession(null); }}
-                        className="w-full py-6 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         Done Reviewing
                       </button>
@@ -1023,7 +1023,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-bold text-center">Complete the built-in quiz in the video, then mark as complete below.</p>
                       <button
                         onClick={() => handleCompleteModule(activeSession.id, activeSession.title)}
-                        className="w-full py-6 bg-emerald-500 text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-emerald-500 border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         <Check size={18} /> I've Completed This Training
                       </button>
@@ -1033,7 +1033,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       <p className="text-zinc-500 font-bold text-center">Watch the video above, then proceed to the assessment.</p>
                       <button
                         onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
-                        className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         <div className="w-2 h-2 rounded-full bg-white" />
                         I've Watched This - Continue to Assessment <ArrowRight size={18} />
@@ -1059,7 +1059,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                     <div className="w-2 h-2 rounded-full bg-white" />
                     Proceed to Question
                   </button>
@@ -1071,7 +1071,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   </div>
                   <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border border-zinc-100 rounded-2xl p-6 font-bold outline-none mt-6" placeholder="Your response..." />
                   {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-bold">{submitError}</p>}
-                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-3 disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                      {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <div className="w-2 h-2 rounded-full bg-white" />}
                      Submit & Complete Module
                   </button>

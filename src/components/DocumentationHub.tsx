@@ -117,7 +117,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {canEdit && (
                     <button
                         onClick={() => setShowNewArticleModal(true)}
-                        className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
+                        className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
                     >
                         <Plus size={16} /> New Document
                     </button>
@@ -443,7 +443,7 @@ const ArticleEditorModal: React.FC<{
                                     <button
                                         onClick={handleAiGenerate}
                                         disabled={!aiPrompt.trim() || isGenerating}
-                                        className="mt-3 w-full py-2 bg-purple-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-purple-700 transition-colors"
+                                        className="mt-3 w-full py-2 bg-purple-600 border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-purple-700 transition-colors"
                                     >
                                         {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                         Generate
@@ -480,12 +480,12 @@ const ArticleEditorModal: React.FC<{
                 </div>
 
                 <footer className="p-8 border-t border-zinc-100 flex justify-end gap-4">
-                    <button onClick={onClose} className="px-6 py-3 border border-zinc-200 rounded-full font-bold text-sm hover:bg-zinc-50">
+                    <button onClick={onClose} className="px-6 py-3 border border-black rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50">
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-8 py-3 bg-brand text-white rounded-full font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"
+                        className="px-8 py-3 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
                     >
                         <Save size={16} /> Save Document
                     </button>

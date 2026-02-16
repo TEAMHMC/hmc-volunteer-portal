@@ -200,7 +200,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
         {canCreateEvents && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-3 font-bold text-base bg-brand text-white border border-brand rounded-full hover:bg-brand-hover transition-colors shadow-elevation-2"
+            className="flex items-center gap-2 px-5 py-3 font-bold text-base bg-brand text-white border border-black rounded-full hover:bg-brand-hover transition-colors shadow-elevation-2 uppercase tracking-wide"
           >
             <span className="w-2 h-2 rounded-full bg-white" /> New Event
           </button>
@@ -418,8 +418,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                           <button
                             onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
                             disabled={rsvpLoading === ev.id}
-                            className={`px-6 py-3 rounded-full font-bold text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 ${
-                              isAttending ? 'bg-white text-rose-500 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'
+                            className={`px-6 py-3 rounded-full font-bold text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wide ${
+                              isAttending ? 'bg-white text-rose-500 border border-zinc-950' : 'bg-brand text-white border border-black hover:opacity-95'
                             }`}
                           >
                             {rsvpLoading === ev.id ? (
@@ -560,13 +560,13 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => { setEditingEvent(showDetailEvent); setShowDetailEvent(null); setShowCreateModal(true); }}
-                    className="flex-1 py-3 rounded-full font-bold text-base bg-white text-zinc-900 border border-zinc-950 flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
+                    className="flex-1 py-3 rounded-full font-bold text-base bg-white text-zinc-900 border border-zinc-950 flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors uppercase tracking-wide"
                   >
                     <span className="w-2 h-2 rounded-full bg-zinc-950" /> <Edit3 size={16} /> Edit
                   </button>
                   <button
                     onClick={() => handleDeleteEvent(showDetailEvent.id)}
-                    className="flex-1 py-3 rounded-full font-bold text-base bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-300 flex items-center justify-center gap-2 transition-colors"
+                    className="flex-1 py-3 rounded-full font-bold text-base bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-300 flex items-center justify-center gap-2 transition-colors uppercase tracking-wide"
                   >
                     <span className="w-2 h-2 rounded-full bg-rose-600" /> <Trash2 size={16} /> Delete
                   </button>
@@ -775,7 +775,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           <button
             type="submit"
             disabled={saving || !form.title || !form.date || !form.startTime}
-            className="w-full py-4 font-bold text-base bg-brand text-white border border-brand rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full py-4 font-bold text-base bg-brand text-white border border-black rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 uppercase tracking-wide"
           >
             <span className="w-2 h-2 rounded-full bg-white" />
             {saving ? <Loader2 size={16} className="animate-spin" /> : editingEvent ? <Check size={16} /> : <Plus size={16} />}

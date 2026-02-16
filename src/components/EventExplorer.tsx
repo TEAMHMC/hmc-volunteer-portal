@@ -412,7 +412,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       </div>
                       <button
                         onClick={() => downloadICS(selectedEvent)}
-                        className="w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-brand hover:opacity-95"
+                        className="w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-black hover:opacity-95 uppercase tracking-wide"
                       >
                         <Calendar size={16} /> Save to Calendar (.ics)
                       </button>
@@ -428,10 +428,10 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       <button
                         onClick={() => handleSignUp(selectedEvent.id)}
                         disabled={isSigningUp}
-                        className={`w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 ${
+                        className={`w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 uppercase tracking-wide ${
                           user.rsvpedEventIds?.includes(selectedEvent.id)
                             ? 'bg-white text-zinc-900 border border-zinc-950'
-                            : 'bg-brand text-white border border-brand hover:opacity-95'
+                            : 'bg-brand text-white border border-black hover:opacity-95'
                         }`}
                       >
                         {isSigningUp ? (
@@ -445,7 +445,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       {user.rsvpedEventIds?.includes(selectedEvent.id) && (
                         <button
                           onClick={() => downloadICS(selectedEvent)}
-                          className="w-full py-3 rounded-full font-bold text-sm text-brand hover:bg-brand/5 border border-brand/20 transition-all flex items-center justify-center gap-2"
+                          className="w-full py-3 rounded-full font-bold text-sm text-brand hover:bg-brand/5 border border-brand/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wide"
                         >
                           <Calendar size={14} /> Save to Calendar
                         </button>

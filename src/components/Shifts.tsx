@@ -264,7 +264,7 @@ const BulkUploadEventsModal: React.FC<{
               </p>
               <button
                 onClick={onClose}
-                className="mt-6 px-8 py-3 font-bold text-base bg-brand text-white border border-brand rounded-full flex items-center justify-center gap-2 mx-auto"
+                className="mt-6 px-8 py-3 font-bold text-base bg-brand text-white border border-black rounded-full uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-2 mx-auto"
               >
                 <span className="w-2 h-2 rounded-full bg-white" /> Done
               </button>
@@ -273,7 +273,7 @@ const BulkUploadEventsModal: React.FC<{
             <>
               <button
                 onClick={downloadTemplate}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 font-bold text-base bg-white text-zinc-900 border border-zinc-950 rounded-full hover:opacity-80 transition-opacity"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 font-bold text-base bg-white text-zinc-900 border border-black rounded-full uppercase tracking-wide shadow-elevation-1 hover:opacity-80 transition-opacity"
               >
                 <span className="w-2 h-2 rounded-full bg-zinc-950" />
                 Download CSV Template
@@ -336,7 +336,7 @@ const BulkUploadEventsModal: React.FC<{
               <button
                 onClick={handleUpload}
                 disabled={!file || isUploading}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 font-bold text-base bg-brand text-white border border-brand rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 font-bold text-base bg-brand text-white border border-black rounded-full uppercase tracking-wide shadow-elevation-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? (
                   <>
@@ -698,8 +698,8 @@ const EditEventModal: React.FC<{
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-3 font-bold text-base bg-white text-zinc-900 border border-zinc-950 rounded-full flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</button>
-          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 font-bold text-base bg-brand text-white border border-brand rounded-full flex items-center gap-2 disabled:opacity-50">
+          <button onClick={onClose} className="px-6 py-3 font-bold text-base bg-white text-zinc-900 border border-black rounded-full uppercase tracking-wide shadow-elevation-1 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</button>
+          <button onClick={handleSave} disabled={isSaving} className="px-6 py-3 font-bold text-base bg-brand text-white border border-black rounded-full uppercase tracking-wide shadow-elevation-2 flex items-center gap-2 disabled:opacity-50">
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} Save Changes
           </button>
         </div>
@@ -1253,13 +1253,13 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {activeTab === 'manage' && canManageEvents && (
         <div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-bold text-base bg-brand text-white border border-brand rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity">
+             <button onClick={() => setShowEventBuilder(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-bold text-base bg-brand text-white border border-black rounded-full uppercase tracking-wide shadow-elevation-2 hover:opacity-90 transition-opacity">
                   <span className="w-2 h-2 rounded-full bg-white" /> Create New Event
               </button>
-              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-bold text-base bg-brand text-white border border-brand rounded-full shadow-elevation-2 hover:opacity-90 transition-opacity disabled:opacity-50">
+              <button onClick={handleSyncFromFinder} disabled={isSyncing} className="flex items-center justify-center gap-3 px-6 py-6 font-bold text-base bg-brand text-white border border-black rounded-full uppercase tracking-wide shadow-elevation-2 hover:opacity-90 transition-opacity disabled:opacity-50">
                   {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <span className="w-2 h-2 rounded-full bg-white" />} {isSyncing ? 'Syncing...' : 'Sync from Event Finder'}
               </button>
-              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-bold text-base bg-white text-zinc-900 border border-zinc-950 rounded-full shadow-elevation-1 hover:opacity-80 transition-opacity">
+              <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center justify-center gap-3 px-6 py-6 font-bold text-base bg-white text-zinc-900 border border-black rounded-full uppercase tracking-wide shadow-elevation-1 hover:opacity-80 transition-opacity">
                   <span className="w-2 h-2 rounded-full bg-zinc-950" /> Bulk Import CSV
               </button>
            </div>
@@ -1289,7 +1289,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                setTimeout(() => setShowToast(false), 3000);
                              } catch (e) { console.error('Failed to approve', e); toastService.error('Failed to approve registration. Please try again.'); }
                            }}
-                           className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-brand/90"
+                           className="px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 hover:bg-brand/90"
                          >
                            <Check size={14} /> Approve
                          </button>
@@ -1303,7 +1303,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                setTimeout(() => setShowToast(false), 3000);
                              } catch (e) { console.error('Failed to reject', e); toastService.error('Failed to reject registration. Please try again.'); }
                            }}
-                           className="px-4 py-2 bg-rose-100 text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-rose-200"
+                           className="px-4 py-2 bg-rose-100 text-rose-600 border border-black rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 hover:bg-rose-200"
                          >
                            <XCircle size={14} /> Reject
                          </button>
@@ -1421,10 +1421,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                     {/* Event Day Check-in Panel */}
                     <EventDayCheckin eventId={opp.id} eventDate={opp.date} />
                     <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center gap-2">
-                      <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold transition-colors">
+                      <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-black rounded-full text-xs font-bold uppercase tracking-wide transition-colors">
                         <Pencil size={12} /> Edit
                       </button>
-                      <button onClick={() => handleDeleteEvent(opp.id)} className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg text-xs font-bold transition-colors">
+                      <button onClick={() => handleDeleteEvent(opp.id)} className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-500 border border-black rounded-full text-xs font-bold uppercase tracking-wide transition-colors">
                         <Trash2 size={12} /> Delete
                       </button>
                     </div>

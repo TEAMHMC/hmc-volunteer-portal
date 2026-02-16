@@ -848,7 +848,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-bold text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-bold text-base uppercase tracking-wide shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
                     <span className="w-2 h-2 rounded-full bg-zinc-950" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -996,7 +996,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                 })}
               </div>
 
-              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold text-base shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+              <button onClick={() => onNavigate('academy')} className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white border border-black rounded-full font-bold text-base uppercase tracking-wide shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-white" />
                 Continue Training
                 <ArrowRight size={18} />
@@ -1008,10 +1008,10 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
             <h4 className="text-xl font-bold text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
                 <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all">
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
                 <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
             </div>
@@ -1243,7 +1243,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           <i className="fa-solid fa-radar text-brand text-sm" />
           Coming Up
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm hover:opacity-95 transition-all">
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide hover:opacity-95 transition-all">
           <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
@@ -1287,7 +1287,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
         <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
           <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming missions.</p>
-          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm flex items-center gap-2 mx-auto">
+          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 mx-auto">
             <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
           </button>
         </div>

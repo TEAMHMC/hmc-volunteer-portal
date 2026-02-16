@@ -82,12 +82,12 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
         <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase">AI-Powered Fundraising</h3>
         <p className="text-zinc-500 mt-2">Use our Matching Assistant to draft a personalized fundraising email to send to your network.</p>
         <div className="mt-10 pt-10 border-t border-zinc-100">
-          {!draftedEmail && !isDraftingEmail && <button onClick={handleDraftEmail} className="bg-brand text-white px-6 py-3 rounded-full font-bold text-sm shadow-elevation-3 hover:scale-105 transition-all flex items-center justify-center gap-4 group"><Sparkles size={24} /> Draft My Email</button>}
+          {!draftedEmail && !isDraftingEmail && <button onClick={handleDraftEmail} className="bg-brand border border-black text-white px-6 py-3 rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-all flex items-center justify-center gap-4 group"><Sparkles size={24} /> Draft My Email</button>}
           {isDraftingEmail && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-brand animate-spin" /></div>}
           {draftedEmail && (
             <div className="space-y-6 animate-in fade-in">
                <div className="bg-zinc-50 p-8 rounded-2xl border border-zinc-100 whitespace-pre-wrap font-mono text-xs leading-relaxed max-h-[300px] overflow-y-auto">{draftedEmail}</div>
-               <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedEmail)} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}</button><button onClick={() => setDraftedEmail('')} className="py-4 px-8 border border-zinc-200 rounded-full font-black text-xs uppercase">Start Over</button></div>
+               <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedEmail)} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}</button><button onClick={() => setDraftedEmail('')} className="py-4 px-8 border border-black rounded-full font-black text-xs uppercase tracking-wide">Start Over</button></div>
             </div>
           )}
         </div>
@@ -102,14 +102,14 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
                   <div className="space-y-4">
                      <input type="text" value={postTopic} onChange={e => setPostTopic(e.target.value)} placeholder="Enter post topic..." className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
                      <div className="flex gap-2 p-1 bg-zinc-100 rounded-full"><button onClick={() => setPlatform('Instagram')} className={`flex-1 py-2 text-xs font-bold rounded-full flex items-center justify-center gap-2 ${platform === 'Instagram' ? 'bg-white shadow' : ''}`}><Instagram size={14}/> Instagram</button><button onClick={() => setPlatform('LinkedIn')} className={`flex-1 py-2 text-xs font-bold rounded-full flex items-center justify-center gap-2 ${platform === 'LinkedIn' ? 'bg-white shadow' : ''}`}><Linkedin size={14}/> LinkedIn</button></div>
-                     <button onClick={handleDraftPost} disabled={!postTopic} className="w-full bg-brand text-white px-6 py-3 rounded-full font-bold text-sm shadow-elevation-3 flex items-center justify-center gap-4 group disabled:opacity-50"><Sparkles size={20} /> Draft Post</button>
+                     <button onClick={handleDraftPost} disabled={!postTopic} className="w-full bg-brand border border-black text-white px-6 py-3 rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-4 group disabled:opacity-50"><Sparkles size={20} /> Draft Post</button>
                   </div>
               )}
               {isDraftingPost && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-brand animate-spin" /></div>}
               {draftedPost && (
                 <div className="space-y-6 animate-in fade-in">
                    <div className="bg-zinc-50 p-8 rounded-2xl border border-zinc-100 whitespace-pre-wrap font-sans text-sm leading-relaxed max-h-[300px] overflow-y-auto">{draftedPost}</div>
-                   <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedPost)} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Post</>}</button><button onClick={() => setDraftedPost('')} className="py-4 px-8 border border-zinc-200 rounded-full font-black text-xs uppercase">Start Over</button></div>
+                   <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedPost)} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Post</>}</button><button onClick={() => setDraftedPost('')} className="py-4 px-8 border border-black rounded-full font-black text-xs uppercase tracking-wide">Start Over</button></div>
                 </div>
               )}
             </div>
@@ -229,7 +229,7 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
                 </div>
                 <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>
                 <p className="text-2xl font-black text-zinc-900 my-4">{reward.points} <span className="text-xs font-bold text-zinc-300">XP</span></p>
-                <button disabled={!canAfford} className="w-full py-3 bg-brand text-white rounded-full font-bold text-[10px] uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">
+                <button disabled={!canAfford} className="w-full py-3 bg-brand border border-black text-white rounded-full font-bold text-[10px] uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">
                   Redeem
                 </button>
               </div>

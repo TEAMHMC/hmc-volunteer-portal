@@ -147,11 +147,11 @@ const MigrationFlow: React.FC<MigrationFlowProps> = ({ user, onUpdateUser, onCom
         </div>
         <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
           {step === 'training' ? (
-            <button onClick={onComplete} disabled={!isTrainingComplete || isLoading} className="flex-1 py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={onComplete} disabled={!isTrainingComplete || isLoading} className="flex-1 py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? <Loader2 className="animate-spin" /> : <>Complete Activation <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           ) : (
-            <button onClick={validateAndProceed} disabled={isLoading} className="flex-1 py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={validateAndProceed} disabled={isLoading} className="flex-1 py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? <Loader2 className="animate-spin" /> : <>Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
             </button>
           )}

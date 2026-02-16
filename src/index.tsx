@@ -105,7 +105,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <button 
                 onClick={() => window.location.reload()} 
-                className="w-full sm:flex-1 px-10 py-6 bg-zinc-900 text-white font-bold rounded-full text-[11px] uppercase tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-elevation-3 flex items-center justify-center gap-3"
+                className="w-full sm:flex-1 px-10 py-6 bg-zinc-900 border border-black text-white font-bold rounded-full text-[11px] uppercase tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-elevation-2 flex items-center justify-center gap-3"
               >
                 <RotateCcw size={16} /> Reload Platform
               </button>

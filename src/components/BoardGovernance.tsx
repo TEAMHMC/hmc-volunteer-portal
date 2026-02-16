@@ -396,7 +396,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             {canManageMeetings && (
               <button
                 onClick={() => setShowNewMeetingModal(true)}
-                className="flex items-center gap-3 px-6 py-4 bg-brand/5 border border-brand/20 text-brand rounded-full font-bold text-sm hover:bg-brand/10 transition-colors"
+                className="flex items-center gap-3 px-6 py-4 bg-brand/5 border border-black text-brand rounded-full font-bold text-sm uppercase tracking-wide hover:bg-brand/10 transition-colors"
               >
                 <Plus size={18} />
                 Schedule Meeting
@@ -404,7 +404,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             )}
             <button
               onClick={() => setShowEmergencyModal(true)}
-              className="flex items-center gap-3 px-6 py-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-full font-bold text-sm hover:bg-rose-100 transition-colors"
+              className="flex items-center gap-3 px-6 py-4 bg-rose-50 border border-black text-rose-700 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-rose-100 transition-colors"
             >
               <AlertTriangle size={18} />
               Request Emergency Meeting
@@ -493,16 +493,16 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                           </span>
                         ) : (
                           <div className="flex gap-1">
-                            <button onClick={() => handleRSVP(meeting.id, 'attending')} className="px-3 py-1 bg-brand text-white rounded-full text-xs font-bold hover:bg-brand">Attend</button>
-                            <button onClick={() => handleRSVP(meeting.id, 'tentative')} className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold hover:bg-amber-600">Maybe</button>
-                            <button onClick={() => handleRSVP(meeting.id, 'not_attending')} className="px-3 py-1 bg-zinc-300 text-zinc-700 rounded-full text-xs font-bold hover:bg-zinc-400">Can't</button>
+                            <button onClick={() => handleRSVP(meeting.id, 'attending')} className="px-3 py-1 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide hover:bg-brand shadow-elevation-2">Attend</button>
+                            <button onClick={() => handleRSVP(meeting.id, 'tentative')} className="px-3 py-1 bg-amber-500 border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide hover:bg-amber-600 shadow-elevation-2">Maybe</button>
+                            <button onClick={() => handleRSVP(meeting.id, 'not_attending')} className="px-3 py-1 bg-zinc-300 border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide hover:bg-zinc-400">Can't</button>
                           </div>
                         )}
                       </div>
                       {meeting.googleMeetLink && (
                         <button
                           onClick={() => handleStartMeeting(meeting.googleMeetLink!)}
-                          className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-full font-bold text-sm hover:bg-brand-hover transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide hover:bg-brand-hover transition-colors shadow-elevation-2"
                         >
                           <Video size={16} />
                           Join Google Meet
@@ -511,7 +511,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                       {!meeting.googleMeetLink && canManageMeetings && (
                         <button
                           onClick={() => setEditingMeeting(meeting)}
-                          className="flex items-center gap-2 px-4 py-2 border border-dashed border-zinc-300 text-zinc-500 rounded-full font-bold text-xs hover:border-brand hover:text-brand transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 border border-dashed border-black text-zinc-500 rounded-full font-bold text-xs uppercase tracking-wide hover:border-brand hover:text-brand transition-colors"
                         >
                           <Video size={14} />
                           Add Meet Link
@@ -559,7 +559,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     </div>
                     <button
                       onClick={() => setShowMinutesModal(meeting)}
-                      className="flex items-center gap-2 px-4 py-2 border border-zinc-200 rounded-full font-bold text-sm hover:bg-zinc-50"
+                      className="flex items-center gap-2 px-4 py-2 border border-black rounded-full font-bold text-sm uppercase tracking-wide hover:bg-zinc-50"
                     >
                       <Eye size={16} />
                       {meeting.minutesContent ? 'View Minutes' : 'Add Minutes'}
@@ -611,8 +611,8 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={() => setShowFormModal(form.id)}
-                    className={`flex-1 py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 ${
-                      isSigned ? 'bg-zinc-100 text-zinc-500' : 'bg-brand text-white hover:bg-brand-hover'
+                    className={`flex-1 py-3 rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 ${
+                      isSigned ? 'bg-zinc-100 text-zinc-500 border border-black' : 'bg-brand border border-black text-white hover:bg-brand-hover shadow-elevation-2'
                     }`}
                   >
                     <Eye size={16} />
@@ -621,7 +621,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                   {isSigned && (
                     <button
                       onClick={() => window.open(`/api/board/forms/${form.id}/pdf`, '_blank')}
-                      className="py-3 px-5 rounded-full font-bold text-sm flex items-center gap-2 bg-brand text-white hover:bg-brand-hover"
+                      className="py-3 px-5 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 bg-brand border border-black text-white hover:bg-brand-hover shadow-elevation-2"
                     >
                       <Download size={14} /> PDF
                     </button>
@@ -681,7 +681,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     const val = parseInt(input.value);
                     if (val > 0) handleSaveGiveOrGet({ ...giveOrGet, goal: val });
                   }}
-                  className="px-6 py-3 bg-brand text-white rounded-full font-bold text-sm"
+                  className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2"
                 >
                   Set Goal
                 </button>
@@ -734,7 +734,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                 </a>
                 <button
                   onClick={() => setShowDonationModal('personal')}
-                  className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-full font-bold text-sm hover:bg-zinc-200 transition-colors"
+                  className="flex-1 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-zinc-200 transition-colors"
                 >
                   Log Donation
                 </button>
@@ -754,7 +754,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               <p className="text-2xl font-black text-brand">${giveOrGet.fundraised.toLocaleString()}</p>
               <button
                 onClick={() => setShowDonationModal('fundraised')}
-                className="mt-6 w-full py-3 bg-zinc-100 text-zinc-700 rounded-full font-bold text-sm hover:bg-zinc-200 transition-colors"
+                className="mt-6 w-full py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-zinc-200 transition-colors"
               >
                 Log Fundraising Activity
               </button>
@@ -770,7 +770,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
               <button
                 onClick={() => setShowProspectModal(true)}
-                className="px-4 py-2 bg-brand text-white rounded-full font-bold text-sm flex items-center gap-2 hover:bg-brand-hover"
+                className="px-4 py-2 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 hover:bg-brand-hover shadow-elevation-2"
               >
                 <Plus size={14} />
                 Add Prospect
@@ -1017,7 +1017,7 @@ const FormSigningModal: React.FC<{
               </div>
               <button
                 onClick={() => window.open(`/api/board/forms/${formId}/pdf`, '_blank')}
-                className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-full text-sm font-bold hover:bg-brand-hover transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand-hover transition-all shadow-elevation-2"
               >
                 <Download size={14} /> Download PDF
               </button>
@@ -1026,11 +1026,11 @@ const FormSigningModal: React.FC<{
         </div>
         {!isSigned && (
           <div className="p-6 border-t border-zinc-100 flex gap-3">
-            <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
             <button
               onClick={() => onSign(signatureRef.current?.toDataURL())}
               disabled={!agreed || !hasSignature}
-              className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed shadow-elevation-2"
             >
               Sign Form
             </button>
@@ -1082,8 +1082,8 @@ const MinutesReviewModal: React.FC<{
                 rows={30}
               />
               <div className="flex gap-3">
-                <button onClick={() => { if (meeting.minutesContent) setEditing(false); }} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
-                <button onClick={() => { onSaveMinutes(editContent); setEditing(false); }} className="flex-1 py-3 bg-brand text-white rounded-full font-bold">Save Draft</button>
+                <button onClick={() => { if (meeting.minutesContent) setEditing(false); }} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
+                <button onClick={() => { onSaveMinutes(editContent); setEditing(false); }} className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide shadow-elevation-2">Save Draft</button>
               </div>
             </div>
           ) : (
@@ -1101,16 +1101,16 @@ const MinutesReviewModal: React.FC<{
                       className="w-full p-4 border border-zinc-200 rounded-2xl resize-none h-32"
                     />
                     <div className="flex gap-3">
-                      <button onClick={() => setShowRevisionForm(false)} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
-                      <button onClick={() => onRequestRevision(revisionNote)} className="flex-1 py-3 bg-amber-500 text-white rounded-full font-bold">Submit Revision Request</button>
+                      <button onClick={() => setShowRevisionForm(false)} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
+                      <button onClick={() => onRequestRevision(revisionNote)} className="flex-1 py-3 bg-amber-500 border border-black text-white rounded-full font-bold uppercase tracking-wide shadow-elevation-2">Submit Revision Request</button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex gap-3">
-                    <button onClick={() => setShowRevisionForm(true)} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold flex items-center justify-center gap-2">
+                    <button onClick={() => setShowRevisionForm(true)} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide flex items-center justify-center gap-2">
                       <Edit3 size={16} /> Request Revisions
                     </button>
-                    <button onClick={onApprove} className="flex-1 py-3 bg-brand text-white rounded-full font-bold flex items-center justify-center gap-2">
+                    <button onClick={onApprove} className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide flex items-center justify-center gap-2 shadow-elevation-2">
                       <CheckCircle size={16} /> Approve Minutes
                     </button>
                   </div>
@@ -1149,8 +1149,8 @@ const EmergencyMeetingModal: React.FC<{
           </p>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Describe the urgent matter requiring an emergency meeting..." className="w-full p-4 border border-zinc-200 rounded-2xl resize-none h-32 mb-4" />
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
-            <button onClick={() => onSubmit(reason)} disabled={!reason.trim()} className="flex-1 py-3 bg-rose-600 text-white rounded-full font-bold disabled:opacity-50">Submit Request</button>
+            <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
+            <button onClick={() => onSubmit(reason)} disabled={!reason.trim()} className="flex-1 py-3 bg-rose-600 border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2">Submit Request</button>
           </div>
         </div>
       </div>
@@ -1208,7 +1208,7 @@ const MeetingFormModal: React.FC<{
               <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="flex-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="https://meet.google.com/..." />
               <button
                 onClick={() => window.open('https://meet.google.com/new', '_blank')}
-                className="px-4 py-3 bg-zinc-100 text-zinc-700 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-colors flex items-center gap-2 shrink-0"
+                className="px-4 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors flex items-center gap-2 shrink-0"
                 title="Opens Google Meet — create a meeting, copy the link, paste it here"
               >
                 <ExternalLink size={14} />
@@ -1222,7 +1222,7 @@ const MeetingFormModal: React.FC<{
             <textarea value={agendaText} onChange={e => setAgendaText(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-24" placeholder="Call to Order&#10;Financial Report&#10;New Business" />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
             <button
               onClick={() => onSubmit({
                 title, date, time, type,
@@ -1231,7 +1231,7 @@ const MeetingFormModal: React.FC<{
                 agenda: agendaText.split('\n').filter(a => a.trim()),
               })}
               disabled={!title || !date}
-              className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50"
+              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2"
             >
               {isEdit ? 'Save Changes' : 'Create Meeting'}
             </button>
@@ -1302,7 +1302,7 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
           <button
             onClick={() => onAdd({
               id: `p-${Date.now()}`,
@@ -1317,7 +1317,7 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
               outreachLog: []
             })}
             disabled={!name || !amount}
-            className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2 shadow-elevation-2"
           >
             <Plus size={16} /> Add Prospect
           </button>
@@ -1349,11 +1349,11 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
             <input value={note} onChange={e => setNote(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="e.g. Monthly recurring gift" />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-3 border border-zinc-200 rounded-full font-bold">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
             <button
               onClick={() => onLog(parseInt(amount) || 0, type, note || undefined)}
               disabled={!amount}
-              className="flex-1 py-3 bg-brand text-white rounded-full font-bold disabled:opacity-50"
+              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2"
             >
               Log {type === 'personal' ? 'Donation' : 'Activity'}
             </button>
@@ -1435,7 +1435,7 @@ www.healthmatters.clinic`;
             </div>
             <button
               onClick={() => { navigator.clipboard.writeText(DONATE_URL); }}
-              className="px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold hover:bg-brand/20"
+              className="px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold uppercase tracking-wide hover:bg-brand/20"
             >
               Copy Link
             </button>
@@ -1448,11 +1448,11 @@ www.healthmatters.clinic`;
         </div>
         <div className="p-6 border-t border-zinc-100 flex gap-3">
           {prospect.email && (
-            <button onClick={handleOpenMail} className="flex-1 py-3 border border-brand text-brand rounded-full font-bold flex items-center justify-center gap-2">
+            <button onClick={handleOpenMail} className="flex-1 py-3 border border-black text-brand rounded-full font-bold uppercase tracking-wide flex items-center justify-center gap-2">
               <Send size={16} /> Open in Mail
             </button>
           )}
-          <button onClick={handleCopy} className="flex-1 py-3 bg-brand text-white rounded-full font-bold flex items-center justify-center gap-2">
+          <button onClick={handleCopy} className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide flex items-center justify-center gap-2 shadow-elevation-2">
             {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}
           </button>
         </div>
@@ -1520,7 +1520,7 @@ const DocumentViewerModal: React.FC<{
             <button
               onClick={handlePrint}
               disabled={loading || !content}
-              className="p-2 hover:bg-zinc-100 rounded-xl flex items-center gap-2 text-sm font-bold disabled:opacity-30"
+              className="p-2 hover:bg-zinc-100 rounded-full flex items-center gap-2 text-sm font-bold uppercase tracking-wide disabled:opacity-30"
             >
               <Download size={16} /> Print / Save PDF
             </button>

@@ -174,7 +174,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setIsEditing(true); setShowReminderBanner(false); }}
-              className="px-4 py-2 bg-amber-600 text-white rounded-full font-bold text-xs hover:bg-amber-700 transition-colors"
+              className="px-4 py-2 bg-amber-600 border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide hover:bg-amber-700 transition-colors"
             >
               Update Now
             </button>
@@ -289,7 +289,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                         <label className="text-sm font-bold text-zinc-600 mb-3 block">Time Off / Unavailable Dates</label>
                          <div className="flex gap-2">
                             <input type="date" value={newUnavailableDate} onChange={e => setNewUnavailableDate(e.target.value)} className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2" />
-                            <button onClick={addUnavailableDate} className="px-4 py-2 bg-zinc-800 text-white rounded-xl text-sm font-bold"><Plus size={16}/></button>
+                            <button onClick={addUnavailableDate} className="px-4 py-2 bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide"><Plus size={16}/></button>
                          </div>
                          <div className="flex flex-wrap gap-2 mt-4">
                              {profileData.unavailableDates.map(date => (

@@ -301,10 +301,10 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                   </div>
                   <button
                     onClick={() => setActiveDocument(doc)}
-                    className={`px-4 py-2 rounded-full font-bold text-sm transition-all flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-full font-bold text-sm uppercase tracking-wide transition-all flex items-center gap-2 ${
                       isSigned
-                        ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                        : 'bg-brand text-white hover:bg-brand-hover shadow-elevation-2'
+                        ? 'bg-white border border-black text-zinc-600 hover:bg-zinc-200'
+                        : 'bg-brand border border-black text-white hover:bg-brand-hover shadow-elevation-2'
                     }`}
                   >
                     {isSigned ? 'View' : 'Review & Sign'}
@@ -489,7 +489,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
             <button
               onClick={handleSaveCredentials}
               disabled={isSaving}
-              className="px-6 py-3 bg-brand text-white font-bold rounded-full hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2 shadow-elevation-2"
+              className="px-6 py-3 bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2 shadow-elevation-2"
             >
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
               Save Credentials
@@ -633,7 +633,7 @@ const DocumentViewerModal: React.FC<{
               ) : (
                 <button
                   onClick={() => setShowSignature(true)}
-                  className="w-full py-4 bg-brand text-white font-bold rounded-full hover:bg-brand-hover flex items-center justify-center gap-2 shadow-elevation-2"
+                  className="w-full py-4 bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand-hover flex items-center justify-center gap-2 shadow-elevation-2"
                 >
                   <Pen size={18} />
                   Proceed to Sign Document
@@ -673,14 +673,14 @@ const DocumentViewerModal: React.FC<{
             <div className="p-6 border-t border-zinc-100 bg-white flex gap-4">
               <button
                 onClick={() => setShowSignature(false)}
-                className="flex-1 py-3 bg-zinc-100 text-zinc-700 font-bold rounded-full hover:bg-zinc-200"
+                className="flex-1 py-3 bg-white border border-black text-zinc-900 font-bold rounded-full uppercase tracking-wide hover:bg-zinc-200"
               >
                 Back to Document
               </button>
               <button
                 onClick={submitSignature}
                 disabled={!hasSignature || isSaving}
-                className="flex-1 py-3 bg-brand text-white font-bold rounded-full hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                 Submit Signature

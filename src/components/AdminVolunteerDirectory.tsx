@@ -207,7 +207,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           </div>
           
           <div className="flex flex-col md:flex-row items-center gap-4">
-            <button onClick={() => setShowImportModal(true)} className="py-5 px-6 bg-white border border-zinc-100 rounded-full text-zinc-400 font-bold text-[11px] uppercase tracking-wide flex items-center gap-3"><UploadCloud size={16}/>Bulk Import</button>
+            <button onClick={() => setShowImportModal(true)} className="py-5 px-6 bg-white border border-black rounded-full text-zinc-400 font-bold text-[11px] uppercase tracking-wide flex items-center gap-3 shadow-elevation-1"><UploadCloud size={16}/>Bulk Import</button>
             <div className="relative group w-full md:w-auto">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-brand transition-colors" size={18} />
               <input 
@@ -461,7 +461,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {editingTags && (
                              <div className="flex gap-2 mt-4">
                                 <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddTag()} placeholder="Add new tag..." className="flex-1 bg-white border rounded-lg px-2 py-1 text-xs"/>
-                                <button onClick={handleAddTag} className="px-3 py-1 bg-zinc-800 text-white rounded-lg text-xs font-bold">Add</button>
+                                <button onClick={handleAddTag} className="px-3 py-1 bg-zinc-800 border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2">Add</button>
                              </div>
                           )}
                        </div>
@@ -490,7 +490,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                       {selectedVolunteer.resume?.storagePath && (
                         <button
                           onClick={() => handleDownloadResume(selectedVolunteer.id)}
-                          className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-xl text-xs font-bold hover:bg-brand-hover transition-all"
+                          className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide hover:bg-brand-hover transition-all shadow-elevation-2"
                         >
                           <Download size={14} /> Download Resume
                         </button>
@@ -776,7 +776,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                                 <p className="text-sm font-bold text-zinc-700">{selectedVolunteer.resume.name || 'Resume on file'}</p>
                                 <button
                                   onClick={() => handleDownloadResume(selectedVolunteer.id)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-lg text-[10px] font-bold hover:bg-brand-hover transition-all"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand border border-black text-white rounded-full text-[10px] font-bold uppercase tracking-wide hover:bg-brand-hover transition-all shadow-elevation-2"
                                 >
                                   <Download size={12} /> Download
                                 </button>
@@ -794,7 +794,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                         <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Assigned Tasks</h4>
                         <button
                           onClick={() => setShowTaskModal(true)}
-                          className="px-3 py-1.5 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                          className="px-3 py-1.5 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-elevation-2"
                         >
                           <ClipboardList size={12} /> Assign Task
                         </button>
@@ -879,7 +879,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
             <button
               onClick={handleAssignTask}
               disabled={isAssigningTask || !taskTitle.trim()}
-              className="w-full py-4 bg-brand border border-black text-white rounded-full font-black text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50"
+              className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50 shadow-elevation-2"
             >
               {isAssigningTask ? <Loader2 size={18} className="animate-spin" /> : <><ClipboardList size={18} /> Assign Task</>}
             </button>
@@ -901,8 +901,8 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
               </p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-bold text-sm">Cancel</button>
-              <button onClick={handleDeleteVolunteer} disabled={isDeleting} className="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-rose-600 disabled:opacity-50">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide">Cancel</button>
+              <button onClick={handleDeleteVolunteer} disabled={isDeleting} className="flex-1 py-3 bg-rose-500 border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-rose-600 disabled:opacity-50">
                 {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Delete
               </button>
             </div>
@@ -940,8 +940,8 @@ const RoleManagementPanel: React.FC<{currentUser: Volunteer, selectedVolunteer: 
                                 {APP_CONFIG.HMC_ROLES.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
                             </select>
                             <div className="flex gap-2">
-                                <button onClick={() => setIsEditingRole(false)} className="flex-1 text-xs font-bold py-2 border rounded-lg">Cancel</button>
-                                <button onClick={handleSaveRole} className="flex-1 text-xs font-bold py-2 bg-zinc-800 text-white rounded-lg">Save Role</button>
+                                <button onClick={() => setIsEditingRole(false)} className="flex-1 text-xs font-bold py-2 border border-black rounded-full uppercase tracking-wide">Cancel</button>
+                                <button onClick={handleSaveRole} className="flex-1 text-xs font-bold py-2 bg-zinc-800 border border-black text-white rounded-full uppercase tracking-wide shadow-elevation-2">Save Role</button>
                             </div>
                         </div>
                     ) : (
@@ -951,7 +951,7 @@ const RoleManagementPanel: React.FC<{currentUser: Volunteer, selectedVolunteer: 
                         </div>
                     )
                 ) : currentUser.role === 'Volunteer Lead' ? (
-                     <button onClick={handlePromote} className="w-full text-center py-3 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold">
+                     <button onClick={handlePromote} className="w-full text-center py-3 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-wide">
                         Promote to Shift Lead
                      </button>
                 ) : null}
@@ -977,10 +977,10 @@ const ApplicationReviewPanel: React.FC<{volunteer: Volunteer, onReview: (action:
             )}
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add review notes (optional)..." className="w-full h-24 p-4 text-sm bg-white border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-400" />
             <div className="flex items-center gap-4">
-                <button onClick={() => onReview('approve', notes)} disabled={isReviewing} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-emerald-700 disabled:opacity-50">
+                <button onClick={() => onReview('approve', notes)} disabled={isReviewing} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-emerald-700 disabled:opacity-50 shadow-elevation-2">
                     {isReviewing ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16}/> Approve for Role</>}
                 </button>
-                <button onClick={() => onReview('reject', notes)} disabled={isReviewing} className="flex-1 py-4 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-indigo-700 disabled:opacity-50">
+                <button onClick={() => onReview('reject', notes)} disabled={isReviewing} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-indigo-700 disabled:opacity-50 shadow-elevation-2">
                     {isReviewing ? <Loader2 size={16} className="animate-spin" /> : <><Award size={16}/> Keep as Champion</>}
                 </button>
             </div>
@@ -1036,13 +1036,13 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} volunteers have been imported and sent a welcome email.</p>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide shadow-elevation-2">Done</button>
                     </div>
                 ) : (
                     <>
                         <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"/>
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
-                        <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50">
+                        <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2">
                             {isUploading ? <Loader2 className="animate-spin"/> : "Start Import"}
                         </button>
                     </>
@@ -1248,7 +1248,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="w-full py-4 bg-brand text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50 shadow-elevation-2"
                     >
                         {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><UserPlus size={18} /> Add Volunteer</>}
                     </button>

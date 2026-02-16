@@ -1000,7 +1000,7 @@ const TicketDetailModal: React.FC<{
                     <button
                       onClick={handleAddNote}
                       disabled={!newNote.trim() || isSubmittingNote}
-                      className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 ml-auto"
+                      className="px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 ml-auto shadow-elevation-2"
                     >
                       {isSubmittingNote ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       Add Note
@@ -1352,7 +1352,7 @@ const OpsSupportView: React.FC<{
         </div>
         <button
           onClick={() => setShowNewTicket(true)}
-          className="px-6 py-3 bg-brand text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
+          className="px-6 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
         >
           <Plus size={14} /> New Ticket
         </button>
@@ -1524,7 +1524,7 @@ const OpsSupportView: React.FC<{
               <button
                 onClick={handleSubmitTicket}
                 disabled={isSubmitting || !newTicketSubject.trim() || !newTicketBody.trim()}
-                className="w-full py-4 bg-brand text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50 shadow-elevation-2"
+                className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50 shadow-elevation-2"
               >
                 {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Submit Ticket</>}
               </button>

@@ -534,7 +534,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     <h3 className="text-lg font-bold mb-4">6. Logistics & Supplies</h3>
                     <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-4">
                         <input type="number" placeholder="Estimated Attendees" value={eventData.estimatedAttendees || ''} onChange={e => setEventData({...eventData, estimatedAttendees: parseInt(e.target.value, 10) || 0})} className="w-full p-3 bg-white border border-zinc-200 rounded-lg"/>
-                        <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-zinc-200 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-100 disabled:opacity-50">
+                        <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-100 disabled:opacity-50">
                             {isGeneratingSupplies ? <Loader2 className="animate-spin" size={16}/> : <><Sparkles size={16}/> Generate Supply Suggestions</>}
                         </button>
                         {(isGeneratingSupplies || eventData.supplyList) && (
@@ -576,7 +576,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                     setManualSupplyItem('');
                                 }}
                                 disabled={!manualSupplyItem.trim()}
-                                className="px-4 py-3 bg-brand text-white rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-brand/90 transition-colors flex items-center gap-1.5"
+                                className="px-4 py-3 bg-brand text-white rounded-full text-sm font-bold disabled:opacity-30 hover:bg-brand/90 transition-colors flex items-center gap-1.5 border border-black uppercase tracking-wide"
                             >
                                 <Plus size={14} /> Add
                             </button>
@@ -592,7 +592,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     </div>
                 )}
                 <div className="flex justify-end">
-                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50">
+                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide border border-black shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
                     </button>
                 </div>

@@ -170,7 +170,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
             </div>
 
             <div className="flex justify-end">
-                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
+                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
                     {saving ? <Loader2 className="animate-spin" size={14} /> : 'Save Cadence Settings'}
                 </button>
             </div>
@@ -304,7 +304,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                                 <button
                                                     onClick={() => handleSaveMeetLink(cycle.id)}
                                                     disabled={savingLink}
-                                                    className="px-4 py-2.5 bg-brand text-white rounded-xl text-xs font-bold disabled:opacity-50"
+                                                    className="px-4 py-2.5 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide disabled:opacity-50"
                                                 >
                                                     {savingLink ? <Loader2 className="animate-spin" size={14} /> : 'Save'}
                                                 </button>
@@ -604,7 +604,7 @@ const AutomatedWorkflows: React.FC = () => {
                         </div>
                         {hasChanges && (
                             <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-end">
-                                <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
+                                <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
                                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                                 </button>
                             </div>

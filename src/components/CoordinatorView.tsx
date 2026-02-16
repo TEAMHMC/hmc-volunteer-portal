@@ -47,7 +47,7 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
               </div>
               <button
                 onClick={() => onNavigate?.('messages')}
-                className="text-xs font-bold bg-white border border-zinc-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-zinc-100"
+                className="text-xs font-bold bg-white border border-black px-4 py-2 rounded-full flex items-center gap-2 uppercase tracking-wide hover:bg-zinc-100"
               >
                 <MessageSquare size={14}/> Message
               </button>

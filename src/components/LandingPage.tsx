@@ -232,7 +232,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
              <div className="pt-8 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
                 <button
                   onClick={onStartOnboarding}
-                  className="bg-brand border border-black text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-3 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
+                  className="bg-brand border border-black text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
                 >
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />

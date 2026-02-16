@@ -80,7 +80,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                         </div>
                         <div className="relative mt-4">
                             <input type={searchBy === 'phone' ? 'tel' : 'email'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Enter client ${searchBy}...`} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-bold" />
-                            <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                            <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
                         </div>
@@ -90,7 +90,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                         <div className="text-center p-8 bg-amber-50 rounded-2xl border border-amber-200">
                             <p className="font-bold text-amber-800">Client not found.</p>
                             <p className="text-sm text-amber-700">Please verify the information or register them as a new client.</p>
-                            <button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button>
+                            <button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button>
                         </div>
                     )}
 
@@ -99,7 +99,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                             <p className="text-xs font-bold text-emerald-800">Client Found</p>
                             <p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
                             <p className="text-sm text-emerald-800">DOB: {searchResult.dob}</p>
-                            <button onClick={() => handleStartScreening(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold flex items-center gap-2"><HeartPulse size={14}/> Start Screening</button>
+                            <button onClick={() => handleStartScreening(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2"><HeartPulse size={14}/> Start Screening</button>
                         </div>
                     )}
                 </div>
@@ -141,8 +141,8 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                 <input required type="tel" pattern="[0-9]{10,15}" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
                 <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
                 <div className="flex gap-4">
-                    <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 rounded-lg text-sm font-bold">Cancel</button>
-                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand text-white rounded-lg text-sm font-bold disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                    <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
+                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
                 </div>
             </form>
         </div>
@@ -349,8 +349,8 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
                 {/* Actions */}
                 <div className="flex gap-4">
-                    <button type="button" onClick={() => onComplete()} className="flex-1 py-4 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 rounded-2xl text-sm font-bold">Cancel</button>
-                    <button type="submit" disabled={isSaving || (!vitals.systolic && !vitals.glucose)} className="flex-1 py-4 bg-brand text-white rounded-2xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => onComplete()} className="flex-1 py-4 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
+                    <button type="submit" disabled={isSaving || (!vitals.systolic && !vitals.glucose)} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">
                         {isSaving ? <><Loader2 className="animate-spin" size={16} /> Saving...</> : <><CheckCircle size={16} /> Save Screening</>}
                     </button>
                 </div>

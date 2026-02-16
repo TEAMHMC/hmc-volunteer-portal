@@ -66,7 +66,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
                             <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-brand scale-125' : 'bg-zinc-200'}`} />
                         ))}
                     </div>
-                    <button onClick={handleNext} className="px-8 py-4 bg-brand text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-3 group shadow-elevation-2">
+                    <button onClick={handleNext} className="px-8 py-4 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-3 group shadow-elevation-2">
                         {isLastStep ? "Let's Get Started" : "Next"}
                         <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </button>

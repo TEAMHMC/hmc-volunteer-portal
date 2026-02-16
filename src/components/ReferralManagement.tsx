@@ -80,7 +80,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
         </div>
         <button
           onClick={fetchAllData}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg text-sm font-bold hover:bg-zinc-200"
+          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 border border-black text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-200"
         >
           <RefreshCw size={16} /> Refresh Data
         </button>
@@ -293,7 +293,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
         </div>
         <button
           onClick={() => setShowNewClient(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-brand text-white rounded-xl font-bold text-sm"
+          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide"
         >
           <Plus size={18} /> New Client
         </button>
@@ -469,14 +469,14 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
           <button
             onClick={() => updateStatus('In Progress')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-bold hover:bg-brand/90 disabled:opacity-50"
+            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50"
           >
             Mark In Progress
           </button>
           <button
             onClick={() => updateStatus('Completed')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-bold hover:bg-brand/90 disabled:opacity-50"
+            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50"
           >
             Mark Completed
           </button>
@@ -554,7 +554,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowNewPartner(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-brand text-white rounded-xl font-bold text-sm"
+          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide"
         >
           <Plus size={18} /> Add Partner
         </button>
@@ -784,10 +784,10 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             </select>
           </div>
           <div className="flex justify-end gap-4 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-bold">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand text-white rounded-lg font-bold disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Create Client'}
             </button>
           </div>
@@ -879,10 +879,10 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             />
           </div>
           <div className="flex justify-end gap-4 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-lg font-bold">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand text-white rounded-lg font-bold disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Add Partner'}
             </button>
           </div>
