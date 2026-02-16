@@ -382,7 +382,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     try {
       isCorrect = await geminiService.validateQuizAnswer(quizData.question, quizResponse);
     } catch (e) {
-      console.log("AI validation failed, using local validation");
+      // AI validation unavailable, falling back to local validation
       isCorrect = validateResponseLocally(quizData.question, quizResponse, activeSession.id);
     }
 

@@ -58,11 +58,6 @@ export const getRecaptchaSiteKey = (): string => {
 const GOOGLE_CLIENT_ID = getGoogleClientId();
 const RECAPTCHA_SITE_KEY = getRecaptchaSiteKey();
 
-console.log("App Config:", { 
-  googleAuth: !!GOOGLE_CLIENT_ID, 
-  recaptcha: !!RECAPTCHA_SITE_KEY,
-  source: window.env ? 'runtime (production)' : 'build-time (development)'
-});
 
 interface ErrorBoundaryProps {
   children?: ReactNode;

@@ -248,6 +248,7 @@ export interface Volunteer {
   isAdmin: boolean;
   points: number;
   avatarUrl?: string;
+  profilePhoto?: string;
   hoursContributed: number;
   hasCompletedSystemTour?: boolean;
   isNewUser?: boolean;

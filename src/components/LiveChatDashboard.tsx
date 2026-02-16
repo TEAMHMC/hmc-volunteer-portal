@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User } from '../types';
+import { Volunteer } from '../types';
 
 interface ChatMessage {
   id: string;
@@ -23,7 +23,7 @@ interface ChatSession {
 }
 
 interface LiveChatDashboardProps {
-  currentUser: User;
+  currentUser: Volunteer;
 }
 
 // Check if current time is within live chat hours (10 AM - 6 PM Pacific)

@@ -232,7 +232,7 @@ app.use(cors({
       return;
     }
     // Allow same-origin requests and Cloud Run URLs
-    if (ALLOWED_ORIGINS.includes(origin) || origin.includes('.run.app') || origin.includes('localhost') || origin.includes('healthmatters.clinic') || origin.includes('teamhmc.github.io')) {
+    if (ALLOWED_ORIGINS.includes(origin) || (origin.endsWith('.run.app') && origin.includes('hmc-volunteer-portal')) || origin.startsWith('http://localhost') || origin.includes('healthmatters.clinic') || origin.includes('teamhmc.github.io')) {
       callback(null, true);
     } else {
       console.warn(`[SECURITY] Blocked CORS request from: ${origin}`);
@@ -2322,7 +2322,7 @@ app.post('/api/auth/refresh-session', verifyToken, async (req: Request, res: Res
     }
 });
 
-app.post('/auth/decode-google-token', async (req: Request, res: Response) => {
+app.post('/auth/decode-google-token', rateLimit(10, 60000), async (req: Request, res: Response) => {
     const { credential } = req.body;
     try {
         const payload = await verifyGoogleToken(credential);
@@ -3067,7 +3067,7 @@ app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request
         res.status(500).json({ error: 'Failed to create referral' });
     }
 });
-app.put('/api/referrals/:id', verifyToken, async (req: Request, res: Response) => {
+app.put('/api/referrals/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         if (!req.body.referral) return res.status(400).json({ error: 'Referral data required' });
         const doc = await db.collection('referrals').doc(req.params.id).get();
@@ -3681,8 +3681,14 @@ app.get('/api/feedback', verifyToken, async (req: Request, res: Response) => {
 
 app.post('/api/feedback', verifyToken, async (req: Request, res: Response) => {
     try {
+        const { rating, category, message, suggestion, resourceId } = req.body;
         const feedback = {
-            ...req.body,
+            rating,
+            category,
+            message,
+            suggestion,
+            resourceId,
+            submittedBy: (req as any).user?.uid,
             submittedAt: new Date().toISOString()
         };
         const ref = await db.collection('feedback').add(feedback);
@@ -3732,8 +3738,10 @@ app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: R
 
 app.put('/api/partners/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        await db.collection('partner_agencies').doc(req.params.id).update(req.body);
-        res.json({ id: req.params.id, ...req.body });
+        const { name, contactEmail, contactPhone, address, services, status, notes } = req.body;
+        const updates = { name, contactEmail, contactPhone, address, services, status, notes };
+        await db.collection('partner_agencies').doc(req.params.id).update(updates);
+        res.json({ id: req.params.id, ...updates });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update partner' });
     }
@@ -4590,7 +4598,7 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             return res.status(403).json({ error: 'Only admins and event management roles can sync events' });
         }
 
-        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`, {
             headers: { 'Accept': 'application/json' },
             redirect: 'follow',
@@ -5193,7 +5201,7 @@ app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response
 });
 
 // Update support ticket (for assignment, status changes, etc.)
-app.put('/api/support_tickets/:ticketId', verifyToken, async (req: Request, res: Response) => {
+app.put('/api/support_tickets/:ticketId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const { ticketId } = req.params;
         const updates = req.body;
@@ -7195,6 +7203,11 @@ app.get('/api/leaderboard/streaks', verifyToken, async (req: Request, res: Respo
 // Get all board meetings
 app.get('/api/board/meetings', verifyToken, async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Board member access required' });
+    }
     const meetingsSnap = await db.collection('board_meetings').orderBy('date', 'asc').get();
     const meetings = meetingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     res.json(meetings);
@@ -7245,6 +7258,9 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Board member access required' });
+    }
     const { reason } = req.body;
     await db.collection('board_meetings').add({
       title: 'Emergency Meeting Request',
@@ -7872,7 +7888,9 @@ app.delete('/api/announcements/:id', verifyToken, requireAdmin, async (req: Requ
 // --- HEALTH SCREENINGS ---
 app.post('/api/screenings/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const screening = { ...req.body, createdAt: new Date().toISOString() };
+        const { clientId, systolic, diastolic, glucose, temperature, pulse, weight, notes, followUpNeeded, screenedBy } = req.body;
+        const createdAt = new Date().toISOString();
+        const screening = { clientId, systolic, diastolic, glucose, temperature, pulse, weight, notes, followUpNeeded, screenedBy, createdAt };
         const ref = await db.collection('screenings').add(screening);
         res.json({ id: ref.id, ...screening });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -7892,7 +7910,9 @@ app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
 // --- INCIDENT PERSISTENCE ---
 app.post('/api/incidents/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const incident = { ...req.body, createdAt: new Date().toISOString() };
+        const { type, description, severity, location, eventId, reportedBy } = req.body;
+        const createdAt = new Date().toISOString();
+        const incident = { type, description, severity, location, eventId, reportedBy, createdAt };
         const ref = await db.collection('incidents').add(incident);
         res.json({ id: ref.id, ...incident });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -7901,7 +7921,9 @@ app.post('/api/incidents/create', verifyToken, async (req: Request, res: Respons
 // --- AUDIT LOG PERSISTENCE ---
 app.post('/api/audit-logs/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const log = { ...req.body, createdAt: new Date().toISOString() };
+        const { action, details, userId, eventId } = req.body;
+        const createdAt = new Date().toISOString();
+        const log = { action, details, userId, eventId, createdAt };
         const ref = await db.collection('audit_logs').add(log);
         res.json({ id: ref.id, ...log });
     } catch (e: any) { res.status(500).json({ error: e.message }); }

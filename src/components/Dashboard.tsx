@@ -24,7 +24,6 @@ import ImpactHub from './ImpactHub';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import AutomatedWorkflows from './AutomatedWorkflows';
 import FormBuilder from './FormBuilder';
-import ReferralsDashboard from './ReferralsDashboard';
 import ReferralManagement from './ReferralManagement';
 import ResourceDashboard from './ResourceDashboard';
 import CoordinatorView from './CoordinatorView';
@@ -195,7 +194,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const unreadDMs = useMemo(() => {
     return messages.filter(m => {
       if (m.senderId === displayUser.id || m.read || m.recipientId === 'general') return false;
-      if (dismissedNotifTs && m.createdAt && m.createdAt <= dismissedNotifTs) return false;
+      if (dismissedNotifTs && m.timestamp && m.timestamp <= dismissedNotifTs) return false;
       return true;
     }).length;
   }, [messages, displayUser.id, dismissedNotifTs]);
@@ -372,7 +371,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
       
       <div className={`absolute top-0 left-0 right-0 h-10 bg-zinc-900 text-white flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] z-[100] md:pl-[320px]`}>
-         HMC Volunteer Platform v4.1.0-PROD • <span className="text-amber-400 ml-2">Release Environment</span>
+         HMC Volunteer Platform v{APP_CONFIG.VERSION} • <span className="text-amber-400 ml-2">Release Environment</span>
       </div>
 
       {/* Mobile top header */}
@@ -519,8 +518,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          <div className="mt-auto space-y-4 pt-8 border-t border-zinc-100">
             <button onClick={() => setActiveTab('profile')} className="flex w-full items-center gap-4 p-3 hover:bg-white rounded-2xl transition-all hover:shadow-elevation-1 group">
                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center font-bold text-lg shadow-elevation-2 shrink-0 overflow-hidden">
-                 {displayUser.avatarUrl || (displayUser as any).profilePhoto ? (
-                   <img src={displayUser.avatarUrl || (displayUser as any).profilePhoto} className="w-full h-full object-cover" alt="" />
+                 {displayUser.avatarUrl || displayUser.profilePhoto ? (
+                   <img src={displayUser.avatarUrl || displayUser.profilePhoto} className="w-full h-full object-cover" alt="" />
                  ) : (
                    displayUser.name?.charAt(0)?.toUpperCase()
                  )}

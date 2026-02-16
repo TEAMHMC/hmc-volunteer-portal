@@ -10,7 +10,7 @@
 
 export const APP_CONFIG = {
   APP_NAME: "Health Matters Clinic",
-  VERSION: "4.0.0-PROD-HMC",
+  VERSION: "4.1.0",
   BRAND: {
     primary: "#233dff",
     secondary: "#ff6e40",

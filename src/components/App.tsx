@@ -57,7 +57,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
           }
         }
       } catch (error) {
-        console.log("No active session.");
+        // No active session — clear stale token
         localStorage.removeItem('authToken');
       } finally {
         setLoading(false);
