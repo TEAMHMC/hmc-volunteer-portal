@@ -252,58 +252,14 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    timestamp: new Date().toISOString(),
-    services: {
-      emailConfigured: !!EMAIL_SERVICE_URL,
-      smsConfigured: twilioClient !== null && !!TWILIO_PHONE_NUMBER,
-      aiConfigured: ai !== null,
-      aiKeySource: process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.GOOGLE_AI_API_KEY ? 'GOOGLE_AI_API_KEY' : process.env.API_KEY ? 'API_KEY' : 'none',
-      firebaseAuthConfigured: firebaseConfigured,
-      firebaseWebApiKey: !!FIREBASE_WEB_API_KEY,
-      firebaseWebApiKeySource: process.env.FIREBASE_WEB_API_KEY ? 'FIREBASE_WEB_API_KEY' : process.env.VITE_FIREBASE_API_KEY ? 'VITE_FIREBASE_API_KEY' : 'none',
-      firebaseWebApiKeyPreview: FIREBASE_WEB_API_KEY ? FIREBASE_WEB_API_KEY.substring(0, 8) + '...' : 'NOT SET'
-    }
+    version: '1.0.0',
+    uptime: process.uptime()
   });
 });
 
-// --- GEMINI TEST ENDPOINT (for debugging) ---
-app.get('/api/gemini/test', async (req: Request, res: Response) => {
-  if (!ai) {
-    return res.json({ success: false, error: 'AI not configured - no API key found' });
-  }
+// --- GEMINI TEST ENDPOINT — moved after middleware definitions, see below ---
 
-  // Try multiple model names to find one that works
-  const modelsToTry = [
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
-  ];
-
-  const results: any[] = [];
-
-  for (const modelName of modelsToTry) {
-    try {
-      const model = ai.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent('Say "works" and nothing else.');
-      const text = result.response.text();
-      results.push({ model: modelName, success: true, response: text.trim() });
-      break; // Stop after first success
-    } catch (error: any) {
-      results.push({ model: modelName, success: false, error: error.message });
-    }
-  }
-
-  const workingModel = results.find(r => r.success);
-  res.json({
-    workingModel: workingModel?.model || null,
-    apiKeyConfigured: !!GEMINI_API_KEY,
-    results
-  });
-});
-
-// --- ANALYTICS ENDPOINT ---
+// --- ANALYTICS ENDPOINT — moved after middleware definitions, see below ---
 app.post('/api/analytics/log', async (req: Request, res: Response) => {
   try {
     const { eventName, eventData } = req.body;
@@ -1718,6 +1674,22 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
+// --- GEMINI TEST ENDPOINT (admin-only, placed after verifyToken definition) ---
+app.get('/api/gemini/test', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  if (!ai) return res.json({ success: false, error: 'AI not configured' });
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  const results: any[] = [];
+  for (const modelName of modelsToTry) {
+    try {
+      const model = ai!.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent('Say "works" and nothing else.');
+      results.push({ model: modelName, success: true, response: result.response.text().trim() });
+      break;
+    } catch (error: any) { results.push({ model: modelName, success: false, error: error.message }); }
+  }
+  res.json({ workingModel: results.find(r => r.success)?.model || null, results });
+});
+
 const createSession = async (uid: string, res: Response) => {
     const userDoc = await db.collection('volunteers').doc(uid).get();
     const user = userDoc.data();
@@ -1950,18 +1922,35 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
           applicationId: finalUserId.substring(0, 12).toUpperCase(),
         });
 
-        // Notify admin team about new applicant
+        // Notify ALL admins about new applicant
+        for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
+          try {
+            await EmailService.send('admin_new_applicant', {
+              toEmail: adminEmail,
+              volunteerName: user.name || user.firstName || 'New Applicant',
+              volunteerEmail: user.email,
+              appliedRole: user.appliedRole || 'HMC Champion',
+              applicationId: finalUserId.substring(0, 12).toUpperCase(),
+            });
+            console.log(`[SIGNUP] Sent admin notification to ${maskEmail(adminEmail)} for new applicant: ${maskEmail(user.email)}`);
+          } catch (adminEmailErr) {
+            console.error(`[SIGNUP] Failed to send admin notification to ${maskEmail(adminEmail)}:`, adminEmailErr);
+          }
+        }
+
+        // Also create an in-app notification in Firestore as fallback
         try {
-          await EmailService.send('admin_new_applicant', {
-            toEmail: EMAIL_CONFIG.SUPPORT_EMAIL,
+          await db.collection('admin_notifications').add({
+            type: 'new_application',
             volunteerName: user.name || user.firstName || 'New Applicant',
             volunteerEmail: user.email,
+            volunteerId: finalUserId,
             appliedRole: user.appliedRole || 'HMC Champion',
-            applicationId: finalUserId.substring(0, 12).toUpperCase(),
+            status: 'unread',
+            createdAt: new Date().toISOString(),
           });
-          console.log(`[SIGNUP] Sent admin notification for new applicant: ${maskEmail(user.email)}`);
-        } catch (adminEmailErr) {
-          console.error('[SIGNUP] Failed to send admin notification:', adminEmailErr);
+        } catch (notifErr) {
+          console.error('[SIGNUP] Failed to create in-app notification:', notifErr);
         }
 
         // Process referral if provided
@@ -2269,6 +2258,33 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
                appliedRole: 'HMC Champion',
              });
 
+             // Notify ALL admins about new Google sign-up
+             for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
+               try {
+                 await EmailService.send('admin_new_applicant', {
+                   toEmail: adminEmail,
+                   volunteerName: googleUser.name || 'New Applicant',
+                   volunteerEmail: googleUser.email,
+                   appliedRole: 'HMC Champion',
+                   applicationId: userId.substring(0, 12).toUpperCase(),
+                 });
+               } catch (adminEmailErr) {
+                 console.error(`[GOOGLE-AUTH] Failed to send admin notification to ${maskEmail(adminEmail)}:`, adminEmailErr);
+               }
+             }
+             // In-app notification fallback
+             try {
+               await db.collection('admin_notifications').add({
+                 type: 'new_application',
+                 volunteerName: googleUser.name || 'New Applicant',
+                 volunteerEmail: googleUser.email,
+                 volunteerId: userId,
+                 appliedRole: 'HMC Champion',
+                 status: 'unread',
+                 createdAt: new Date().toISOString(),
+               });
+             } catch (notifErr) { console.error('[GOOGLE-AUTH] Failed to create in-app notification:', notifErr); }
+
              // Process referral if provided
              if (referralCode) {
                await GamificationService.convertReferral(referralCode, userId);
@@ -2424,7 +2440,7 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
 const aiRateLimit = rateLimit(10, 60000);
 app.use('/api/gemini', aiRateLimit);
 
-app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
+app.post('/api/gemini/analyze-resume', verifyToken, async (req: Request, res: Response) => {
     // Define available volunteer roles (excluding admin roles)
     const VOLUNTEER_ROLES = [
         'Core Volunteer',
@@ -2563,7 +2579,7 @@ Return ONLY valid JSON in this exact format:
     }
 });
 
-app.post('/api/gemini/generate-plan', async (req: Request, res: Response) => {
+app.post('/api/gemini/generate-plan', verifyToken, async (req: Request, res: Response) => {
     const { role, experience } = req.body;
 
     // Helper to create default training plan
@@ -2634,7 +2650,7 @@ Return ONLY valid JSON in this exact format:
     }
 });
 
-app.post('/api/gemini/generate-quiz', async (req: Request, res: Response) => {
+app.post('/api/gemini/generate-quiz', verifyToken, async (req: Request, res: Response) => {
     const { moduleTitle, role } = req.body;
 
     // Default quiz content
@@ -2691,7 +2707,7 @@ Return ONLY valid JSON in this format:
 // --- AI MODULE CONTENT GENERATION (for read_ack modules) ---
 const moduleContentCache = new Map<string, { content: string; sections: { heading: string; body: string }[] }>();
 
-app.post('/api/gemini/generate-module-content', async (req: Request, res: Response) => {
+app.post('/api/gemini/generate-module-content', verifyToken, async (req: Request, res: Response) => {
     const { moduleId, moduleTitle, moduleDesc, role } = req.body;
 
     if (!moduleTitle) {
@@ -2795,7 +2811,7 @@ IMPORTANT FORMATTING RULES:
     }
 });
 
-app.post('/api/gemini/validate-answer', async (req: Request, res: Response) => {
+app.post('/api/gemini/validate-answer', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ isCorrect: true });
         const { question, answer } = req.body;
@@ -2830,7 +2846,7 @@ Respond with JSON only: { "isCorrect": true } or { "isCorrect": false }`,
     }
 });
 
-app.post('/api/gemini/find-referral-match', async (req: Request, res: Response) => {
+app.post('/api/gemini/find-referral-match', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ recommendations: [] });
         const { clientNeed } = req.body;
@@ -2841,7 +2857,7 @@ app.post('/api/gemini/find-referral-match', async (req: Request, res: Response) 
     } catch(e) { res.status(500).json({error: "AI failed"}); }
 });
 
-app.post('/api/gemini/generate-supply-list', async (req: Request, res: Response) => {
+app.post('/api/gemini/generate-supply-list', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ supplyList: "- Water\n- Pens" });
         const { serviceNames, attendeeCount } = req.body;
@@ -2851,7 +2867,7 @@ app.post('/api/gemini/generate-supply-list', async (req: Request, res: Response)
     } catch(e) { res.status(500).json({error: "AI failed"}); }
 });
 
-app.post('/api/gemini/generate-summary', async (req: Request, res: Response) => {
+app.post('/api/gemini/generate-summary', verifyToken, async (req: Request, res: Response) => {
     if (!ai) return res.json({ summary: "Thank you for your service!" });
     try {
         const { volunteerName, totalHours } = req.body;
@@ -2861,7 +2877,7 @@ app.post('/api/gemini/generate-summary', async (req: Request, res: Response) => 
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
 });
 
-app.post('/api/gemini/draft-fundraising-email', async (req: Request, res: Response) => {
+app.post('/api/gemini/draft-fundraising-email', verifyToken, async (req: Request, res: Response) => {
     if (!ai) return res.json({ emailBody: "Please support HMC!" });
     try {
         const { volunteerName, volunteerRole } = req.body;
@@ -2871,7 +2887,7 @@ app.post('/api/gemini/draft-fundraising-email', async (req: Request, res: Respon
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
 });
 
-app.post('/api/gemini/draft-social-post', async (req: Request, res: Response) => {
+app.post('/api/gemini/draft-social-post', verifyToken, async (req: Request, res: Response) => {
     if (!ai) return res.json({ postText: "#HealthMatters" });
     try {
         const { topic, platform } = req.body;
@@ -2881,7 +2897,7 @@ app.post('/api/gemini/draft-social-post', async (req: Request, res: Response) =>
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
 });
 
-app.post('/api/gemini/summarize-feedback', async (req: Request, res: Response) => {
+app.post('/api/gemini/summarize-feedback', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ summary: "No feedback to summarize." });
         const { feedback } = req.body;
@@ -2891,7 +2907,7 @@ app.post('/api/gemini/summarize-feedback', async (req: Request, res: Response) =
     } catch(e) { res.status(500).json({ error: "AI failed" }); }
 });
 
-app.post('/api/gemini/generate-document', async (req: Request, res: Response) => {
+app.post('/api/gemini/generate-document', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { prompt, title } = req.body;
@@ -2915,7 +2931,7 @@ app.post('/api/gemini/generate-document', async (req: Request, res: Response) =>
     }
 });
 
-app.post('/api/gemini/improve-document', async (req: Request, res: Response) => {
+app.post('/api/gemini/improve-document', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { content, instructions } = req.body;
@@ -2942,7 +2958,7 @@ app.post('/api/gemini/improve-document', async (req: Request, res: Response) => 
     }
 });
 
-app.post('/api/gemini/draft-announcement', async (req: Request, res: Response) => {
+app.post('/api/gemini/draft-announcement', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
         const { topic, tenantId } = req.body;
@@ -5714,57 +5730,66 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
 
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
-      const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppDoc.id).get();
+      const time = opp.time || opp.startTime || 'your scheduled time';
+      const location = opp.serviceLocation || opp.location || 'the event location';
 
+      // Collect volunteer IDs from shift assignments AND rsvpedEventIds
+      const targetVolunteerIds = new Set<string>();
+
+      // Source 1: Shift-assigned volunteers
+      const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppDoc.id).get();
       for (const shiftDoc of shiftsSnap.docs) {
         const shift = shiftDoc.data();
-        const volunteerIds: string[] = shift.assignedVolunteerIds || [];
+        for (const vid of (shift.assignedVolunteerIds || [])) targetVolunteerIds.add(vid);
+      }
 
-        for (const volId of volunteerIds) {
-          try {
-            const volDoc = await db.collection('volunteers').doc(volId).get();
-            const vol = volDoc.data();
-            if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
+      // Source 2: RSVP'd volunteers (covers org calendar RSVPs and direct registrations)
+      const rsvpSnap = await db.collection('volunteers')
+        .where('rsvpedEventIds', 'array-contains', oppDoc.id)
+        .get();
+      for (const vDoc of rsvpSnap.docs) targetVolunteerIds.add(vDoc.id);
 
-            const phone = normalizePhone(vol.phone);
-            const time = opp.time || opp.startTime || 'your scheduled time';
-            const location = opp.serviceLocation || opp.location || 'the event location';
-            const msg = `HMC: Reminder — you're scheduled for ${opp.title} tomorrow at ${time}, ${location}.`;
+      for (const volId of targetVolunteerIds) {
+        try {
+          const volDoc = await db.collection('volunteers').doc(volId).get();
+          const vol = volDoc.data();
+          if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
 
-            if (phone) {
-              const smsResult = await sendSMS(volId, `+1${phone}`, msg);
-              if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
-              else if (smsResult.reason === 'opted_out' || smsResult.reason === 'not_configured') {
-                // Fallback to email
-                if (vol.email) {
-                  await EmailService.send('shift_reminder_24h', {
-                    toEmail: vol.email,
-                    volunteerName: vol.name || vol.firstName || 'Volunteer',
-                    eventName: opp.title,
-                    eventDate: tomorrowStr,
-                    eventTime: time,
-                    location: location,
-                    userId: volId,
-                  });
-                  result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
-                } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No email fallback' }); }
-              } else { result.failed++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'failed', timestamp: new Date().toISOString(), error: 'SMS send failed' }); }
-            } else if (vol.email) {
-              await EmailService.send('shift_reminder_24h', {
-                toEmail: vol.email,
-                volunteerName: vol.name || vol.firstName || 'Volunteer',
-                eventName: opp.title,
-                eventDate: tomorrowStr,
-                eventTime: time,
-                location: location,
-                userId: volId,
-              });
-              result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
-            } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
-          } catch (e) {
-            console.error(`[WORKFLOW] Shift reminder failed for volunteer ${volId}:`, e);
-            result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
-          }
+          const phone = normalizePhone(vol.phone);
+          const msg = `HMC: Reminder — you're scheduled for ${opp.title} tomorrow at ${time}, ${location}.`;
+
+          if (phone) {
+            const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+            if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
+            else if (smsResult.reason === 'opted_out' || smsResult.reason === 'not_configured') {
+              if (vol.email) {
+                await EmailService.send('shift_reminder_24h', {
+                  toEmail: vol.email,
+                  volunteerName: vol.name || vol.firstName || 'Volunteer',
+                  eventName: opp.title,
+                  eventDate: tomorrowStr,
+                  eventTime: time,
+                  location: location,
+                  userId: volId,
+                });
+                result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+              } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No email fallback' }); }
+            } else { result.failed++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'failed', timestamp: new Date().toISOString(), error: 'SMS send failed' }); }
+          } else if (vol.email) {
+            await EmailService.send('shift_reminder_24h', {
+              toEmail: vol.email,
+              volunteerName: vol.name || vol.firstName || 'Volunteer',
+              eventName: opp.title,
+              eventDate: tomorrowStr,
+              eventTime: time,
+              location: location,
+              userId: volId,
+            });
+            result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+          } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
+        } catch (e) {
+          console.error(`[WORKFLOW] Shift reminder failed for volunteer ${volId}:`, e);
+          result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
         }
       }
     }
@@ -5788,35 +5813,33 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
 
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
+
+      // Collect volunteer IDs from shift assignments AND rsvpedEventIds
+      const targetVolunteerIds = new Set<string>();
+
       const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppDoc.id).get();
-
       for (const shiftDoc of shiftsSnap.docs) {
-        const shift = shiftDoc.data();
-        const volunteerIds: string[] = shift.assignedVolunteerIds || [];
+        for (const vid of (shiftDoc.data().assignedVolunteerIds || [])) targetVolunteerIds.add(vid);
+      }
 
-        for (const volId of volunteerIds) {
-          try {
-            const volDoc = await db.collection('volunteers').doc(volId).get();
-            const vol = volDoc.data();
-            if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
+      const rsvpSnap = await db.collection('volunteers')
+        .where('rsvpedEventIds', 'array-contains', oppDoc.id)
+        .get();
+      for (const vDoc of rsvpSnap.docs) targetVolunteerIds.add(vDoc.id);
 
-            const phone = normalizePhone(vol.phone);
-            const msg = `HMC: Thank you for volunteering at ${opp.title} yesterday! Your service made a real difference.`;
+      for (const volId of targetVolunteerIds) {
+        try {
+          const volDoc = await db.collection('volunteers').doc(volId).get();
+          const vol = volDoc.data();
+          if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
 
-            if (phone) {
-              const smsResult = await sendSMS(volId, `+1${phone}`, msg);
-              if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
-              else if (vol.email) {
-                await EmailService.send('post_shift_thank_you', {
-                  toEmail: vol.email,
-                  volunteerName: vol.name || vol.firstName || 'Volunteer',
-                  eventName: opp.title,
-                  eventDate: yesterdayStr,
-                  userId: volId,
-                });
-                result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
-              } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No contact method' }); }
-            } else if (vol.email) {
+          const phone = normalizePhone(vol.phone);
+          const msg = `HMC: Thank you for volunteering at ${opp.title} yesterday! Your service made a real difference.`;
+
+          if (phone) {
+            const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+            if (smsResult.sent) { result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() }); }
+            else if (vol.email) {
               await EmailService.send('post_shift_thank_you', {
                 toEmail: vol.email,
                 volunteerName: vol.name || vol.firstName || 'Volunteer',
@@ -5825,11 +5848,20 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
                 userId: volId,
               });
               result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
-            } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
-          } catch (e) {
-            console.error(`[WORKFLOW] Thank you failed for volunteer ${volId}:`, e);
-            result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
-          }
+            } else { result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: 'No contact method' }); }
+          } else if (vol.email) {
+            await EmailService.send('post_shift_thank_you', {
+              toEmail: vol.email,
+              volunteerName: vol.name || vol.firstName || 'Volunteer',
+              eventName: opp.title,
+              eventDate: yesterdayStr,
+              userId: volId,
+            });
+            result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
+          } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
+        } catch (e) {
+          console.error(`[WORKFLOW] Thank you failed for volunteer ${volId}:`, e);
+          result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
         }
       }
     }
@@ -6084,20 +6116,31 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const todayStr = getPacificDate(0);
 
-    // Query all upcoming opportunities in the next 8 days
+    // Query all upcoming events from ALL collections in the next 8 days
     const eightDaysOut = getPacificDate(8);
-    const oppsSnap = await db.collection('opportunities')
-      .where('date', '>=', todayStr)
-      .where('date', '<=', eightDaysOut)
-      .get();
+    const [oppsSnap, orgCalSnap] = await Promise.all([
+      db.collection('opportunities')
+        .where('date', '>=', todayStr)
+        .where('date', '<=', eightDaysOut)
+        .get(),
+      db.collection('org_calendar_events')
+        .where('date', '>=', todayStr)
+        .where('date', '<=', eightDaysOut)
+        .get(),
+    ]);
 
-    if (oppsSnap.empty) {
+    // Normalize all events into a unified list with their IDs
+    const allEvents: { id: string; data: any; source: string }[] = [];
+    for (const doc of oppsSnap.docs) allEvents.push({ id: doc.id, data: doc.data(), source: 'opportunities' });
+    for (const doc of orgCalSnap.docs) allEvents.push({ id: doc.id, data: doc.data(), source: 'org_calendar_events' });
+
+    if (allEvents.length === 0) {
       console.log('[WORKFLOW] No upcoming events in next 8 days for reminder cadence');
       return result;
     }
 
-    for (const oppDoc of oppsSnap.docs) {
-      const opp = oppDoc.data();
+    for (const event of allEvents) {
+      const opp = event.data;
       const eventDate = opp.date; // YYYY-MM-DD
       const eventDateTime = new Date(eventDate + 'T' + (opp.time || opp.startTime || '09:00'));
       const hoursUntil = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -6114,9 +6157,9 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
 
       if (applicableStages.length === 0) continue;
 
-      // Find all volunteers registered for this event
+      // Find all volunteers registered for this event (by this event's ID)
       const volsSnap = await db.collection('volunteers')
-        .where('rsvpedEventIds', 'array-contains', oppDoc.id)
+        .where('rsvpedEventIds', 'array-contains', event.id)
         .get();
 
       const location = opp.serviceLocation || opp.location || 'the event location';
@@ -6128,7 +6171,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
         // Find the highest applicable stage not yet sent to this volunteer
         let stageToSend: { stage: number; template: string } | null = null;
         for (const s of applicableStages) {
-          if (!(await wasReminderSent(volDoc.id, oppDoc.id, s.stage))) {
+          if (!(await wasReminderSent(volDoc.id, event.id, s.stage))) {
             stageToSend = s;
             break;
           }
@@ -6159,9 +6202,9 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
             } else { result.skipped++; volDetails.push({ volunteerId: volDoc.id, status: 'skipped', timestamp: new Date().toISOString() }); }
           }
 
-          await logReminderSent(volDoc.id, oppDoc.id, stageToSend.stage);
+          await logReminderSent(volDoc.id, event.id, stageToSend.stage);
         } catch (e) {
-          console.error(`[WORKFLOW] Reminder stage ${stageToSend.stage} failed for vol ${volDoc.id} event ${oppDoc.id}:`, e);
+          console.error(`[WORKFLOW] Reminder stage ${stageToSend.stage} failed for vol ${volDoc.id} event ${event.id}:`, e);
           result.failed++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
         }
       }
