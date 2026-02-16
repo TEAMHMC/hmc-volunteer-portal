@@ -215,6 +215,21 @@ function broadcastSSE(targetUserId: string, data: object) {
   }
 }
 
+// Periodic SSE cleanup — prune destroyed/finished connections every 60s
+setInterval(() => {
+  let pruned = 0;
+  for (const [userId, clients] of sseClients) {
+    for (const client of clients) {
+      if (client.writableEnded || client.destroyed) {
+        clients.delete(client);
+        pruned++;
+      }
+    }
+    if (clients.size === 0) sseClients.delete(userId);
+  }
+  if (pruned > 0) console.log(`[SSE] Pruned ${pruned} stale connection(s). Active users: ${sseClients.size}`);
+}, 60000);
+
 // SECURITY: Configure helmet with CSP
 app.use(helmet({
   contentSecurityPolicy: {
@@ -2006,7 +2021,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
         await createSession(finalUserId, res);
     } catch (error) {
         console.error("Signup error:", error);
-        res.status(400).json({ error: (error as Error).message });
+        res.status(400).json({ error: 'Signup failed. Please try again.' });
     }
 });
 
@@ -3051,11 +3066,17 @@ app.post('/api/resources/create', verifyToken, requireAdmin, async (req: Request
 });
 
 // Bulk import resources from CSV
+const MAX_CSV_SIZE = 5 * 1024 * 1024; // 5MB max CSV payload
+const MAX_CSV_ROWS = 2000;
+
 app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const { csvData } = req.body;
+        if (!csvData || typeof csvData !== 'string') return res.status(400).json({ error: 'csvData is required' });
+        if (csvData.length > MAX_CSV_SIZE) return res.status(400).json({ error: `CSV too large (max ${MAX_CSV_SIZE / 1024 / 1024}MB)` });
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
         const lines = csvContent.split('\n').filter(line => line.trim());
+        if (lines.length > MAX_CSV_ROWS) return res.status(400).json({ error: `Too many rows (max ${MAX_CSV_ROWS})` });
         const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 
         const importedResources: any[] = [];
@@ -4463,8 +4484,11 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
             return res.status(403).json({ error: 'Only admins and event management roles can import events' });
         }
         const { csvData } = req.body;
+        if (!csvData || typeof csvData !== 'string') return res.status(400).json({ error: 'csvData is required' });
+        if (csvData.length > MAX_CSV_SIZE) return res.status(400).json({ error: `CSV too large (max ${MAX_CSV_SIZE / 1024 / 1024}MB)` });
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
         const lines = csvContent.split('\n').filter(line => line.trim());
+        if (lines.length > MAX_CSV_ROWS) return res.status(400).json({ error: `Too many rows (max ${MAX_CSV_ROWS})` });
         const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 
         const importedEvents: any[] = [];
@@ -5304,9 +5328,12 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
     try {
         console.log(`[ADMIN] Bulk import initiated by ${(req as any).user?.profile?.email}`);
         const { csvData } = req.body;
+        if (!csvData || typeof csvData !== 'string') return res.status(400).json({ error: 'csvData is required' });
+        if (csvData.length > MAX_CSV_SIZE) return res.status(400).json({ error: `CSV too large (max ${MAX_CSV_SIZE / 1024 / 1024}MB)` });
         // Decode base64 CSV data
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
         const lines = csvContent.split('\n').filter(line => line.trim());
+        if (lines.length > MAX_CSV_ROWS) return res.status(400).json({ error: `Too many rows (max ${MAX_CSV_ROWS})` });
         const headers = lines[0].split(',').map(h => h.trim());
 
         const newVolunteers: any[] = [];
@@ -6647,7 +6674,7 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
     res.json({ success: true, workflowId, result });
   } catch (error: any) {
     console.error(`[WORKFLOW] Manual trigger failed:`, error);
-    res.status(500).json({ error: error.message || 'Workflow execution failed' });
+    res.status(500).json({ error: 'Workflow execution failed' });
   }
 });
 

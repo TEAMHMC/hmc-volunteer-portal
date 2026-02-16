@@ -1,6 +1,6 @@
 {
   "name": "hmc-volunteer-portal-v4",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Health Matters Clinic Volunteer Portal - Full Stack",
   "main": "dist/server/index.js",
   "scripts": {
