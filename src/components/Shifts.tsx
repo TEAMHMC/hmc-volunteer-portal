@@ -1520,6 +1520,21 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                     <Calendar size={14} className="text-brand shrink-0" />
                                     {dateLabel}
                                   </div>
+                                  <div className="flex justify-between items-start mb-4">
+                                    {(() => {
+                                      const rawUrgency = (opp.urgency || 'medium').toLowerCase().replace(/_/g, ' ');
+                                      const urgencyLabel = rawUrgency === 'save the date' ? 'Upcoming' : rawUrgency === 'high' ? 'High' : rawUrgency === 'low' ? 'Low' : 'Medium';
+                                      const isHigh = urgencyLabel === 'High';
+                                      return (
+                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${isHigh ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-zinc-50 text-zinc-400 border-zinc-100'}`}>
+                                          {urgencyLabel}
+                                        </span>
+                                      );
+                                    })()}
+                                    <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${slotsLeft === 0 ? 'bg-rose-50 text-rose-500 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                      {slotsLeft === 0 ? 'Full' : `${slotsLeft} ${slotsLeft === 1 ? 'Spot' : 'Spots'} Left`}
+                                    </div>
+                                  </div>
                                   <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
                                   <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                   <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wide mb-4">
@@ -1701,8 +1716,12 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                         </div>
                                       </div>
                                     )}
-                                    <div className="p-8 flex-1">
-                                      <div className="flex justify-between items-start mb-6">
+                                    <div className="p-6 md:p-8 flex-1">
+                                      <div className="flex items-center gap-2 text-sm font-bold text-zinc-700 mb-4">
+                                        <Calendar size={14} className="text-brand shrink-0" />
+                                        {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                      </div>
+                                      <div className="flex justify-between items-start mb-4">
                                         {(() => {
                                           const rawUrgency = (opp.urgency || 'medium').toLowerCase().replace(/_/g, ' ');
                                           const urgencyLabel = rawUrgency === 'save the date' ? 'Upcoming' : rawUrgency === 'high' ? 'High' : rawUrgency === 'low' ? 'Low' : 'Medium';
@@ -1719,17 +1738,16 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       </div>
 
                                       <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
-                                      <h3 className="text-2xl font-black text-zinc-900 tracking-tight leading-tight mb-3 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                      <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                       <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wide mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>
-                                      <p className="text-sm text-zinc-500 font-bold leading-relaxed h-16 overflow-hidden">{opp.description ? (opp.description.length > 120 ? opp.description.substring(0, 120) + '...' : opp.description) : ''}</p>
+                                      <p className="text-sm text-zinc-500 font-bold leading-relaxed line-clamp-2">{opp.description ? (opp.description.length > 100 ? opp.description.substring(0, 100) + '...' : opp.description) : ''}</p>
                                     </div>
 
-                                    <div className="bg-zinc-50/70 p-6 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
+                                    <div className="bg-zinc-50/70 p-4 md:p-6 rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
                                        <div className="flex items-center justify-between gap-4">
                                           <div className="min-w-0">
-                                            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-[0.2em] mb-2">Time</p>
                                             <p className="text-sm font-bold text-zinc-900 flex items-center gap-2">
                                               <Clock size={14} className="text-brand shrink-0" />
                                               {opp.time && opp.time !== 'TBD' ? opp.time : `${new Date(shift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(shift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
@@ -1748,7 +1766,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               <button
                                                 onClick={() => handleToggleRegistration(shift.id)}
                                                 disabled={registeringShiftIds.has(shift.id) || (slotsLeft === 0 && !isRegistered)}
-                                                className={`px-6 py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-zinc-900 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
+                                                className={`px-6 py-3 rounded-full font-bold text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isPendingTraining ? 'bg-amber-500 text-white border border-amber-500' : isRegistered ? 'bg-white text-zinc-900 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
                                               >
                                                 {registeringShiftIds.has(shift.id) ? <><Loader2 size={14} className="animate-spin" /> Working...</> : isRegistered ? <><span className={`w-2 h-2 rounded-full ${isPendingTraining ? 'bg-white' : 'bg-zinc-950'}`} /> Unregister</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                               </button>
@@ -1763,14 +1781,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               const isRegistered = user.assignedShiftIds?.includes(shift.id);
 
                                               return isWithinWeek ? (
-                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-4 rounded-full font-bold text-base bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                                    <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                                 </button>
                                               ) : (
                                                 <button
                                                   onClick={() => handleToggleRegistration(shift.id)}
                                                   disabled={slotsLeft === 0 && !isRegistered}
-                                                  className={`px-6 py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-zinc-900 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
+                                                  className={`px-6 py-3 rounded-full font-bold text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-zinc-900 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
                                                 >
                                                   {isRegistered ? <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
                                                 </button>

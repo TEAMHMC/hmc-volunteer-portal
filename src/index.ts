@@ -4294,6 +4294,9 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
         if (!opportunity.locationCoordinates) {
             opportunity.locationCoordinates = { lat: 34.0522 + (Math.random() - 0.5) * 0.1, lng: -118.2437 + (Math.random() - 0.5) * 0.1 };
         }
+        if (!opportunity.rsvps) {
+            opportunity.rsvps = [];
+        }
         const docRef = await db.collection('opportunities').add(opportunity);
         const opportunityId = docRef.id;
 
@@ -8321,6 +8324,7 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
       location: o.serviceLocation || undefined,
       sourceCollection: 'opportunities',
       source: 'event-finder',
+      rsvps: o.rsvps || [],
     };
   }).filter(e => e.date);
 
@@ -8394,7 +8398,7 @@ app.post('/api/org-calendar', verifyToken, async (req: Request, res: Response) =
       createdBy: user.uid, createdAt: new Date().toISOString(), source: 'org-calendar',
     };
     const ref = await db.collection('org_calendar_events').add(eventData);
-    res.json({ id: ref.id, ...eventData });
+    res.json({ id: ref.id, sourceCollection: 'org_calendar_events', ...eventData });
   } catch (e: any) {
     console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
