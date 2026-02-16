@@ -35,6 +35,7 @@ import IntakeReferralsView from './IntakeReferralsView';
 import BoardGovernance from './BoardGovernance';
 import LiveChatDashboard from './LiveChatDashboard';
 import OrgCalendar from './OrgCalendar';
+import EventBuilder from './EventBuilder';
 
 interface DashboardProps {
   user: Volunteer;
@@ -82,6 +83,66 @@ const getFormattedDate = () => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+const EventManagementView: React.FC<{
+  user: Volunteer;
+  opportunities: Opportunity[];
+  setOpportunities: React.Dispatch<React.SetStateAction<Opportunity[]>>;
+  shifts: Shift[];
+  setShifts: React.Dispatch<React.SetStateAction<Shift[]>>;
+  allVolunteers: Volunteer[];
+  setAllVolunteers: React.Dispatch<React.SetStateAction<Volunteer[]>>;
+  onUpdateUser: (u: Volunteer) => void;
+}> = ({ user, opportunities, setOpportunities, shifts, setShifts, allVolunteers, setAllVolunteers, onUpdateUser }) => {
+  const [subTab, setSubTab] = useState<'builder' | 'manage'>('builder');
+
+  const handleSaveEvent = async (eventData: Omit<Opportunity, 'id'>) => {
+    const res = await apiService.post('/api/opportunities', eventData);
+    setOpportunities(prev => [...prev, { ...eventData, id: res.id || `opp-${Date.now()}` } as Opportunity]);
+  };
+
+  const subTabs = [
+    { id: 'builder', label: 'Event Builder' },
+    { id: 'manage', label: 'Manage Events' },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
+        <div className="max-w-xl">
+          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Event Management</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Create, edit, and manage community health events.</p>
+        </div>
+        <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-elevation-1 shrink-0">
+          {subTabs.map(tab => (
+            <button key={tab.id} onClick={() => setSubTab(tab.id as any)} className={`px-4 md:px-10 py-3 md:py-4 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${subTab === tab.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {subTab === 'builder' && (
+        <EventBuilder inline onSave={handleSaveEvent} />
+      )}
+
+      {subTab === 'manage' && (
+        <ShiftsComponent
+          manageOnly
+          userMode="coordinator"
+          user={user}
+          shifts={shifts}
+          setShifts={setShifts}
+          onUpdate={onUpdateUser}
+          opportunities={opportunities}
+          setOpportunities={setOpportunities}
+          allVolunteers={allVolunteers}
+          setAllVolunteers={setAllVolunteers}
+        />
+      )}
+    </div>
+  );
 };
 
 const Dashboard: React.FC<DashboardProps> = (props) => {
@@ -298,14 +359,14 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
       roleItems.push({ id: 'intake', label: 'Client Portal', icon: Send });
     }
-    if (canAccessOperationalTools && ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead'].includes(displayUser.role)) {
-      roleItems.push({ id: 'event-management', label: 'Event Management', icon: Calendar });
-    }
     if (GOVERNANCE_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'governance', label: 'Governance', icon: Briefcase });
     }
     if (canAccessOperationalTools && COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
+    }
+    if (canAccessOperationalTools && EVENT_MANAGEMENT_ROLES.includes(displayUser.role)) {
+      roleItems.push({ id: 'event-management', label: 'Event Management', icon: CalendarDays });
     }
     if (!displayUser.isAdmin && ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(displayUser.role)) {
       roleItems.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
@@ -319,6 +380,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       groups.push({
         label: 'ADMIN',
         items: [
+          { id: 'event-management', label: 'Event Management', icon: CalendarDays },
           { id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount },
           { id: 'referrals', label: 'Referrals', icon: Send },
           { id: 'resources', label: 'Resources', icon: Database },
@@ -350,7 +412,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   }, [navItems, activeTab]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100/50 flex flex-col md:flex-row font-['Inter'] relative">
+    <div className="min-h-screen bg-[#FDFEFE] flex flex-col md:flex-row font-['Inter'] relative">
       {showTour && <SystemTour onComplete={handleTourComplete} onClose={handleTourComplete} />}
       
       {showBetaBanner && (
@@ -463,7 +525,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-brand' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
-            <span className="text-[10px] font-bold truncate">{tab.label}</span>
+            <span className="text-[10px] font-black truncate">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -476,7 +538,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
             </div>
             <div className="flex-1">
               <span className="text-sm font-black text-zinc-900 tracking-tight block">HMC Portal</span>
-              <span className="text-[10px] font-bold text-zinc-400">Volunteer Hub</span>
+              <span className="text-[10px] font-black text-zinc-400">Volunteer Hub</span>
             </div>
             <div className="relative">
               <button
@@ -526,7 +588,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                </div>
                <div className="min-w-0 flex-1 text-left">
                   <p className="text-sm font-bold text-zinc-900 truncate group-hover:text-brand transition-colors">{displayUser.name}</p>
-                  <p className="text-[10px] font-bold text-zinc-400 truncate">{displayUser.role}</p>
+                  <p className="text-[10px] font-black text-zinc-400 truncate">{displayUser.role}</p>
                </div>
                <ChevronRight size={16} className="text-zinc-300 group-hover:text-brand transition-colors" />
             </button>
@@ -534,7 +596,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
               <div className="relative">
                 <select
                   onChange={(e) => setViewingAsRole(e.target.value)}
-                  className="w-full bg-brand text-white border-0 rounded-full font-bold text-[10px] uppercase tracking-wide pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-elevation-2"
+                  className="w-full bg-brand text-white border-0 rounded-full font-black text-[10px] uppercase tracking-[0.2em] pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-elevation-2"
                 >
                   <option value="">View as Role...</option>
                   {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
@@ -707,10 +769,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">
+                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">
                       {getGreeting(displayUser.name)}.
                     </h1>
-                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed max-w-lg">
+                    <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed max-w-lg">
                       {isOnboarding
                         ? "Complete your orientation to unlock missions."
                         : "Ready to continue making a difference?"}
@@ -722,12 +784,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50/80 backdrop-blur-sm border border-zinc-200/50 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-clock text-zinc-400 text-xs" />
                       <span className="text-sm font-bold text-zinc-900">{displayUser.hoursContributed}</span>
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase">hrs</span>
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">hrs</span>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-brand/5 backdrop-blur-sm border border-brand/15 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-bolt text-brand text-xs" />
                       <span className="text-sm font-bold text-brand">{(computeLevel(displayUser.points).currentXP).toLocaleString()}</span>
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase">xp</span>
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">xp</span>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-shield text-emerald-500 text-xs" />
@@ -747,7 +809,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   const lvl = computeLevel(displayUser.points);
                   if (lvl.isMaxLevel) {
                     return (
-                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-card-lg p-4 text-center">
+                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-[40px] p-8 text-center">
                         <p className="text-sm font-bold text-amber-700">
                           <i className="fa-solid fa-crown text-amber-500 mr-2" />
                           Max Level Reached — {lvl.title}
@@ -756,7 +818,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     );
                   }
                   return (
-                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-card-lg p-4 shadow-elevation-1">
+                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-[40px] p-8 shadow-sm hover:shadow-2xl transition-shadow">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-zinc-600">
                           <i className="fa-solid fa-star text-brand mr-1.5" />
@@ -785,7 +847,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
-         {activeTab === 'event-management' && canAccessOperationalTools && (displayUser.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <ShiftsComponent userMode="coordinator" user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
+
          {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
@@ -821,6 +883,18 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'livechat' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
            <LiveChatDashboard currentUser={displayUser} />
          )}
+         {activeTab === 'event-management' && (displayUser.isAdmin || (canAccessOperationalTools && EVENT_MANAGEMENT_ROLES.includes(displayUser.role))) && (
+           <EventManagementView
+             user={displayUser}
+             opportunities={opportunities}
+             setOpportunities={setOpportunities}
+             shifts={shifts}
+             setShifts={setShifts}
+             allVolunteers={allVolunteers}
+             setAllVolunteers={setAllVolunteers}
+             onUpdateUser={handleUpdateUser}
+           />
+         )}
 
       </main>
     </div>
@@ -833,7 +907,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-card-lg p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-[40px] p-8 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
                 <div>
@@ -860,7 +934,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 
         <div className="space-y-6">
           {/* Profile Status Card - Glass effect */}
-          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-card-lg border border-zinc-100 shadow-elevation-2 space-y-6">
+          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-xl font-bold text-zinc-900">Profile Status</h4>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
@@ -876,7 +950,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
                         <div className="min-w-0 flex-1">
                             <p className={`text-sm font-bold transition-colors ${step.status === 'completed' || step.status === 'verified' ? 'text-zinc-900' : 'text-zinc-400'}`}>{step.label}</p>
                         </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-400'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-full ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-400'}`}>
                           {step.status}
                         </span>
                       </div>
@@ -943,7 +1017,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Training Required Card - Modern gradient */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-card-lg p-8 md:p-8 border border-amber-200/50 shadow-elevation-2 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[40px] p-8 md:p-8 border border-amber-200/50 shadow-sm hover:shadow-2xl transition-shadow relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="relative z-10">
               <div className="flex items-start gap-5 mb-6">
@@ -1005,7 +1079,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           </div>
         </div>
         <div className="space-y-10">
-          <div className="bg-zinc-50 p-6 rounded-card-lg border border-zinc-100 shadow-elevation-1 space-y-6">
+          <div className="bg-zinc-50 p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
             <h4 className="text-xl font-bold text-zinc-900">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
@@ -1075,7 +1149,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   };
 
   return (
-    <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
+    <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
       {/* Tab Header */}
       <div className="flex border-b border-zinc-100">
         <button
@@ -1094,10 +1168,10 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
         >
           <i className="fa-solid fa-scroll mr-2" />Daily Quests
           {!allComplete && activeCardTab !== 'quests' && (
-            <span className="ml-2 text-[10px] font-bold text-zinc-400">{completedQuestsCount}/{quests.length}</span>
+            <span className="ml-2 text-[10px] font-black text-zinc-400">{completedQuestsCount}/{quests.length}</span>
           )}
           {allComplete && activeCardTab !== 'quests' && (
-            <span className="ml-2 text-[10px] font-bold text-emerald-500"><i className="fa-solid fa-check" /></span>
+            <span className="ml-2 text-[10px] font-black text-emerald-500"><i className="fa-solid fa-check" /></span>
           )}
           {activeCardTab === 'quests' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
         </button>
@@ -1158,7 +1232,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                       {quest.completed ? <i className="fa-solid fa-check text-xs" /> : <i className={`${quest.icon} text-xs`} />}
                     </div>
                     <span className={`text-sm font-bold flex-1 ${quest.completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>{quest.title}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${quest.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>+{quest.xpReward} XP</span>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${quest.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>+{quest.xpReward} XP</span>
                   </div>
                 ))}
               </div>
@@ -1251,15 +1325,15 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
       {/* Hero Card */}
       {heroItem ? (
-        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-card-lg p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-[40px] p-8 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 bg-white/15 rounded-full text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-3 py-1 bg-white/15 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
                 {heroItem.type === 'shift' ? 'Next Mission' : 'Next Event'}
               </span>
               {heroItem.category && (
-                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold">{heroItem.category}</span>
+                <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black">{heroItem.category}</span>
               )}
             </div>
             <h4 className="text-2xl font-black tracking-tight mb-4">{heroItem.title}</h4>
@@ -1284,7 +1358,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           </div>
         </div>
       ) : (
-        <div className="bg-zinc-50 rounded-card-lg p-8 border border-zinc-100 text-center">
+        <div className="bg-zinc-50 rounded-[40px] p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
           <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming missions.</p>
           <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 mx-auto">
@@ -1307,13 +1381,13 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
                 {/* Date pill */}
                 <div className="shrink-0 w-16 pt-1">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
                     {item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </p>
                 </div>
 
                 {/* Event card */}
-                <div className="flex-1 bg-white border border-zinc-100 rounded-3xl p-4 shadow-elevation-1 hover:shadow-elevation-1 transition-shadow">
+                <div className="flex-1 bg-white border border-zinc-100 rounded-3xl p-4 shadow-sm hover:shadow-2xl transition-shadow">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>
@@ -1333,7 +1407,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                       </div>
                     </div>
                     {item.category && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold text-white bg-brand shrink-0">{item.category}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-white bg-brand shrink-0">{item.category}</span>
                     )}
                   </div>
                 </div>

@@ -75,8 +75,8 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Referral Management</h1>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Client intake, referrals, and service coordination</p>
+          <h1 className="text-5xl font-black tracking-tighter uppercase italic">Referral Management</h1>
+          <p className="text-lg font-medium text-zinc-500 mt-2">Client intake, referrals, and service coordination</p>
         </div>
         <button
           onClick={fetchAllData}
@@ -112,7 +112,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
+      <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
         {activeTab === 'dashboard' && (
           <DashboardView
             clients={clients}
@@ -429,7 +429,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
   const isOverdue = referral.status === 'Pending' && now > deadline;
 
   return (
-    <div className={`p-6 rounded-card-lg border shadow-elevation-1 ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
+    <div className={`p-8 rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -701,7 +701,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">First Name *</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">First Name *</label>
               <input
                 required
                 type="text"
@@ -711,7 +711,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Last Name *</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Last Name *</label>
               <input
                 required
                 type="text"
@@ -723,7 +723,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Phone *</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Phone *</label>
               <input
                 required
                 type="tel"
@@ -733,7 +733,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Email</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Email</label>
               <input
                 type="email"
                 value={formData.email || ''}
@@ -744,7 +744,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date of Birth</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
               <input
                 type="date"
                 value={formData.dob || ''}
@@ -753,7 +753,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Primary Language</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Primary Language</label>
               <select
                 value={formData.primaryLanguage || 'English'}
                 onChange={e => setFormData({ ...formData, primaryLanguage: e.target.value })}
@@ -771,7 +771,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">SPA (Service Planning Area)</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">SPA (Service Planning Area)</label>
             <select
               value={formData.spa || ''}
               onChange={e => setFormData({ ...formData, spa: e.target.value })}
@@ -824,7 +824,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Agency Name *</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Agency Name *</label>
             <input
               required
               type="text"
@@ -834,7 +834,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Type</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Type</label>
             <select
               value={formData.type || 'Other'}
               onChange={e => setFormData({ ...formData, type: e.target.value as any })}
@@ -851,7 +851,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Contact Name</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Name</label>
               <input
                 type="text"
                 value={formData.contactName || ''}
@@ -860,7 +860,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Contact Email</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Email</label>
               <input
                 type="email"
                 value={formData.contactEmail || ''}
@@ -870,7 +870,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Contact Phone</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Phone</label>
             <input
               type="tel"
               value={formData.contactPhone || ''}

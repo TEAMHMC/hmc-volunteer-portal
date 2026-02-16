@@ -27,13 +27,13 @@ const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) 
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Impact Hub</h2>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
+          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Impact Hub</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0">
-          <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
-          <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'leaderboard' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
-          <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'rewards' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
+          <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
+          <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'leaderboard' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
+          <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'rewards' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
         </div>
       </div>
       
@@ -78,7 +78,7 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
 
   return (
     <div className={`grid grid-cols-1 ${isComms ? 'lg:grid-cols-2' : ''} gap-10`}>
-      <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
+      <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <h3 className="text-xl font-bold text-zinc-900 uppercase">AI-Powered Fundraising</h3>
         <p className="text-sm text-zinc-600 mt-2">Use our Matching Assistant to draft a personalized fundraising email to send to your network.</p>
         <div className="mt-10 pt-10 border-t border-zinc-100">
@@ -94,7 +94,7 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
       </div>
       
       {isComms && (
-         <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
+         <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
             <h3 className="text-xl font-bold text-zinc-900 uppercase">Social Media Generator</h3>
             <p className="text-sm text-zinc-600 mt-2">Draft engaging social media posts for HMC's channels.</p>
             <div className="mt-10 pt-10 border-t border-zinc-100">
@@ -120,11 +120,11 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
 };
 
 const LeaderboardPanel: React.FC<{user: Volunteer, userRank: number, leaderboardData: Volunteer[]}> = ({user, userRank, leaderboardData}) => (
-  <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
+  <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
     <h3 className="text-xl font-bold text-zinc-900 uppercase mb-8">Community Leaderboard</h3>
     <div className="space-y-4">
       {leaderboardData.map((v, index) => (
-        <div key={v.id} className={`p-6 rounded-3xl border flex items-center justify-between transition-all ${user.id === v.id ? 'bg-brand text-white border-brand/20 shadow-elevation-2' : 'bg-zinc-50 border-zinc-100 shadow-elevation-1'}`}>
+        <div key={v.id} className={`p-6 rounded-3xl border flex items-center justify-between transition-all ${user.id === v.id ? 'bg-brand text-white border-brand/20 shadow-sm hover:shadow-2xl transition-shadow' : 'bg-zinc-50 border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
           <div className="flex items-center gap-6">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-black ${user.id === v.id ? 'bg-white/20' : 'bg-zinc-200 text-zinc-500'}`}>
               {index + 1}
@@ -177,7 +177,7 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
   return (
    <div className="space-y-10">
       {/* Social Media Points Section */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-8 rounded-card-lg text-white border border-zinc-100 shadow-elevation-1">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-8 rounded-[40px] text-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <h3 className="text-xl font-bold uppercase mb-2">Follow Us & Earn XP</h3>
         <p className="text-zinc-400 mb-8">Support HMC on social media and earn bonus points for each platform you follow!</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -216,20 +216,20 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
       </div>
 
       {/* Rewards Store */}
-      <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
+      <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <h3 className="text-xl font-bold text-zinc-900 uppercase mb-2">Rewards Store</h3>
         <p className="text-sm text-zinc-600 mb-8">Redeem your Impact XP for exclusive HMC merchandise.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {APP_CONFIG.GAMIFICATION.rewards.map(reward => {
             const canAfford = user.points >= reward.points;
             return (
-              <div key={reward.id} className={`p-8 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
+              <div key={reward.id} className={`p-8 rounded-3xl border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
                 <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-2 ${canAfford ? 'bg-brand/5 border-brand/10 text-brand' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
                    <AwardIcon size={48} />
                 </div>
                 <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>
                 <p className="text-2xl font-black text-zinc-900 my-4">{reward.points} <span className="text-xs font-bold text-zinc-300">XP</span></p>
-                <button disabled={!canAfford} className="w-full py-3 bg-brand border border-black text-white rounded-full font-bold text-[10px] uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">
+                <button disabled={!canAfford} className="w-full py-3 bg-brand border border-black text-white rounded-full font-black text-[10px] uppercase tracking-[0.2em] disabled:opacity-30 disabled:cursor-not-allowed">
                   Redeem
                 </button>
               </div>

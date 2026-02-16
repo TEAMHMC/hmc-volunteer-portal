@@ -200,8 +200,8 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       <div className="space-y-8 animate-in fade-in duration-500 pb-20">
         <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
           <div className="max-w-xl">
-            <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Volunteer Directory</h2>
-            <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
+            <h2 className="text-5xl font-black tracking-tighter uppercase italic">Volunteer Directory</h2>
+            <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
               Authorized personnel management for <span className="text-zinc-900 font-black">{volunteers.filter(v => v.applicationStatus !== 'pendingReview').length}</span> verified community contributors.
             </p>
           </div>
@@ -252,7 +252,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
 
         {showCompliance && (
-          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
+          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
             <div className="p-6 border-b border-zinc-100">
               <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2"><ClipboardCheck size={20} className="text-brand" /> Compliance Overview</h3>
               <p className="text-sm text-zinc-600 mt-1">Form completion status across all volunteers</p>
@@ -332,7 +332,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
             <div 
               key={v.id} 
               onClick={() => { setSelectedVolunteer(v); setShowFullApplication(false); }}
-              className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 hover:shadow-elevation-2 hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+              className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
             >
                <div className="flex justify-between items-start mb-8 relative z-10">
                   <div className="flex items-center gap-5">
@@ -399,7 +399,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           
           <button
             onClick={() => setShowAddVolunteerModal(true)}
-            className="bg-white border-2 border-dashed border-zinc-100 rounded-card-lg p-8 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
+            className="bg-white border-2 border-dashed border-zinc-100 rounded-[40px] p-8 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
              <div className="w-20 h-20 rounded-full bg-zinc-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-elevation-2 transition-all">
                 <UserPlus size={32} strokeWidth={1.5} />
              </div>
@@ -539,35 +539,35 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><User size={10} /> Personal Information</p>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Legal First Name</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Legal First Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.legalFirstName || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Legal Last Name</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Legal Last Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.legalLastName || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Middle Name</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Middle Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.middleName || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Preferred First Name</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Preferred First Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.preferredFirstName || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Preferred Last Name</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Preferred Last Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.preferredLastName || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Date of Birth</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Date of Birth</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.dob ? new Date(selectedVolunteer.dob).toLocaleDateString() : '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Gender</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Gender</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.gender || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">T-Shirt Size</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">T-Shirt Size</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.tshirtSize || '---'}</p>
                               </div>
                             </div>
@@ -578,15 +578,15 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Mail size={10} /> Contact Information</p>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Email</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Email</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.email || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Phone</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Phone</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.phone || '---'}</p>
                               </div>
                               <div className="col-span-2">
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Address</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Address</p>
                                 <p className="text-sm font-bold text-zinc-800">
                                   {selectedVolunteer.address ? `${selectedVolunteer.address}, ${selectedVolunteer.city || ''}, ${selectedVolunteer.state || ''} ${selectedVolunteer.zipCode || ''}` : '---'}
                                 </p>
@@ -599,19 +599,19 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><AlertCircle size={10} /> Emergency Contact</p>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Name</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.name || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Relationship</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Relationship</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.relationship || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Phone</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Phone</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.cellPhone || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Email</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Email</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.email || '---'}</p>
                               </div>
                             </div>
@@ -622,77 +622,77 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={10} /> Background</p>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Languages Spoken</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Languages Spoken</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.languagesSpoken?.length ? selectedVolunteer.languagesSpoken.join(', ') : '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Student</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Student</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isStudent ? 'Yes' : 'No'}</p>
                               </div>
                               {selectedVolunteer.isStudent && (
                                 <>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">School</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">School</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.school || '---'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Degree/Program</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Degree/Program</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.degree || '---'}</p>
                                   </div>
                                 </>
                               )}
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Employed</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Employed</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isEmployed ? 'Yes' : 'No'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">How Heard About HMC</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">How Heard About HMC</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.howDidYouHear || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Returning Volunteer</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Returning Volunteer</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isReturningVolunteer ? 'Yes' : 'No'}</p>
                               </div>
                               {selectedVolunteer.isReturningVolunteer && (
                                 <>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Previous Period</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Previous Period</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.previousVolunteerPeriod || '---'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Previous Role</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Previous Role</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.previousVolunteerRole || '---'}</p>
                                   </div>
                                 </>
                               )}
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Veteran Status</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Veteran Status</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.demographics?.veteranStatus === true ? 'Yes' : selectedVolunteer.demographics?.veteranStatus === false ? 'No' : 'Not disclosed'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Disability Status</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Disability Status</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.demographics?.disabilityStatus === true ? 'Yes' : selectedVolunteer.demographics?.disabilityStatus === false ? 'No' : 'Not disclosed'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Volunteer</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Group Volunteer</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.isGroupVolunteer ? 'Yes' : 'No'}</p>
                               </div>
                               {selectedVolunteer.isGroupVolunteer && (
                                 <>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Type</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Group Type</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupType || '---'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Name</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Group Name</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupName || '---'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Size</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Group Size</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupSize || '---'}</p>
                                   </div>
                                   <div>
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Group Contact Email</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Group Contact Email</p>
                                     <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.groupContactEmail || '---'}</p>
                                   </div>
                                 </>
@@ -705,15 +705,15 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Clock size={10} /> Availability</p>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Time Commitment</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Time Commitment</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.timeCommitment || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Service Preference</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Service Preference</p>
                                 <p className="text-sm font-bold text-zinc-800 capitalize">{selectedVolunteer.availability?.servicePreference || '---'}</p>
                               </div>
                               <div className="col-span-2">
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Available Days</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Available Days</p>
                                 <div className="flex flex-wrap gap-1.5 mt-1">
                                   {selectedVolunteer.availability?.days?.length ? selectedVolunteer.availability.days.map(day => (
                                     <span key={day} className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-bold">{day}</span>
@@ -721,24 +721,24 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                                 </div>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Preferred Time</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Preferred Time</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.preferredTime || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Start Date</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Start Date</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.startDate ? new Date(selectedVolunteer.availability.startDate).toLocaleDateString() : '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Timezone</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Timezone</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.timezone || '---'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Hours Per Week</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Hours Per Week</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability?.hoursPerWeek || '---'}</p>
                               </div>
                               {selectedVolunteer.availability?.notes && (
                                 <div className="col-span-2">
-                                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Scheduling Limitations</p>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Scheduling Limitations</p>
                                   <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.availability.notes}</p>
                                 </div>
                               )}
@@ -752,7 +752,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                               <div className="space-y-3">
                                 {selectedVolunteer.roleAssessment.map((qa, i) => (
                                   <div key={i} className="p-3 bg-white rounded-3xl border border-zinc-100">
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{qa.question}</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{qa.question}</p>
                                     <p className="text-sm text-zinc-600 mt-1 italic">"{qa.answer}"</p>
                                   </div>
                                 ))}
@@ -846,7 +846,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Task Title *</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Task Title *</label>
                 <input
                   type="text"
                   required
@@ -857,7 +857,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Description</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Description</label>
                 <textarea
                   value={taskDescription}
                   onChange={e => setTaskDescription(e.target.value)}
@@ -866,7 +866,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Due Date (Optional)</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Due Date (Optional)</label>
                 <input
                   type="date"
                   value={taskDueDate}
@@ -969,7 +969,7 @@ const ApplicationReviewPanel: React.FC<{volunteer: Volunteer, onReview: (action:
                 <div className="space-y-3">
                     {volunteer.roleAssessment.map((qa, i) => (
                         <div key={i} className="bg-white/60 p-4 rounded-3xl">
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{qa.question}</p>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{qa.question}</p>
                             <p className="text-sm text-zinc-600 italic mt-1">"{qa.answer}"</p>
                         </div>
                     ))}
@@ -1165,7 +1165,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">First Name *</label>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">First Name *</label>
                             <input
                                 type="text"
                                 value={formData.legalFirstName}
@@ -1175,7 +1175,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Last Name *</label>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Last Name *</label>
                             <input
                                 type="text"
                                 value={formData.legalLastName}
@@ -1186,7 +1186,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Email *</label>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Email *</label>
                         <input
                             type="email"
                             value={formData.email}
@@ -1196,7 +1196,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Phone</label>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Phone</label>
                         <input
                             type="tel"
                             value={formData.phone}
@@ -1206,7 +1206,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Role</label>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Role</label>
                         <select
                             value={formData.role}
                             onChange={e => setFormData({...formData, role: e.target.value})}
@@ -1219,7 +1219,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                     </div>
 
                     <div className="pt-2 border-t border-zinc-100">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Temporary Password</label>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Temporary Password</label>
                         <input
                             type="password"
                             value={formData.password}

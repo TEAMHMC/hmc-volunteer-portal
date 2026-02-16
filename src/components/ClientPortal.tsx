@@ -50,8 +50,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
 
       <main className="max-w-[1200px] mx-auto w-full px-6 py-16">
         <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Community Events</h1>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
+          <h1 className="text-5xl font-black tracking-tighter uppercase italic">Community Events</h1>
+          <p className="text-lg font-medium text-zinc-500 mt-2">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
         </div>
 
         {loading ? (
@@ -59,7 +59,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
         ) : (
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {opportunities.map(opp => (
-              <div key={opp.id} className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 flex flex-col">
+              <div key={opp.id} className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow flex flex-col">
                 <h3 className="text-xl font-bold text-zinc-900">{opp.title}</h3>
                 <p className="text-sm text-zinc-400 font-bold mt-1">{opp.category}</p>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 my-4">

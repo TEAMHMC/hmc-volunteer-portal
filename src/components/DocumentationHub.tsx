@@ -111,8 +111,8 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
         <div className="space-y-8 animate-in fade-in duration-700 pb-20">
             <header className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Documentation Hub</h1>
-                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Your central source for policies, procedures, and organizational knowledge.</p>
+                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">Documentation Hub</h1>
+                    <p className="text-lg font-medium text-zinc-500 mt-2">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
                 {canEdit && (
                     <button
@@ -139,7 +139,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {Object.keys(articlesByCategory).map((category) => {
                     const categoryArticles = articlesByCategory[category];
                     return (
-                    <div key={category} className="bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
+                    <div key={category} className="bg-white border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
                         <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-6">
                             <h2 className="text-xl font-bold text-zinc-900">{category}</h2>
                             <ChevronDown className={`transition-transform ${expandedCategories.includes(category) ? 'rotate-180' : ''}`} />
@@ -328,7 +328,7 @@ const ArticleEditorModal: React.FC<{
                 <div className="flex flex-1 overflow-hidden">
                     <main className={`p-8 space-y-6 overflow-y-auto ${showAiPanel ? 'w-2/3' : 'w-full'}`}>
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Title</label>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Title</label>
                             <input
                                 type="text"
                                 value={title}
@@ -339,7 +339,7 @@ const ArticleEditorModal: React.FC<{
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Category</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Category</label>
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
@@ -351,7 +351,7 @@ const ArticleEditorModal: React.FC<{
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Or Create New Category</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Or Create New Category</label>
                                 <input
                                     type="text"
                                     value={newCategory}
@@ -363,7 +363,7 @@ const ArticleEditorModal: React.FC<{
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Content (Markdown supported)</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block">Content (Markdown supported)</label>
                                 {content && (
                                     <button
                                         onClick={handleAiImprove}
@@ -383,7 +383,7 @@ const ArticleEditorModal: React.FC<{
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Tags (comma-separated)</label>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Tags (comma-separated)</label>
                             <input
                                 type="text"
                                 value={tags}
@@ -393,7 +393,7 @@ const ArticleEditorModal: React.FC<{
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                                 <Eye size={12} className="inline mr-1" />
                                 Visible To (leave empty for all roles)
                             </label>
@@ -432,7 +432,7 @@ const ArticleEditorModal: React.FC<{
 
                             <div className="space-y-4">
                                 <div className="bg-white p-4 rounded-3xl border border-purple-100 shadow-elevation-1">
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Generate Content</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Generate Content</p>
                                     <p className="text-xs text-zinc-400 mb-3">Describe what you want to write about and AI will help draft the content.</p>
                                     <textarea
                                         value={aiPrompt}
@@ -451,7 +451,7 @@ const ArticleEditorModal: React.FC<{
                                 </div>
 
                                 <div className="bg-white p-4 rounded-3xl border border-zinc-100 shadow-elevation-1">
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Quick Prompts</p>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Quick Prompts</p>
                                     <div className="space-y-2">
                                         {[
                                             'Write a standard operating procedure for...',

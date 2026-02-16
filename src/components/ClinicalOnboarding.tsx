@@ -206,11 +206,11 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
+          <h2 className="text-5xl font-black tracking-tighter uppercase italic flex items-center gap-3">
             <Stethoscope className="text-brand" />
             Clinical Onboarding
           </h2>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Complete all required documents and credentials to begin clinical work</p>
+          <p className="text-lg font-medium text-zinc-500 mt-2">Complete all required documents and credentials to begin clinical work</p>
         </div>
         {isComplete && (
           <div className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full font-bold">
@@ -221,7 +221,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white rounded-card-lg p-6 border border-zinc-100 shadow-elevation-1">
+      <div className="bg-white rounded-[40px] p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-bold text-zinc-400">Overall Progress</span>
           <span className="text-sm font-black text-brand">{progressPercent}%</span>
@@ -272,7 +272,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
             return (
               <div
                 key={doc.id}
-                className={`bg-white rounded-card-lg p-6 border shadow-elevation-1 transition-all ${
+                className={`bg-white rounded-[40px] p-8 border shadow-sm hover:shadow-2xl transition-shadow ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' : 'border-zinc-100 hover:border-brand/20'
                 }`}
               >
@@ -319,7 +319,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
       {/* Credentials Section */}
       {activeSection === 'credentials' && (
-        <div className="bg-white rounded-card-lg p-8 border border-zinc-100 shadow-elevation-1 space-y-6">
+        <div className="bg-white rounded-[40px] p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
             <Shield className="text-brand" size={24} />
             <div>
@@ -331,7 +331,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* NPI Number */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 NPI Number <span className="text-rose-500">*</span>
               </label>
               <input
@@ -346,7 +346,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* License Number */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 License Number <span className="text-rose-500">*</span>
               </label>
               <input
@@ -360,7 +360,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* License State */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 License State <span className="text-rose-500">*</span>
               </label>
               <input
@@ -375,7 +375,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* License Expiration */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 License Expiration <span className="text-rose-500">*</span>
               </label>
               <input
@@ -388,7 +388,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* License Upload */}
             <div className="md:col-span-2">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 Upload License Copy
               </label>
               <div className="flex items-center gap-4">
@@ -417,7 +417,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* DEA Number (Optional) */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 DEA Number (if applicable)
               </label>
               <input
@@ -431,7 +431,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* DEA Expiration */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 DEA Expiration
               </label>
               <input
@@ -444,7 +444,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* Board Certification */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 Board Certification
               </label>
               <input
@@ -458,7 +458,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* Board Cert Expiration */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                 Board Cert Expiration
               </label>
               <input
@@ -645,7 +645,7 @@ const DocumentViewerModal: React.FC<{
           <>
             {/* Signature Pad */}
             <div className="flex-1 p-6 flex flex-col items-center justify-center bg-zinc-50">
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-4">Draw Your Signature Below</p>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Draw Your Signature Below</p>
               <div className="bg-white rounded-3xl border-2 border-zinc-100 p-2 shadow-inner">
                 <canvas
                   ref={canvasRef}

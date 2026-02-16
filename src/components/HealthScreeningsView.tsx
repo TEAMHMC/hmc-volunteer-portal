@@ -69,7 +69,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
 
     return (
         <div className="animate-in fade-in duration-500">
-            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Health Screenings</h2>
+            <h2 className="text-5xl font-black tracking-tighter uppercase italic mb-8">Health Screenings</h2>
 
             {view === 'search' && (
                 <div className="max-w-xl mx-auto space-y-6">
@@ -87,7 +87,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                     </form>
 
                     {searchResult === 'not_found' && (
-                        <div className="text-center p-8 bg-amber-50 rounded-card-lg border border-amber-200 shadow-elevation-1">
+                        <div className="text-center p-8 bg-amber-50 rounded-[40px] border border-amber-200 shadow-sm hover:shadow-2xl transition-shadow">
                             <p className="font-bold text-amber-800">Client not found.</p>
                             <p className="text-sm text-amber-700">Please verify the information or register them as a new client.</p>
                             <button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button>
@@ -95,7 +95,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                     )}
 
                     {searchResult && searchResult !== 'not_found' && (
-                        <div className="p-8 bg-emerald-50 rounded-card-lg border border-emerald-200 shadow-elevation-1">
+                        <div className="p-8 bg-emerald-50 rounded-[40px] border border-emerald-200 shadow-sm hover:shadow-2xl transition-shadow">
                             <p className="text-xs font-bold text-emerald-800">Client Found</p>
                             <p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
                             <p className="text-sm text-emerald-800">DOB: {searchResult.dob}</p>
@@ -243,13 +243,13 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
     };
 
     const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
-    const labelClass = "text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2";
+    const labelClass = "text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2";
 
     return (
         <div className="space-y-6 animate-in fade-in max-w-2xl mx-auto">
-            <div className="p-6 bg-zinc-50 rounded-card-lg border border-zinc-100 shadow-elevation-1 flex items-center justify-between">
+            <div className="p-8 bg-zinc-50 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow flex items-center justify-between">
                 <div>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Screening for:</p>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Screening for:</p>
                     <p className="text-lg font-bold text-zinc-900">{client.firstName} {client.lastName}</p>
                     <p className="text-sm text-zinc-600">DOB: {client.dob}</p>
                 </div>
@@ -258,7 +258,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
             <form onSubmit={handleSave} className="space-y-6">
                 {/* Blood Pressure */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
+                <div className="p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-[40px] space-y-4">
                     <div className="flex items-center justify-between">
                         <h4 className="text-xl font-bold text-zinc-900">Blood Pressure</h4>
                         {bpFlag && (
@@ -286,7 +286,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 </div>
 
                 {/* Glucose */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
+                <div className="p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-[40px] space-y-4">
                     <div className="flex items-center justify-between">
                         <h4 className="text-xl font-bold text-zinc-900">Blood Glucose</h4>
                         {glucoseFlag && (
@@ -308,7 +308,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 </div>
 
                 {/* Other Vitals */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
+                <div className="p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-[40px] space-y-4">
                     <h4 className="text-xl font-bold text-zinc-900">Additional Vitals</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -331,7 +331,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 </div>
 
                 {/* Notes & Follow-up */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
+                <div className="p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-[40px] space-y-4">
                     <h4 className="text-xl font-bold text-zinc-900">Notes & Follow-up</h4>
                     <div>
                         <label className={labelClass}>Clinical Notes</label>

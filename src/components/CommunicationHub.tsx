@@ -114,7 +114,7 @@ const BroadcastsView: React.FC<{
 
       <div className="flex-1 p-8 space-y-8 overflow-y-auto no-scrollbar bg-zinc-50/20">
         {showNewAnnouncer && (
-          <div className="p-8 bg-white rounded-card-lg border-2 border-dashed border-brand/20 animate-in slide-in-from-top-4 duration-500 shadow-elevation-1 mb-12 relative">
+          <div className="p-8 bg-white rounded-[40px] border-2 border-dashed border-brand/20 animate-in slide-in-from-top-4 duration-500 shadow-sm hover:shadow-2xl transition-shadow mb-12 relative">
             <button onClick={handleCloseComposer} className="absolute top-6 right-6 p-2 rounded-full bg-zinc-100 text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors">
               <X size={20} />
             </button>
@@ -126,14 +126,14 @@ const BroadcastsView: React.FC<{
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Role</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Role</label>
                   <select value={filters.role} onChange={e => handleFilterChange('role', e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
                     <option>All</option>
                     {APP_CONFIG.HMC_ROLES.map(r => <option key={r.id}>{r.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Status</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Status</label>
                   <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
                     <option>All</option>
                     <option>active</option>
@@ -142,7 +142,7 @@ const BroadcastsView: React.FC<{
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Skill</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Skill</label>
                   <input value={filters.skill} onChange={e => handleFilterChange('skill', e.target.value)} placeholder="Filter by skill..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
                 </div>
               </div>
@@ -183,9 +183,9 @@ const BroadcastsView: React.FC<{
         )}
 
         {visibleAnnouncements.map(a => (
-          <div key={a.id} className="p-8 bg-white rounded-card-lg border border-zinc-100 transition-all shadow-elevation-1 group relative">
+          <div key={a.id} className="p-8 bg-white rounded-[40px] border border-zinc-100 transition-all shadow-sm hover:shadow-2xl transition-shadow group relative">
             <div className="flex items-start justify-between mb-4">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{new Date(a.date).toLocaleDateString()}</span>
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{new Date(a.date).toLocaleDateString()}</span>
               {a.targetRoles && a.targetRoles.length > 0 && canBroadcast && (
                 <span className="text-[9px] font-bold text-brand bg-brand/10 px-3 py-1 rounded-full uppercase tracking-wider">
                   {a.targetRoles.join(', ')}
@@ -426,7 +426,7 @@ const BriefingView: React.FC<{
 
         {/* Channels Section */}
         <div className="px-4 py-3">
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2 mb-2">Channels</p>
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2 mb-2">Channels</p>
           <button
             onClick={() => setActiveChannel('general')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
@@ -441,7 +441,7 @@ const BriefingView: React.FC<{
         {/* Direct Messages Section */}
         <div className="px-4 py-3 flex-1 overflow-y-auto">
           <div className="flex items-center justify-between px-2 mb-2">
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Direct Messages</p>
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Direct Messages</p>
             <button
               onClick={() => setShowNewConversation(!showNewConversation)}
               className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center hover:bg-brand hover:text-white transition-colors"
@@ -865,7 +865,7 @@ const TicketDetailModal: React.FC<{
               {/* Main Content */}
               <div className="lg:col-span-2 space-y-6">
                 <div>
-                  <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Description</h4>
+                  <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Description</h4>
                   <div className="bg-zinc-50 p-4 rounded-3xl border border-zinc-100">
                     <p className="text-sm text-zinc-600 whitespace-pre-wrap">{ticket.description}</p>
                   </div>
@@ -888,7 +888,7 @@ const TicketDetailModal: React.FC<{
                 {/* Status Control */}
                 {canModify && (
                   <div className="bg-white p-4 rounded-3xl border border-zinc-100">
-                    <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Status</h4>
+                    <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Status</h4>
                     <div className="space-y-2">
                       {(['open', 'in_progress', 'closed'] as const).map(status => (
                         <button
@@ -915,7 +915,7 @@ const TicketDetailModal: React.FC<{
                 {/* Priority Control */}
                 {canModify && (
                   <div className="bg-white p-4 rounded-3xl border border-zinc-100">
-                    <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Priority</h4>
+                    <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Priority</h4>
                     <select
                       value={ticket.priority}
                       onChange={(e) => handlePriorityChange(e.target.value as any)}
@@ -930,7 +930,7 @@ const TicketDetailModal: React.FC<{
 
                 {/* Assignment */}
                 <div className="bg-white p-4 rounded-3xl border border-zinc-100">
-                  <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Assigned To</h4>
+                  <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Assigned To</h4>
                   <select
                     value={ticket.assignedTo || ''}
                     onChange={(e) => handleAssign(e.target.value || null)}
@@ -1296,7 +1296,7 @@ const OpsSupportView: React.FC<{
         draggable={canModify}
         onDragStart={(e) => handleDragStart(e, ticket.id)}
         onClick={() => setSelectedTicket(ticket)}
-        className={`p-4 bg-white rounded-3xl border shadow-elevation-1 hover:shadow-elevation-2 transition-all cursor-pointer ${
+        className={`p-4 bg-white rounded-3xl border shadow-sm hover:shadow-2xl transition-shadow cursor-pointer ${
           isAssignedToMe ? 'border-brand border-2' : 'border-zinc-100'
         }`}
       >
@@ -1316,7 +1316,7 @@ const OpsSupportView: React.FC<{
         <h4 className="font-bold text-zinc-900 text-sm leading-tight mb-2">{ticket.subject}</h4>
         <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{ticket.description}</p>
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-zinc-400">
+          <span className="text-[10px] font-black text-zinc-400">
             {new Date(ticket.createdAt).toLocaleDateString()}
           </span>
           <div className="flex items-center gap-2">
@@ -1365,7 +1365,7 @@ const OpsSupportView: React.FC<{
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'open')}
-            className={`w-80 rounded-card-lg border-2 ${getColumnColor('open')} flex flex-col`}
+            className={`w-80 rounded-[40px] border-2 ${getColumnColor('open')} flex flex-col`}
           >
             <div className="p-4 border-b border-amber-200/50">
               <div className="flex items-center gap-3">
@@ -1390,7 +1390,7 @@ const OpsSupportView: React.FC<{
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'in_progress')}
-            className={`w-80 rounded-card-lg border-2 ${getColumnColor('in_progress')} flex flex-col`}
+            className={`w-80 rounded-[40px] border-2 ${getColumnColor('in_progress')} flex flex-col`}
           >
             <div className="p-4 border-b border-brand/20">
               <div className="flex items-center gap-3">
@@ -1415,7 +1415,7 @@ const OpsSupportView: React.FC<{
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'closed')}
-            className={`w-80 rounded-card-lg border-2 ${getColumnColor('closed')} flex flex-col`}
+            className={`w-80 rounded-[40px] border-2 ${getColumnColor('closed')} flex flex-col`}
           >
             <div className="p-4 border-b border-emerald-200/50">
               <div className="flex items-center gap-3">
@@ -1443,7 +1443,7 @@ const OpsSupportView: React.FC<{
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
           <div className="bg-white rounded-modal max-w-xl w-full shadow-elevation-3 max-h-[90vh] overflow-y-auto border border-zinc-100">
             <div className="p-8 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-2xl font-black text-zinc-900 tracking-tight">New Support Ticket</h2>
+              <h2 className="text-2xl font-black tracking-tight">New Support Ticket</h2>
               <button onClick={() => setShowNewTicket(false)} className="p-2 hover:bg-zinc-100 rounded-full">
                 <X size={20} className="text-zinc-400" />
               </button>
@@ -1452,7 +1452,7 @@ const OpsSupportView: React.FC<{
               {/* Category & Priority Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                     <Tag size={12} className="inline mr-1" /> Category
                   </label>
                   <select
@@ -1466,7 +1466,7 @@ const OpsSupportView: React.FC<{
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                     <Flag size={12} className="inline mr-1" /> Priority
                   </label>
                   <select
@@ -1482,7 +1482,7 @@ const OpsSupportView: React.FC<{
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
                   <Eye size={12} className="inline mr-1" /> Visibility
                 </label>
                 <select
@@ -1497,7 +1497,7 @@ const OpsSupportView: React.FC<{
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Subject</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Subject</label>
                 <input
                   type="text"
                   value={newTicketSubject}
@@ -1507,7 +1507,7 @@ const OpsSupportView: React.FC<{
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Description</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Description</label>
                 <textarea
                   value={newTicketBody}
                   onChange={e => setNewTicketBody(e.target.value)}
@@ -1577,12 +1577,12 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div>
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Communication Hub</h2>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
+          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Communication Hub</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
             Your command center for team communication and support.
           </p>
         </div>
-        <div className="flex bg-white border border-zinc-100 p-1.5 rounded-2xl shadow-elevation-1">
+        <div className="flex bg-white border border-zinc-100 p-1.5 rounded-2xl shadow-sm hover:shadow-2xl transition-shadow">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -1598,7 +1598,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 bg-white border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden flex flex-col">
         {activeTab === 'broadcasts' && (
           <BroadcastsView
             user={user}

@@ -35,7 +35,7 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
         <StatCard title="Upcoming Missions" value={upcomingShifts} icon={Calendar} accent="amber" />
       </div>
 
-      <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
+      <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Team Roster</h3>
         <div className="space-y-4">
           {myTeam.length > 0 ? myTeam.map(v => (
@@ -70,7 +70,7 @@ const statCardThemes = {
 const StatCard: React.FC<{ title: string, value: number, icon: React.ElementType, accent?: 'brand' | 'emerald' | 'amber' }> = ({ title, value, icon: Icon, accent = 'brand' }) => {
   const t = statCardThemes[accent];
   return (
-    <div className={`bg-gradient-to-br from-white to-zinc-50/50 p-8 rounded-card-lg border border-zinc-100 border-l-4 ${t.border} shadow-elevation-1 hover:shadow-elevation-2 transition-all`}>
+    <div className={`bg-gradient-to-br from-white to-zinc-50/50 p-8 rounded-[40px] border border-zinc-100 border-l-4 ${t.border} shadow-sm hover:shadow-2xl transition-shadow`}>
       <div className={`flex items-center justify-center w-12 h-12 ${t.iconBg} rounded-2xl ${t.iconText} mb-4`}>
         <Icon size={24} />
       </div>

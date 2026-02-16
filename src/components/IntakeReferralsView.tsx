@@ -79,7 +79,7 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
 
     return (
         <div className="animate-in fade-in duration-500">
-            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase mb-8">Client Intake & Referrals</h2>
+            <h2 className="text-5xl font-black tracking-tighter uppercase italic mb-8">Client Intake & Referrals</h2>
 
             {view === 'search' && (
                 <div className="max-w-xl mx-auto space-y-6">
@@ -178,7 +178,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
     if (selectedResource) {
         return (
             <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Confirm Referral to:</p>
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Confirm Referral to:</p>
                 <h3 className="text-2xl font-black text-zinc-900 tracking-tight">{selectedResource["Resource Name"]}</h3>
                 <p className="text-sm italic text-zinc-600">Based on need: "{clientNeed}"</p>
                 <div className="flex gap-4 pt-4 border-t"><button type="button" onClick={() => setSelectedResource(null)} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Back</button><button onClick={handleCreateReferral} disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">{isSaving && <Loader2 className="animate-spin" size={16}/>} Confirm & Create Referral</button></div>
@@ -188,9 +188,9 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
 
     return (
         <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in">
-            <div className="p-4 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center"><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Creating Referral for: <span className="text-zinc-900">{client.firstName} {client.lastName}</span></p></div>
+            <div className="p-4 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center"><p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Creating Referral for: <span className="text-zinc-900">{client.firstName} {client.lastName}</span></p></div>
             <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Describe the client's need:</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Describe the client's need:</label>
                 <textarea value={clientNeed} onChange={e => setClientNeed(e.target.value)} placeholder="e.g., 'Spanish-speaking client needs a food bank in SPA 4' or 'unhoused veteran seeking mental health support'" className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
             </div>
             <button onClick={handleFindMatch} disabled={isLoading || !clientNeed} className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2"><Sparkles size={16}/> {isLoading ? 'Searching...' : 'Find Best Match'}</button>
@@ -205,7 +205,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
                          const resource = resources.find(r => r["Resource Name"] === rec["Resource Name"]);
                          if (!resource) return null;
                          return (
-                             <div key={i} className="p-6 bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1">
+                             <div key={i} className="p-8 bg-white border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
                                  <h4 className="font-black text-lg text-zinc-900">{rec["Resource Name"]}</h4>
                                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{resource["Service Category"]}</p>
                                  <p className="text-sm italic text-zinc-600 my-4">"{rec.reasoning}"</p>

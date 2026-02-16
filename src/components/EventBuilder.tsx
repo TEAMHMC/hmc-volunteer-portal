@@ -44,11 +44,12 @@ interface EquipmentItem {
 }
 
 interface EventBuilderProps {
-    onClose: () => void;
+    onClose?: () => void;
     onSave: (newEvent: Omit<Opportunity, 'id'>) => Promise<void>;
+    inline?: boolean;
 }
 
-const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
+const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) => {
     const [eventData, setEventData] = useState<Partial<Omit<Opportunity, 'id'>> & { startTime?: string; endTime?: string }>({
         title: '',
         description: '',
@@ -194,7 +195,11 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
             };
             await onSave(finalEventData as Omit<Opportunity, 'id'>);
             setIsSuccess(true);
-            setTimeout(onClose, 2000);
+            if (inline) {
+                setTimeout(resetForm, 2000);
+            } else {
+                setTimeout(() => onClose?.(), 2000);
+            }
         } catch (error) {
             setSaveError(`Failed to save event: ${(error as Error).message}`);
         } finally {
@@ -266,6 +271,39 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
         setChecklist(prev => prev.filter((_, i) => i !== idx));
     };
 
+    const resetForm = () => {
+        setEventData({
+            title: '',
+            description: '',
+            category: 'Health Fair',
+            serviceLocation: '',
+            date: new Date().toISOString().split('T')[0],
+            startTime: '09:00',
+            endTime: '14:00',
+            serviceOfferingIds: [],
+            staffingQuotas: [],
+            isPublic: true,
+            isPublicFacing: true,
+            estimatedAttendees: 100,
+            supplyList: '',
+            flyerBase64: '',
+        });
+        setSelectedEquipment([]);
+        setChecklist([
+            { text: 'Venue confirmed and reserved', done: false },
+            { text: 'Flyer designed and approved', done: false },
+            { text: 'All volunteer slots filled', done: false },
+            { text: 'Clinical lead assigned (if screenings)', done: false },
+            { text: 'Supplies packed and loaded', done: false },
+            { text: 'Emergency contact list printed', done: false },
+        ]);
+        setIsSuccess(false);
+        setSaveError('');
+        setFlyerPreview(null);
+        setFlyerFileName('');
+        setManualSupplyItem('');
+    };
+
     // Group equipment by category
     const equipmentByCategory = useMemo(() => {
         const groups: Record<string, typeof EQUIPMENT_CATALOG> = {};
@@ -278,7 +316,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
     if(isSuccess) {
         return (
-             <div className="fixed inset-0 bg-white z-[1000] flex items-center justify-center animate-in fade-in">
+             <div className={inline ? "py-32 flex items-center justify-center animate-in fade-in" : "fixed inset-0 bg-white z-[1000] flex items-center justify-center animate-in fade-in"}>
                 <div className="text-center">
                     <CheckCircle size={64} className="mx-auto text-emerald-500" />
                     <h2 className="text-2xl font-black tracking-tight text-zinc-900 mt-4">Event Created!</h2>
@@ -289,12 +327,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
     }
 
     return (
-        <div className="fixed inset-0 bg-white z-[1000] flex flex-col animate-in fade-in">
+        <div className={inline ? "w-full flex flex-col animate-in fade-in" : "fixed inset-0 bg-white z-[1000] flex flex-col animate-in fade-in"}>
+            {!inline && (
             <header className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
-                <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Create New Event</h2>
+                <h2 className="text-5xl font-black tracking-tighter uppercase italic">Create New Event</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
             </header>
-            <main className="flex-1 p-8 md:p-8 overflow-y-auto space-y-10">
+            )}
+            <main className={inline ? "p-0 space-y-10" : "flex-1 p-8 md:p-8 overflow-y-auto space-y-10"}>
                 {/* Basic Details */}
                 <section>
                     <h3 className="text-xl font-bold text-zinc-900 mb-4">1. Event Details</h3>
@@ -303,38 +343,38 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                         <textarea placeholder="Description" value={eventData.description} onChange={e => setEventData({...eventData, description: e.target.value})} className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Event Type</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Event Type</label>
                                 <select value={eventData.category} onChange={e => setEventData({...eventData, category: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
                                     {EVENT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Location Name</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Location Name</label>
                                 <input type="text" placeholder="e.g., East LA Library" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                         </div>
                         <div>
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Full Address</label>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Full Address</label>
                             <input type="text" placeholder="e.g., 123 W. Manchester Blvd, Inglewood, CA 90301" value={(eventData as any).address || ''} onChange={e => setEventData({...eventData, address: e.target.value} as any)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date</label>
                                 <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Start Time</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Start Time</label>
                                 <input type="time" value={eventData.startTime || '09:00'} onChange={e => setEventData({...eventData, startTime: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">End Time</label>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">End Time</label>
                                 <input type="time" value={eventData.endTime || '14:00'} onChange={e => setEventData({...eventData, endTime: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                         </div>
 
                         {/* Event Flyer Upload */}
                         <div className="mt-4">
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Event Flyer</label>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Event Flyer</label>
                             <input
                                 ref={flyerInputRef}
                                 type="file"
@@ -444,7 +484,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     <div className="space-y-6">
                         {Object.entries(equipmentByCategory).map(([category, items]) => (
                             <div key={category}>
-                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">{category}</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">{category}</p>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                     {items.map(item => {
                                         const selected = selectedEquipment.find(e => e.equipmentId === item.id);
@@ -478,7 +518,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                     </div>
                     {selectedEquipment.length > 0 && (
                         <div className="mt-4 p-4 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">{selectedEquipment.length} items selected</p>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{selectedEquipment.length} items selected</p>
                             <div className="flex flex-wrap gap-2">
                                 {selectedEquipment.map(item => (
                                     <span key={item.equipmentId} className="px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold">

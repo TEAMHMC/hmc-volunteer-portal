@@ -75,15 +75,15 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Referral Dashboard</h1>
-                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Manage and track all client referrals and SLA compliance.</p>
+                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">Referral Dashboard</h1>
+                    <p className="text-lg font-medium text-zinc-500 mt-2">Manage and track all client referrals and SLA compliance.</p>
                 </div>
                 <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
                     <Plus size={16} /> New Referral
                 </button>
             </header>
 
-            <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
@@ -154,23 +154,23 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
                 <main className="p-8 space-y-6 overflow-y-auto">
                     {/* Client Info */}
                     <div className="grid grid-cols-2 gap-6">
-                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
-                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
                     </div>
                      {/* Status & Urgency */}
                      <div className="grid grid-cols-2 gap-6">
-                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
-                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
+                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
+                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
                      </div>
                       {/* Service Needed */}
-                     <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full p-4 h-20 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full p-4 h-20 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
                      
                      {/* AI Matching */}
                      <AIResourceMatcher serviceNeed={formData.serviceNeeded || ''} onSelect={(resource) => setFormData({...formData, referredTo: resource['Resource Name']})} />
                      
                      {/* Final Resource & Notes */}
-                     <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
-                     <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-4 h-24 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-4 h-24 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
 
                 </main>
                 <footer className="p-8 border-t border-zinc-100 flex justify-end">

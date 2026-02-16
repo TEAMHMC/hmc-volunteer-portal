@@ -414,7 +414,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
           </div>
           <h4 className={`text-base font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mt-1">
             {m.dur} MIN {m.isAIGenerated && '• AI-GENERATED'}
           </p>
           <p className={`text-xs mt-3 font-bold leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
@@ -551,7 +551,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     className="w-full p-4 border-2 border-zinc-100 focus:border-brand/30 bg-zinc-50 rounded-2xl text-lg outline-none transition-colors font-bold"
                     style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.5rem' }}
                   />
-                  <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider font-bold">
+                  <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-[0.2em] font-black">
                     Signed electronically on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                 </div>
@@ -643,13 +643,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* Header with progress */}
-      <div className="bg-white border border-zinc-100 p-8 md:p-8 rounded-card-lg shadow-elevation-1 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+      <div className="bg-white border border-zinc-100 p-8 md:p-8 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
           <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
              TRAINING ACADEMY
           </div>
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">HMC Training</h2>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
+          <h2 className="text-5xl font-black tracking-tighter uppercase italic">HMC Training</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
               <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
@@ -693,11 +693,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       </div>
 
       {/* ===== TIER 1: ORIENTATION ===== */}
-      <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
+      <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
         <button onClick={() => toggleTier('tier1')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
           <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center text-sm font-black shrink-0">1</div>
           <div className="flex-1 text-left">
-            <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
+            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
             <p className="text-zinc-400 text-sm font-bold mt-1">Two intro videos about HMC and volunteering</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -731,7 +731,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               <Calendar size={20} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight">
                 {governanceTier2Complete ? 'Field Access Training' : 'Want to Support In-Person Events?'}
               </h3>
               <p className="text-zinc-500 font-bold text-sm mt-1">
@@ -758,11 +758,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
       {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete) ===== */}
       {!isGovernanceRole && tier1Complete && (
-        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
+        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center text-sm font-black shrink-0">2</div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Required to unlock My Missions and event registration</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -795,7 +795,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               <Calendar size={20} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight">
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight">
                 {tier2FieldComplete ? 'Field Readiness Training' : 'Want to Attend In-Person Events?'}
               </h3>
               <p className="text-zinc-500 font-bold text-sm mt-1">
@@ -823,11 +823,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
+        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier3')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black shrink-0">3</div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Unlock specialized missions like Street Medicine, Clinical, etc.</p>
             </div>
             <ChevronDown size={20} className={`text-zinc-400 transition-transform shrink-0 ${expandedTiers['tier3'] ? 'rotate-180' : ''}`} />
@@ -871,13 +871,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== ROLE-SPECIFIC TRAINING ===== */}
       {roleModules.length > 0 && tier1Complete && (
-        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
+        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('role')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
               <ShieldCheck size={20} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Additional training specific to your assigned role</p>
             </div>
             <ChevronDown size={20} className={`text-zinc-400 transition-transform shrink-0 ${expandedTiers['role'] ? 'rotate-180' : ''}`} />
@@ -894,11 +894,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
+        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier4')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black shrink-0">4</div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Context videos — complete within 30 days to keep advanced mission access</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -924,7 +924,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center">
               <Stethoscope size={20} />
             </div>
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Clinical Onboarding</h3>
+            <h3 className="text-2xl font-black tracking-tight uppercase">Clinical Onboarding</h3>
             {user.clinicalOnboarding?.completed && (
               <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-bold uppercase tracking-wider">Complete</span>
             )}

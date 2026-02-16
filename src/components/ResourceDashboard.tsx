@@ -35,8 +35,8 @@ const ResourceDashboard: React.FC = () => {
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Resource Directory</h1>
-                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Manage community referral resources.</p>
+                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">Resource Directory</h1>
+                    <p className="text-lg font-medium text-zinc-500 mt-2">Manage community referral resources.</p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
@@ -48,14 +48,14 @@ const ResourceDashboard: React.FC = () => {
                 </div>
             </header>
 
-            <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
-                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Resource Name</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Service Category</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">SPA</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Contact</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Resource Name</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Service Category</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">SPA</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Contact</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -183,7 +183,7 @@ const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }
 
 const FormField: React.FC<React.PropsWithChildren<{ label: string, required?: boolean }>> = ({ label, required, children }) => (
     <div>
-        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">{label} {required && <span className="text-rose-500">*</span>}</label>
+        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">{label} {required && <span className="text-rose-500">*</span>}</label>
         {React.Children.map(children, child =>
             React.isValidElement(child)
                 ? React.cloneElement(child as React.ReactElement<any>, {

@@ -207,8 +207,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Organization Calendar</h2>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Your central hub for meetings, events & training</p>
+          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Organization Calendar</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Your central hub for meetings, events & training</p>
         </div>
         {canCreateEvents && (
           <button
@@ -223,7 +223,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       {/* Calendar Grid + Filter */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Monthly Calendar */}
-        <div className="lg:col-span-2 bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 p-6">
+        <div className="lg:col-span-2 bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow p-8">
           <div className="flex items-center justify-between mb-6">
             <button onClick={prevMonth} className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors">
               <ChevronLeft size={18} className="text-zinc-600" />
@@ -237,7 +237,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           {/* Day headers */}
           <div className="grid grid-cols-7 mb-2">
             {DAYS.map(d => (
-              <div key={d} className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-wider py-2">{d}</div>
+              <div key={d} className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] py-2">{d}</div>
             ))}
           </div>
 
@@ -286,7 +286,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
         {/* Filter Panel */}
         <div className="space-y-6">
-          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 p-6">
+          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow p-8">
             <div className="flex items-center gap-2 mb-4">
               <Filter size={16} className="text-zinc-400" />
               <h4 className="text-sm font-bold text-zinc-900">Filter by Type</h4>
@@ -313,7 +313,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 p-6">
+          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow p-8">
             <h4 className="text-sm font-bold text-zinc-900 mb-3">This Month</h4>
             <div className="text-3xl font-black text-zinc-900">
               {Object.values(eventsByDay).reduce((sum, arr) => sum + arr.length, 0)}
@@ -325,7 +325,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
       {/* Upcoming Events */}
       <div>
-        <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-6 px-2">
+        <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-6 px-2">
           {selectedDay
             ? `Events on ${new Date(selectedDay + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
             : 'Upcoming Events'
@@ -337,7 +337,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             <Loader2 className="animate-spin text-zinc-300" size={32} />
           </div>
         ) : upcomingEvents.length === 0 ? (
-          <div className="py-32 text-center bg-zinc-50 rounded-card-lg border border-dashed border-zinc-100">
+          <div className="py-32 text-center bg-zinc-50 rounded-[40px] border border-dashed border-zinc-100">
             <CalendarDays className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5} />
             <p className="text-zinc-400 font-bold text-sm">
               {selectedDay ? 'No events on this day.' : 'No upcoming events.'}
@@ -356,15 +356,15 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               return (
                 <div
                   key={`${ev.id}-${ev.source}`}
-                  className={`bg-white rounded-card-lg border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}
+                  className={`bg-white rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-brand shadow-2xl' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow hover:border-zinc-200'}`}
                 >
                   {isAttending && (
-                    <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-bold uppercase tracking-wide flex items-center gap-2">
+                    <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                       <Check size={14} /> {isSignedUpExternally ? 'Signed Up' : isAssignedToShift ? 'Assigned' : 'Going'}
                     </div>
                   )}
 
-                  <div className="p-6 md:p-8 flex-1">
+                  <div className="p-8 flex-1">
                     <div className="flex justify-between items-start mb-6">
                       <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${color.bg} ${color.text} ${color.border}`}>
                         {color.label}
@@ -405,7 +405,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                   <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-3xl md:rounded-t-3xl border-t-2 border-zinc-100 mt-auto">
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Date & Time</p>
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Date & Time</p>
                         <p className="text-sm font-bold text-zinc-900 tracking-normal flex items-center gap-2">
                           <CalendarDays size={14} className="text-brand shrink-0" />
                           {new Date(ev.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -527,7 +527,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
               {showDetailEvent.rsvps && showDetailEvent.rsvps.length > 0 && (
                 <div className="pt-2 border-t border-zinc-100">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">
                     <Users size={14} className="inline mr-1" /> {showDetailEvent.rsvps.filter(r => r.status === 'attending').length} attending
                   </p>
                 </div>
@@ -686,7 +686,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Title */}
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Title *</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Title *</label>
             <input
               type="text"
               value={form.title}
@@ -700,7 +700,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           {/* Date + Times */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date *</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date *</label>
               <input
                 type="date"
                 value={form.date}
@@ -710,7 +710,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Start *</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Start *</label>
               <input
                 type="time"
                 value={form.startTime}
@@ -720,7 +720,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">End</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">End</label>
               <input
                 type="time"
                 value={form.endTime}
@@ -732,7 +732,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
 
           {/* Type */}
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Type *</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Type *</label>
             <select
               value={form.type}
               onChange={e => updateField('type', e.target.value)}
@@ -755,7 +755,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
 
           {/* Location */}
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Location</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Location</label>
             <input
               type="text"
               value={form.location}
@@ -767,7 +767,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
 
           {/* Meet Link */}
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Meeting Link</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Meeting Link</label>
             <input
               type="url"
               value={form.meetLink}
@@ -779,7 +779,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
 
           {/* Description */}
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Description</label>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Description</label>
             <textarea
               value={form.description}
               onChange={e => updateField('description', e.target.value)}
@@ -801,7 +801,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           </div>
           {form.isRecurring && (
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Recurrence Note</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Recurrence Note</label>
               <input
                 type="text"
                 value={form.recurrenceNote}
