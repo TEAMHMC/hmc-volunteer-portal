@@ -820,7 +820,7 @@ export interface OrgCalendarEvent {
   date: string;              // YYYY-MM-DD
   startTime: string;         // "10:00 AM" or ISO
   endTime?: string;          // "11:00 AM" or ISO
-  type: 'all-hands' | 'committee' | 'training' | 'social' | 'community-event' | 'board' | 'other';
+  type: 'all-hands' | 'committee' | 'training' | 'social' | 'community-event' | 'board' | 'mission' | 'other';
   location?: string;         // Physical or "Virtual"
   meetLink?: string;         // Google Meet / Zoom
   visibleTo?: string[];      // Roles; empty/undefined = everyone
@@ -828,7 +828,7 @@ export interface OrgCalendarEvent {
   isRecurring?: boolean;
   recurrenceNote?: string;   // Human-readable: "Every 1st Monday"
   createdBy?: string;
-  source?: 'org-calendar' | 'board-meeting' | 'event-finder';
+  source?: 'org-calendar' | 'board-meeting' | 'event-finder' | 'mission';
 }
 
 export interface CSVImportRow {

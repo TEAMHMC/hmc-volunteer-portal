@@ -19,6 +19,7 @@ const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; bord
   'training':        { dot: 'bg-green-500',   bg: 'bg-green-50',   text: 'text-green-700',   border: 'border-green-200', label: 'Training' },
   'community-event': { dot: 'bg-indigo-500',  bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200', label: 'Community Event' },
   'board':           { dot: 'bg-amber-500',   bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200', label: 'Board' },
+  'mission':         { dot: 'bg-teal-500',    bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200', label: 'Mission' },
   'social':          { dot: 'bg-pink-500',    bg: 'bg-pink-50',    text: 'text-pink-700',    border: 'border-pink-200', label: 'Social' },
   'other':           { dot: 'bg-zinc-500',    bg: 'bg-zinc-50',    text: 'text-zinc-700',    border: 'border-zinc-100', label: 'Other' },
 };
@@ -27,6 +28,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'board-meeting': 'Board Meeting',
   'event-finder': 'Event Finder',
   'org-calendar': 'Org Calendar',
+  'mission': 'Mission',
 };
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -37,6 +39,7 @@ const EVENT_TYPES = [
   { value: 'all-hands', label: 'All-Hands' },
   { value: 'committee', label: 'Committee' },
   { value: 'training', label: 'Training' },
+  { value: 'mission', label: 'Mission' },
   { value: 'social', label: 'Social' },
   { value: 'community-event', label: 'Community Event' },
   { value: 'board', label: 'Board' },
@@ -338,8 +341,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               const color = getColor(ev.type);
               const userRsvp = getUserRsvpStatus(ev);
               const attendingCount = ev.rsvps?.filter(r => r.status === 'attending').length || 0;
-              const isSignedUpViaEventFinder = ev.source === 'event-finder' && user.rsvpedEventIds?.includes(ev.id);
-              const isAttending = userRsvp === 'attending' || isSignedUpViaEventFinder;
+              const isSignedUpExternally = (ev.source === 'event-finder' || ev.source === 'mission') && user.rsvpedEventIds?.includes(ev.id);
+              const isAssignedToShift = ev.source === 'mission' && user.assignedShiftIds?.includes(ev.id);
+              const isAttending = userRsvp === 'attending' || isSignedUpExternally || isAssignedToShift;
 
               return (
                 <div
@@ -348,7 +352,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                 >
                   {isAttending && (
                     <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-bold uppercase tracking-wide flex items-center gap-2">
-                      <Check size={14} /> {isSignedUpViaEventFinder ? 'Signed Up' : 'Going'}
+                      <Check size={14} /> {isSignedUpExternally ? 'Signed Up' : isAssignedToShift ? 'Assigned' : 'Going'}
                     </div>
                   )}
 
@@ -416,31 +420,21 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                           </a>
                         )}
 
-                        {ev.source !== 'event-finder' && (
-                          <button
-                            onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
-                            disabled={rsvpLoading === ev.id}
-                            className={`px-6 py-3 rounded-full font-bold text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wide ${
-                              isAttending ? 'bg-white text-rose-500 border border-zinc-950' : 'bg-brand text-white border border-black hover:opacity-95'
-                            }`}
-                          >
-                            {rsvpLoading === ev.id ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : isAttending ? (
-                              <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</>
-                            ) : (
-                              <><span className="w-2 h-2 rounded-full bg-white" /> RSVP</>
-                            )}
-                          </button>
-                        )}
-
-                        {ev.source === 'event-finder' && (
-                          <span className={`px-5 py-3 rounded-full font-bold text-[10px] uppercase tracking-wide flex items-center gap-2 ${
-                            isSignedUpViaEventFinder ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-600'
-                          }`}>
-                            {isSignedUpViaEventFinder ? <><Check size={14} /> Registered</> : 'Community'}
-                          </span>
-                        )}
+                        <button
+                          onClick={() => handleRsvp(ev.id, isAttending ? 'declined' : 'attending')}
+                          disabled={rsvpLoading === ev.id}
+                          className={`px-6 py-3 rounded-full font-bold text-base transition-all shadow-elevation-2 active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wide ${
+                            isAttending ? 'bg-white text-rose-500 border border-zinc-950' : 'bg-brand text-white border border-black hover:opacity-95'
+                          }`}
+                        >
+                          {rsvpLoading === ev.id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : isAttending ? (
+                            <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</>
+                          ) : (
+                            <><span className="w-2 h-2 rounded-full bg-white" /> RSVP</>
+                          )}
+                        </button>
 
                         {canCreateEvents && ev.source === 'org-calendar' && (
                           <>
@@ -557,6 +551,45 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                   </a>
                 )}
               </div>
+
+              {/* RSVP Buttons */}
+              {(() => {
+                const detailUserRsvp = getUserRsvpStatus(showDetailEvent);
+                const detailIsAttending = detailUserRsvp === 'attending' || user.rsvpedEventIds?.includes(showDetailEvent.id) || user.assignedShiftIds?.includes(showDetailEvent.id);
+                return (
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => handleRsvp(showDetailEvent.id, detailIsAttending ? 'declined' : 'attending')}
+                      disabled={rsvpLoading === showDetailEvent.id}
+                      className={`flex-1 py-3 rounded-full font-bold text-base flex items-center justify-center gap-2 transition-all uppercase tracking-wide ${
+                        detailIsAttending ? 'bg-rose-50 text-rose-600 border border-rose-300 hover:bg-rose-100' : 'bg-brand text-white border border-black hover:bg-brand-hover'
+                      }`}
+                    >
+                      {rsvpLoading === showDetailEvent.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : detailIsAttending ? (
+                        <><span className="w-2 h-2 rounded-full bg-rose-600" /> Cancel RSVP</>
+                      ) : (
+                        <><span className="w-2 h-2 rounded-full bg-white" /> RSVP — I'm Going</>
+                      )}
+                    </button>
+                    {!detailIsAttending && detailUserRsvp !== 'tentative' && (
+                      <button
+                        onClick={() => handleRsvp(showDetailEvent.id, 'tentative')}
+                        disabled={rsvpLoading === showDetailEvent.id}
+                        className="py-3 px-5 rounded-full font-bold text-base bg-white text-zinc-600 border border-zinc-950 flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors uppercase tracking-wide"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-zinc-950" /> Maybe
+                      </button>
+                    )}
+                    {detailUserRsvp === 'tentative' && (
+                      <span className="py-3 px-5 rounded-full font-bold text-[10px] uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center gap-2">
+                        <Check size={14} /> Tentative
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {canCreateEvents && showDetailEvent.source === 'org-calendar' && (
                 <div className="flex gap-3 pt-2">

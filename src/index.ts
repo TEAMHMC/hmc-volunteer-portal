@@ -8245,14 +8245,15 @@ app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Re
 // ORG-WIDE CALENDAR API ENDPOINTS
 // =============================================
 
-// Unified event query helper — queries all 3 event collections and normalizes response shape
+// Unified event query helper — queries all event collections and normalizes response shape
 async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean; dateFrom?: string; dateTo?: string } = {}): Promise<any[]> {
   const { callerRole = '', isAdmin = false, dateFrom, dateTo } = filters;
 
-  const [orgSnap, boardSnap, oppsSnap] = await Promise.all([
+  const [orgSnap, boardSnap, oppsSnap, shiftsSnap] = await Promise.all([
     db.collection('org_calendar_events').get(),
     db.collection('board_meetings').get(),
     db.collection('opportunities').get(),
+    db.collection('shifts').get(),
   ]);
 
   // 1. Org calendar events (native) — filter by visibleTo
@@ -8267,8 +8268,8 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
     return e.visibleTo.includes(callerRole);
   });
 
-  // 2. Board meetings → mapped to OrgCalendarEvent shape (board members + admins only)
-  const boardEvents = (isAdmin || BOARD_ROLES.includes(callerRole)) ? boardSnap.docs.map(d => {
+  // 2. Board meetings → visible to ALL users on the calendar
+  const boardEvents = boardSnap.docs.map(d => {
     const m = d.data();
     const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
     return {
@@ -8285,7 +8286,7 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
       sourceCollection: 'board_meetings',
       source: 'board-meeting',
     };
-  }) : [];
+  });
 
   // 3. Opportunities → mapped to OrgCalendarEvent shape
   const oppEvents = oppsSnap.docs.map(d => {
@@ -8303,7 +8304,36 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
     };
   }).filter(e => e.date);
 
-  let all = [...orgEvents, ...boardEvents, ...oppEvents];
+  // 4. Shifts (missions) → mapped to OrgCalendarEvent shape, joined with parent opportunity for title/location
+  const oppsById: Record<string, any> = {};
+  oppsSnap.docs.forEach(d => { oppsById[d.id] = d.data(); });
+
+  const missionEvents = shiftsSnap.docs.map(d => {
+    const s = d.data();
+    const opp = oppsById[s.opportunityId] || {};
+    const shiftDate = s.startTime ? (s.startTime.includes('T') ? s.startTime.split('T')[0] : s.startTime) : '';
+    const shiftStartTime = s.startTime && s.startTime.includes('T')
+      ? new Date(s.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      : '';
+    const shiftEndTime = s.endTime && s.endTime.includes('T')
+      ? new Date(s.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      : '';
+    return {
+      id: d.id,
+      title: opp.title || `${s.roleType || 'Volunteer'} Shift`,
+      description: opp.description || `${s.roleType || 'Volunteer'} shift — ${s.slotsTotal - s.slotsFilled} of ${s.slotsTotal} slots open`,
+      date: shiftDate,
+      startTime: shiftStartTime,
+      endTime: shiftEndTime || undefined,
+      type: 'mission',
+      location: opp.serviceLocation || undefined,
+      rsvps: (s.assignedVolunteerIds || []).map((vid: string) => ({ odId: vid, odName: '', status: 'attending' })),
+      sourceCollection: 'shifts',
+      source: 'mission',
+    };
+  }).filter(e => e.date);
+
+  let all = [...orgEvents, ...boardEvents, ...oppEvents, ...missionEvents];
 
   // Optional date range filtering
   if (dateFrom) all = all.filter((e: any) => (e.date || '') >= dateFrom);
@@ -8404,13 +8434,24 @@ app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, re
       return res.status(400).json({ error: 'Invalid RSVP status' });
     }
 
-    // Check if this is an org-calendar event or a board meeting
+    // Check all event collections for the target event
     let docRef = db.collection('org_calendar_events').doc(req.params.eventId);
     let docSnap = await docRef.get();
+    let sourceCollection = 'org_calendar_events';
     if (!docSnap.exists) {
-      // Try board_meetings collection
       docRef = db.collection('board_meetings').doc(req.params.eventId);
       docSnap = await docRef.get();
+      sourceCollection = 'board_meetings';
+    }
+    if (!docSnap.exists) {
+      docRef = db.collection('opportunities').doc(req.params.eventId);
+      docSnap = await docRef.get();
+      sourceCollection = 'opportunities';
+    }
+    if (!docSnap.exists) {
+      docRef = db.collection('shifts').doc(req.params.eventId);
+      docSnap = await docRef.get();
+      sourceCollection = 'shifts';
     }
     if (!docSnap.exists) return res.status(404).json({ error: 'Event not found' });
 
