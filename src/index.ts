@@ -8268,8 +8268,8 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
     return e.visibleTo.includes(callerRole);
   });
 
-  // 2. Board meetings → visible to ALL users on the calendar
-  const boardEvents = boardSnap.docs.map(d => {
+  // 2. Board meetings → board members + admins only (board has its own dedicated governance tab)
+  const boardEvents = (isAdmin || BOARD_ROLES.includes(callerRole)) ? boardSnap.docs.map(d => {
     const m = d.data();
     const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
     return {
@@ -8286,9 +8286,29 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
       sourceCollection: 'board_meetings',
       source: 'board-meeting',
     };
-  });
+  }) : [];
 
-  // 3. Opportunities → mapped to OrgCalendarEvent shape
+  // 3. Opportunities → mapped to OrgCalendarEvent shape with smart category mapping
+  const mapOppCategory = (category: string, title: string): string => {
+    const cat = (category || '').toLowerCase();
+    const t = (title || '').toLowerCase();
+    // Wellness: any Unstoppable event, wellness category, community run/walk
+    if (cat.includes('wellness') || cat.includes('community run') || cat.includes('walk')
+        || t.includes('unstoppable') || t.includes('walk run') || t.includes('walk/run')) return 'wellness';
+    // Outreach: tabling, community outreach, survey collection
+    if (cat.includes('outreach') || cat.includes('tabling') || cat.includes('survey')) return 'outreach';
+    // Workshop: workshop, wellness education
+    if (cat.includes('workshop') || cat.includes('education')) return 'workshop';
+    // Street Medicine
+    if (cat.includes('street medicine')) return 'street-medicine';
+    // Health Fair
+    if (cat.includes('health fair')) return 'health-fair';
+    // Training
+    if (cat.includes('training')) return 'training';
+    // Default community event
+    return 'community-event';
+  };
+
   const oppEvents = oppsSnap.docs.map(d => {
     const o = d.data();
     return {
@@ -8297,7 +8317,7 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
       description: o.description || undefined,
       date: o.date ? (o.date.includes('T') ? o.date.split('T')[0] : o.date) : '',
       startTime: o.time || o.dateDisplay || '',
-      type: 'community-event',
+      type: mapOppCategory(o.category, o.title),
       location: o.serviceLocation || undefined,
       sourceCollection: 'opportunities',
       source: 'event-finder',
@@ -8325,11 +8345,11 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
       date: shiftDate,
       startTime: shiftStartTime,
       endTime: shiftEndTime || undefined,
-      type: 'mission',
+      type: mapOppCategory(opp.category, opp.title),
       location: opp.serviceLocation || undefined,
       rsvps: (s.assignedVolunteerIds || []).map((vid: string) => ({ odId: vid, odName: '', status: 'attending' })),
       sourceCollection: 'shifts',
-      source: 'mission',
+      source: 'shift',
     };
   }).filter(e => e.date);
 

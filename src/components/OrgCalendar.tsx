@@ -14,21 +14,25 @@ interface OrgCalendarProps {
 }
 
 const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; border: string; label: string }> = {
-  'all-hands':       { dot: 'bg-blue-500',    bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200', label: 'All-Hands' },
-  'committee':       { dot: 'bg-purple-500',  bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200', label: 'Committee' },
-  'training':        { dot: 'bg-green-500',   bg: 'bg-green-50',   text: 'text-green-700',   border: 'border-green-200', label: 'Training' },
-  'community-event': { dot: 'bg-indigo-500',  bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200', label: 'Community Event' },
-  'board':           { dot: 'bg-amber-500',   bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200', label: 'Board' },
-  'mission':         { dot: 'bg-teal-500',    bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200', label: 'Mission' },
-  'social':          { dot: 'bg-pink-500',    bg: 'bg-pink-50',    text: 'text-pink-700',    border: 'border-pink-200', label: 'Social' },
-  'other':           { dot: 'bg-zinc-500',    bg: 'bg-zinc-50',    text: 'text-zinc-700',    border: 'border-zinc-100', label: 'Other' },
+  'wellness':        { dot: 'bg-emerald-500',  bg: 'bg-emerald-50',  text: 'text-emerald-700',  border: 'border-emerald-200', label: 'Wellness' },
+  'outreach':        { dot: 'bg-orange-500',   bg: 'bg-orange-50',   text: 'text-orange-700',   border: 'border-orange-200', label: 'Community Outreach' },
+  'workshop':        { dot: 'bg-violet-500',   bg: 'bg-violet-50',   text: 'text-violet-700',   border: 'border-violet-200', label: 'Workshop' },
+  'street-medicine': { dot: 'bg-rose-500',     bg: 'bg-rose-50',     text: 'text-rose-700',     border: 'border-rose-200', label: 'Street Medicine' },
+  'health-fair':     { dot: 'bg-sky-500',      bg: 'bg-sky-50',      text: 'text-sky-700',      border: 'border-sky-200', label: 'Health Fair' },
+  'training':        { dot: 'bg-green-500',    bg: 'bg-green-50',    text: 'text-green-700',    border: 'border-green-200', label: 'Training' },
+  'all-hands':       { dot: 'bg-blue-500',     bg: 'bg-blue-50',     text: 'text-blue-700',     border: 'border-blue-200', label: 'All-Hands' },
+  'committee':       { dot: 'bg-purple-500',   bg: 'bg-purple-50',   text: 'text-purple-700',   border: 'border-purple-200', label: 'Committee' },
+  'community-event': { dot: 'bg-indigo-500',   bg: 'bg-indigo-50',   text: 'text-indigo-700',   border: 'border-indigo-200', label: 'Community Event' },
+  'board':           { dot: 'bg-amber-500',    bg: 'bg-amber-50',    text: 'text-amber-700',    border: 'border-amber-200', label: 'Board' },
+  'social':          { dot: 'bg-pink-500',     bg: 'bg-pink-50',     text: 'text-pink-700',     border: 'border-pink-200', label: 'Social' },
+  'other':           { dot: 'bg-zinc-500',     bg: 'bg-zinc-50',     text: 'text-zinc-700',     border: 'border-zinc-100', label: 'Other' },
 };
 
 const SOURCE_LABELS: Record<string, string> = {
   'board-meeting': 'Board Meeting',
   'event-finder': 'Event Finder',
+  'shift': 'Mission Shift',
   'org-calendar': 'Org Calendar',
-  'mission': 'Mission',
 };
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -36,13 +40,17 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 const EVENT_TYPES = [
   { value: '', label: 'All Types' },
+  { value: 'wellness', label: 'Wellness' },
+  { value: 'outreach', label: 'Community Outreach' },
+  { value: 'workshop', label: 'Workshop' },
+  { value: 'street-medicine', label: 'Street Medicine' },
+  { value: 'health-fair', label: 'Health Fair' },
+  { value: 'training', label: 'Training' },
   { value: 'all-hands', label: 'All-Hands' },
   { value: 'committee', label: 'Committee' },
-  { value: 'training', label: 'Training' },
-  { value: 'mission', label: 'Mission' },
-  { value: 'social', label: 'Social' },
   { value: 'community-event', label: 'Community Event' },
   { value: 'board', label: 'Board' },
+  { value: 'social', label: 'Social' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -341,8 +349,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               const color = getColor(ev.type);
               const userRsvp = getUserRsvpStatus(ev);
               const attendingCount = ev.rsvps?.filter(r => r.status === 'attending').length || 0;
-              const isSignedUpExternally = (ev.source === 'event-finder' || ev.source === 'mission') && user.rsvpedEventIds?.includes(ev.id);
-              const isAssignedToShift = ev.source === 'mission' && user.assignedShiftIds?.includes(ev.id);
+              const isSignedUpExternally = (ev.source === 'event-finder' || ev.source === 'shift') && user.rsvpedEventIds?.includes(ev.id);
+              const isAssignedToShift = ev.source === 'shift' && user.assignedShiftIds?.includes(ev.id);
               const isAttending = userRsvp === 'attending' || isSignedUpExternally || isAssignedToShift;
 
               return (
@@ -731,8 +739,13 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
             >
               <option value="all-hands">All-Hands</option>
-              <option value="committee">Committee</option>
+              <option value="wellness">Wellness</option>
+              <option value="outreach">Community Outreach</option>
+              <option value="workshop">Workshop</option>
+              <option value="street-medicine">Street Medicine</option>
+              <option value="health-fair">Health Fair</option>
               <option value="training">Training</option>
+              <option value="committee">Committee</option>
               <option value="community-event">Community Event</option>
               <option value="social">Social</option>
               <option value="board">Board</option>
