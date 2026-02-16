@@ -122,18 +122,30 @@ if (!FIREBASE_WEB_API_KEY) {
     console.error('[CRITICAL] FIREBASE_WEB_API_KEY is not set — email/password login will not work. Set it from Firebase Console → Project Settings → General → Web API Key.');
 } else {
     const keySource = process.env.FIREBASE_WEB_API_KEY ? 'FIREBASE_WEB_API_KEY' : 'VITE_FIREBASE_API_KEY (fallback)';
-    const keyPreview = FIREBASE_WEB_API_KEY.substring(0, 8) + '...' + FIREBASE_WEB_API_KEY.substring(FIREBASE_WEB_API_KEY.length - 4);
-    console.log(`[AUTH] Using API key from ${keySource}: ${keyPreview}`);
+    console.log(`[AUTH] Using API key from ${keySource}`);
 }
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
+
+// --- STARTUP ENV VALIDATION ---
+const REQUIRED_ENV_WARNINGS: [string, string][] = [
+  ['FIREBASE_WEB_API_KEY', 'Email/password login will not work'],
+  ['EMAIL_SERVICE_URL', 'Emails will be disabled'],
+  ['GOOGLE_CLIENT_ID', 'Google OAuth will not work'],
+];
+for (const [envVar, consequence] of REQUIRED_ENV_WARNINGS) {
+  if (!process.env[envVar]) {
+    console.warn(`⚠️  ${envVar} not set — ${consequence}`);
+  }
+}
+if (!firebaseConfigured) {
+  console.error('❌ CRITICAL: Firebase not configured. Server will start but most features will fail.');
+}
 
 // --- GOOGLE APPS SCRIPT EMAIL SERVICE ---
 const EMAIL_SERVICE_URL = process.env.EMAIL_SERVICE_URL;
 
 if (EMAIL_SERVICE_URL) {
   console.log("✅ Email configured via Google Apps Script");
-} else {
-  console.warn("⚠️ EMAIL_SERVICE_URL not set - emails will be disabled");
 }
 
 // --- GEMINI API ---
@@ -289,25 +301,58 @@ app.post('/api/analytics/log', async (req: Request, res: Response) => {
 const maskEmail = (email: string) => email ? email.replace(/(.{2}).*(@.*)/, '$1***$2') : '[no email]';
 const maskPhone = (phone: string) => phone ? phone.slice(-4).padStart(phone.length, '*') : '[no phone]';
 
-// In-memory rate limit store (use Redis in production for multi-instance)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+// P0 FIX: Field whitelisting — only allow specified fields from user input
+const pickFields = <T extends Record<string, any>>(obj: T | undefined, fields: string[]): Partial<T> => {
+  if (!obj || typeof obj !== 'object') return {};
+  const result: any = {};
+  for (const key of fields) {
+    if (key in obj && obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+};
 
-const rateLimit = (limit: number, timeframeMs: number) => (req: Request, res: Response, next: NextFunction) => {
-  const key = `${req.ip}_${req.path}`;
+// P0 FIX: Sanitize user input before embedding in AI prompts
+const sanitizeForPrompt = (input: string, maxLen = 500): string => {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .slice(0, maxLen)
+    .replace(/[<>{}]/g, '')          // strip HTML/template chars
+    .replace(/\r?\n/g, ' ')          // flatten newlines
+    .replace(/\s+/g, ' ')            // collapse whitespace
+    .trim();
+};
+
+// Firestore-backed rate limiter — works across Cloud Run instances
+const rateLimit = (limit: number, timeframeMs: number) => async (req: Request, res: Response, next: NextFunction) => {
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+  const key = `${ip}_${req.path}`.replace(/[\/\.#\$\[\]]/g, '_');
   const now = Date.now();
-  const record = rateLimitStore.get(key);
-
-  if (!record || now > record.resetTime) {
-    rateLimitStore.set(key, { count: 1, resetTime: now + timeframeMs });
+  try {
+    const ref = db.collection('rate_limits').doc(key);
+    const result = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.data();
+      if (!data || now > data.resetTime) {
+        tx.set(ref, { count: 1, resetTime: now + timeframeMs });
+        return { allowed: true };
+      }
+      if (data.count >= limit) {
+        return { allowed: false };
+      }
+      tx.update(ref, { count: data.count + 1 });
+      return { allowed: true };
+    });
+    if (!result.allowed) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    return next();
+  } catch (err) {
+    // If Firestore rate limit fails, allow the request (fail-open)
+    console.warn('[RATE-LIMIT] Firestore check failed, allowing request:', (err as any)?.message);
     return next();
   }
-
-  if (record.count >= limit) {
-    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
-  }
-
-  record.count++;
-  return next();
 };
 
 // Admin authorization middleware - MUST be used on all /api/admin/* routes
@@ -2849,7 +2894,8 @@ Respond with JSON only: { "isCorrect": true } or { "isCorrect": false }`,
 app.post('/api/gemini/find-referral-match', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ recommendations: [] });
-        const { clientNeed } = req.body;
+        const clientNeed = sanitizeForPrompt(req.body.clientNeed);
+        if (!clientNeed) return res.status(400).json({ error: 'clientNeed is required' });
         const text = await generateAIContent(GEMINI_MODEL,
             `Suggest 3 generic types of resources for: "${clientNeed}". JSON: { recommendations: [{ "Resource Name": "Example", "reasoning": "Fits need" }] }`,
             true);
@@ -2860,7 +2906,8 @@ app.post('/api/gemini/find-referral-match', verifyToken, async (req: Request, re
 app.post('/api/gemini/generate-supply-list', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ supplyList: "- Water\n- Pens" });
-        const { serviceNames, attendeeCount } = req.body;
+        const serviceNames = (req.body.serviceNames || []).map((s: string) => sanitizeForPrompt(s, 100));
+        const attendeeCount = Math.min(Math.max(parseInt(req.body.attendeeCount) || 50, 1), 10000);
         const text = await generateAIContent(GEMINI_MODEL,
             `Generate a checklist of supplies for a health fair with ${attendeeCount} attendees offering: ${serviceNames.join(', ')}. Plain text list.`);
         res.json({ supplyList: text });
@@ -2870,7 +2917,8 @@ app.post('/api/gemini/generate-supply-list', verifyToken, async (req: Request, r
 app.post('/api/gemini/generate-summary', verifyToken, async (req: Request, res: Response) => {
     if (!ai) return res.json({ summary: "Thank you for your service!" });
     try {
-        const { volunteerName, totalHours } = req.body;
+        const volunteerName = sanitizeForPrompt(req.body.volunteerName, 100);
+        const totalHours = Math.min(Math.max(parseFloat(req.body.totalHours) || 0, 0), 99999);
         const text = await generateAIContent(GEMINI_MODEL,
             `Write a 2 sentence impact summary for ${volunteerName} who contributed ${totalHours} hours.`);
         res.json({ summary: text });
@@ -2880,7 +2928,8 @@ app.post('/api/gemini/generate-summary', verifyToken, async (req: Request, res: 
 app.post('/api/gemini/draft-fundraising-email', verifyToken, async (req: Request, res: Response) => {
     if (!ai) return res.json({ emailBody: "Please support HMC!" });
     try {
-        const { volunteerName, volunteerRole } = req.body;
+        const volunteerName = sanitizeForPrompt(req.body.volunteerName, 100);
+        const volunteerRole = sanitizeForPrompt(req.body.volunteerRole, 100);
         const text = await generateAIContent(GEMINI_MODEL,
             `Draft a short fundraising email for ${volunteerName}, a ${volunteerRole}, asking friends to support Health Matters Clinic.`);
         res.json({ emailBody: text });
@@ -2890,7 +2939,8 @@ app.post('/api/gemini/draft-fundraising-email', verifyToken, async (req: Request
 app.post('/api/gemini/draft-social-post', verifyToken, async (req: Request, res: Response) => {
     if (!ai) return res.json({ postText: "#HealthMatters" });
     try {
-        const { topic, platform } = req.body;
+        const topic = sanitizeForPrompt(req.body.topic, 200);
+        const platform = sanitizeForPrompt(req.body.platform, 50);
         const text = await generateAIContent(GEMINI_MODEL,
             `Draft a ${platform} post about ${topic} for a nonprofit.`);
         res.json({ postText: text });
@@ -2900,7 +2950,8 @@ app.post('/api/gemini/draft-social-post', verifyToken, async (req: Request, res:
 app.post('/api/gemini/summarize-feedback', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.json({ summary: "No feedback to summarize." });
-        const { feedback } = req.body;
+        const feedback = (req.body.feedback || []).map((f: string) => sanitizeForPrompt(f, 300)).slice(0, 50);
+        if (!feedback.length) return res.status(400).json({ error: 'feedback array is required' });
         const text = await generateAIContent(GEMINI_MODEL,
             `Summarize the following volunteer feedback into key themes and sentiment: ${feedback.join('\n')}`);
         res.json({ summary: text });
@@ -2910,7 +2961,9 @@ app.post('/api/gemini/summarize-feedback', verifyToken, async (req: Request, res
 app.post('/api/gemini/generate-document', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
-        const { prompt, title } = req.body;
+        const prompt = sanitizeForPrompt(req.body.prompt, 1000);
+        const title = sanitizeForPrompt(req.body.title || '', 200);
+        if (!prompt) return res.status(400).json({ error: 'prompt is required' });
         const text = await generateAIContent(GEMINI_MODEL,
             `You are a professional technical writer for Health Matters Clinic, a community health nonprofit.
             Create a well-structured document based on this request: "${prompt}"
@@ -2934,11 +2987,13 @@ app.post('/api/gemini/generate-document', verifyToken, async (req: Request, res:
 app.post('/api/gemini/improve-document', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
-        const { content, instructions } = req.body;
+        const content = sanitizeForPrompt(req.body.content, 5000);
+        const instructions = sanitizeForPrompt(req.body.instructions || 'Make it more professional and comprehensive', 500);
+        if (!content) return res.status(400).json({ error: 'content is required' });
         const text = await generateAIContent(GEMINI_MODEL,
             `You are a professional editor for Health Matters Clinic documents.
 
-            Improve the following document according to these instructions: "${instructions || 'Make it more professional and comprehensive'}"
+            Improve the following document according to these instructions: "${instructions}"
 
             Original content:
             ${content}
@@ -2961,7 +3016,8 @@ app.post('/api/gemini/improve-document', verifyToken, async (req: Request, res: 
 app.post('/api/gemini/draft-announcement', verifyToken, async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: "AI not configured" });
-        const { topic, tenantId } = req.body;
+        const topic = sanitizeForPrompt(req.body.topic, 300);
+        if (!topic) return res.status(400).json({ error: 'topic is required' });
         const text = await generateAIContent(GEMINI_MODEL,
             `Draft a professional announcement for Health Matters Clinic volunteers about: "${topic}".
             Keep it warm, professional, and under 150 words. Do not mention AI.`);
@@ -3041,7 +3097,7 @@ app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Re
         res.json({ success: true, importedCount: importedResources.length });
     } catch (error: any) {
         console.error('[RESOURCES] Bulk import failed:', error);
-        res.status(500).json({ error: error.message || 'Failed to import resources' });
+        res.status(500).json({ error: 'Failed to import resources' });
     }
 });
 
@@ -3072,8 +3128,9 @@ app.put('/api/referrals/:id', verifyToken, requireAdmin, async (req: Request, re
         if (!req.body.referral) return res.status(400).json({ error: 'Referral data required' });
         const doc = await db.collection('referrals').doc(req.params.id).get();
         if (!doc.exists) return res.status(404).json({ error: 'Referral not found' });
-        await db.collection('referrals').doc(req.params.id).update(req.body.referral);
-        res.json({ id: req.params.id, ...req.body.referral });
+        const referralUpdates = pickFields(req.body.referral, ['clientId', 'resourceId', 'status', 'notes', 'matchedDate', 'completedDate', 'rating', 'priority', 'assignedTo', 'outcome']);
+        await db.collection('referrals').doc(req.params.id).update(referralUpdates);
+        res.json({ id: req.params.id, ...referralUpdates });
     } catch (error: any) {
         console.error('[REFERRALS] Failed to update:', error);
         res.status(500).json({ error: 'Failed to update referral' });
@@ -3096,8 +3153,8 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
 });
 app.post('/api/clients/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        const clientData = req.body.client;
-        if (!clientData || (!clientData.name && !clientData.firstName)) return res.status(400).json({ error: 'Client name required' });
+        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics']);
+        if (!clientData.name && !clientData.firstName) return res.status(400).json({ error: 'Client name required' });
         const client = {
             ...clientData,
             createdAt: new Date().toISOString(),
@@ -3136,7 +3193,7 @@ app.get('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res:
 // Update client
 app.put('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        const updates = { ...req.body.client, updatedAt: new Date().toISOString() };
+        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status']), updatedAt: new Date().toISOString() };
         await db.collection('clients').doc(req.params.id).update(updates);
         res.json({ id: req.params.id, ...updates });
     } catch (error) {
@@ -3501,33 +3558,34 @@ app.post('/api/public/checkin', rateLimit(20, 60000), async (req: Request, res: 
         }
 
         const rsvpDoc = rsvpSnapshot.docs[0];
-        const rsvpData = rsvpDoc.data();
 
-        if (rsvpData.checkedIn) {
-            return res.status(400).json({ error: 'Already checked in', checkedInAt: rsvpData.checkedInAt });
-        }
-
-        // Mark as checked in
+        // Use transaction to prevent double check-in race condition
         const checkedInAt = new Date().toISOString();
-        await rsvpDoc.ref.update({
-            checkedIn: true,
-            checkedInAt
+        const result = await db.runTransaction(async (tx) => {
+            const rsvpSnap = await tx.get(rsvpDoc.ref);
+            const rsvpData = rsvpSnap.data();
+            if (!rsvpData) throw new Error('RSVP not found');
+            if (rsvpData.checkedIn) {
+                return { alreadyCheckedIn: true, checkedInAt: rsvpData.checkedInAt };
+            }
+            tx.update(rsvpDoc.ref, { checkedIn: true, checkedInAt });
+            const eventRef = db.collection('opportunities').doc(rsvpData.eventId);
+            const eventSnap = await tx.get(eventRef);
+            if (eventSnap.exists) {
+                tx.update(eventRef, { checkinCount: admin.firestore.FieldValue.increment(1 + (rsvpData.guests || 0)) });
+            }
+            return { alreadyCheckedIn: false, name: rsvpData.name, eventTitle: rsvpData.eventTitle, eventId: rsvpData.eventId };
         });
 
-        // Update the event's check-in count
-        const eventRef = db.collection('opportunities').doc(rsvpData.eventId);
-        const eventDoc = await eventRef.get();
-        if (eventDoc.exists) {
-            await eventRef.update({
-                checkinCount: admin.firestore.FieldValue.increment(1 + (rsvpData.guests || 0))
-            });
+        if (result.alreadyCheckedIn) {
+            return res.status(400).json({ error: 'Already checked in', checkedInAt: result.checkedInAt });
         }
 
-        console.log(`[PUBLIC CHECKIN] Checked in RSVP ${rsvpDoc.id} for event ${rsvpData.eventId}`);
+        console.log(`[PUBLIC CHECKIN] Checked in RSVP ${rsvpDoc.id} for event ${result.eventId}`);
         res.json({
             success: true,
-            name: rsvpData.name,
-            eventTitle: rsvpData.eventTitle,
+            name: result.name,
+            eventTitle: result.eventTitle,
             checkedInAt,
             message: 'Check-in successful'
         });
@@ -3693,14 +3751,21 @@ app.post('/api/feedback', verifyToken, async (req: Request, res: Response) => {
         };
         const ref = await db.collection('feedback').add(feedback);
 
-        // Update resource average rating if this is service feedback
+        // Update resource average rating if this is service feedback (using transaction to avoid race)
         if (feedback.resourceId) {
-            const resourceFeedback = await db.collection('feedback').where('resourceId', '==', feedback.resourceId).get();
-            const ratings = resourceFeedback.docs.map(d => d.data().rating).filter(r => r);
-            const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-            await db.collection('referral_resources').doc(feedback.resourceId).update({
-                averageRating: Math.round(avgRating * 10) / 10,
-                lastFeedbackDate: new Date().toISOString()
+            const resourceRef = db.collection('referral_resources').doc(feedback.resourceId);
+            await db.runTransaction(async (tx) => {
+                const resourceFeedback = await db.collection('feedback').where('resourceId', '==', feedback.resourceId).get();
+                const ratings = resourceFeedback.docs.map(d => d.data().rating).filter((r: any) => typeof r === 'number' && r > 0);
+                if (ratings.length === 0) return;
+                const avgRating = ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length;
+                const resSnap = await tx.get(resourceRef);
+                if (resSnap.exists) {
+                    tx.update(resourceRef, {
+                        averageRating: Math.round(avgRating * 10) / 10,
+                        lastFeedbackDate: new Date().toISOString()
+                    });
+                }
             });
         }
 
@@ -3725,7 +3790,7 @@ app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: R
     try {
         if (!req.body.name) return res.status(400).json({ error: 'Partner name required' });
         const partner = {
-            ...req.body,
+            ...pickFields(req.body, ['name', 'contactEmail', 'contactPhone', 'address', 'services', 'notes', 'website', 'type', 'description']),
             createdAt: new Date().toISOString(),
             status: 'Active'
         };
@@ -4172,7 +4237,7 @@ app.delete('/api/messages/:messageId', verifyToken, requireAdmin, async (req: Re
         res.json({ success: true });
     } catch (error: any) {
         console.error('[MESSAGES] Failed to delete message:', error);
-        res.status(500).json({ error: error.message || 'Failed to delete message' });
+        res.status(500).json({ error: 'Failed to delete message' });
     }
 });
 
@@ -4542,7 +4607,7 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
         });
     } catch (error: any) {
         console.error('[EVENTS] Bulk import failed:', error);
-        res.status(500).json({ error: error.message || 'Failed to import events' });
+        res.status(500).json({ error: 'Failed to import events' });
     }
 });
 
@@ -4744,7 +4809,7 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
         });
     } catch (error: any) {
         console.error('[SYNC] Event Finder sync failed:', error);
-        res.status(500).json({ error: error.message || 'Failed to sync events' });
+        res.status(500).json({ error: 'Failed to sync events' });
     }
 });
 
@@ -4803,7 +4868,7 @@ app.post('/api/events/invite-volunteer', verifyToken, async (req: Request, res: 
     }
   } catch (error: any) {
     console.error('[INVITE] Failed to send volunteer invite:', error);
-    res.status(500).json({ error: error.message || 'Failed to send invite' });
+    res.status(500).json({ error: 'Failed to send invite' });
   }
 });
 
@@ -4882,7 +4947,7 @@ app.post('/api/events/unregister', verifyToken, async (req: Request, res: Respon
     res.json({ success: true });
   } catch (error: any) {
     console.error('[EVENTS] Failed to unregister volunteer:', error);
-    res.status(500).json({ error: error.message || 'Failed to unregister' });
+    res.status(500).json({ error: 'Failed to unregister' });
   }
 });
 
@@ -5079,7 +5144,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       return res.status(409).json({ error: 'This shift is full' });
     }
     console.error('[EVENTS] Failed to register for event:', error);
-    res.status(500).json({ error: error.message || 'Failed to register for event' });
+    res.status(500).json({ error: 'Failed to register for event' });
   }
 });
 
@@ -5162,7 +5227,7 @@ app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request,
         });
     } catch (error: any) {
         console.error('[BROADCAST] Failed to send broadcast:', error);
-        res.status(500).json({ error: error.message || 'Failed to send broadcast' });
+        res.status(500).json({ error: 'Failed to send broadcast' });
     }
 });
 app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response) => {
@@ -5196,7 +5261,7 @@ app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response
         res.json({ id: docRef.id, ...ticketWithTimestamp, success: true });
     } catch (error: any) {
         console.error('[SUPPORT] Failed to create support ticket:', error);
-        res.status(500).json({ error: error.message || 'Failed to create support ticket' });
+        res.status(500).json({ error: 'Failed to create support ticket' });
     }
 });
 
@@ -5231,7 +5296,7 @@ app.put('/api/support_tickets/:ticketId', verifyToken, requireAdmin, async (req:
         res.json({ id: ticketId, ...updatedTicket });
     } catch (error: any) {
         console.error('[SUPPORT] Failed to update support ticket:', error);
-        res.status(500).json({ error: error.message || 'Failed to update support ticket' });
+        res.status(500).json({ error: 'Failed to update support ticket' });
     }
 });
 
@@ -5347,7 +5412,7 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
         res.json({ importedCount: newVolunteers.length, newVolunteers });
     } catch (error: any) {
         console.error('[BULK IMPORT] Failed:', error);
-        res.status(500).json({ error: error.message || 'Failed to import volunteers' });
+        res.status(500).json({ error: 'Failed to import volunteers' });
     }
 });
 
@@ -5412,7 +5477,7 @@ app.post('/api/admin/reconcile-auth', verifyToken, requireAdmin, async (req: Req
         res.json({ created, migrated, skipped, errors, results });
     } catch (error: any) {
         console.error('[RECONCILE] Failed:', error);
-        res.status(500).json({ error: error.message });
+        console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -5534,7 +5599,7 @@ app.post('/api/admin/add-volunteer', verifyToken, requireAdmin, async (req: Requ
         res.json({ id: finalUserId, ...volunteerData });
     } catch (error: any) {
         console.error('[ADD VOLUNTEER] Failed:', error);
-        res.status(500).json({ error: error.message || 'Failed to add volunteer' });
+        res.status(500).json({ error: 'Failed to add volunteer' });
     }
 });
 app.post('/api/admin/update-volunteer-profile', verifyToken, requireAdmin, async (req: Request, res: Response) => {
@@ -5587,7 +5652,7 @@ app.delete('/api/admin/volunteer/:id', verifyToken, requireAdmin, async (req: Re
     res.json({ success: true, deletedId: id });
   } catch (error: any) {
     console.error('[ADMIN] Failed to delete volunteer:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete volunteer' });
+    res.status(500).json({ error: 'Failed to delete volunteer' });
   }
 });
 
@@ -5636,7 +5701,7 @@ app.post('/api/admin/review-application', verifyToken, requireAdmin, async (req:
     res.json({ volunteer: volData });
   } catch (error: any) {
     console.error('Failed to review application:', error);
-    res.status(500).json({ error: error.message || 'Failed to review application' });
+    res.status(500).json({ error: 'Failed to review application' });
   }
 });
 
@@ -6543,7 +6608,7 @@ app.get('/api/admin/workflows', verifyToken, requireAdmin, async (req: Request, 
     }
   } catch (error: any) {
     console.error('[WORKFLOW] Failed to load config:', error);
-    res.status(500).json({ error: error.message || 'Failed to load workflow config' });
+    res.status(500).json({ error: 'Failed to load workflow config' });
   }
 });
 
@@ -6558,7 +6623,7 @@ app.put('/api/admin/workflows', verifyToken, requireAdmin, async (req: Request, 
     res.json({ success: true });
   } catch (error: any) {
     console.error('[WORKFLOW] Failed to save config:', error);
-    res.status(500).json({ error: error.message || 'Failed to save workflow config' });
+    res.status(500).json({ error: 'Failed to save workflow config' });
   }
 });
 
@@ -6596,7 +6661,7 @@ app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Requ
     res.json({ runs });
   } catch (error: any) {
     console.error('[WORKFLOW] Failed to load runs:', error);
-    res.status(500).json({ error: error.message || 'Failed to load workflow runs' });
+    res.status(500).json({ error: 'Failed to load workflow runs' });
   }
 });
 
@@ -6615,7 +6680,7 @@ app.get('/api/admin/workflow-runs/:runId/details', verifyToken, requireAdmin, as
     res.json({ run: { id: runDoc.id, ...runDoc.data() }, details });
   } catch (error: any) {
     console.error('[WORKFLOW] Failed to load run details:', error);
-    res.status(500).json({ error: error.message || 'Failed to load workflow run details' });
+    res.status(500).json({ error: 'Failed to load workflow run details' });
   }
 });
 
@@ -6630,7 +6695,7 @@ app.get('/api/admin/smo/cycles', verifyToken, requireAdmin, async (req: Request,
     const cycles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json({ cycles });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to load SMO cycles' });
+    res.status(500).json({ error: 'Failed to load SMO cycles' });
   }
 });
 
@@ -6641,7 +6706,7 @@ app.get('/api/admin/smo/cycles/:cycleId', verifyToken, requireAdmin, async (req:
     if (!doc.exists) return res.status(404).json({ error: 'Cycle not found' });
     res.json({ id: doc.id, ...doc.data() });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to load SMO cycle' });
+    res.status(500).json({ error: 'Failed to load SMO cycle' });
   }
 });
 
@@ -6657,7 +6722,7 @@ app.put('/api/admin/smo/cycles/:cycleId', verifyToken, requireAdmin, async (req:
     const updated = await db.collection('smo_cycles').doc(req.params.cycleId).get();
     res.json({ id: updated.id, ...updated.data() });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to update SMO cycle' });
+    res.status(500).json({ error: 'Failed to update SMO cycle' });
   }
 });
 
@@ -6682,7 +6747,7 @@ app.get('/api/smo/cycles/my', verifyToken, async (req: Request, res: Response) =
       leadConfirmed: (c.leadConfirmed || []).includes(userId),
     })));
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch SMO cycles' });
+    res.status(500).json({ error: 'Failed to fetch SMO cycles' });
   }
 });
 
@@ -6745,7 +6810,7 @@ app.post('/api/smo/cycles/:cycleId/register', verifyToken, async (req: Request, 
 
     res.json({ success: true, position });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to register for SMO cycle' });
+    res.status(500).json({ error: 'Failed to register for SMO cycle' });
   }
 });
 
@@ -6767,7 +6832,7 @@ app.post('/api/smo/cycles/:cycleId/self-report', verifyToken, async (req: Reques
     await cycleRef.update({ selfReported });
     res.json({ success: true });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to self-report attendance' });
+    res.status(500).json({ error: 'Failed to self-report attendance' });
   }
 });
 
@@ -6794,20 +6859,21 @@ app.get('/api/admin/reminder-cadence/config', verifyToken, requireAdmin, async (
       res.json(defaults);
     }
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Update reminder cadence config
 app.put('/api/admin/reminder-cadence/config', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
+    const cadenceConfig = pickFields(req.body, ['enabled', 'emailEnabled', 'smsEnabled', 'minDaysBetween', 'stages', 'excludeInactive', 'w1_enabled', 'w2_enabled', 'w3_enabled', 'w4_enabled', 'w5_enabled', 'w6_enabled', 'w7_enabled']);
     await db.collection('workflow_configs').doc('reminder_cadence').set(
-      { ...req.body, updatedAt: new Date().toISOString() },
+      { ...cadenceConfig, updatedAt: new Date().toISOString() },
       { merge: true }
     );
     res.json({ success: true });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6830,7 +6896,7 @@ app.get('/api/volunteer/profile', verifyToken, async (req: Request, res: Respons
     });
   } catch (error: any) {
     console.error('Profile fetch error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6858,7 +6924,7 @@ app.post('/api/volunteer/complete-shift', verifyToken, async (req: Request, res:
       streak: streakResult,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6875,7 +6941,7 @@ app.post('/api/volunteer/volunteer-type', verifyToken, async (req: Request, res:
     await db.collection('volunteer_profiles').doc(userId).update({ volunteerType });
     res.json({ success: true, volunteerType });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6907,7 +6973,7 @@ app.post('/api/volunteer/complete-training', verifyToken, async (req: Request, r
       leveledUp: result.leveledUp,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6943,7 +7009,7 @@ app.get('/api/referral/templates', verifyToken, async (req: Request, res: Respon
       referralLink: `${portalUrl}/join?ref=${profile.referralCode}`,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7006,7 +7072,7 @@ app.post('/api/referral/send-email', verifyToken, async (req: Request, res: Resp
 
     res.json({ success: true, referralCode: profile.referralCode });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7039,7 +7105,7 @@ app.get('/api/referral/dashboard', verifyToken, async (req: Request, res: Respon
       estimatedImpact: (referralsSnapshot.size * 5) || 0,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7072,7 +7138,7 @@ app.get('/api/share/content/:platform', verifyToken, async (req: Request, res: R
 
     res.json({ platform, content, referralCode: profile.referralCode });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7103,7 +7169,7 @@ app.post('/api/share/log', verifyToken, async (req: Request, res: Response) => {
       newXP: result.newXP,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7136,7 +7202,7 @@ app.get('/api/leaderboard/xp', verifyToken, async (req: Request, res: Response) 
 
     res.json({ leaderboard });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7164,7 +7230,7 @@ app.get('/api/leaderboard/referrals', verifyToken, async (req: Request, res: Res
 
     res.json({ leaderboard });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7192,7 +7258,7 @@ app.get('/api/leaderboard/streaks', verifyToken, async (req: Request, res: Respo
 
     res.json({ leaderboard });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -7222,7 +7288,8 @@ app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response)
     if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
       return res.status(403).json({ error: 'Only admins and board members can manage board meetings' });
     }
-    const { id, ...meetingData } = req.body;
+    const { id } = req.body;
+    const meetingData = pickFields(req.body, ['title', 'description', 'date', 'time', 'location', 'type', 'agenda', 'meetingLink', 'status', 'notes', 'documents', 'minutesContent']);
     if (id) {
       await db.collection('board_meetings').doc(id).set(meetingData, { merge: true });
       res.json({ id, ...meetingData });
@@ -7230,7 +7297,7 @@ app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response)
       const ref = await db.collection('board_meetings').add({ ...meetingData, createdBy: user.uid, createdAt: new Date().toISOString() });
       res.json({ id: ref.id, ...meetingData });
     }
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[Board] Meeting save failed:', e); res.status(500).json({ error: 'Failed to save meeting' }); }
 });
 
 // RSVP to a board meeting
@@ -7250,7 +7317,7 @@ app.post('/api/board/meetings/:meetingId/rsvp', verifyToken, async (req: Request
     else rsvps.push(rsvpEntry);
     await meetingRef.update({ rsvps });
     res.json({ success: true, rsvps });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[Board] RSVP failed:', e); res.status(500).json({ error: 'Failed to save RSVP' }); }
 });
 
 // Request emergency meeting (emails board chair + volunteer@healthmatters.clinic)
@@ -7288,7 +7355,7 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
       } catch (e) { console.error('[Board] Failed to send emergency meeting emails:', e); }
     }
     res.json({ success: true });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Save/update meeting minutes (board members + admins only)
@@ -7302,7 +7369,7 @@ app.put('/api/board/meetings/:meetingId/minutes', verifyToken, async (req: Reque
     const { minutesContent, minutesStatus } = req.body;
     await db.collection('board_meetings').doc(req.params.meetingId).update({ minutesContent, minutesStatus, minutesUpdatedAt: new Date().toISOString() });
     res.json({ success: true });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Get Give or Get data for current user
@@ -7324,9 +7391,10 @@ app.get('/api/board/give-or-get', verifyToken, async (req: Request, res: Respons
 app.put('/api/board/give-or-get', verifyToken, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    await db.collection('board_give_or_get').doc(user.uid).set(req.body, { merge: true });
+    const giveOrGetData = pickFields(req.body, ['goal', 'raised', 'personalContribution', 'fundraised', 'prospects', 'donationLog', 'notes', 'status']);
+    await db.collection('board_give_or_get').doc(user.uid).set(giveOrGetData, { merge: true });
     res.json({ success: true });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { res.status(500).json({ error: 'Failed to update give-or-get data' }); }
 });
 
 // Save form signature (store in Cloud Storage when available)
@@ -7353,7 +7421,7 @@ app.post('/api/board/forms/:formId/sign', verifyToken, async (req: Request, res:
       signedAt: new Date().toISOString(),
     });
     res.json({ success: true });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Get signed forms for current user
@@ -7378,7 +7446,7 @@ app.get('/api/admin/volunteer/:id/resume', verifyToken, requireAdmin, async (req
     if (!vol.resume?.storagePath) return res.status(404).json({ error: 'No resume on file' });
     const url = await getSignedDownloadUrl(vol.resume.storagePath, 15);
     res.json({ url, name: vol.resume.name });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -7398,7 +7466,7 @@ app.post('/api/volunteer/credential-file', verifyToken, async (req: Request, res
       [`clinicalOnboarding.credentials.${field}`]: storagePath,
     });
     res.json({ storagePath });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.get('/api/volunteer/:id/credential-file/:field', verifyToken, async (req: Request, res: Response) => {
@@ -7416,7 +7484,7 @@ app.get('/api/volunteer/:id/credential-file/:field', verifyToken, async (req: Re
     }
     const url = await getSignedDownloadUrl(storagePath, 15);
     res.json({ url });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- FLYER / DOCUMENT UPLOAD TO CLOUD STORAGE ---
@@ -7434,7 +7502,7 @@ app.post('/api/events/:id/flyer', verifyToken, async (req: Request, res: Respons
         flyerBase64: admin.firestore.FieldValue.delete(),
     });
     res.json({ flyerUrl: url, storagePath });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -7553,7 +7621,7 @@ app.get('/api/board/forms/:formId/pdf', verifyToken, async (req: Request, res: R
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="HMC-${formId}-signed.pdf"`);
     res.send(Buffer.from(pdfBytes));
-  } catch (e: any) { console.error('[PDF] Board form export error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[PDF] Board form export error:', e); console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.get('/api/clinical/forms/:docId/pdf', verifyToken, async (req: Request, res: Response) => {
@@ -7631,7 +7699,7 @@ app.get('/api/clinical/forms/:docId/pdf', verifyToken, async (req: Request, res:
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="HMC-clinical-${docId}-signed.pdf"`);
     res.send(Buffer.from(pdfBytes));
-  } catch (e: any) { console.error('[PDF] Clinical form export error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[PDF] Clinical form export error:', e); console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -7665,7 +7733,7 @@ app.get('/api/admin/compliance-overview', verifyToken, requireAdmin, async (req:
     });
 
     res.json(overview);
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- DATA EXPORT ENDPOINTS (Admin only) ---
@@ -7696,7 +7764,7 @@ app.get('/api/admin/export/:collection', verifyToken, requireAdmin, async (req: 
         }
 
         res.json(data);
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- KNOWLEDGE BASE PERSISTENCE ---
@@ -7704,31 +7772,31 @@ app.get('/api/knowledge-base', verifyToken, async (_req: Request, res: Response)
     try {
         const snap = await db.collection('knowledge_base').get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.post('/api/knowledge-base', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
-        const article = { ...req.body, updatedAt: new Date().toISOString() };
+        const article: any = { ...pickFields(req.body, ['title', 'content', 'category', 'tags', 'icon', 'order', 'isPublished']), updatedAt: new Date().toISOString() };
         if (!article.title || !article.content) return res.status(400).json({ error: 'title and content required' });
         const ref = await db.collection('knowledge_base').add(article);
         res.json({ id: ref.id, ...article });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.put('/api/knowledge-base/:id', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
-        const updates = { ...req.body, updatedAt: new Date().toISOString() };
+        const updates = { ...pickFields(req.body, ['title', 'content', 'category', 'tags', 'icon', 'order', 'isPublished']), updatedAt: new Date().toISOString() };
         await db.collection('knowledge_base').doc(req.params.id).set(updates, { merge: true });
         res.json({ id: req.params.id, ...updates });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.delete('/api/knowledge-base/:id', verifyToken, requireEditor, async (req: Request, res: Response) => {
     try {
         await db.collection('knowledge_base').doc(req.params.id).delete();
         res.json({ success: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- INCIDENT & AUDIT LOG ADMIN DASHBOARD ---
@@ -7737,7 +7805,7 @@ app.get('/api/admin/incidents', verifyToken, requireAdmin, async (req: Request, 
         const snap = await db.collection('incidents').orderBy('timestamp', 'desc').get()
             .catch(() => db.collection('incidents').get());
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.get('/api/admin/audit-logs', verifyToken, requireAdmin, async (req: Request, res: Response) => {
@@ -7746,7 +7814,7 @@ app.get('/api/admin/audit-logs', verifyToken, requireAdmin, async (req: Request,
         const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limit).get()
             .catch(() => db.collection('audit_logs').limit(limit).get());
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- BULK OPERATIONS (Admin) ---
@@ -7767,7 +7835,7 @@ app.post('/api/admin/bulk/approve', verifyToken, requireAdmin, async (req: Reque
         });
         await batch.commit();
         res.json({ success: true, count: volunteerIds.length });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.post('/api/admin/bulk/role-change', verifyToken, requireAdmin, async (req: Request, res: Response) => {
@@ -7782,7 +7850,7 @@ app.post('/api/admin/bulk/role-change', verifyToken, requireAdmin, async (req: R
         });
         await batch.commit();
         res.json({ success: true, count: volunteerIds.length });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.get('/api/admin/export-volunteers', verifyToken, requireAdmin, async (req: Request, res: Response) => {
@@ -7811,7 +7879,7 @@ app.get('/api/admin/export-volunteers', verifyToken, requireAdmin, async (req: R
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="volunteers_export.csv"');
         res.send(csvRows.join('\n'));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- ACCOUNT DEACTIVATION ---
@@ -7836,7 +7904,7 @@ app.post('/api/admin/deactivate-volunteer', verifyToken, requireAdmin, async (re
         });
 
         res.json({ success: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.post('/api/admin/reactivate-volunteer', verifyToken, requireAdmin, async (req: Request, res: Response) => {
@@ -7851,7 +7919,7 @@ app.post('/api/admin/reactivate-volunteer', verifyToken, requireAdmin, async (re
         });
 
         res.json({ success: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- ANNOUNCEMENT CRUD ---
@@ -7867,22 +7935,22 @@ app.post('/api/announcements', verifyToken, requireAdmin, async (req: Request, r
         };
         const ref = await db.collection('announcements').add(announcement);
         res.json({ id: ref.id, ...announcement });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.put('/api/announcements/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        const updates = { ...req.body, updatedAt: new Date().toISOString() };
+        const updates = { ...pickFields(req.body, ['title', 'content', 'priority', 'expiresAt', 'targetRoles', 'pinned']), updatedAt: new Date().toISOString() };
         await db.collection('announcements').doc(req.params.id).update(updates);
         res.json({ id: req.params.id, ...updates });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.delete('/api/announcements/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         await db.collection('announcements').doc(req.params.id).delete();
         res.json({ success: true });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- HEALTH SCREENINGS ---
@@ -7893,7 +7961,7 @@ app.post('/api/screenings/create', verifyToken, async (req: Request, res: Respon
         const screening = { clientId, systolic, diastolic, glucose, temperature, pulse, weight, notes, followUpNeeded, screenedBy, createdAt };
         const ref = await db.collection('screenings').add(screening);
         res.json({ id: ref.id, ...screening });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
@@ -7904,7 +7972,7 @@ app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
         if (shiftId) query = query.where('shiftId', '==', shiftId);
         const snap = await query.get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- INCIDENT PERSISTENCE ---
@@ -7915,7 +7983,7 @@ app.post('/api/incidents/create', verifyToken, async (req: Request, res: Respons
         const incident = { type, description, severity, location, eventId, reportedBy, createdAt };
         const ref = await db.collection('incidents').add(incident);
         res.json({ id: ref.id, ...incident });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- AUDIT LOG PERSISTENCE ---
@@ -7926,7 +7994,7 @@ app.post('/api/audit-logs/create', verifyToken, async (req: Request, res: Respon
         const log = { action, details, userId, eventId, createdAt };
         const ref = await db.collection('audit_logs').add(log);
         res.json({ id: ref.id, ...log });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- STANDALONE DATA ENDPOINTS (for post-sync reload) ---
@@ -7934,14 +8002,14 @@ app.get('/api/opportunities', verifyToken, async (_req: Request, res: Response) 
     try {
         const snap = await db.collection('opportunities').get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 app.get('/api/shifts', verifyToken, async (_req: Request, res: Response) => {
     try {
         const snap = await db.collection('shifts').get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
@@ -8123,7 +8191,7 @@ app.post('/api/org-calendar', verifyToken, async (req: Request, res: Response) =
     const ref = await db.collection('org_calendar_events').add(eventData);
     res.json({ id: ref.id, ...eventData });
   } catch (e: any) {
-    res.status(500).json({ error: e.message });
+    console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -8143,7 +8211,7 @@ app.put('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: Res
     await db.collection('org_calendar_events').doc(eventId).update(updates);
     res.json({ id: eventId, ...updates });
   } catch (e: any) {
-    res.status(500).json({ error: e.message });
+    console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -8165,7 +8233,7 @@ app.delete('/api/org-calendar/:eventId', verifyToken, async (req: Request, res: 
     await db.collection('org_calendar_events').doc(req.params.eventId).delete();
     res.json({ success: true });
   } catch (e: any) {
-    res.status(500).json({ error: e.message });
+    console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -8226,7 +8294,7 @@ app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, re
 
     res.json({ success: true, rsvps });
   } catch (e: any) {
-    res.status(500).json({ error: e.message });
+    console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
 });
 
