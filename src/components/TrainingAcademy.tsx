@@ -400,7 +400,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     const isLocked = tierLocked;
 
     return (
-      <div key={m.id} className={`p-5 rounded-2xl border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-elevation-2 hover:border-zinc-200'}`}>
+      <div key={m.id} className={`p-5 rounded-3xl border shadow-elevation-1 flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-elevation-2 hover:border-zinc-200'}`}>
         <div>
           <div className="flex items-start justify-between mb-4">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-elevation-1 ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-brand text-zinc-300 group-hover:text-white`}`}>
@@ -445,7 +445,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     if (!activeSession) return null;
     return (
       <div className="space-y-8 animate-in fade-in">
-        <div className={`${reviewMode ? 'bg-brand/5 border-brand/20' : 'bg-amber-50 border-amber-200'} border rounded-2xl p-6 flex items-center gap-4`}>
+        <div className={`${reviewMode ? 'bg-brand/5 border-brand/20' : 'bg-amber-50 border-amber-200'} border rounded-3xl p-6 flex items-center gap-4`}>
           <FileCheck size={24} className={reviewMode ? 'text-brand shrink-0' : 'text-amber-600 shrink-0'} />
           <div>
             <p className={`font-bold text-sm ${reviewMode ? 'text-brand' : 'text-amber-900'}`}>
@@ -457,7 +457,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </div>
         </div>
 
-        <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8 space-y-6 max-h-[500px] overflow-y-auto">
+        <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-8 space-y-6 max-h-[500px] overflow-y-auto">
           <h4 className="text-lg font-black text-zinc-900">{activeSession.title}</h4>
 
           {loadingContent ? (
@@ -496,7 +496,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         {reviewMode ? (
           <>
             {activeSession && requiresSignature(activeSession) && user.trainingSignatures?.[activeSession.id] && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex items-center gap-4">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 flex items-center gap-4">
                 <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
                 <div>
                   <p className="text-sm font-bold text-emerald-900">Signed Document</p>
@@ -515,7 +515,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </>
         ) : (
           <>
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6">
+            <div className="bg-white border border-zinc-200 rounded-3xl p-6">
               <label className="flex items-start gap-4 cursor-pointer">
                 <input
                   type="checkbox"
@@ -531,7 +531,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             </div>
 
             {activeSession && requiresSignature(activeSession) && (
-              <div className="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4">
+              <div className="bg-white border border-zinc-200 rounded-3xl p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <PenLine size={18} className="text-brand shrink-0" />
                   <div>
@@ -548,7 +548,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     onChange={(e) => setSignatureName(e.target.value)}
                     placeholder="Full Legal Name"
                     disabled={loadingContent}
-                    className="w-full px-4 py-3 border-b-2 border-zinc-300 focus:border-brand bg-zinc-50 rounded-t-lg text-lg outline-none transition-colors"
+                    className="w-full p-4 border-2 border-zinc-100 focus:border-brand/30 bg-zinc-50 rounded-2xl text-lg outline-none transition-colors font-bold"
                     style={{ fontFamily: "'Caveat', 'Dancing Script', cursive", fontSize: '1.5rem' }}
                   />
                   <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-wider font-bold">
@@ -614,7 +614,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Tier 1 Complete Banner */}
       {tier1Complete && !tier2CoreComplete && (
-        <div className="bg-brand/5 border border-brand/20 p-5 rounded-2xl flex items-center gap-4">
+        <div className="bg-brand/5 border border-brand/20 p-5 rounded-3xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center shadow-elevation-1 shrink-0">
             <CheckCircle2 size={20} />
           </div>
@@ -627,7 +627,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* Core Baseline Complete Banner */}
       {tier2CoreComplete && (
-        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center gap-4">
+        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-3xl flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-elevation-1 shrink-0">
             <Award size={20} />
           </div>
@@ -643,13 +643,13 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* Header with progress */}
-      <div className="bg-white border border-zinc-100 p-8 md:p-8 rounded-2xl shadow-elevation-1 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+      <div className="bg-white border border-zinc-100 p-8 md:p-8 rounded-card-lg shadow-elevation-1 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
           <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
              TRAINING ACADEMY
           </div>
           <h2 className="text-2xl font-black text-zinc-900 tracking-tight">HMC Training</h2>
-          <p className="text-zinc-500 mt-2 font-bold text-lg leading-relaxed">
+          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
               <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
@@ -657,7 +657,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </p>
         </div>
 
-        <div className="w-full md:w-72 bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-4">
+        <div className="w-full md:w-72 bg-zinc-50 p-6 rounded-3xl border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-4">
           {/* Tier 1 Progress */}
           <div className="flex items-center gap-4 w-full">
             <div className="relative w-16 h-16">
@@ -693,7 +693,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       </div>
 
       {/* ===== TIER 1: ORIENTATION ===== */}
-      <div className="border border-zinc-100 rounded-2xl overflow-hidden">
+      <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
         <button onClick={() => toggleTier('tier1')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
           <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center text-sm font-black shrink-0">1</div>
           <div className="flex-1 text-left">
@@ -758,7 +758,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
       {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete) ===== */}
       {!isGovernanceRole && tier1Complete && (
-        <div className="border border-zinc-100 rounded-2xl overflow-hidden">
+        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
           <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center text-sm font-black shrink-0">2</div>
             <div className="flex-1 text-left">
@@ -823,7 +823,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div className="border border-zinc-100 rounded-2xl overflow-hidden">
+        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
           <button onClick={() => toggleTier('tier3')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black shrink-0">3</div>
             <div className="flex-1 text-left">
@@ -840,7 +840,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 const isExpanded = expandedTiers[`prog_${section.program}`];
 
                 return (
-                  <div key={section.program} className="border border-zinc-100 rounded-2xl overflow-hidden">
+                  <div key={section.program} className="border border-zinc-100 rounded-3xl shadow-elevation-1 overflow-hidden">
                     <button onClick={() => toggleTier(`prog_${section.program}`)} className="w-full flex items-center gap-4 p-5 hover:bg-zinc-50/50 transition-colors">
                       <div className="flex-1 text-left">
                         <h4 className="text-lg font-black text-zinc-800">{section.title}</h4>
@@ -871,7 +871,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== ROLE-SPECIFIC TRAINING ===== */}
       {roleModules.length > 0 && tier1Complete && (
-        <div className="border border-zinc-100 rounded-2xl overflow-hidden">
+        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
           <button onClick={() => toggleTier('role')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
               <ShieldCheck size={20} />
@@ -894,7 +894,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div className="border border-zinc-100 rounded-2xl overflow-hidden">
+        <div className="border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
           <button onClick={() => toggleTier('tier4')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black shrink-0">4</div>
             <div className="flex-1 text-left">
@@ -936,8 +936,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             Required for all Licensed Medical Professionals. Complete document review with signatures and upload your credentials before accessing clinical stations.
           </p>
           {!tier1Complete ? (
-            <div className="p-8 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
-              <p className="text-zinc-400 font-bold">Complete Orientation training above to unlock Clinical Onboarding.</p>
+            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center">
+              <p className="text-zinc-400 font-bold text-sm">Complete Orientation training above to unlock Clinical Onboarding.</p>
             </div>
           ) : (
             <ClinicalOnboarding user={user} onUpdate={onUpdate} />
@@ -948,7 +948,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* ===== QUIZ/ASSESSMENT MODAL ===== */}
       {quizMode && activeSession && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-           <div className="bg-white p-8 rounded-2xl max-w-5xl w-full space-y-10 shadow-elevation-3 border border-zinc-100 max-h-[90vh] overflow-y-auto">
+           <div className="bg-white p-8 rounded-modal max-w-5xl w-full space-y-10 shadow-elevation-3 border border-zinc-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-4">
                    <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
@@ -963,7 +963,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               {/* Video flow */}
               {quizStage === 'video' && activeSession?.embed ? (
                 <div className="space-y-8 animate-in fade-in">
-                  <div className="aspect-video bg-brand rounded-2xl overflow-hidden shadow-elevation-3 relative">
+                  <div className="aspect-video bg-brand rounded-3xl overflow-hidden shadow-elevation-3 relative">
                     {videoLoading && !videoError && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-brand z-10">
                         <Loader2 size={48} className="text-white animate-spin mb-4" />
@@ -1053,7 +1053,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                   <h5 className="text-lg font-black text-zinc-900 pt-4 border-t">Key Concepts to Review:</h5>
                   <div className="space-y-4">
                     {quizData?.keyConcepts?.map((item: { concept: string, description: string }, i: number) => (
-                      <div key={i} className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                      <div key={i} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 shadow-elevation-1">
                         <p className="font-black text-zinc-800 text-sm">{item.concept}</p>
                         <p className="text-sm text-zinc-500 mt-1">{item.description}</p>
                       </div>
@@ -1066,10 +1066,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                 </div>
               ) : quizStage === 'question' ? (
                 <div className="animate-in fade-in">
-                  <div className="space-y-4 bg-zinc-50 p-8 rounded-2xl border border-zinc-100 shadow-inner">
+                  <div className="space-y-4 bg-zinc-50 p-8 rounded-3xl border border-zinc-100 shadow-inner">
                      <p className="text-zinc-900 font-black text-xl leading-tight">"{quizData?.question}"</p>
                   </div>
-                  <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border border-zinc-100 rounded-2xl p-6 font-bold outline-none mt-6" placeholder="Your response..." />
+                  <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border-2 border-zinc-100 rounded-2xl p-4 font-bold text-sm outline-none focus:border-brand/30 mt-6" placeholder="Your response..." />
                   {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-bold">{submitError}</p>}
                   <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
                      {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <div className="w-2 h-2 rounded-full bg-white" />}
@@ -1084,7 +1084,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* Core Volunteer Training Completion Modal */}
       {showCompletionMessage && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-          <div className="bg-white p-8 rounded-2xl max-w-2xl w-full text-center shadow-elevation-3 border border-zinc-100 animate-in zoom-in-95">
+          <div className="bg-white p-8 rounded-modal max-w-2xl w-full text-center shadow-elevation-3 border border-zinc-100 animate-in zoom-in-95">
             <div className="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-8 shadow-elevation-2">
               <Award size={48} />
             </div>

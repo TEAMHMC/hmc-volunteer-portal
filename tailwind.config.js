@@ -25,10 +25,10 @@ module.exports = {
         'elevation-4': '0 24px 48px -8px rgba(0,0,0,0.12), 0 8px 16px -4px rgba(0,0,0,0.06)',
       },
       borderRadius: {
-        'card': '20px',
-        'card-lg': '28px',
+        'card': '32px',
+        'card-lg': '40px',
         'modal': '24px',
-        'container': '32px',
+        'container': '48px',
       },
     },
   },

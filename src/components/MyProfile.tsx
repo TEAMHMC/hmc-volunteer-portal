@@ -161,7 +161,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Weekly Availability Reminder Banner */}
       {showReminderBanner && (
-        <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center justify-between animate-in slide-in-from-top">
+        <div className="bg-amber-50 border border-amber-200 p-6 rounded-card-lg shadow-elevation-1 flex items-center justify-between animate-in slide-in-from-top">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
               <Bell size={24} />
@@ -203,7 +203,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 type="text"
                 value={profileData.name}
                 onChange={e => setProfileData({...profileData, name: e.target.value})}
-                className="text-2xl font-black text-zinc-900 tracking-tight bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-2 outline-none focus:bg-white transition-all w-full max-w-md"
+                className="text-2xl font-black text-zinc-900 tracking-tight bg-zinc-50 border-2 border-zinc-100 rounded-2xl px-4 py-2 outline-none focus:border-brand/30 transition-all w-full max-w-md"
                 placeholder="Your Name"
               />
             ) : (
@@ -219,15 +219,15 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
-          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
+          <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
              <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Profile Details</h3>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Contact</label>
                    {isEditing ? (
                      <div className="space-y-4">
-                       <input type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-6 py-4 font-bold text-sm outline-none focus:bg-white transition-all" placeholder="Email" />
-                       <input type="tel" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: formatPhoneNumber(e.target.value)})} className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-6 py-4 font-bold text-sm outline-none focus:bg-white transition-all" placeholder="Phone" />
+                       <input type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" placeholder="Email" />
+                       <input type="tel" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: formatPhoneNumber(e.target.value)})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" placeholder="Phone" />
                      </div>
                    ) : (
                      <div className="space-y-4">
@@ -252,31 +252,31 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 </div>
              </div>
           </div>
-          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
+          <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Availability</h3>
             {isEditing ? (
                  <div className="space-y-6">
                     <div>
-                        <label className="text-sm font-bold text-zinc-600 mb-3 block">Available Days & Hours</label>
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Available Days & Hours</label>
                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`py-4 rounded-xl text-[10px] font-black border transition-all ${profileData.availDays?.includes(day) ? 'bg-brand text-white border-brand' : 'bg-white border-zinc-200'}`}>{day}</button>)}
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`py-4 rounded-2xl text-[10px] font-black border transition-all ${profileData.availDays?.includes(day) ? 'bg-brand text-white border-brand' : 'bg-white border-zinc-200'}`}>{day}</button>)}
                         </div>
                         {profileData.availDays.length > 0 && (
                           <div className="space-y-3">
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].filter(d => profileData.availDays.includes(d)).map(day => (
-                              <div key={day} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                              <div key={day} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-3xl border border-zinc-100">
                                 <span className="text-xs font-black text-zinc-700 w-10 shrink-0">{day}</span>
-                                <input type="time" value={profileData.dayTimeSlots[day]?.start || '09:00'} onChange={e => updateDayTime(day, 'start', e.target.value)} className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm font-bold text-zinc-700 w-32" />
+                                <input type="time" value={profileData.dayTimeSlots[day]?.start || '09:00'} onChange={e => updateDayTime(day, 'start', e.target.value)} className="bg-zinc-50 border-2 border-zinc-100 rounded-2xl px-3 py-2 text-sm font-bold text-zinc-700 w-32" />
                                 <span className="text-xs text-zinc-400 font-bold">to</span>
-                                <input type="time" value={profileData.dayTimeSlots[day]?.end || '17:00'} onChange={e => updateDayTime(day, 'end', e.target.value)} className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm font-bold text-zinc-700 w-32" />
+                                <input type="time" value={profileData.dayTimeSlots[day]?.end || '17:00'} onChange={e => updateDayTime(day, 'end', e.target.value)} className="bg-zinc-50 border-2 border-zinc-100 rounded-2xl px-3 py-2 text-sm font-bold text-zinc-700 w-32" />
                               </div>
                             ))}
                           </div>
                         )}
                     </div>
                     <div>
-                        <label className="text-sm font-bold text-zinc-600 mb-3 block">Timezone</label>
-                        <select value={profileData.timezone} onChange={e => setProfileData(prev => ({ ...prev, timezone: e.target.value }))} className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-bold text-zinc-700">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Timezone</label>
+                        <select value={profileData.timezone} onChange={e => setProfileData(prev => ({ ...prev, timezone: e.target.value }))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
                           <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
                           <option value="America/Denver">Mountain (Denver)</option>
                           <option value="America/Chicago">Central (Chicago)</option>
@@ -286,9 +286,9 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                         </select>
                     </div>
                      <div>
-                        <label className="text-sm font-bold text-zinc-600 mb-3 block">Time Off / Unavailable Dates</label>
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Time Off / Unavailable Dates</label>
                          <div className="flex gap-2">
-                            <input type="date" value={newUnavailableDate} onChange={e => setNewUnavailableDate(e.target.value)} className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2" />
+                            <input type="date" value={newUnavailableDate} onChange={e => setNewUnavailableDate(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
                             <button onClick={addUnavailableDate} className="px-4 py-2 bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide"><Plus size={16}/></button>
                          </div>
                          <div className="flex flex-wrap gap-2 mt-4">
@@ -315,7 +315,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                                 return `${h12}:${m} ${ampm}`;
                               };
                               return (
-                                <div key={day} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                                <div key={day} className="flex items-center gap-4 p-3 bg-zinc-50 rounded-3xl border border-zinc-100">
                                   <span className="text-xs font-black text-zinc-900 w-10">{day}</span>
                                   <span className="text-sm font-bold text-zinc-600 flex items-center gap-1.5">
                                     <Clock size={12} className="text-zinc-400" />
@@ -326,7 +326,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                             })}
                           </div>
                         ) : (
-                          <p className="text-xs text-zinc-400 italic">No days selected.</p>
+                          <p className="text-zinc-400 font-bold text-sm">No days selected.</p>
                         )}
                         {profileData.timezone && (
                           <p className="text-[10px] text-zinc-400 font-bold mt-3 flex items-center gap-1.5"><Globe size={12} /> {profileData.timezone.replace('_', ' ')}</p>
@@ -335,7 +335,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                     <div>
                         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2 mb-2 block">Upcoming Time Off</label>
                         <div className="flex flex-wrap gap-2">
-                            {profileData.unavailableDates.length > 0 ? profileData.unavailableDates.map(date => <span key={date} className="px-3 py-1 bg-zinc-100 text-zinc-700 rounded-full font-bold text-xs">{date}</span>) : <p className="text-xs text-zinc-400 italic">No dates specified.</p>}
+                            {profileData.unavailableDates.length > 0 ? profileData.unavailableDates.map(date => <span key={date} className="px-3 py-1 bg-zinc-100 text-zinc-700 rounded-full font-bold text-xs">{date}</span>) : <p className="text-zinc-400 font-bold text-sm">No dates specified.</p>}
                         </div>
                     </div>
                  </div>
@@ -344,7 +344,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         </div>
 
         <div className="space-y-10">
-          <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-10">
+          <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 space-y-10">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Legacy Badges</h3>
             <div className="grid grid-cols-1 gap-4">
               {currentUser.achievements.length === 0 ? <p className="text-zinc-400 text-sm font-bold italic">No badges earned yet.</p> : currentUser.achievements.map(ach => (

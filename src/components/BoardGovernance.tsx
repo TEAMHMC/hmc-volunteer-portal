@@ -358,14 +358,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
       {/* Header */}
       <header>
         <h1 className="text-2xl font-black text-zinc-900 tracking-tight">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h1>
-        <p className="text-zinc-500 mt-2 font-bold text-lg">
+        <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
           {meetingsOnly ? 'Schedule and manage team meetings.' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal.`}
         </p>
       </header>
 
       {/* Navigation Tabs — hidden in meetingsOnly mode */}
       {!meetingsOnly && (
-        <div className="flex gap-2 bg-zinc-100 p-2 rounded-2xl">
+        <div className="flex gap-2 bg-zinc-100 p-2 rounded-card-lg">
           {[
             { id: 'meetings', label: 'Meetings', icon: CalendarDays },
             { id: 'forms', label: 'Required Forms', icon: FileSignature },
@@ -375,7 +375,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold text-sm transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-3xl font-bold text-sm transition-all ${
                 activeTab === tab.id
                   ? 'bg-white text-zinc-900 shadow-elevation-2'
                   : 'text-zinc-500 hover:text-zinc-700'
@@ -412,33 +412,33 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Upcoming Meetings */}
-          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
             <div className="p-8 border-b border-zinc-100">
-              <h3 className="text-xl font-black text-zinc-900">Upcoming Meetings</h3>
+              <h3 className="text-xl font-bold text-zinc-900">Upcoming Meetings</h3>
             </div>
             <div className="divide-y divide-zinc-100">
               {meetings.filter(m => m.status === 'scheduled').length === 0 && (
                 <div className="p-8 text-center text-zinc-400">
                   <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
-                  <p className="font-bold">No upcoming meetings scheduled</p>
-                  <p className="text-sm mt-1">New meetings will appear here once scheduled.</p>
+                  <p className="text-zinc-400 font-bold text-sm">No upcoming meetings scheduled</p>
+                  <p className="text-sm text-zinc-600 mt-1">New meetings will appear here once scheduled.</p>
                 </div>
               )}
               {meetings.filter(m => m.status === 'scheduled').map(meeting => (
                 <div key={meeting.id} className="p-6 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
+                      <div className="w-12 h-12 rounded-3xl bg-brand/10 flex items-center justify-center text-brand">
                         <CalendarDays size={24} />
                       </div>
                       <div>
                         <h4 className="font-bold text-zinc-900">{meeting.title}</h4>
-                        <p className="text-sm text-zinc-500 mt-1">
+                        <p className="text-sm text-zinc-600 mt-1">
                           {new Date(meeting.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at {meeting.time}
                         </p>
                         {meeting.agenda && meeting.agenda.length > 0 && (
                           <div className="mt-3">
-                            <p className="text-xs font-bold text-zinc-400 uppercase mb-2">Agenda</p>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Agenda</p>
                             <ul className="text-sm text-zinc-600 space-y-1">
                               {meeting.agenda.slice(0, 4).map((item, idx) => (
                                 <li key={idx} className="flex items-center gap-2">
@@ -455,7 +455,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                         {/* Show who's attending */}
                         {meeting.rsvps.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <span className="text-xs font-bold text-zinc-400">RSVPs:</span>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">RSVPs:</span>
                             {meeting.rsvps.map((r, idx) => (
                               <span key={idx} className={`text-xs px-2 py-0.5 rounded-full font-bold ${
                                 r.status === 'attending' ? 'bg-emerald-100 text-emerald-700' :
@@ -525,23 +525,23 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Past Meetings with Minutes */}
-          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
             <div className="p-8 border-b border-zinc-100">
-              <h3 className="text-xl font-black text-zinc-900">Meeting Minutes</h3>
-              <p className="text-sm text-zinc-500 mt-1">Review and approve minutes from past meetings</p>
+              <h3 className="text-xl font-bold text-zinc-900">Meeting Minutes</h3>
+              <p className="text-sm text-zinc-600 mt-1">Review and approve minutes from past meetings</p>
             </div>
             <div className="divide-y divide-zinc-100">
               {meetings.filter(m => m.status === 'completed').length === 0 && (
                 <div className="p-8 text-center text-zinc-400">
                   <FileText size={40} className="mx-auto mb-4 opacity-30" />
-                  <p className="font-bold">No completed meetings yet</p>
+                  <p className="text-zinc-400 font-bold text-sm">No completed meetings yet</p>
                 </div>
               )}
               {meetings.filter(m => m.status === 'completed').map(meeting => (
                 <div key={meeting.id} className="p-6 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      <div className={`w-10 h-10 rounded-3xl flex items-center justify-center ${
                         meeting.minutesStatus === 'approved' ? 'bg-emerald-100 text-emerald-600' :
                         meeting.minutesStatus === 'draft' ? 'bg-amber-100 text-amber-600' :
                         'bg-zinc-100 text-zinc-400'
@@ -552,7 +552,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                       </div>
                       <div>
                         <h4 className="font-bold text-zinc-900">{meeting.title}</h4>
-                        <p className="text-sm text-zinc-500">
+                        <p className="text-sm text-zinc-600">
                           {new Date(meeting.date + 'T00:00:00').toLocaleDateString()} — Minutes: {meeting.minutesStatus || 'Pending'}
                         </p>
                       </div>
@@ -581,14 +581,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             return (
               <div
                 key={form.id}
-                className={`p-8 rounded-2xl border-2 transition-all ${
+                className={`p-8 rounded-card-lg border-2 shadow-elevation-1 transition-all ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' :
                   form.required ? 'border-rose-200 bg-rose-50/30' : 'border-zinc-100 bg-white'
                 }`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    <div className={`w-10 h-10 rounded-3xl flex items-center justify-center ${
                       isSigned ? 'bg-emerald-100 text-emerald-600' :
                       form.required ? 'bg-rose-100 text-rose-600' : 'bg-zinc-100 text-zinc-500'
                     }`}>
@@ -602,9 +602,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     )}
                   </div>
                 </div>
-                <h4 className="text-lg font-black text-zinc-900">{form.title}</h4>
-                <p className="text-sm text-zinc-500 mt-2 leading-relaxed">{form.description}</p>
-                <p className="text-xs font-bold text-zinc-400 mt-3">{form.dueDate}</p>
+                <h4 className="text-xl font-bold text-zinc-900">{form.title}</h4>
+                <p className="text-sm text-zinc-600 mt-2 leading-relaxed">{form.description}</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mt-3">{form.dueDate}</p>
                 {isSigned && (
                   <p className="text-xs text-emerald-600 font-bold mt-2">Signed on {new Date(signedAt).toLocaleDateString()}</p>
                 )}
@@ -640,13 +640,13 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             <div
               key={doc.id}
               onClick={() => setShowDocViewer(doc.id)}
-              className="p-8 rounded-2xl border border-zinc-100 bg-white hover:shadow-elevation-2 hover:border-zinc-200 transition-all cursor-pointer group"
+              className="p-8 rounded-card-lg border border-zinc-100 bg-white shadow-elevation-1 hover:shadow-elevation-2 hover:border-zinc-200 transition-all cursor-pointer group"
             >
-              <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
+              <div className="w-12 h-12 rounded-3xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                 <FileText size={24} />
               </div>
-              <h4 className="font-black text-zinc-900">{doc.title}</h4>
-              <p className="text-sm text-zinc-500 mt-2 line-clamp-2">{doc.description}</p>
+              <h4 className="text-xl font-bold text-zinc-900">{doc.title}</h4>
+              <p className="text-sm text-zinc-600 mt-2 line-clamp-2">{doc.description}</p>
               <div className="flex items-center gap-2 mt-4 text-sm font-bold text-brand">
                 View Document <ChevronRight size={14} />
               </div>
@@ -660,14 +660,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
         <div className="space-y-8">
           {/* Goal Setting */}
           {giveOrGet.goal === 0 && (
-            <div className="bg-brand/5 border border-brand/20 p-8 rounded-2xl">
-              <h4 className="font-black text-zinc-900 mb-2">Set Your Annual Commitment</h4>
-              <p className="text-sm text-zinc-500 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
+            <div className="bg-brand/5 border border-brand/20 p-8 rounded-card-lg shadow-elevation-1">
+              <h4 className="text-xl font-bold text-zinc-900 mb-2">Set Your Annual Commitment</h4>
+              <p className="text-sm text-zinc-600 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
               <div className="flex gap-3">
                 <input
                   type="number"
                   placeholder="e.g. 5000"
-                  className="flex-1 px-4 py-3 border border-zinc-200 rounded-full text-sm"
+                  className="flex-1 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       const val = parseInt((e.target as HTMLInputElement).value);
@@ -691,10 +691,10 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Progress Overview */}
           {giveOrGet.goal > 0 && (
-            <div className="bg-gradient-to-br from-brand to-brand-hover p-8 rounded-2xl text-white">
+            <div className="bg-gradient-to-br from-brand to-brand-hover p-8 rounded-card-lg text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-2xl font-black">Your Give or Get Progress</h3>
+                  <h3 className="text-2xl font-black tracking-tight">Your Give or Get Progress</h3>
                   <p className="text-white/70 mt-1">Annual commitment: ${giveOrGet.goal.toLocaleString()}</p>
                 </div>
                 <div className="text-right">
@@ -711,17 +711,17 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-2xl border border-zinc-100">
+            <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <div className="w-12 h-12 rounded-3xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Gift size={24} />
                 </div>
                 <div>
-                  <h4 className="font-black text-zinc-900">Personal Giving</h4>
-                  <p className="text-sm text-zinc-500">Your direct contributions</p>
+                  <h4 className="text-xl font-bold text-zinc-900">Personal Giving</h4>
+                  <p className="text-sm text-zinc-600">Your direct contributions</p>
                 </div>
               </div>
-              <p className="text-2xl font-black text-emerald-600">${giveOrGet.personalContribution.toLocaleString()}</p>
+              <p className="text-3xl font-black text-emerald-600">${giveOrGet.personalContribution.toLocaleString()}</p>
               <div className="flex gap-3 mt-6">
                 <a
                   href={DONATE_URL}
@@ -741,17 +741,17 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-zinc-100">
+            <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
+                <div className="w-12 h-12 rounded-3xl bg-brand/10 flex items-center justify-center text-brand">
                   <TrendingUp size={24} />
                 </div>
                 <div>
-                  <h4 className="font-black text-zinc-900">Fundraised</h4>
-                  <p className="text-sm text-zinc-500">From your network</p>
+                  <h4 className="text-xl font-bold text-zinc-900">Fundraised</h4>
+                  <p className="text-sm text-zinc-600">From your network</p>
                 </div>
               </div>
-              <p className="text-2xl font-black text-brand">${giveOrGet.fundraised.toLocaleString()}</p>
+              <p className="text-3xl font-black text-brand">${giveOrGet.fundraised.toLocaleString()}</p>
               <button
                 onClick={() => setShowDonationModal('fundraised')}
                 className="mt-6 w-full py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide hover:bg-zinc-200 transition-colors"
@@ -762,11 +762,11 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Prospects */}
-          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
             <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
               <div>
-                <h4 className="font-black text-zinc-900">Fundraising Prospects</h4>
-                <p className="text-sm text-zinc-500 mt-1">Track potential donors and outreach</p>
+                <h4 className="text-xl font-bold text-zinc-900">Fundraising Prospects</h4>
+                <p className="text-sm text-zinc-600 mt-1">Track potential donors and outreach</p>
               </div>
               <button
                 onClick={() => setShowProspectModal(true)}
@@ -780,8 +780,8 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               {giveOrGet.prospects.length === 0 && (
                 <div className="p-8 text-center text-zinc-400">
                   <Target size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-bold text-sm">No prospects yet</p>
-                  <p className="text-xs mt-1">Add potential donors to track your outreach</p>
+                  <p className="text-zinc-400 font-bold text-sm">No prospects yet</p>
+                  <p className="text-sm text-zinc-600 mt-1">Add potential donors to track your outreach</p>
                 </div>
               )}
               {giveOrGet.prospects.map((prospect) => (
@@ -796,7 +796,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-zinc-500">${prospect.amount.toLocaleString()} potential{prospect.relationship ? ` · ${prospect.relationship}` : ''}</p>
+                      <p className="text-sm text-zinc-600">${prospect.amount.toLocaleString()} potential{prospect.relationship ? ` · ${prospect.relationship}` : ''}</p>
                       {(prospect.email || prospect.phone) && (
                         <p className="text-xs text-zinc-400 mt-0.5">
                           {prospect.email}{prospect.email && prospect.phone ? ' · ' : ''}{prospect.phone}
@@ -853,9 +853,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Donation History */}
           {(giveOrGet.donationLog?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+            <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
               <div className="p-8 border-b border-zinc-100">
-                <h4 className="font-black text-zinc-900">Donation Log</h4>
+                <h4 className="text-xl font-bold text-zinc-900">Donation Log</h4>
               </div>
               <div className="divide-y divide-zinc-100">
                 {giveOrGet.donationLog.map((entry, idx) => (
@@ -977,16 +977,16 @@ const FormSigningModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black text-zinc-900">{form.title}</h3>
-            <p className="text-sm text-zinc-500">{form.dueDate}</p>
+            <h3 className="text-xl font-bold text-zinc-900">{form.title}</h3>
+            <p className="text-sm text-zinc-600">{form.dueDate}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 overflow-y-auto flex-1">
-          <div className="bg-zinc-50 p-6 rounded-2xl font-mono text-sm whitespace-pre-wrap leading-relaxed mb-6">
+          <div className="bg-zinc-50 p-6 rounded-3xl font-mono text-sm whitespace-pre-wrap leading-relaxed mb-6">
             {formContents[formId] || 'Form content loading...'}
           </div>
           {!isSigned && (
@@ -999,7 +999,7 @@ const FormSigningModal: React.FC<{
               </div>
               <div className="mb-6">
                 <p className="text-sm font-bold text-zinc-700 mb-3">Your Signature</p>
-                <div className="border-2 border-dashed border-zinc-200 rounded-2xl overflow-hidden">
+                <div className="border-2 border-dashed border-zinc-200 rounded-3xl overflow-hidden">
                   <SignaturePad ref={signatureRef} onEnd={() => setHasSignature(true)} canvasProps={{ className: 'w-full h-40' }} />
                 </div>
                 <button onClick={() => { signatureRef.current?.clear(); setHasSignature(false); }} className="text-sm text-zinc-500 hover:text-zinc-700 mt-2">Clear signature</button>
@@ -1007,7 +1007,7 @@ const FormSigningModal: React.FC<{
             </>
           )}
           {isSigned && (
-            <div className="bg-emerald-50 p-4 rounded-2xl flex items-center justify-between">
+            <div className="bg-emerald-50 p-4 rounded-3xl flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <CheckCircle className="text-emerald-600" size={24} />
                 <div>
@@ -1056,29 +1056,29 @@ const MinutesReviewModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-3xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-3xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black text-zinc-900">Meeting Minutes</h3>
-            <p className="text-sm text-zinc-500">{meeting.title} — {new Date(meeting.date + 'T00:00:00').toLocaleDateString()}</p>
+            <h3 className="text-xl font-bold text-zinc-900">Meeting Minutes</h3>
+            <p className="text-sm text-zinc-600">{meeting.title} — {new Date(meeting.date + 'T00:00:00').toLocaleDateString()}</p>
           </div>
           <div className="flex gap-2">
             {meeting.minutesContent && !editing && (
-              <button onClick={() => setEditing(true)} className="p-2 hover:bg-zinc-100 rounded-xl flex items-center gap-1 text-sm font-bold">
+              <button onClick={() => setEditing(true)} className="p-2 hover:bg-zinc-100 rounded-3xl flex items-center gap-1 text-sm font-bold">
                 <PenLine size={16} /> Edit
               </button>
             )}
-            <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+            <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
           </div>
         </div>
         <div className="p-6 overflow-y-auto flex-1">
           {editing ? (
             <div className="space-y-4">
-              <p className="text-xs font-bold text-zinc-400 uppercase">Edit minutes using the formal template below:</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Edit minutes using the formal template below:</p>
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="w-full p-4 border border-zinc-200 rounded-2xl font-mono text-sm leading-relaxed resize-none"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-mono text-sm leading-relaxed resize-none outline-none focus:border-brand/30"
                 rows={30}
               />
               <div className="flex gap-3">
@@ -1088,7 +1088,7 @@ const MinutesReviewModal: React.FC<{
             </div>
           ) : (
             <>
-              <div className="bg-zinc-50 p-6 rounded-2xl font-mono text-sm whitespace-pre-wrap leading-relaxed mb-6">
+              <div className="bg-zinc-50 p-6 rounded-3xl font-mono text-sm whitespace-pre-wrap leading-relaxed mb-6">
                 {meeting.minutesContent}
               </div>
               {meeting.minutesStatus !== 'approved' && (
@@ -1098,7 +1098,7 @@ const MinutesReviewModal: React.FC<{
                       value={revisionNote}
                       onChange={(e) => setRevisionNote(e.target.value)}
                       placeholder="Describe the revisions needed..."
-                      className="w-full p-4 border border-zinc-200 rounded-2xl resize-none h-32"
+                      className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm resize-none h-32 outline-none focus:border-brand/30"
                     />
                     <div className="flex gap-3">
                       <button onClick={() => setShowRevisionForm(false)} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
@@ -1133,21 +1133,21 @@ const EmergencyMeetingModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
+            <div className="w-10 h-10 rounded-3xl bg-rose-100 flex items-center justify-center text-rose-600">
               <AlertTriangle size={20} />
             </div>
-            <h3 className="text-xl font-black text-zinc-900">Request Emergency Meeting</h3>
+            <h3 className="text-xl font-bold text-zinc-900">Request Emergency Meeting</h3>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6">
           <p className="text-sm text-zinc-600 mb-4">
             Emergency meetings should only be requested for urgent matters that cannot wait until the next scheduled meeting. The Board Chair and volunteer@healthmatters.clinic will be notified immediately.
           </p>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Describe the urgent matter requiring an emergency meeting..." className="w-full p-4 border border-zinc-200 rounded-2xl resize-none h-32 mb-4" />
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Describe the urgent matter requiring an emergency meeting..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm resize-none h-32 mb-4 outline-none focus:border-brand/30" />
           <div className="flex gap-3">
             <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
             <button onClick={() => onSubmit(reason)} disabled={!reason.trim()} className="flex-1 py-3 bg-rose-600 border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2">Submit Request</button>
@@ -1174,38 +1174,38 @@ const MeetingFormModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-xl font-black text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+          <h3 className="text-xl font-bold text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="text-sm font-bold text-zinc-700">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="e.g. Q2 Board Meeting" />
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Title</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. Q2 Board Meeting" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-bold text-zinc-700">Date</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
             </div>
             <div>
-              <label className="text-sm font-bold text-zinc-700">Time</label>
-              <input value={time} onChange={e => setTime(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Time</label>
+              <input value={time} onChange={e => setTime(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
             </div>
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Type</label>
-            <select value={type} onChange={e => setType(e.target.value as any)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Type</label>
+            <select value={type} onChange={e => setType(e.target.value as any)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
               <option value="board">Board Meeting</option>
               <option value="committee">Committee Meeting</option>
               <option value="cab">Community Advisory Board</option>
             </select>
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Google Meet Link</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Google Meet Link</label>
             <div className="flex gap-2 mt-1">
-              <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="flex-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="https://meet.google.com/..." />
+              <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="flex-1 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="https://meet.google.com/..." />
               <button
                 onClick={() => window.open('https://meet.google.com/new', '_blank')}
                 className="px-4 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors flex items-center gap-2 shrink-0"
@@ -1218,8 +1218,8 @@ const MeetingFormModal: React.FC<{
             <p className="text-xs text-zinc-400 mt-1.5">Click "Create" to open Google Meet, then copy the link back here.</p>
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Agenda Items (one per line)</label>
-            <textarea value={agendaText} onChange={e => setAgendaText(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-24" placeholder="Call to Order&#10;Financial Report&#10;New Business" />
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Agenda Items (one per line)</label>
+            <textarea value={agendaText} onChange={e => setAgendaText(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm resize-none h-24 outline-none focus:border-brand/30" placeholder="Call to Order&#10;Financial Report&#10;New Business" />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
@@ -1254,31 +1254,31 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black text-zinc-900">Add Prospect</h3>
-            <p className="text-sm text-zinc-500">Track a potential donor or sponsor</p>
+            <h3 className="text-xl font-bold text-zinc-900">Add Prospect</h3>
+            <p className="text-sm text-zinc-600">Track a potential donor or sponsor</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="text-sm font-bold text-zinc-700">Name / Organization *</label>
-              <input value={name} onChange={e => setName(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="e.g. Jane Smith or ABC Corp" />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Name / Organization *</label>
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. Jane Smith or ABC Corp" />
             </div>
             <div>
-              <label className="text-sm font-bold text-zinc-700">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="email@example.com" />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="email@example.com" />
             </div>
             <div>
-              <label className="text-sm font-bold text-zinc-700">Phone</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="(555) 555-5555" />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Phone</label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="(555) 555-5555" />
             </div>
             <div>
-              <label className="text-sm font-bold text-zinc-700">Prospect Type</label>
-              <select value={prospectType} onChange={e => setProspectType(e.target.value as Prospect['type'])} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm bg-white focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Prospect Type</label>
+              <select value={prospectType} onChange={e => setProspectType(e.target.value as Prospect['type'])} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
                 <option value="individual">Individual</option>
                 <option value="corporation">Corporation</option>
                 <option value="foundation">Foundation</option>
@@ -1288,17 +1288,17 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
               </select>
             </div>
             <div>
-              <label className="text-sm font-bold text-zinc-700">Potential Amount ($) *</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="e.g. 500" />
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Potential Amount ($) *</label>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. 500" />
             </div>
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Relationship / Connection</label>
-            <input value={relationship} onChange={e => setRelationship(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="e.g. Former colleague, church member, local business owner" />
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Relationship / Connection</label>
+            <input value={relationship} onChange={e => setRelationship(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. Former colleague, church member, local business owner" />
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Notes</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm resize-none h-20 focus:border-brand focus:ring-1 focus:ring-brand outline-none" placeholder="Any context, warm intro path, or next steps..." />
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm resize-none h-20 outline-none focus:border-brand/30" placeholder="Any context, warm intro path, or next steps..." />
           </div>
         </div>
         <div className="p-6 border-t border-zinc-100 flex gap-3">
@@ -1334,19 +1334,19 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-xl font-black text-zinc-900">Log {type === 'personal' ? 'Personal Donation' : 'Fundraising Activity'}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+          <h3 className="text-xl font-bold text-zinc-900">Log {type === 'personal' ? 'Personal Donation' : 'Fundraising Activity'}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="text-sm font-bold text-zinc-700">Amount ($)</label>
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="e.g. 250" />
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Amount ($)</label>
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. 250" />
           </div>
           <div>
-            <label className="text-sm font-bold text-zinc-700">Note (optional)</label>
-            <input value={note} onChange={e => setNote(e.target.value)} className="w-full mt-1 px-4 py-3 border border-zinc-200 rounded-xl text-sm" placeholder="e.g. Monthly recurring gift" />
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Note (optional)</label>
+            <input value={note} onChange={e => setNote(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. Monthly recurring gift" />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
@@ -1415,19 +1415,19 @@ www.healthmatters.clinic`;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black text-zinc-900">Fundraising Email Draft</h3>
-            <p className="text-sm text-zinc-500">For: {prospect.name}{prospect.email ? ` (${prospect.email})` : ''}</p>
+            <h3 className="text-xl font-bold text-zinc-900">Fundraising Email Draft</h3>
+            <p className="text-sm text-zinc-600">For: {prospect.name}{prospect.email ? ` (${prospect.email})` : ''}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 overflow-y-auto flex-1">
-          <div className="bg-zinc-50 p-6 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed mb-4 font-mono">
+          <div className="bg-zinc-50 p-6 rounded-3xl text-sm whitespace-pre-wrap leading-relaxed mb-4 font-mono">
             {emailBody}
           </div>
-          <div className="flex items-center gap-3 bg-brand/5 border border-brand/20 p-4 rounded-2xl mb-4">
+          <div className="flex items-center gap-3 bg-brand/5 border border-brand/20 p-4 rounded-3xl mb-4">
             <Link2 size={16} className="text-brand shrink-0" />
             <div className="flex-1">
               <p className="text-xs font-bold text-zinc-500">Donate Link</p>
@@ -1441,7 +1441,7 @@ www.healthmatters.clinic`;
             </button>
           </div>
           {logged && (
-            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs font-bold text-emerald-700">
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-3 rounded-3xl text-xs font-bold text-emerald-700">
               <Check size={14} /> Outreach logged for {prospect.name}
             </div>
           )}
@@ -1510,11 +1510,11 @@ const DocumentViewerModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black text-zinc-900">{doc.title}</h3>
-            <p className="text-sm text-zinc-500">{doc.description}</p>
+            <h3 className="text-xl font-bold text-zinc-900">{doc.title}</h3>
+            <p className="text-sm text-zinc-600">{doc.description}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -1524,7 +1524,7 @@ const DocumentViewerModal: React.FC<{
             >
               <Download size={16} /> Print / Save PDF
             </button>
-            <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={20} /></button>
+            <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
           </div>
         </div>
         <div className="p-6 overflow-y-auto flex-1" ref={contentRef}>
@@ -1551,11 +1551,11 @@ const DocumentViewerModal: React.FC<{
               </div>
             </div>
           ) : (
-            <div className="bg-zinc-50 p-8 rounded-2xl min-h-[400px] flex items-center justify-center">
+            <div className="bg-zinc-50 p-8 rounded-3xl min-h-[400px] flex items-center justify-center">
               <div className="text-center text-zinc-400">
                 <FileText size={64} className="mx-auto mb-4" />
-                <p className="font-bold">Document Unavailable</p>
-                <p className="text-sm">This document could not be loaded. Please try again later.</p>
+                <p className="text-zinc-400 font-bold text-sm">Document Unavailable</p>
+                <p className="text-sm text-zinc-600">This document could not be loaded. Please try again later.</p>
               </div>
             </div>
           )}

@@ -131,7 +131,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
                 </div>
                 <div>
                     <h3 className="font-black text-zinc-900">Event Reminder Cadence</h3>
-                    <p className="text-xs text-zinc-500">Configure the 5-stage automated reminder pipeline for all events.</p>
+                    <p className="text-sm text-zinc-600">Configure the 5-stage automated reminder pipeline for all events.</p>
                 </div>
             </div>
 
@@ -140,7 +140,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
                     const stage = stages[meta.id];
                     if (!stage) return null;
                     return (
-                        <div key={meta.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${stage.enabled ? 'bg-white border-zinc-200' : 'bg-zinc-50 border-zinc-100 opacity-60'}`}>
+                        <div key={meta.id} className={`flex items-center justify-between p-4 rounded-3xl border transition-all shadow-elevation-1 ${stage.enabled ? 'bg-white border-zinc-100' : 'bg-zinc-50 border-zinc-100 opacity-60'}`}>
                             <div className="flex items-center gap-4">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${stage.enabled ? 'bg-brand text-white' : 'bg-zinc-200 text-zinc-500'}`}>
                                     {meta.icon}
@@ -154,7 +154,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
                                 <select
                                     value={stage.channel}
                                     onChange={e => setStages(prev => ({ ...prev, [meta.id]: { ...prev[meta.id], channel: e.target.value as 'email' | 'sms' } }))}
-                                    className="text-xs border border-zinc-200 rounded-lg px-2 py-1 bg-white"
+                                    className="text-xs border-2 border-zinc-100 rounded-2xl px-2 py-1 bg-zinc-50 font-bold text-sm"
                                 >
                                     <option value="email">Email</option>
                                     <option value="sms">SMS</option>
@@ -248,21 +248,21 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                 </div>
                 <div>
                     <h3 className="font-black text-zinc-900">Street Medicine Outreach Cycles</h3>
-                    <p className="text-xs text-zinc-500">Monthly cycles auto-created 30 days before the 3rd Saturday. Manage training, attendance, and waitlists.</p>
+                    <p className="text-sm text-zinc-600">Monthly cycles auto-created 30 days before the 3rd Saturday. Manage training, attendance, and waitlists.</p>
                 </div>
             </div>
 
             {cycles.length === 0 ? (
-                <div className="text-center py-12 text-zinc-400">
-                    <Stethoscope size={32} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-bold">No SMO cycles yet. They'll be auto-created 30 days before the next 3rd Saturday.</p>
+                <div className="text-center py-12">
+                    <Stethoscope size={32} className="mx-auto mb-3 text-zinc-300" />
+                    <p className="text-zinc-400 font-bold text-sm">No SMO cycles yet. They'll be auto-created 30 days before the next 3rd Saturday.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {cycles.map(cycle => {
                         const isExpanded = expandedId === cycle.id;
                         return (
-                            <div key={cycle.id} className="border border-zinc-200 rounded-2xl overflow-hidden bg-white">
+                            <div key={cycle.id} className="border border-zinc-100 rounded-3xl overflow-hidden bg-white shadow-elevation-1">
                                 <button
                                     onClick={() => { setExpandedId(isExpanded ? null : cycle.id); setEditingLink(cycle.googleMeetLink || ''); }}
                                     className="w-full flex items-center justify-between p-5 text-left hover:bg-zinc-50 transition-colors"
@@ -289,7 +289,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                     <div className="border-t border-zinc-100 p-5 space-y-6">
                                         {/* Google Meet Link */}
                                         <div>
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Google Meet Link</label>
+                                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Google Meet Link</label>
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1 relative">
                                                     <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -298,7 +298,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                                         value={editingLink}
                                                         onChange={e => setEditingLink(e.target.value)}
                                                         placeholder="https://meet.google.com/..."
-                                                        className="w-full pl-9 pr-4 py-2.5 border border-zinc-200 rounded-xl text-sm focus:border-brand focus:outline-none"
+                                                        className="w-full pl-9 pr-4 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                                                     />
                                                 </div>
                                                 <button
@@ -313,7 +313,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
 
                                         {/* Volunteer Roster & Check-in */}
                                         <div>
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-3">
+                                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-3">
                                                 <Users size={12} className="inline mr-1" />
                                                 Registered Volunteers ({(cycle.registeredVolunteers || []).length})
                                             </label>
@@ -325,7 +325,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                                         const isLeadConfirmed = (cycle.leadConfirmed || []).includes(volId);
                                                         const isSelfReported = (cycle.selfReported || []).includes(volId);
                                                         return (
-                                                            <div key={volId} className="flex items-center justify-between py-2 px-3 rounded-xl bg-zinc-50">
+                                                            <div key={volId} className="flex items-center justify-between py-2 px-3 rounded-3xl bg-zinc-50">
                                                                 <div className="flex items-center gap-3">
                                                                     <span className="text-xs font-mono text-zinc-500">{volId.slice(0, 8)}...</span>
                                                                     {isSelfReported && !isLeadConfirmed && (
@@ -361,10 +361,10 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                         {/* Waitlist */}
                                         {cycle.waitlist.length > 0 && (
                                             <div>
-                                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Waitlist ({cycle.waitlist.length})</label>
+                                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Waitlist ({cycle.waitlist.length})</label>
                                                 <div className="space-y-1">
                                                     {cycle.waitlist.map((volId, idx) => (
-                                                        <div key={volId} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-amber-50">
+                                                        <div key={volId} className="flex items-center gap-3 py-1.5 px-3 rounded-2xl bg-amber-50">
                                                             <span className="text-xs font-bold text-amber-600">#{idx + 1}</span>
                                                             <span className="text-xs font-mono text-zinc-500">{volId.slice(0, 8)}...</span>
                                                         </div>
@@ -514,8 +514,8 @@ const AutomatedWorkflows: React.FC = () => {
                 </div>
             )}
             <header>
-                <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Automated Workflows</h1>
-                <p className="text-zinc-500 mt-2 font-bold text-lg">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
+                <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Automated Workflows</h1>
+                <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
             </header>
 
             {/* Tab Navigation */}
@@ -539,10 +539,10 @@ const AutomatedWorkflows: React.FC = () => {
             {/* Workflows Tab */}
             {activeTab === 'workflows' && (
                 <>
-                    <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
+                    <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
                         {/* Channel preference */}
                         <div className="mb-8 pb-8 border-b border-zinc-100">
-                            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Notification Channel</h3>
+                            <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-4">Notification Channel</h3>
                             <div className="flex items-center gap-3">
                                 {([
                                     { value: 'sms' as const, label: 'SMS', sublabel: '(recommended)', icon: MessageSquare },
@@ -566,7 +566,7 @@ const AutomatedWorkflows: React.FC = () => {
                             </div>
                         </div>
 
-                        <h3 className="text-lg font-bold text-zinc-900 mb-8 uppercase tracking-wider">Active & Inactive Workflows</h3>
+                        <h3 className="text-xl font-bold text-zinc-900 mb-8">Active & Inactive Workflows</h3>
                         <div className="divide-y divide-zinc-100">
                             {workflows.map(wf => (
                                 <div key={wf.id} className="py-6 flex items-center justify-between">
@@ -613,8 +613,8 @@ const AutomatedWorkflows: React.FC = () => {
 
                     {/* Recent Activity */}
                     {runs.length > 0 && (
-                        <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
-                            <h3 className="text-lg font-bold text-zinc-900 mb-6 uppercase tracking-wider flex items-center gap-3">
+                        <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
+                            <h3 className="text-xl font-bold text-zinc-900 mb-6 flex items-center gap-3">
                                 <History size={18} />
                                 Recent Activity
                             </h3>
@@ -641,14 +641,14 @@ const AutomatedWorkflows: React.FC = () => {
 
             {/* Event Reminder Cadence Tab */}
             {activeTab === 'cadence' && (
-                <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
+                <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
                     <ReminderCadencePanel showNotification={showNotification} />
                 </div>
             )}
 
             {/* SMO Monthly Cycle Tab */}
             {activeTab === 'smo' && (
-                <div className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1">
+                <div className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1">
                     <SMOCyclePanel showNotification={showNotification} />
                 </div>
             )}

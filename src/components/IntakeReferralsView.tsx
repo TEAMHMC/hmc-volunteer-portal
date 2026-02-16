@@ -85,17 +85,17 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
                 <div className="max-w-xl mx-auto space-y-6">
                     <form onSubmit={handleSearch}>
                          <div className="relative">
-                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-bold" />
+                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
                             <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
                         </div>
                     </form>
                     {searchResult === 'not_found' && (
-                        <div className="text-center p-8 bg-amber-50 rounded-xl border border-amber-200"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button></div>
+                        <div className="text-center p-8 bg-amber-50 rounded-3xl border border-amber-200 shadow-elevation-1"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button></div>
                     )}
                     {searchResult && searchResult !== 'not_found' && (
-                        <div className="p-8 bg-emerald-50 rounded-xl border border-emerald-200"><p className="text-xs font-bold text-emerald-800">Client Found</p><p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p><button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2"><Send size={14}/> Create Referral</button></div>
+                        <div className="p-8 bg-emerald-50 rounded-3xl border border-emerald-200 shadow-elevation-1"><p className="text-xs font-bold text-emerald-800">Client Found</p><p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p><button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2"><Send size={14}/> Create Referral</button></div>
                     )}
                 </div>
             )}
@@ -119,7 +119,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
         } catch(err) { toastService.error('Failed to save new client.'); } finally { setIsSaving(false); }
     };
     return (
-        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in"><h3 className="text-lg font-black text-zinc-900">Register New Client</h3><form onSubmit={handleSave} className="space-y-4"><input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" /><div className="flex gap-4"><button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button><button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button></div></form></div>
+        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in"><h3 className="text-lg font-black text-zinc-900">Register New Client</h3><form onSubmit={handleSave} className="space-y-4"><input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><div className="flex gap-4"><button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button><button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button></div></form></div>
     );
 };
 
@@ -174,12 +174,12 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
         }
     }
 
-    if (isSent) { return ( <div className="text-center p-8 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500" /><h3 className="font-bold mt-4">Referral Sent!</h3></div>); }
+    if (isSent) { return ( <div className="text-center p-8 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500" /><h3 className="text-xl font-bold text-zinc-900 mt-4">Referral Sent!</h3></div>); }
     if (selectedResource) {
         return (
             <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
-                <p className="text-xs font-bold text-zinc-500">Confirm Referral to:</p>
-                <h3 className="text-2xl font-black">{selectedResource["Resource Name"]}</h3>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Confirm Referral to:</p>
+                <h3 className="text-2xl font-black text-zinc-900 tracking-tight">{selectedResource["Resource Name"]}</h3>
                 <p className="text-sm italic text-zinc-600">Based on need: "{clientNeed}"</p>
                 <div className="flex gap-4 pt-4 border-t"><button type="button" onClick={() => setSelectedResource(null)} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Back</button><button onClick={handleCreateReferral} disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">{isSaving && <Loader2 className="animate-spin" size={16}/>} Confirm & Create Referral</button></div>
             </div>
@@ -188,10 +188,10 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
 
     return (
         <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in">
-            <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-100 text-center"><p className="text-xs font-bold text-zinc-500">Creating Referral for: <span className="text-zinc-900">{client.firstName} {client.lastName}</span></p></div>
+            <div className="p-4 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center"><p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Creating Referral for: <span className="text-zinc-900">{client.firstName} {client.lastName}</span></p></div>
             <div>
-                <label className="text-sm font-bold text-zinc-600 mb-2 block">Describe the client's need:</label>
-                <textarea value={clientNeed} onChange={e => setClientNeed(e.target.value)} placeholder="e.g., 'Spanish-speaking client needs a food bank in SPA 4' or 'unhoused veteran seeking mental health support'" className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Describe the client's need:</label>
+                <textarea value={clientNeed} onChange={e => setClientNeed(e.target.value)} placeholder="e.g., 'Spanish-speaking client needs a food bank in SPA 4' or 'unhoused veteran seeking mental health support'" className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
             </div>
             <button onClick={handleFindMatch} disabled={isLoading || !clientNeed} className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2"><Sparkles size={16}/> {isLoading ? 'Searching...' : 'Find Best Match'}</button>
             
@@ -199,14 +199,14 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
 
             {recommendations.length > 0 && (
                 <div className="space-y-4 pt-8 border-t">
-                    <h3 className="font-bold text-center text-zinc-500">Top 3 AI Recommendations:</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 text-center">Top 3 AI Recommendations:</h3>
                     {recommendations.map((rec, i) => {
                          // Fallback to checking loaded resources if AI gives a name
                          const resource = resources.find(r => r["Resource Name"] === rec["Resource Name"]);
                          if (!resource) return null;
                          return (
-                             <div key={i} className="p-6 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1">
-                                 <h4 className="font-black text-lg text-zinc-800">{rec["Resource Name"]}</h4>
+                             <div key={i} className="p-6 bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1">
+                                 <h4 className="font-black text-lg text-zinc-900">{rec["Resource Name"]}</h4>
                                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{resource["Service Category"]}</p>
                                  <p className="text-sm italic text-zinc-600 my-4">"{rec.reasoning}"</p>
                                  <div className="flex justify-end">

@@ -62,6 +62,8 @@ const formatTimeDisplay = (t: string): string => {
   return t;
 };
 
+// TODO: CONSOLIDATION — Create Event form duplicates EventBuilder. Consider linking to EventBuilder instead.
+
 const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const [events, setEvents] = useState<OrgCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,7 +197,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Organization Calendar</h2>
-          <p className="text-zinc-500 mt-2 font-bold text-lg">Your central hub for meetings, events & training</p>
+          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Your central hub for meetings, events & training</p>
         </div>
         {canCreateEvents && (
           <button
@@ -210,12 +212,12 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       {/* Calendar Grid + Filter */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Monthly Calendar */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 p-6">
+        <div className="lg:col-span-2 bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 p-6">
           <div className="flex items-center justify-between mb-6">
             <button onClick={prevMonth} className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors">
               <ChevronLeft size={18} className="text-zinc-600" />
             </button>
-            <h3 className="text-lg font-bold text-zinc-900">{MONTHS[currentMonth]} {currentYear}</h3>
+            <h3 className="text-xl font-bold text-zinc-900">{MONTHS[currentMonth]} {currentYear}</h3>
             <button onClick={nextMonth} className="w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors">
               <ChevronRight size={18} className="text-zinc-600" />
             </button>
@@ -273,7 +275,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
         {/* Filter Panel */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 p-6">
+          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 p-6">
             <div className="flex items-center gap-2 mb-4">
               <Filter size={16} className="text-zinc-400" />
               <h4 className="text-sm font-bold text-zinc-900">Filter by Type</h4>
@@ -281,7 +283,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold text-zinc-700 bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full p-4 rounded-2xl border-2 border-zinc-100 text-sm font-bold text-zinc-700 bg-zinc-50 focus:outline-none focus:border-brand/30"
             >
               {EVENT_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -300,19 +302,19 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 p-6">
+          <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 p-6">
             <h4 className="text-sm font-bold text-zinc-900 mb-3">This Month</h4>
-            <div className="text-2xl font-bold text-zinc-900">
+            <div className="text-3xl font-black text-zinc-900">
               {Object.values(eventsByDay).reduce((sum, arr) => sum + arr.length, 0)}
             </div>
-            <p className="text-xs text-zinc-400 font-bold">events scheduled</p>
+            <p className="text-sm font-bold text-zinc-400">events scheduled</p>
           </div>
         </div>
       </div>
 
       {/* Upcoming Events */}
       <div>
-        <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wide mb-6 px-2">
+        <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-6 px-2">
           {selectedDay
             ? `Events on ${new Date(selectedDay + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
             : 'Upcoming Events'
@@ -324,9 +326,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             <Loader2 className="animate-spin text-zinc-300" size={32} />
           </div>
         ) : upcomingEvents.length === 0 ? (
-          <div className="py-32 text-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-100">
+          <div className="py-32 text-center bg-zinc-50 rounded-card-lg border border-dashed border-zinc-100">
             <CalendarDays className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5} />
-            <p className="text-lg font-bold text-zinc-400 italic">
+            <p className="text-zinc-400 font-bold text-sm">
               {selectedDay ? 'No events on this day.' : 'No upcoming events.'}
             </p>
           </div>
@@ -342,7 +344,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               return (
                 <div
                   key={`${ev.id}-${ev.source}`}
-                  className={`bg-white rounded-2xl border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}
+                  className={`bg-white rounded-card-lg border transition-all duration-300 flex flex-col group relative overflow-hidden ${isAttending ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-elevation-1 hover:border-zinc-200 hover:shadow-elevation-2'}`}
                 >
                   {isAttending && (
                     <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-2xl text-[10px] font-bold uppercase tracking-wide flex items-center gap-2">
@@ -363,7 +365,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     </div>
 
                     <h3
-                      className="text-2xl font-bold text-zinc-900 tracking-normal leading-tight mb-3 cursor-pointer hover:text-brand transition-colors"
+                      className="text-2xl font-black text-zinc-900 tracking-tight leading-tight mb-3 cursor-pointer hover:text-brand transition-colors"
                       onClick={() => setShowDetailEvent(ev)}
                     >{ev.title}</h3>
 
@@ -388,10 +390,10 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     )}
                   </div>
 
-                  <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-2xl md:rounded-t-2xl border-t-2 border-zinc-100 mt-auto">
+                  <div className="bg-zinc-50/70 p-4 md:p-8 rounded-t-3xl md:rounded-t-3xl border-t-2 border-zinc-100 mt-auto">
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wide mb-2">Date & Time</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Date & Time</p>
                         <p className="text-sm font-bold text-zinc-900 tracking-normal flex items-center gap-2">
                           <CalendarDays size={14} className="text-brand shrink-0" />
                           {new Date(ev.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -487,7 +489,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
       {/* Event Detail Modal */}
       {showDetailEvent && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowDetailEvent(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevation-3" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-modal w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-zinc-100">
               <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${getColor(showDetailEvent.type).bg} ${getColor(showDetailEvent.type).text} ${getColor(showDetailEvent.type).border}`}>
                 {getColor(showDetailEvent.type).label}
@@ -498,7 +500,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             </div>
 
             <div className="p-6 space-y-4">
-              <h3 className="text-2xl font-bold text-zinc-900 tracking-normal">{showDetailEvent.title}</h3>
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight">{showDetailEvent.title}</h3>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600">
                 <CalendarDays size={16} className="text-brand" />
@@ -523,7 +525,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
               {showDetailEvent.rsvps && showDetailEvent.rsvps.length > 0 && (
                 <div className="pt-2 border-t border-zinc-100">
-                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
                     <Users size={14} className="inline mr-1" /> {showDetailEvent.rsvps.filter(r => r.status === 'attending').length} attending
                   </p>
                 </div>
@@ -632,9 +634,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-modal w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
-          <h3 className="text-lg font-bold text-zinc-900">{editingEvent ? 'Edit Event' : 'New Event'}</h3>
+          <h3 className="text-xl font-bold text-zinc-900">{editingEvent ? 'Edit Event' : 'New Event'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
             <X size={18} className="text-zinc-400" />
           </button>
@@ -643,13 +645,13 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Title *</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Title *</label>
             <input
               type="text"
               value={form.title}
               onChange={e => updateField('title', e.target.value)}
               placeholder="e.g. Monthly All-Hands"
-              className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               required
             />
           </div>
@@ -657,43 +659,43 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           {/* Date + Times */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Date *</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date *</label>
               <input
                 type="date"
                 value={form.date}
                 onChange={e => updateField('date', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Start *</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Start *</label>
               <input
                 type="time"
                 value={form.startTime}
                 onChange={e => updateField('startTime', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">End</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">End</label>
               <input
                 type="time"
                 value={form.endTime}
                 onChange={e => updateField('endTime', e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
           </div>
 
           {/* Type */}
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Type *</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Type *</label>
             <select
               value={form.type}
               onChange={e => updateField('type', e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
             >
               <option value="all-hands">All-Hands</option>
               <option value="committee">Committee</option>
@@ -707,37 +709,37 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
 
           {/* Location */}
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Location</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Location</label>
             <input
               type="text"
               value={form.location}
               onChange={e => updateField('location', e.target.value)}
               placeholder="e.g. Virtual, Office, Palmdale"
-              className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
             />
           </div>
 
           {/* Meet Link */}
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Meeting Link</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Meeting Link</label>
             <input
               type="url"
               value={form.meetLink}
               onChange={e => updateField('meetLink', e.target.value)}
               placeholder="https://meet.google.com/..."
-              className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Description</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Description</label>
             <textarea
               value={form.description}
               onChange={e => updateField('description', e.target.value)}
               rows={3}
               placeholder="Event details..."
-              className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm resize-none"
             />
           </div>
 
@@ -753,20 +755,20 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
           </div>
           {form.isRecurring && (
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Recurrence Note</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Recurrence Note</label>
               <input
                 type="text"
                 value={form.recurrenceNote}
                 onChange={e => updateField('recurrenceNote', e.target.value)}
                 placeholder="e.g. Every 1st Monday"
-                className="w-full px-4 py-3 rounded-xl border border-zinc-100 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-bold">
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-sm text-rose-700 font-bold">
               {error}
             </div>
           )}

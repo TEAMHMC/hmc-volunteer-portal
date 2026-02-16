@@ -76,7 +76,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Referral Management</h1>
-          <p className="text-zinc-500 mt-1">Client intake, referrals, and service coordination</p>
+          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Client intake, referrals, and service coordination</p>
         </div>
         <button
           onClick={fetchAllData}
@@ -92,7 +92,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all ${
               activeTab === tab.id
                 ? 'bg-brand text-white shadow-elevation-2'
                 : 'bg-white text-zinc-600 border border-zinc-200 hover:border-brand'
@@ -112,7 +112,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
+      <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
         {activeTab === 'dashboard' && (
           <DashboardView
             clients={clients}
@@ -169,38 +169,38 @@ const DashboardView: React.FC<{
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, i) => (
-          <div key={i} className={`p-6 rounded-2xl border bg-${kpi.color}-50 border-${kpi.color}-100`}>
-            <div className={`w-12 h-12 rounded-xl bg-${kpi.color}-100 text-${kpi.color}-600 flex items-center justify-center mb-4`}>
+          <div key={i} className={`p-6 rounded-3xl border bg-${kpi.color}-50 border-${kpi.color}-100 shadow-elevation-1`}>
+            <div className={`w-12 h-12 rounded-2xl bg-${kpi.color}-100 text-${kpi.color}-600 flex items-center justify-center mb-4`}>
               {kpi.icon}
             </div>
             <p className="text-3xl font-black text-zinc-900">{kpi.value}</p>
-            <p className="text-sm text-zinc-500 font-bold">{kpi.label}</p>
+            <p className="text-sm font-bold text-zinc-400">{kpi.label}</p>
           </div>
         ))}
       </div>
 
       {/* SLA Report */}
       {slaReport && (
-        <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
-          <h3 className="font-bold text-zinc-900 mb-4 flex items-center gap-2">
+        <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
+          <h3 className="text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
             <Clock size={20} /> 72-Hour SLA Compliance
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <p className="text-2xl font-black text-emerald-600">{slaReport.compliant}</p>
-              <p className="text-xs text-zinc-500">Compliant</p>
+              <p className="text-sm font-bold text-zinc-400">Compliant</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-black text-rose-600">{slaReport.nonCompliant}</p>
-              <p className="text-xs text-zinc-500">Non-Compliant</p>
+              <p className="text-sm font-bold text-zinc-400">Non-Compliant</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-black text-amber-600">{slaReport.onTrack}</p>
-              <p className="text-xs text-zinc-500">On Track</p>
+              <p className="text-sm font-bold text-zinc-400">On Track</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-black text-brand">{slaReport.avgResponseTimeHours}h</p>
-              <p className="text-xs text-zinc-500">Avg Response</p>
+              <p className="text-sm font-bold text-zinc-400">Avg Response</p>
             </div>
           </div>
         </div>
@@ -208,16 +208,16 @@ const DashboardView: React.FC<{
 
       {/* Urgent Referrals */}
       {urgentReferrals.length > 0 && (
-        <div className="p-6 bg-rose-50 rounded-2xl border border-rose-200">
-          <h3 className="font-bold text-rose-800 mb-4 flex items-center gap-2">
+        <div className="p-6 bg-rose-50 rounded-3xl border border-rose-200 shadow-elevation-1">
+          <h3 className="text-xl font-bold text-rose-800 mb-4 flex items-center gap-2">
             <AlertTriangle size={20} /> Urgent/Emergency Referrals ({urgentReferrals.length})
           </h3>
           <div className="space-y-3">
             {urgentReferrals.slice(0, 5).map(r => (
-              <div key={r.id} className="p-4 bg-white rounded-xl flex items-center justify-between">
+              <div key={r.id} className="p-4 bg-white rounded-3xl border border-zinc-100 flex items-center justify-between">
                 <div>
                   <p className="font-bold text-zinc-900">{r.clientName}</p>
-                  <p className="text-sm text-zinc-500">{r.serviceNeeded}</p>
+                  <p className="text-sm text-zinc-600">{r.serviceNeeded}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                   r.urgency === 'Emergency' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
@@ -232,10 +232,10 @@ const DashboardView: React.FC<{
 
       {/* Recent Activity */}
       <div>
-        <h3 className="font-bold text-zinc-900 mb-4">Recent Referrals</h3>
+        <h3 className="text-xl font-bold text-zinc-900 mb-4">Recent Referrals</h3>
         <div className="space-y-3">
           {referrals.slice(0, 10).map(r => (
-            <div key={r.id} className="p-4 bg-zinc-50 rounded-xl flex items-center justify-between">
+            <div key={r.id} className="p-4 bg-zinc-50 rounded-3xl border border-zinc-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
                   r.status === 'Completed' ? 'bg-emerald-500' :
@@ -288,7 +288,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
             placeholder="Search clients..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand"
+            className="w-full pl-12 pr-4 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
           />
         </div>
         <button
@@ -340,7 +340,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
         {filteredClients.length === 0 && (
           <div className="text-center py-12 text-zinc-400">
             <Users size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No clients found</p>
+            <p className="text-zinc-400 font-bold text-sm">No clients found</p>
           </div>
         )}
       </div>
@@ -375,7 +375,7 @@ const ReferralsView: React.FC<{
             <button
               key={f}
               onClick={() => setFilter(f as any)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold capitalize ${
+              className={`px-4 py-2 rounded-2xl text-sm font-bold capitalize ${
                 filter === f ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-600'
               }`}
             >
@@ -392,7 +392,7 @@ const ReferralsView: React.FC<{
         {filteredReferrals.length === 0 && (
           <div className="text-center py-12 text-zinc-400">
             <FileText size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No referrals found</p>
+            <p className="text-zinc-400 font-bold text-sm">No referrals found</p>
           </div>
         )}
       </div>
@@ -429,11 +429,11 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
   const isOverdue = referral.status === 'Pending' && now > deadline;
 
   return (
-    <div className={`p-6 rounded-2xl border ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
+    <div className={`p-6 rounded-card-lg border shadow-elevation-1 ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h3 className="font-bold text-lg text-zinc-900">{referral.clientName}</h3>
+            <h3 className="text-xl font-bold text-zinc-900">{referral.clientName}</h3>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               referral.urgency === 'Emergency' ? 'bg-rose-100 text-rose-700' :
               referral.urgency === 'Urgent' ? 'bg-amber-100 text-amber-700' :
@@ -442,7 +442,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
               {referral.urgency}
             </span>
           </div>
-          <p className="text-zinc-500">{referral.serviceNeeded}</p>
+          <p className="text-sm text-zinc-600">{referral.serviceNeeded}</p>
         </div>
         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
           referral.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
@@ -505,14 +505,14 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
             placeholder="Search resources..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand"
+            className="w-full pl-12 pr-4 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredResources.map((resource, i) => (
-          <div key={i} className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 hover:border-brand/20 transition-colors">
+          <div key={i} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 hover:border-brand/20 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-zinc-900">{resource['Resource Name']}</h3>
               {resource.averageRating && (
@@ -538,7 +538,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
       {filteredResources.length === 0 && (
         <div className="text-center py-12 text-zinc-400">
           <Globe size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No resources found</p>
+          <p className="text-zinc-400 font-bold text-sm">No resources found</p>
         </div>
       )}
     </div>
@@ -562,7 +562,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {partners.map(partner => (
-          <div key={partner.id} className="p-6 bg-white rounded-2xl border border-zinc-100">
+          <div key={partner.id} className="p-6 bg-white rounded-3xl border border-zinc-100 shadow-elevation-1">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-zinc-900">{partner.name}</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -601,7 +601,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
       {partners.length === 0 && (
         <div className="text-center py-12 text-zinc-400">
           <Building2 size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No partner agencies yet</p>
+          <p className="text-zinc-400 font-bold text-sm">No partner agencies yet</p>
         </div>
       )}
 
@@ -621,28 +621,28 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
   return (
     <div className="p-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 text-center">
+        <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 shadow-elevation-1 text-center">
           <Star size={32} className="mx-auto text-amber-500 mb-2" />
           <p className="text-3xl font-black text-zinc-900">{avgRating}</p>
-          <p className="text-sm text-zinc-500">Average Rating</p>
+          <p className="text-sm font-bold text-zinc-400">Average Rating</p>
         </div>
-        <div className="p-6 bg-brand/5 rounded-2xl border border-brand/10 text-center">
+        <div className="p-6 bg-brand/5 rounded-3xl border border-brand/10 shadow-elevation-1 text-center">
           <FileText size={32} className="mx-auto text-brand mb-2" />
           <p className="text-3xl font-black text-zinc-900">{feedback.length}</p>
-          <p className="text-sm text-zinc-500">Total Feedback</p>
+          <p className="text-sm font-bold text-zinc-400">Total Feedback</p>
         </div>
-        <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
+        <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 shadow-elevation-1 text-center">
           <TrendingUp size={32} className="mx-auto text-emerald-500 mb-2" />
           <p className="text-3xl font-black text-zinc-900">
             {feedback.filter(f => f.wouldRecommend).length}
           </p>
-          <p className="text-sm text-zinc-500">Would Recommend</p>
+          <p className="text-sm font-bold text-zinc-400">Would Recommend</p>
         </div>
       </div>
 
       <div className="space-y-4">
         {feedback.map(f => (
-          <div key={f.id} className="p-6 bg-zinc-50 rounded-2xl">
+          <div key={f.id} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="font-bold text-zinc-900">{f.resourceName || 'Service Feedback'}</p>
@@ -659,13 +659,13 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
                 ))}
               </div>
             </div>
-            {f.comments && <p className="text-zinc-600">{f.comments}</p>}
+            {f.comments && <p className="text-sm text-zinc-600">{f.comments}</p>}
           </div>
         ))}
         {feedback.length === 0 && (
           <div className="text-center py-12 text-zinc-400">
             <Star size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No feedback yet</p>
+            <p className="text-zinc-400 font-bold text-sm">No feedback yet</p>
           </div>
         )}
       </div>
@@ -693,71 +693,71 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-xl font-bold">New Client Intake</h2>
+          <h2 className="text-xl font-bold text-zinc-900">New Client Intake</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">First Name *</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">First Name *</label>
               <input
                 required
                 type="text"
                 value={formData.firstName || ''}
                 onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Last Name *</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Last Name *</label>
               <input
                 required
                 type="text"
                 value={formData.lastName || ''}
                 onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Phone *</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Phone *</label>
               <input
                 required
                 type="tel"
                 value={formData.phone || ''}
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Email</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Email</label>
               <input
                 type="email"
                 value={formData.email || ''}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Date of Birth</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date of Birth</label>
               <input
                 type="date"
                 value={formData.dob || ''}
                 onChange={e => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Primary Language</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Primary Language</label>
               <select
                 value={formData.primaryLanguage || 'English'}
                 onChange={e => setFormData({ ...formData, primaryLanguage: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
               >
                 <option>English</option>
                 <option>Spanish</option>
@@ -771,11 +771,11 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">SPA (Service Planning Area)</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">SPA (Service Planning Area)</label>
             <select
               value={formData.spa || ''}
               onChange={e => setFormData({ ...formData, spa: e.target.value })}
-              className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
             >
               <option value="">Select SPA...</option>
               {[1, 2, 3, 4, 5, 6, 7, 8].map(spa => (
@@ -817,28 +817,28 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Add Partner Agency</h2>
+          <h2 className="text-xl font-bold text-zinc-900">Add Partner Agency</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">Agency Name *</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Agency Name *</label>
             <input
               required
               type="text"
               value={formData.name || ''}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">Type</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Type</label>
             <select
               value={formData.type || 'Other'}
               onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-              className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
             >
               <option>Healthcare</option>
               <option>Housing</option>
@@ -851,31 +851,31 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Contact Name</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Contact Name</label>
               <input
                 type="text"
                 value={formData.contactName || ''}
                 onChange={e => setFormData({ ...formData, contactName: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-zinc-500 block mb-1">Contact Email</label>
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Contact Email</label>
               <input
                 type="email"
                 value={formData.contactEmail || ''}
                 onChange={e => setFormData({ ...formData, contactEmail: e.target.value })}
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-zinc-500 block mb-1">Contact Phone</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Contact Phone</label>
             <input
               type="tel"
               value={formData.contactPhone || ''}
               onChange={e => setFormData({ ...formData, contactPhone: e.target.value })}
-              className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
             />
           </div>
           <div className="flex justify-end gap-4 pt-4 border-t">

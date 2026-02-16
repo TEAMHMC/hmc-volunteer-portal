@@ -79,7 +79,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                             <button type="button" onClick={() => setSearchBy('email')} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'email' ? 'bg-white shadow' : ''}`}>By Email</button>
                         </div>
                         <div className="relative mt-4">
-                            <input type={searchBy === 'phone' ? 'tel' : 'email'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Enter client ${searchBy}...`} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-bold" />
+                            <input type={searchBy === 'phone' ? 'tel' : 'email'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Enter client ${searchBy}...`} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
                             <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
@@ -87,7 +87,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                     </form>
 
                     {searchResult === 'not_found' && (
-                        <div className="text-center p-8 bg-amber-50 rounded-2xl border border-amber-200">
+                        <div className="text-center p-8 bg-amber-50 rounded-card-lg border border-amber-200 shadow-elevation-1">
                             <p className="font-bold text-amber-800">Client not found.</p>
                             <p className="text-sm text-amber-700">Please verify the information or register them as a new client.</p>
                             <button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button>
@@ -95,7 +95,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                     )}
 
                     {searchResult && searchResult !== 'not_found' && (
-                        <div className="p-8 bg-emerald-50 rounded-2xl border border-emerald-200">
+                        <div className="p-8 bg-emerald-50 rounded-card-lg border border-emerald-200 shadow-elevation-1">
                             <p className="text-xs font-bold text-emerald-800">Client Found</p>
                             <p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
                             <p className="text-sm text-emerald-800">DOB: {searchResult.dob}</p>
@@ -135,11 +135,11 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
         <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
             <h3 className="text-lg font-black text-zinc-900">Register New Client</h3>
             <form onSubmit={handleSave} className="space-y-4">
-                <input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
-                <input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
-                <input required type="date" placeholder="Date of Birth" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
-                <input required type="tel" pattern="[0-9]{10,15}" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
-                <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl" />
+                <input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <input required type="date" placeholder="Date of Birth" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <input required type="tel" pattern="[0-9]{10,15}" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
                 <div className="flex gap-4">
                     <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
                     <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
@@ -242,25 +242,25 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
         }
     };
 
-    const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-xl outline-none focus:border-brand font-bold";
-    const labelClass = "block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2";
+    const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
+    const labelClass = "text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2";
 
     return (
         <div className="space-y-6 animate-in fade-in max-w-2xl mx-auto">
-            <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 flex items-center justify-between">
+            <div className="p-6 bg-zinc-50 rounded-card-lg border border-zinc-100 shadow-elevation-1 flex items-center justify-between">
                 <div>
-                    <p className="text-xs font-bold text-zinc-500">Screening for:</p>
-                    <p className="text-lg font-bold">{client.firstName} {client.lastName}</p>
-                    <p className="text-sm text-zinc-500">DOB: {client.dob}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Screening for:</p>
+                    <p className="text-lg font-bold text-zinc-900">{client.firstName} {client.lastName}</p>
+                    <p className="text-sm text-zinc-600">DOB: {client.dob}</p>
                 </div>
-                <button onClick={() => onComplete()} className="p-2 hover:bg-zinc-200 rounded-lg"><X size={20} /></button>
+                <button onClick={() => onComplete()} className="p-2 hover:bg-zinc-200 rounded-2xl"><X size={20} /></button>
             </div>
 
             <form onSubmit={handleSave} className="space-y-6">
                 {/* Blood Pressure */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-2xl space-y-4">
+                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
                     <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-zinc-900">Blood Pressure</h4>
+                        <h4 className="text-xl font-bold text-zinc-900">Blood Pressure</h4>
                         {bpFlag && (
                             <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${bpFlag.color}-100 text-${bpFlag.color}-700 flex items-center gap-1`}>
                                 {bpFlag.level !== 'normal' && <AlertTriangle size={12} />}
@@ -279,16 +279,16 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                         </div>
                     </div>
                     {bpFlag && bpFlag.level === 'critical' && (
-                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm font-bold">
+                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-3xl text-rose-800 text-sm font-bold">
                             ⚠️ <strong>Hypertensive Crisis Detected.</strong> Client should seek immediate medical attention. Do not discharge without clinical review.
                         </div>
                     )}
                 </div>
 
                 {/* Glucose */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-2xl space-y-4">
+                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
                     <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-zinc-900">Blood Glucose</h4>
+                        <h4 className="text-xl font-bold text-zinc-900">Blood Glucose</h4>
                         {glucoseFlag && (
                             <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${glucoseFlag.color}-100 text-${glucoseFlag.color}-700 flex items-center gap-1`}>
                                 {glucoseFlag.level !== 'normal' && <AlertTriangle size={12} />}
@@ -301,15 +301,15 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                         <input type="number" placeholder="100" value={vitals.glucose} onChange={e => setVitals({...vitals, glucose: e.target.value})} className={inputClass} />
                     </div>
                     {glucoseFlag && glucoseFlag.level === 'critical' && (
-                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm font-bold">
+                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-3xl text-rose-800 text-sm font-bold">
                             ⚠️ <strong>Critical Glucose Level.</strong> Client needs immediate evaluation. Check for diabetic emergency symptoms.
                         </div>
                     )}
                 </div>
 
                 {/* Other Vitals */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-2xl space-y-4">
-                    <h4 className="font-bold text-zinc-900">Additional Vitals</h4>
+                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
+                    <h4 className="text-xl font-bold text-zinc-900">Additional Vitals</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className={labelClass}>Heart Rate (BPM)</label>
@@ -331,15 +331,15 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 </div>
 
                 {/* Notes & Follow-up */}
-                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-2xl space-y-4">
-                    <h4 className="font-bold text-zinc-900">Notes & Follow-up</h4>
+                <div className="p-6 bg-white border border-zinc-100 shadow-elevation-1 rounded-card-lg space-y-4">
+                    <h4 className="text-xl font-bold text-zinc-900">Notes & Follow-up</h4>
                     <div>
                         <label className={labelClass}>Clinical Notes</label>
                         <textarea rows={3} placeholder="Any observations, client concerns, or recommendations..." value={vitals.notes} onChange={e => setVitals({...vitals, notes: e.target.value})} className={inputClass} />
                     </div>
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" checked={vitals.followUpNeeded || hasFlags} onChange={e => setVitals({...vitals, followUpNeeded: e.target.checked})} className="w-5 h-5 rounded" />
-                        <span className="font-bold text-zinc-700">Follow-up needed</span>
+                        <span className="text-sm font-bold text-zinc-600">Follow-up needed</span>
                         {hasFlags && <span className="text-xs text-amber-600 font-bold">(Auto-flagged due to abnormal vitals)</span>}
                     </label>
                     {(vitals.followUpNeeded || hasFlags) && (

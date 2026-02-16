@@ -35,8 +35,8 @@ const ResourceDashboard: React.FC = () => {
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Resource Directory</h1>
-                    <p className="text-zinc-500 mt-2 font-bold text-lg">Manage community referral resources.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Resource Directory</h1>
+                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Manage community referral resources.</p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors">
@@ -48,14 +48,14 @@ const ResourceDashboard: React.FC = () => {
                 </div>
             </header>
 
-            <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Resource Name</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Service Category</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">SPA</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Contact</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Resource Name</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Service Category</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">SPA</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Contact</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -69,7 +69,7 @@ const ResourceDashboard: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
-                 {resources.length === 0 && <div className="text-center p-20 text-zinc-400">No resources found.</div>}
+                 {resources.length === 0 && <div className="text-center p-20 text-zinc-400 font-bold text-sm">No resources found.</div>}
             </div>
             {showAddModal && <NewResourceModal onClose={() => setShowAddModal(false)} onComplete={fetchResources} />}
             {showBulkUploadModal && <BulkUploadResourceModal onClose={() => setShowBulkUploadModal(false)} onComplete={fetchResources} />}
@@ -121,23 +121,23 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Upload Resources</h2>
+                    <h2 className="text-2xl font-black tracking-tight text-zinc-900">Bulk Upload Resources</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
                         <X size={20} />
                     </button>
                 </div>
 
-                <p className="text-zinc-500">Upload a CSV file to import multiple referral resources at once.</p>
+                <p className="text-sm text-zinc-600">Upload a CSV file to import multiple referral resources at once.</p>
 
-                <div className="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-xs text-zinc-500">
+                <div className="p-4 bg-zinc-50 border border-zinc-100 rounded-3xl text-xs text-zinc-500">
                     <p className="font-bold mb-2">Required CSV Headers:</p>
                     <code className="font-mono text-[10px] block overflow-x-auto">Resource Name,Service Category,Key Offerings,Contact Phone,Contact Email,Address,Website,SPA,Operation Hours</code>
                 </div>
 
                 {successCount !== null ? (
-                    <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
+                    <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-3xl text-center">
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} resources have been imported.</p>
@@ -169,9 +169,9 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
 
 const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }> = ({ onClose, onComplete }) => (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
-        <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 flex flex-col max-h-[90vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
             <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
-                <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Resource</h2>
+                <h2 className="text-2xl font-black tracking-tight text-zinc-900">Add New Resource</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
             </header>
             <main className="p-8 overflow-y-auto">
@@ -183,11 +183,11 @@ const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }
 
 const FormField: React.FC<React.PropsWithChildren<{ label: string, required?: boolean }>> = ({ label, required, children }) => (
     <div>
-        <label className="text-xs font-bold text-zinc-500 mb-2 block">{label} {required && <span className="text-rose-500">*</span>}</label>
+        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">{label} {required && <span className="text-rose-500">*</span>}</label>
         {React.Children.map(children, child =>
             React.isValidElement(child)
                 ? React.cloneElement(child as React.ReactElement<any>, {
-                    className: `w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-brand ${(child.props as any).className || ''}`
+                    className: `w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm ${(child.props as any).className || ''}`
                 })
                 : child
         )}

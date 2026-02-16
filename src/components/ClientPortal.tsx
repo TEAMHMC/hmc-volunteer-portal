@@ -50,8 +50,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
 
       <main className="max-w-[1200px] mx-auto w-full px-6 py-16">
         <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Community Events</h1>
-          <p className="text-lg text-zinc-500 mt-4">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
+          <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Community Events</h1>
+          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
         </div>
 
         {loading ? (
@@ -59,8 +59,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
         ) : (
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {opportunities.map(opp => (
-              <div key={opp.id} className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 flex flex-col">
-                <h3 className="text-xl font-bold text-zinc-800">{opp.title}</h3>
+              <div key={opp.id} className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 flex flex-col">
+                <h3 className="text-xl font-bold text-zinc-900">{opp.title}</h3>
                 <p className="text-sm text-zinc-400 font-bold mt-1">{opp.category}</p>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 my-4">
                   <Calendar size={14}/> {opp.date}
@@ -105,10 +105,10 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-elevation-2 p-8" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-2 p-8 border border-zinc-100" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-xl font-bold">RSVP for {opportunity.title}</h2>
+            <h2 className="text-xl font-bold text-zinc-900">RSVP for {opportunity.title}</h2>
             <p className="text-sm text-zinc-500">{opportunity.date}</p>
           </div>
           <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-700"><X size={20}/></button>
@@ -117,16 +117,16 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
         {isSuccess ? (
           <div className="text-center py-12">
             <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
-            <h3 className="font-bold text-lg">You're on the list!</h3>
-            <p className="text-zinc-600">We look forward to seeing you at the event.</p>
+            <h3 className="font-bold text-lg text-zinc-900">You're on the list!</h3>
+            <p className="text-sm text-zinc-600">We look forward to seeing you at the event.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <input required placeholder="First Name" onChange={e => setFormData(p => ({...p, firstName: e.target.value}))} className="w-full p-3 border rounded-lg"/>
-            <input required placeholder="Last Name" onChange={e => setFormData(p => ({...p, lastName: e.target.value}))} className="w-full p-3 border rounded-lg"/>
-            <input required type="email" placeholder="Email" onChange={e => setFormData(p => ({...p, email: e.target.value}))} className="w-full p-3 border rounded-lg"/>
-            <input required type="tel" placeholder="Phone" onChange={e => setFormData(p => ({...p, phone: e.target.value}))} className="w-full p-3 border rounded-lg"/>
-            <input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setFormData(p => ({...p, dob: e.target.value}))} className="w-full p-3 border rounded-lg"/>
+            <input required placeholder="First Name" onChange={e => setFormData(p => ({...p, firstName: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
+            <input required placeholder="Last Name" onChange={e => setFormData(p => ({...p, lastName: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
+            <input required type="email" placeholder="Email" onChange={e => setFormData(p => ({...p, email: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
+            <input required type="tel" placeholder="Phone" onChange={e => setFormData(p => ({...p, phone: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
+            <input required placeholder="Date of Birth (MM/DD/YYYY)" onChange={e => setFormData(p => ({...p, dob: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
             {error && <p className="text-rose-500 text-sm">{error}</p>}
             <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50">
               {isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : 'Confirm RSVP'}

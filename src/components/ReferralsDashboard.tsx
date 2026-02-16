@@ -5,6 +5,8 @@ import { REFERRAL_RESOURCES } from '../referralResources';
 import { Send, Plus, X, Search, ChevronDown, Clock, AlertTriangle, CheckCircle, Sparkles, Loader2, Save, User } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
+// TODO: CONSOLIDATION — Ensure this is only accessible from within a shift (EventOpsMode), not as a standalone tab.
+
 // --- HELPER FUNCTIONS ---
 const getSlaStatus = (referral: ReferralRecord): { status: ReferralRecord['slaComplianceStatus'], color: string } => {
     if (referral.slaComplianceStatus === 'Excluded') return { status: 'Excluded', color: 'bg-zinc-400' };
@@ -73,15 +75,15 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
         <div className="space-y-12 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Referral Dashboard</h1>
-                    <p className="text-zinc-500 mt-2 font-bold text-lg">Manage and track all client referrals and SLA compliance.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Referral Dashboard</h1>
+                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Manage and track all client referrals and SLA compliance.</p>
                 </div>
                 <button onClick={() => setSelectedReferral('new')} className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand/90 transition-colors">
                     <Plus size={16} /> New Referral
                 </button>
             </header>
 
-            <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
+            <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-zinc-50/50">
                         <tr>
@@ -110,7 +112,7 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                         })}
                     </tbody>
                 </table>
-                 {referrals.length === 0 && <div className="text-center p-20 text-zinc-400">No referrals found.</div>}
+                 {referrals.length === 0 && <div className="text-center p-20 text-zinc-400 font-bold text-sm">No referrals found.</div>}
             </div>
 
             {selectedReferral && <ReferralDetailModal referral={selectedReferral} user={user} onClose={() => setSelectedReferral(null)} onSave={handleSaveReferral} />}
@@ -144,7 +146,7 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
-            <div className="bg-white max-w-4xl w-full rounded-2xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{isNew ? 'New Referral' : `Referral for ${formData.clientName}`}</h2>
                     <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
@@ -152,23 +154,23 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
                 <main className="p-8 space-y-6 overflow-y-auto">
                     {/* Client Info */}
                     <div className="grid grid-cols-2 gap-6">
-                         <div><label className="text-xs font-bold text-zinc-500">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
-                         <div><label className="text-xs font-bold text-zinc-500">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
                     </div>
                      {/* Status & Urgency */}
                      <div className="grid grid-cols-2 gap-6">
-                         <div><label className="text-xs font-bold text-zinc-500">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
-                         <div><label className="text-xs font-bold text-zinc-500">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
+                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
+                         <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
                      </div>
                       {/* Service Needed */}
-                     <div><label className="text-xs font-bold text-zinc-500">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full mt-1 p-3 h-20 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                     <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full p-4 h-20 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
                      
                      {/* AI Matching */}
                      <AIResourceMatcher serviceNeed={formData.serviceNeeded || ''} onSelect={(resource) => setFormData({...formData, referredTo: resource['Resource Name']})} />
                      
                      {/* Final Resource & Notes */}
-                     <div><label className="text-xs font-bold text-zinc-500">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full mt-1 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
-                     <div><label className="text-xs font-bold text-zinc-500">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full mt-1 p-3 h-24 bg-zinc-50 border border-zinc-200 rounded-lg"/></div>
+                     <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-4 h-24 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
 
                 </main>
                 <footer className="p-8 border-t border-zinc-100 flex justify-end">
@@ -197,7 +199,7 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
     };
     
     return (
-        <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10 space-y-4">
+        <div className="p-4 bg-brand/5 rounded-3xl border border-brand/10 space-y-4">
             <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-brand uppercase flex items-center gap-2"><Sparkles size={14}/> AI Matching Assistant</h4>
                 <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="px-3 py-1 bg-white border border-black text-brand text-xs font-bold rounded-full uppercase tracking-wide disabled:opacity-50">
@@ -210,7 +212,7 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
                          const resource = REFERRAL_RESOURCES.find(r => r["Resource Name"] === rec["Resource Name"]);
                          if (!resource) return null;
                          return (
-                             <div key={i} className="p-3 bg-white/50 rounded-lg border border-brand/10">
+                             <div key={i} className="p-3 bg-white/50 rounded-2xl border border-brand/10">
                                  <h5 className="font-bold text-sm text-zinc-800">{rec["Resource Name"]}</h5>
                                  <p className="text-xs italic text-zinc-500 my-1">"{rec.reasoning}"</p>
                                  <button onClick={() => onSelect(resource)} className="text-xs font-bold text-brand hover:underline">Select</button>

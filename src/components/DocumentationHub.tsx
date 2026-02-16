@@ -112,7 +112,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
             <header className="flex items-start justify-between">
                 <div>
                     <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Documentation Hub</h1>
-                    <p className="text-zinc-500 mt-2 font-bold text-lg">Your central source for policies, procedures, and organizational knowledge.</p>
+                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
                 {canEdit && (
                     <button
@@ -131,7 +131,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     placeholder="Search documents..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-zinc-200 rounded-full text-lg font-bold shadow-elevation-1 outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full pl-16 pr-6 py-5 bg-zinc-50 border-2 border-zinc-100 rounded-full text-lg font-bold shadow-elevation-1 outline-none focus:border-brand/30"
                 />
             </div>
 
@@ -139,15 +139,15 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {Object.keys(articlesByCategory).map((category) => {
                     const categoryArticles = articlesByCategory[category];
                     return (
-                    <div key={category} className="bg-white border border-zinc-100 rounded-2xl shadow-elevation-1 overflow-hidden">
+                    <div key={category} className="bg-white border border-zinc-100 rounded-card-lg shadow-elevation-1 overflow-hidden">
                         <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-6">
-                            <h2 className="text-xl font-bold text-zinc-800">{category}</h2>
+                            <h2 className="text-xl font-bold text-zinc-900">{category}</h2>
                             <ChevronDown className={`transition-transform ${expandedCategories.includes(category) ? 'rotate-180' : ''}`} />
                         </button>
                         {expandedCategories.includes(category) && (
                             <div className="px-6 pb-6 space-y-2">
                                 {categoryArticles.map(article => (
-                                    <button key={article.id} onClick={() => setSelectedArticle(article)} className="w-full text-left p-4 rounded-xl hover:bg-zinc-50 flex items-center gap-4">
+                                    <button key={article.id} onClick={() => setSelectedArticle(article)} className="w-full text-left p-4 rounded-3xl hover:bg-zinc-50 flex items-center gap-4">
                                         <FileText className="text-zinc-400" size={18} />
                                         <span className="font-bold text-zinc-700">{article.title}</span>
                                     </button>
@@ -208,11 +208,11 @@ const ArticleModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white max-w-3xl w-full rounded-2xl shadow-elevation-2 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-3xl w-full rounded-modal shadow-elevation-2 flex flex-col max-h-[90vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
                 <header className="p-6 border-b border-zinc-100 flex items-start justify-between">
                     <div>
                         <p className="text-xs font-bold text-brand uppercase">{article.category}</p>
-                        <h2 className="text-2xl font-bold text-zinc-900">{article.title}</h2>
+                        <h2 className="text-2xl font-black tracking-tight text-zinc-900">{article.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">
                         {canEdit && (
@@ -311,7 +311,7 @@ const ArticleEditorModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white max-w-5xl w-full rounded-2xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-5xl w-full rounded-modal shadow-elevation-3 flex flex-col max-h-[90vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
                 <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900">{article ? 'Edit Document' : 'New Document'}</h2>
                     <div className="flex items-center gap-3">
@@ -328,22 +328,22 @@ const ArticleEditorModal: React.FC<{
                 <div className="flex flex-1 overflow-hidden">
                     <main className={`p-8 space-y-6 overflow-y-auto ${showAiPanel ? 'w-2/3' : 'w-full'}`}>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Title</label>
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Title</label>
                             <input
                                 type="text"
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
                                 placeholder="Document title..."
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
+                                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Category</label>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Category</label>
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
-                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
+                                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
                                 >
                                     {existingCategories.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
@@ -351,19 +351,19 @@ const ArticleEditorModal: React.FC<{
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Or Create New Category</label>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Or Create New Category</label>
                                 <input
                                     type="text"
                                     value={newCategory}
                                     onChange={e => setNewCategory(e.target.value)}
                                     placeholder="New category name..."
-                                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
+                                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                                 />
                             </div>
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide">Content (Markdown supported)</label>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Content (Markdown supported)</label>
                                 {content && (
                                     <button
                                         onClick={handleAiImprove}
@@ -379,21 +379,21 @@ const ArticleEditorModal: React.FC<{
                                 value={content}
                                 onChange={e => setContent(e.target.value)}
                                 placeholder="Write your document content here... Use ## for headings and ### for subheadings."
-                                className="w-full min-h-[300px] px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-mono text-sm resize-none"
+                                className="w-full min-h-[300px] p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-mono text-sm resize-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Tags (comma-separated)</label>
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Tags (comma-separated)</label>
                             <input
                                 type="text"
                                 value={tags}
                                 onChange={e => setTags(e.target.value)}
                                 placeholder="policy, hipaa, compliance..."
-                                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 font-bold"
+                                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                                 <Eye size={12} className="inline mr-1" />
                                 Visible To (leave empty for all roles)
                             </label>
@@ -427,18 +427,18 @@ const ArticleEditorModal: React.FC<{
                         <aside className="w-1/3 border-l border-zinc-100 p-6 bg-gradient-to-b from-purple-50 to-white overflow-y-auto">
                             <div className="flex items-center gap-2 mb-6">
                                 <Sparkles size={20} className="text-purple-600" />
-                                <h3 className="text-lg font-black text-zinc-900">AI Document Assistant</h3>
+                                <h3 className="text-xl font-bold text-zinc-900">AI Document Assistant</h3>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="bg-white p-4 rounded-xl border border-purple-100">
-                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">Generate Content</p>
+                                <div className="bg-white p-4 rounded-3xl border border-purple-100 shadow-elevation-1">
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Generate Content</p>
                                     <p className="text-xs text-zinc-400 mb-3">Describe what you want to write about and AI will help draft the content.</p>
                                     <textarea
                                         value={aiPrompt}
                                         onChange={e => setAiPrompt(e.target.value)}
                                         placeholder="e.g., Write a guide about volunteer onboarding procedures..."
-                                        className="w-full h-24 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm resize-none outline-none focus:border-purple-300"
+                                        className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl text-sm resize-none outline-none focus:border-brand/30 font-bold"
                                     />
                                     <button
                                         onClick={handleAiGenerate}
@@ -450,8 +450,8 @@ const ArticleEditorModal: React.FC<{
                                     </button>
                                 </div>
 
-                                <div className="bg-white p-4 rounded-xl border border-zinc-100">
-                                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-3">Quick Prompts</p>
+                                <div className="bg-white p-4 rounded-3xl border border-zinc-100 shadow-elevation-1">
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">Quick Prompts</p>
                                     <div className="space-y-2">
                                         {[
                                             'Write a standard operating procedure for...',
@@ -463,7 +463,7 @@ const ArticleEditorModal: React.FC<{
                                             <button
                                                 key={idx}
                                                 onClick={() => setAiPrompt(prompt)}
-                                                className="w-full text-left px-3 py-2 bg-zinc-50 hover:bg-purple-50 rounded-lg text-xs text-zinc-600 hover:text-purple-700 transition-colors"
+                                                className="w-full text-left px-3 py-2 bg-zinc-50 hover:bg-purple-50 rounded-2xl text-xs text-zinc-600 hover:text-purple-700 transition-colors"
                                             >
                                                 {prompt}
                                             </button>

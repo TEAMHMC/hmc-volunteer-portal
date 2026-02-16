@@ -194,7 +194,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           <div>
             <span className="px-3 py-1 bg-brand text-white rounded-lg text-[9px] font-bold uppercase tracking-wider">{opportunity.category}</span>
             <h1 className="text-2xl font-black text-zinc-900 tracking-tight mt-3">{opportunity.title}</h1>
-            <p className="text-zinc-500 mt-2 font-bold text-lg">{opportunity.date} • {opportunity.serviceLocation}</p>
+            <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">{opportunity.date} • {opportunity.serviceLocation}</p>
           </div>
           <div className="flex items-center gap-3">
             {canEdit && onEditEvent && (
@@ -213,7 +213,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
       </header>
       
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-2 rounded-2xl shadow-elevation-1 flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
+        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-2 rounded-card-lg shadow-elevation-1 flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
             {TABS.filter(tab => !tab.adminOnly || user.isAdmin).map(tab => (
               <button 
                 key={tab.id} 
@@ -225,7 +225,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
             ))}
         </div>
         
-        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-2xl p-8 md:p-16 shadow-elevation-1 min-h-[600px] relative">
+        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-card-lg md:rounded-card-lg p-8 md:p-16 shadow-elevation-1 min-h-[600px] relative">
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
@@ -271,7 +271,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Operational Brief</h2>
 
         {/* Section A: Mission Summary */}
-        <div className="p-8 md:p-8 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-inner space-y-4">
+        <div className="p-8 md:p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-4">
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Mission Summary</p>
             <p className="text-base font-bold text-zinc-700 leading-relaxed">
                 {opportunity.description || `${opportunity.category} event: ${opportunity.title}`}
@@ -287,25 +287,25 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         <div className="space-y-4">
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Goals & Targets</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-2xl border border-blue-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                <div className="p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
                     <Target size={20} className="mx-auto text-blue-500 mb-2" />
-                    <p className="text-2xl font-bold text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Target Attendance</p>
+                    <p className="text-3xl font-black text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
+                    <p className="text-sm font-bold text-zinc-400 mt-1">Target Attendance</p>
                 </div>
-                <div className="p-6 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl border border-emerald-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                <div className="p-6 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
                     <Users size={20} className="mx-auto text-emerald-500 mb-2" />
-                    <p className="text-2xl font-bold text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-lg">/{opportunity.slotsTotal}</span></p>
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Volunteers</p>
+                    <p className="text-3xl font-black text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-lg">/{opportunity.slotsTotal}</span></p>
+                    <p className="text-sm font-bold text-zinc-400 mt-1">Volunteers</p>
                 </div>
-                <div className="p-6 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-2xl border border-violet-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                <div className="p-6 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-3xl border border-violet-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
                     <HeartPulse size={20} className="mx-auto text-violet-500 mb-2" />
-                    <p className="text-2xl font-bold text-zinc-900">{services.length}</p>
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Services</p>
+                    <p className="text-3xl font-black text-zinc-900">{services.length}</p>
+                    <p className="text-sm font-bold text-zinc-400 mt-1">Services</p>
                 </div>
-                <div className="p-6 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-2xl border border-amber-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
+                <div className="p-6 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-3xl border border-amber-100/50 text-center shadow-elevation-1 hover:shadow-elevation-2 transition-all">
                     <Shield size={20} className={`mx-auto mb-2 ${opportunity.requiresClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
-                    <p className="text-2xl font-bold text-zinc-900">{opportunity.requiresClinicalLead ? 'Yes' : 'No'}</p>
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Clinical Lead</p>
+                    <p className="text-3xl font-black text-zinc-900">{opportunity.requiresClinicalLead ? 'Yes' : 'No'}</p>
+                    <p className="text-sm font-bold text-zinc-400 mt-1">Clinical Lead</p>
                 </div>
             </div>
         </div>
@@ -330,7 +330,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                         const pct = q.count > 0 ? Math.min(100, Math.round((q.filled / q.count) * 100)) : 0;
                         const isMyRole = q.role === shift.roleType || q.role === user.role;
                         return (
-                            <div key={i} className={`p-5 rounded-2xl border transition-all hover:shadow-elevation-1 ${isMyRole ? 'bg-brand/5 border-brand/20' : 'bg-zinc-50 border-zinc-100'}`}>
+                            <div key={i} className={`p-5 rounded-3xl border transition-all hover:shadow-elevation-1 ${isMyRole ? 'bg-brand/5 border-brand/20' : 'bg-zinc-50 border-zinc-100'}`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className={`text-xs font-black uppercase tracking-tight ${isMyRole ? 'text-brand' : 'text-zinc-700'}`}>
                                         {q.role} {isMyRole && '(You)'}
@@ -378,13 +378,13 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
             return (
                 <div className="space-y-4">
                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Event Team</p>
-                    <div className="p-6 md:p-8 bg-zinc-50 rounded-2xl border border-zinc-100 space-y-5">
+                    <div className="p-6 md:p-8 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-5">
                         {sortedRoles.map(role => (
                             <div key={role}>
                                 <p className="text-[9px] font-bold text-brand uppercase tracking-wider mb-2">{role}</p>
                                 <div className="space-y-1.5">
                                     {grouped[role].map(v => (
-                                        <div key={v.id} className="flex items-center gap-3 px-4 py-2.5 bg-white rounded-xl border border-zinc-100">
+                                        <div key={v.id} className="flex items-center gap-3 px-4 py-2.5 bg-white rounded-3xl border border-zinc-100">
                                             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
                                                 {v.avatarUrl || v.profilePhoto ? (
                                                     <img src={v.avatarUrl || v.profilePhoto} className="w-full h-full object-cover" alt="" />
@@ -408,14 +408,14 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         {/* Section D: Your Assignment */}
         <div className="space-y-4">
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Your Assignment</p>
-            <div className="p-8 md:p-8 bg-brand/5 rounded-2xl border-2 border-brand/15 space-y-4">
+            <div className="p-8 md:p-8 bg-brand/5 rounded-3xl border-2 border-brand/15 space-y-4">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center shrink-0 shadow-elevation-2">
                         <Briefcase size={24} className="text-white" />
                     </div>
                     <div>
-                        <p className="text-xl font-black text-zinc-900 uppercase tracking-tight">{shift.roleType || user.role}</p>
-                        <p className="text-sm text-zinc-500 font-bold">{formatTime(shift.startTime)} – {formatTime(shift.endTime)}</p>
+                        <p className="text-xl font-bold text-zinc-900">{shift.roleType || user.role}</p>
+                        <p className="text-sm text-zinc-600">{formatTime(shift.startTime)} – {formatTime(shift.endTime)}</p>
                     </div>
                 </div>
                 {opportunity.supplyList && (
@@ -429,7 +429,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Equipment Checklist</p>
                         <div className="flex flex-wrap gap-2">
                             {opportunity.equipment.map(eq => (
-                                <span key={eq.equipmentId} className="px-3 py-1.5 bg-white rounded-xl text-xs font-bold text-zinc-700 border border-zinc-200">
+                                <span key={eq.equipmentId} className="px-3 py-1.5 bg-white rounded-3xl text-xs font-bold text-zinc-700 border border-zinc-200">
                                     {eq.name} ×{eq.quantity}
                                 </span>
                             ))}
@@ -484,11 +484,11 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
             </header>
 
             {isReporting && (
-                <form onSubmit={handleSubmit} className="p-8 bg-zinc-50 border-2 border-rose-100 rounded-2xl space-y-6 animate-in slide-in-from-top-4">
+                <form onSubmit={handleSubmit} className="p-8 bg-zinc-50 border-2 border-rose-100 rounded-3xl space-y-6 animate-in slide-in-from-top-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Incident Type</label>
-                            <select value={form.type} onChange={e => setForm({...form, type: e.target.value as any})} className="w-full p-4 bg-white border border-rose-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-rose-500/5">
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 px-2">Incident Type</label>
+                            <select value={form.type} onChange={e => setForm({...form, type: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
                                 <option>EMS activation</option>
                                 <option>Exposure incident</option>
                                 <option>Safety/security issue</option>
@@ -496,12 +496,12 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Personnel Notified</label>
-                            <input placeholder="Name/Role of Lead" value={form.whoNotified} onChange={e => setForm({...form, whoNotified: e.target.value})} className="w-full p-4 bg-white border border-rose-200 rounded-2xl font-bold outline-none" />
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 px-2">Personnel Notified</label>
+                            <input placeholder="Name/Role of Lead" value={form.whoNotified} onChange={e => setForm({...form, whoNotified: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
                         </div>
                     </div>
-                    <textarea placeholder="Event description..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full h-32 p-6 bg-white border border-rose-200 rounded-2xl outline-none font-bold resize-none" />
-                    <textarea placeholder="Actions taken in field..." value={form.actionsTaken} onChange={e => setForm({...form, actionsTaken: e.target.value})} className="w-full h-24 p-6 bg-white border border-rose-200 rounded-2xl outline-none font-bold resize-none" />
+                    <textarea placeholder="Event description..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full h-32 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none font-bold text-sm resize-none focus:border-brand/30" />
+                    <textarea placeholder="Actions taken in field..." value={form.actionsTaken} onChange={e => setForm({...form, actionsTaken: e.target.value})} className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none font-bold text-sm resize-none focus:border-brand/30" />
                     <div className="flex gap-4">
                         <button type="button" onClick={() => setIsReporting(false)} className="flex-1 py-4 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-black rounded-full font-bold text-base flex items-center justify-center gap-2 uppercase tracking-wide"><span className="w-2 h-2 rounded-full bg-zinc-700" /> Discard</button>
                         <button type="submit" className="flex-[2] py-4 bg-brand text-white border border-black rounded-full font-bold text-base shadow-elevation-2 flex items-center justify-center gap-2 uppercase tracking-wide"><span className="w-2 h-2 rounded-full bg-white" /> Transmit Report</button>
@@ -512,20 +512,20 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
             <div className="space-y-4">
                 <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-2">Active Ledger</h3>
                 {incidents.length === 0 ? (
-                    <div className="p-20 bg-zinc-50/50 rounded-2xl border border-zinc-100 border-dashed text-center">
+                    <div className="p-20 bg-zinc-50/50 rounded-3xl border border-zinc-100 border-dashed text-center">
                         <Shield size={32} className="mx-auto text-zinc-200 mb-4" />
-                        <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">No incidents recorded this shift</p>
+                        <p className="text-zinc-400 font-bold text-sm">No incidents recorded this shift</p>
                     </div>
                 ) : (
                     incidents.map(i => (
-                        <div key={i.id} className="p-8 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1 flex items-start gap-6 group">
+                        <div key={i.id} className="p-8 bg-white border border-zinc-100 rounded-3xl shadow-elevation-1 flex items-start gap-6 group">
                             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shrink-0 border border-rose-100"><AlertTriangle size={24}/></div>
                             <div className="flex-1">
                                 <div className="flex items-center justify-between">
                                     <h4 className="text-lg font-black text-zinc-900 uppercase">{i.type}</h4>
                                     <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider">{new Date(i.timestamp).toLocaleTimeString()}</span>
                                 </div>
-                                <p className="text-sm text-zinc-500 mt-2 font-bold leading-relaxed">{i.description}</p>
+                                <p className="text-sm text-zinc-600 mt-2 font-bold leading-relaxed">{i.description}</p>
                                 <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center gap-4 text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
                                     <span className="flex items-center gap-1.5"><UserCheck size={12}/> {i.whoNotified}</span>
                                     <span className={`px-2 py-0.5 rounded ${i.status === 'reported' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>{i.status}</span>
@@ -783,7 +783,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                     <span className="text-xs font-bold text-emerald-700">{responseCount} collected</span>
                 </div>
             </div>
-            <div className="p-8 bg-zinc-50 rounded-2xl border border-zinc-100 relative overflow-hidden group">
+            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full blur-3xl pointer-events-none group-hover:bg-brand/10 transition-all" />
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2"><Smartphone size={14}/> Approved Script</h3>
@@ -793,7 +793,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Client Info Section */}
-                <div className="p-6 bg-brand/5 rounded-2xl border border-brand/10 space-y-4">
+                <div className="p-6 bg-brand/5 rounded-3xl border border-brand/10 space-y-4">
                     <h4 className="text-xs font-bold text-brand uppercase tracking-wider">Participant Info (Optional)</h4>
                     <div className="grid grid-cols-2 gap-4">
                         <input
@@ -801,14 +801,14 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                             placeholder="First Name"
                             value={clientInfo.firstName}
                             onChange={e => setClientInfo({...clientInfo, firstName: e.target.value})}
-                            className="p-4 bg-white border border-brand/10 rounded-2xl text-sm font-bold outline-none focus:border-brand/30"
+                            className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30"
                         />
                         <input
                             type="text"
                             placeholder="Last Name"
                             value={clientInfo.lastName}
                             onChange={e => setClientInfo({...clientInfo, lastName: e.target.value})}
-                            className="p-4 bg-white border border-brand/10 rounded-2xl text-sm font-bold outline-none focus:border-brand/30"
+                            className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30"
                         />
                     </div>
                     <input
@@ -816,7 +816,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                         placeholder="Phone (for follow-up)"
                         value={clientInfo.phone}
                         onChange={e => setClientInfo({...clientInfo, phone: e.target.value})}
-                        className="w-full p-4 bg-white border border-brand/10 rounded-2xl text-sm font-bold outline-none focus:border-brand/30"
+                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30"
                     />
                 </div>
 
@@ -845,7 +845,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                 ))}
 
                 {/* Consent Checkbox */}
-                <div className="p-6 bg-amber-50 rounded-2xl border border-amber-200">
+                <div className="p-6 bg-amber-50 rounded-3xl border border-amber-200">
                     <label className="flex items-start gap-4 cursor-pointer">
                         <button
                             type="button"
@@ -901,7 +901,7 @@ const SignoffView: React.FC<{shift: Shift, opsRun: MissionOpsRun | null, onSigno
                     <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Digital Endorsement</label>
                     <button onClick={() => sigPadRef.current?.clear()} className="text-[9px] font-bold text-brand uppercase tracking-wide border-b border-brand">Clear Ink</button>
                 </div>
-                <div className="aspect-[2/1] w-full border-4 border-dashed border-zinc-100 rounded-2xl overflow-hidden bg-zinc-50 shadow-inner">
+                <div className="aspect-[2/1] w-full border-4 border-dashed border-zinc-100 rounded-3xl overflow-hidden bg-zinc-50 shadow-inner">
                     <SignaturePad ref={sigPadRef} width={500} height={250} />
                 </div>
             </div>
@@ -923,12 +923,12 @@ const AuditTrailView: React.FC<{auditLogs: AuditLog[]}> = ({ auditLogs }) => (
             {auditLogs.length === 0 ? (
                 <div className="py-32 text-center">
                     <FileClock size={48} className="mx-auto text-zinc-100 mb-6" />
-                    <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">No auditable transactions recorded</p>
+                    <p className="text-zinc-400 font-bold text-sm">No auditable transactions recorded</p>
                 </div>
             ) : (
                 auditLogs.map(log => (
-                    <div key={log.id} className="p-6 bg-zinc-50/50 rounded-2xl border border-zinc-100 flex items-start gap-6 hover:bg-zinc-50 transition-all group">
-                        <div className="w-10 h-10 rounded-xl bg-white border border-zinc-100 flex items-center justify-center shrink-0 text-brand shadow-elevation-1 group-hover:scale-110 transition-transform"><FileClock size={20}/></div>
+                    <div key={log.id} className="p-6 bg-zinc-50/50 rounded-3xl border border-zinc-100 flex items-start gap-6 hover:bg-zinc-50 transition-all group">
+                        <div className="w-10 h-10 rounded-3xl bg-white border border-zinc-100 flex items-center justify-center shrink-0 text-brand shadow-elevation-1 group-hover:scale-110 transition-transform"><FileClock size={20}/></div>
                         <div className="min-w-0 flex-1">
                             <p className="text-sm font-black text-zinc-800 tracking-tight leading-tight">{log.summary}</p>
                             <div className="mt-2 flex items-center gap-4 text-[9px] font-bold text-zinc-400 uppercase tracking-wider">

@@ -210,7 +210,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
             <Stethoscope className="text-brand" />
             Clinical Onboarding
           </h2>
-          <p className="text-zinc-500 mt-1">Complete all required documents and credentials to begin clinical work</p>
+          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Complete all required documents and credentials to begin clinical work</p>
         </div>
         {isComplete && (
           <div className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full font-bold">
@@ -221,9 +221,9 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-elevation-1">
+      <div className="bg-white rounded-card-lg p-6 border border-zinc-100 shadow-elevation-1">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-bold text-zinc-600">Overall Progress</span>
+          <span className="text-sm font-bold text-zinc-400">Overall Progress</span>
           <span className="text-sm font-black text-brand">{progressPercent}%</span>
         </div>
         <div className="h-3 bg-zinc-100 rounded-full overflow-hidden">
@@ -272,13 +272,13 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
             return (
               <div
                 key={doc.id}
-                className={`bg-white rounded-2xl p-6 border transition-all ${
+                className={`bg-white rounded-card-lg p-6 border shadow-elevation-1 transition-all ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' : 'border-zinc-100 hover:border-brand/20'
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-xl ${isSigned ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                    <div className={`p-3 rounded-3xl ${isSigned ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
                       {isSigned ? <CheckCircle size={24} /> : <FileText size={24} />}
                     </div>
                     <div>
@@ -319,7 +319,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
       {/* Credentials Section */}
       {activeSection === 'credentials' && (
-        <div className="bg-white rounded-2xl p-8 border border-zinc-100 shadow-elevation-1 space-y-6">
+        <div className="bg-white rounded-card-lg p-8 border border-zinc-100 shadow-elevation-1 space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
             <Shield className="text-brand" size={24} />
             <div>
@@ -331,7 +331,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* NPI Number */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 NPI Number <span className="text-rose-500">*</span>
               </label>
               <input
@@ -340,13 +340,13 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                 onChange={(e) => setCredentials({ ...credentials, npi: e.target.value })}
                 placeholder="1234567890"
                 maxLength={10}
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* License Number */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 License Number <span className="text-rose-500">*</span>
               </label>
               <input
@@ -354,13 +354,13 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                 value={credentials.licenseNumber || ''}
                 onChange={(e) => setCredentials({ ...credentials, licenseNumber: e.target.value })}
                 placeholder="MD12345"
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* License State */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 License State <span className="text-rose-500">*</span>
               </label>
               <input
@@ -369,32 +369,32 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                 onChange={(e) => setCredentials({ ...credentials, licenseState: e.target.value.toUpperCase() })}
                 placeholder="CA"
                 maxLength={2}
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* License Expiration */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 License Expiration <span className="text-rose-500">*</span>
               </label>
               <input
                 type="date"
                 value={credentials.licenseExpiration || ''}
                 onChange={(e) => setCredentials({ ...credentials, licenseExpiration: e.target.value })}
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* License Upload */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 Upload License Copy
               </label>
               <div className="flex items-center gap-4">
-                <label className="flex-1 flex items-center justify-center gap-3 px-4 py-4 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-all">
+                <label className="flex-1 flex items-center justify-center gap-3 px-4 py-4 bg-zinc-50 border-2 border-dashed border-zinc-100 rounded-2xl cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-all">
                   <Upload size={20} className="text-zinc-400" />
-                  <span className="text-sm text-zinc-600 font-bold">
+                  <span className="text-sm font-bold text-zinc-600">
                     {credentials.licenseFileUrl ? 'License uploaded' : 'Click to upload'}
                   </span>
                   <input
@@ -417,7 +417,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
             {/* DEA Number (Optional) */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 DEA Number (if applicable)
               </label>
               <input
@@ -425,26 +425,26 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                 value={credentials.deaNumber || ''}
                 onChange={(e) => setCredentials({ ...credentials, deaNumber: e.target.value })}
                 placeholder="AB1234567"
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* DEA Expiration */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 DEA Expiration
               </label>
               <input
                 type="date"
                 value={credentials.deaExpiration || ''}
                 onChange={(e) => setCredentials({ ...credentials, deaExpiration: e.target.value })}
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* Board Certification */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 Board Certification
               </label>
               <input
@@ -452,20 +452,20 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                 value={credentials.boardCertification || ''}
                 onChange={(e) => setCredentials({ ...credentials, boardCertification: e.target.value })}
                 placeholder="e.g., ABFM, ABIM"
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
             {/* Board Cert Expiration */}
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wide mb-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
                 Board Cert Expiration
               </label>
               <input
                 type="date"
                 value={credentials.boardCertExpiration || ''}
                 onChange={(e) => setCredentials({ ...credentials, boardCertExpiration: e.target.value })}
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/10"
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>
 
@@ -478,7 +478,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                   onChange={(e) => setCredentials({ ...credentials, malpracticeInsurance: e.target.checked })}
                   className="w-5 h-5 rounded border-zinc-300"
                 />
-                <span className="text-sm font-bold text-zinc-700">
+                <span className="text-sm font-bold text-zinc-600">
                   I have current malpractice insurance coverage
                 </span>
               </label>
@@ -591,11 +591,11 @@ const DocumentViewerModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-elevation-3 flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-modal shadow-elevation-3 border border-zinc-100 flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
           <div>
-            <h3 className="font-bold text-xl text-zinc-900">{document.title}</h3>
+            <h3 className="text-xl font-bold text-zinc-900">{document.title}</h3>
             <p className="text-sm text-zinc-500">{isSigned ? 'Document signed' : 'Review and sign this document'}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full">
@@ -613,7 +613,7 @@ const DocumentViewerModal: React.FC<{
             >
               <iframe
                 src={document.url}
-                className="w-full min-h-[600px] bg-white rounded-xl shadow-elevation-1"
+                className="w-full min-h-[600px] bg-white rounded-3xl shadow-elevation-1"
                 title={document.title}
               />
             </div>
@@ -645,13 +645,13 @@ const DocumentViewerModal: React.FC<{
           <>
             {/* Signature Pad */}
             <div className="flex-1 p-6 flex flex-col items-center justify-center bg-zinc-50">
-              <p className="text-sm font-bold text-zinc-600 mb-4 uppercase tracking-wide">Draw Your Signature Below</p>
-              <div className="bg-white rounded-xl border-2 border-zinc-200 p-2 shadow-inner">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-4">Draw Your Signature Below</p>
+              <div className="bg-white rounded-3xl border-2 border-zinc-100 p-2 shadow-inner">
                 <canvas
                   ref={canvasRef}
                   width={500}
                   height={200}
-                  className="border border-zinc-100 rounded-lg cursor-crosshair touch-none"
+                  className="border border-zinc-100 rounded-2xl cursor-crosshair touch-none"
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
                   onMouseUp={stopDrawing}

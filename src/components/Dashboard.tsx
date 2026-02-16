@@ -685,7 +685,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            return (
              <div className="space-y-2 mb-6">
                {visibleAnnouncements.map(a => (
-                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/15 rounded-2xl">
+                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/15 rounded-3xl">
                    <Megaphone size={16} className="text-brand shrink-0" />
                    <div className="flex-1 min-w-0">
                      <span className="text-sm font-bold text-zinc-900">{a.title}</span>
@@ -710,7 +710,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     <h1 className="text-2xl font-black text-zinc-900 tracking-tight">
                       {getGreeting(displayUser.name)}.
                     </h1>
-                    <p className="text-zinc-500 mt-2 font-bold text-lg max-w-lg">
+                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed max-w-lg">
                       {isOnboarding
                         ? "Complete your orientation to unlock missions."
                         : "Ready to continue making a difference?"}
@@ -747,7 +747,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   const lvl = computeLevel(displayUser.points);
                   if (lvl.isMaxLevel) {
                     return (
-                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-2xl p-4 text-center">
+                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-card-lg p-4 text-center">
                         <p className="text-sm font-bold text-amber-700">
                           <i className="fa-solid fa-crown text-amber-500 mr-2" />
                           Max Level Reached — {lvl.title}
@@ -756,7 +756,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     );
                   }
                   return (
-                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-2xl p-4 shadow-elevation-1">
+                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-card-lg p-4 shadow-elevation-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-zinc-600">
                           <i className="fa-solid fa-star text-brand mr-1.5" />
@@ -833,7 +833,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-card-lg p-6 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
               <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
                 <div>
@@ -860,16 +860,16 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 
         <div className="space-y-6">
           {/* Profile Status Card - Glass effect */}
-          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-2xl border border-zinc-200/50 shadow-elevation-2 space-y-6">
+          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-card-lg border border-zinc-100 shadow-elevation-2 space-y-6">
               <div className="flex items-center justify-between">
-                <h4 className="text-lg font-bold text-zinc-900 tracking-tight">Profile Status</h4>
+                <h4 className="text-xl font-bold text-zinc-900">Profile Status</h4>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
                   <ShieldCheck size={18} className="text-white" />
                 </div>
               </div>
               <div className="space-y-4">
                 {Object.values(user.compliance || {}).map((step, key) => (
-                      <div key={key} className="flex items-center gap-4 p-3 rounded-xl hover:bg-zinc-50 transition-colors">
+                      <div key={key} className="flex items-center gap-4 p-3 rounded-3xl hover:bg-zinc-50 transition-colors">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
                             <CheckCircle size={16} strokeWidth={2.5} />
                         </div>
@@ -943,7 +943,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Training Required Card - Modern gradient */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-8 md:p-8 border border-amber-200/50 shadow-elevation-2 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-card-lg p-8 md:p-8 border border-amber-200/50 shadow-elevation-2 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="relative z-10">
               <div className="flex items-start gap-5 mb-6">
@@ -951,7 +951,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                   <GraduationCap size={28} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-amber-900 tracking-tight mb-2">
+                  <h3 className="text-2xl font-black text-amber-900 tracking-tight mb-2">
                     {trainingDone && !roleApproved ? 'Awaiting Role Approval' : 'Complete Your Training'}
                   </h3>
                   <p className="text-amber-700 font-bold">
@@ -982,11 +982,11 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
               {trainingDone && !roleApproved && <div className="mb-6" />}
 
               {/* Training Checklist */}
-              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-amber-200/50 mb-6 space-y-3">
+              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-5 border border-amber-200/50 mb-6 space-y-3">
                 {coreModules.map(item => {
                   const isComplete = hasCompletedModule(user.completedTrainingIds || [], item.id);
                   return (
-                    <div key={item.id} className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${isComplete ? 'bg-emerald-50' : ''}`}>
+                    <div key={item.id} className={`flex items-center gap-3 p-2 rounded-3xl transition-colors ${isComplete ? 'bg-emerald-50' : ''}`}>
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isComplete ? 'bg-emerald-500 text-white' : 'bg-amber-200 text-amber-400'}`}>
                         <CheckCircle size={14} strokeWidth={3} />
                       </div>
@@ -1005,8 +1005,8 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           </div>
         </div>
         <div className="space-y-10">
-          <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 shadow-inner space-y-6">
-            <h4 className="text-xl font-bold text-zinc-900 tracking-normal leading-none">Quick Actions</h4>
+          <div className="bg-zinc-50 p-6 rounded-card-lg border border-zinc-100 shadow-elevation-1 space-y-6">
+            <h4 className="text-xl font-bold text-zinc-900">Quick Actions</h4>
             <div className="space-y-4">
               <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
                 <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
@@ -1075,7 +1075,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 shadow-elevation-1 overflow-hidden">
+    <div className="bg-white rounded-card-lg border border-zinc-100 shadow-elevation-1 overflow-hidden">
       {/* Tab Header */}
       <div className="flex border-b border-zinc-100">
         <button
@@ -1115,8 +1115,8 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
               actionItems.map((item, i) => {
                 const c = colorMap[item.color] || colorMap.blue;
                 return (
-                  <button key={i} onClick={item.onClick} className={`w-full p-4 ${c.bg} border ${c.border} rounded-2xl flex items-center gap-4 text-left hover:opacity-90 transition-opacity group`}>
-                    <div className={`w-9 h-9 rounded-xl ${c.iconBg} text-white flex items-center justify-center shrink-0`}>
+                  <button key={i} onClick={item.onClick} className={`w-full p-4 ${c.bg} border ${c.border} rounded-3xl flex items-center gap-4 text-left hover:opacity-90 transition-opacity group`}>
+                    <div className={`w-9 h-9 rounded-3xl ${c.iconBg} text-white flex items-center justify-center shrink-0`}>
                       <i className={`${item.icon} text-sm`} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1153,7 +1153,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
             ) : (
               <div className="space-y-2">
                 {quests.map(quest => (
-                  <div key={quest.id} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${quest.completed ? 'bg-emerald-50/50' : 'hover:bg-zinc-50'}`}>
+                  <div key={quest.id} className={`flex items-center gap-3 p-3 rounded-3xl transition-colors ${quest.completed ? 'bg-emerald-50/50' : 'hover:bg-zinc-50'}`}>
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${quest.completed ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`}>
                       {quest.completed ? <i className="fa-solid fa-check text-xs" /> : <i className={`${quest.icon} text-xs`} />}
                     </div>
@@ -1239,7 +1239,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
+        <h3 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
           <i className="fa-solid fa-radar text-brand text-sm" />
           Coming Up
         </h3>
@@ -1251,7 +1251,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
       {/* Hero Card */}
       {heroItem ? (
-        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-card-lg p-6 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
@@ -1262,7 +1262,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                 <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold">{heroItem.category}</span>
               )}
             </div>
-            <h4 className="text-2xl font-bold tracking-normal mb-4">{heroItem.title}</h4>
+            <h4 className="text-2xl font-black tracking-tight mb-4">{heroItem.title}</h4>
             <div className="flex items-center gap-6 text-sm text-white/80 font-bold flex-wrap">
               <span className="flex items-center gap-2">
                 <i className="fa-solid fa-calendar text-xs" />
@@ -1284,7 +1284,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           </div>
         </div>
       ) : (
-        <div className="bg-zinc-50 rounded-2xl p-8 border border-zinc-100 text-center">
+        <div className="bg-zinc-50 rounded-card-lg p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
           <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming missions.</p>
           <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 mx-auto">
@@ -1313,7 +1313,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                 </div>
 
                 {/* Event card */}
-                <div className="flex-1 bg-white border border-zinc-100 rounded-xl p-4 hover:shadow-elevation-1 transition-shadow">
+                <div className="flex-1 bg-white border border-zinc-100 rounded-3xl p-4 shadow-elevation-1 hover:shadow-elevation-1 transition-shadow">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>

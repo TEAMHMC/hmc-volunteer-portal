@@ -281,8 +281,8 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
              <div className="fixed inset-0 bg-white z-[1000] flex items-center justify-center animate-in fade-in">
                 <div className="text-center">
                     <CheckCircle size={64} className="mx-auto text-emerald-500" />
-                    <h2 className="text-2xl font-bold mt-4">Event Created!</h2>
-                    <p className="text-zinc-500">Automated workflows have been triggered.</p>
+                    <h2 className="text-2xl font-black tracking-tight text-zinc-900 mt-4">Event Created!</h2>
+                    <p className="text-sm text-zinc-500 font-medium">Automated workflows have been triggered.</p>
                 </div>
             </div>
         )
@@ -297,44 +297,44 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
             <main className="flex-1 p-8 md:p-8 overflow-y-auto space-y-10">
                 {/* Basic Details */}
                 <section>
-                    <h3 className="text-lg font-bold mb-4">1. Event Details</h3>
+                    <h3 className="text-xl font-bold text-zinc-900 mb-4">1. Event Details</h3>
                     <div className="space-y-4">
-                        <input type="text" placeholder="Event Title" value={eventData.title} onChange={e => setEventData({...eventData, title: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
-                        <textarea placeholder="Description" value={eventData.description} onChange={e => setEventData({...eventData, description: e.target.value})} className="w-full h-24 p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                        <input type="text" placeholder="Event Title" value={eventData.title} onChange={e => setEventData({...eventData, title: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
+                        <textarea placeholder="Description" value={eventData.description} onChange={e => setEventData({...eventData, description: e.target.value})} className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1">Event Type</label>
-                                <select value={eventData.category} onChange={e => setEventData({...eventData, category: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Event Type</label>
+                                <select value={eventData.category} onChange={e => setEventData({...eventData, category: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
                                     {EVENT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1">Location Name</label>
-                                <input type="text" placeholder="e.g., East LA Library" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Location Name</label>
+                                <input type="text" placeholder="e.g., East LA Library" value={eventData.serviceLocation || ''} onChange={e => setEventData({...eventData, serviceLocation: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-zinc-500 mb-1">Full Address</label>
-                            <input type="text" placeholder="e.g., 123 W. Manchester Blvd, Inglewood, CA 90301" value={(eventData as any).address || ''} onChange={e => setEventData({...eventData, address: e.target.value} as any)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Full Address</label>
+                            <input type="text" placeholder="e.g., 123 W. Manchester Blvd, Inglewood, CA 90301" value={(eventData as any).address || ''} onChange={e => setEventData({...eventData, address: e.target.value} as any)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1">Date</label>
-                                <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Date</label>
+                                <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1">Start Time</label>
-                                <input type="time" value={eventData.startTime || '09:00'} onChange={e => setEventData({...eventData, startTime: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Start Time</label>
+                                <input type="time" value={eventData.startTime || '09:00'} onChange={e => setEventData({...eventData, startTime: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 mb-1">End Time</label>
-                                <input type="time" value={eventData.endTime || '14:00'} onChange={e => setEventData({...eventData, endTime: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg"/>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">End Time</label>
+                                <input type="time" value={eventData.endTime || '14:00'} onChange={e => setEventData({...eventData, endTime: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                             </div>
                         </div>
 
                         {/* Event Flyer Upload */}
                         <div className="mt-4">
-                            <label className="block text-sm font-bold text-zinc-700 mb-2">Event Flyer</label>
+                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Event Flyer</label>
                             <input
                                 ref={flyerInputRef}
                                 type="file"
@@ -344,26 +344,26 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                 id="flyer-upload"
                             />
                             {flyerPreview ? (
-                                <div className="relative border-2 border-dashed border-zinc-300 rounded-xl p-4 bg-zinc-50">
+                                <div className="relative border-2 border-dashed border-zinc-300 rounded-3xl p-4 bg-zinc-50">
                                     <div className="flex items-start gap-4">
                                         <img
                                             src={flyerPreview}
                                             alt="Event Flyer Preview"
-                                            className="w-32 h-32 object-cover rounded-lg shadow-elevation-1"
+                                            className="w-32 h-32 object-cover rounded-2xl shadow-elevation-1"
                                         />
                                         <div className="flex-1">
-                                            <p className="font-bold text-zinc-900">{flyerFileName}</p>
+                                            <p className="font-bold text-sm text-zinc-900">{flyerFileName}</p>
                                             <p className="text-xs text-zinc-500 mt-1">Flyer will be displayed on the event page</p>
                                             <div className="flex gap-2 mt-3">
                                                 <label
                                                     htmlFor="flyer-upload"
-                                                    className="px-4 py-2 bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold cursor-pointer hover:bg-zinc-300 transition-colors"
+                                                    className="px-4 py-2 bg-zinc-200 text-zinc-900 rounded-2xl text-xs font-bold cursor-pointer hover:bg-zinc-300 transition-colors"
                                                 >
                                                     Replace
                                                 </label>
                                                 <button
                                                     onClick={removeFlyerPreview}
-                                                    className="px-4 py-2 bg-rose-100 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-200 transition-colors flex items-center gap-1"
+                                                    className="px-4 py-2 bg-rose-100 text-rose-600 rounded-2xl text-xs font-bold hover:bg-rose-200 transition-colors flex items-center gap-1"
                                                 >
                                                     <Trash2 size={12} /> Remove
                                                 </button>
@@ -374,10 +374,10 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                             ) : (
                                 <label
                                     htmlFor="flyer-upload"
-                                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-zinc-300 rounded-xl cursor-pointer bg-zinc-50 hover:bg-zinc-100 hover:border-brand/50 transition-all group"
+                                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-zinc-300 rounded-3xl cursor-pointer bg-zinc-50 hover:bg-zinc-100 hover:border-brand/50 transition-all group"
                                 >
                                     <div className="flex flex-col items-center justify-center py-6">
-                                        <div className="w-12 h-12 rounded-xl bg-zinc-200 group-hover:bg-brand/10 flex items-center justify-center mb-3 transition-colors">
+                                        <div className="w-12 h-12 rounded-3xl bg-zinc-200 group-hover:bg-brand/10 flex items-center justify-center mb-3 transition-colors">
                                             <Upload size={24} className="text-zinc-400 group-hover:text-brand" />
                                         </div>
                                         <p className="mb-1 text-sm font-bold text-zinc-600">
@@ -393,11 +393,11 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
                 {/* Service Offerings */}
                 <section>
-                     <h3 className="text-lg font-bold mb-4">2. Service Offerings</h3>
+                     <h3 className="text-xl font-bold text-zinc-900 mb-4">2. Service Offerings</h3>
                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {SERVICE_OFFERINGS.map(service => (
-                            <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-lg text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-brand bg-brand/5' : 'bg-white'}`}>
-                                <h4 className="font-bold">{service.name}</h4>
+                            <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-2xl text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-brand bg-brand/5' : 'bg-white border-zinc-100'}`}>
+                                <h4 className="font-bold text-zinc-900">{service.name}</h4>
                                 <p className="text-xs text-zinc-500">{service.description}</p>
                             </button>
                         ))}
@@ -406,14 +406,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                 
                 {/* Staffing Quotas */}
                 <section>
-                    <h3 className="text-lg font-bold mb-4">3. Required Staffing</h3>
-                    <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-4">
-                        {eventData.staffingQuotas?.length === 0 && <p className="text-center text-zinc-400">Select services to automatically add staffing requirements.</p>}
+                    <h3 className="text-xl font-bold text-zinc-900 mb-4">3. Required Staffing</h3>
+                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
+                        {eventData.staffingQuotas?.length === 0 && <p className="text-zinc-400 font-bold text-sm text-center">Select services to automatically add staffing requirements.</p>}
                         {eventData.staffingQuotas?.map(quota => (
                             <div key={quota.role} className="flex items-center justify-between">
-                                <p className="font-bold">{quota.role}</p>
+                                <p className="font-bold text-zinc-900">{quota.role}</p>
                                 <div className="flex items-center gap-2">
-                                    <input type="number" value={quota.count} onChange={e => handleQuotaChange(quota.role, parseInt(e.target.value, 10))} className="w-16 p-2 text-center bg-white border rounded-md" />
+                                    <input type="number" value={quota.count} onChange={e => handleQuotaChange(quota.role, parseInt(e.target.value, 10))} className="w-16 p-2 text-center bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm" />
                                 </div>
                             </div>
                         ))}
@@ -437,19 +437,19 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
                 {/* Equipment & Resources */}
                 <section>
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
                         <Package size={20} /> 4. Equipment & Resources
                     </h3>
                     <p className="text-sm text-zinc-500 mb-4">Select the equipment and resources needed for this event. Adjust quantities as needed.</p>
                     <div className="space-y-6">
                         {Object.entries(equipmentByCategory).map(([category, items]) => (
                             <div key={category}>
-                                <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">{category}</p>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-3">{category}</p>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                     {items.map(item => {
                                         const selected = selectedEquipment.find(e => e.equipmentId === item.id);
                                         return (
-                                            <div key={item.id} className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                                            <div key={item.id} className={`p-3 border-2 rounded-3xl cursor-pointer transition-all ${
                                                 selected ? 'border-brand bg-brand/5' : 'border-zinc-100 hover:border-zinc-300'
                                             }`}>
                                                 <div className="flex items-center justify-between">
@@ -457,14 +457,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                                         onClick={() => handleToggleEquipment(item)}
                                                         className="flex-1 text-left"
                                                     >
-                                                        <p className={`text-sm font-bold ${selected ? 'text-brand' : 'text-zinc-700'}`}>{item.name}</p>
+                                                        <p className={`text-sm font-bold ${selected ? 'text-brand' : 'text-zinc-900'}`}>{item.name}</p>
                                                     </button>
                                                     {selected && (
                                                         <input
                                                             type="number"
                                                             value={selected.quantity}
                                                             onChange={e => handleEquipmentQtyChange(item.id, parseInt(e.target.value) || 0)}
-                                                            className="w-14 p-1 text-center text-sm border border-zinc-200 rounded-lg bg-white"
+                                                            className="w-14 p-1 text-center text-sm border-2 border-zinc-100 rounded-2xl bg-zinc-50 font-bold"
                                                             onClick={e => e.stopPropagation()}
                                                         />
                                                     )}
@@ -477,8 +477,8 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                         ))}
                     </div>
                     {selectedEquipment.length > 0 && (
-                        <div className="mt-4 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
-                            <p className="text-xs font-bold text-zinc-500 mb-2">{selectedEquipment.length} items selected</p>
+                        <div className="mt-4 p-4 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">{selectedEquipment.length} items selected</p>
                             <div className="flex flex-wrap gap-2">
                                 {selectedEquipment.map(item => (
                                     <span key={item.equipmentId} className="px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold">
@@ -492,15 +492,15 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
                 {/* Event Checklist */}
                 <section>
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
                         <ClipboardList size={20} /> 5. Pre-Event Checklist
                     </h3>
-                    <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-3">
+                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-3">
                         {checklist.map((item, idx) => (
                             <div key={idx} className="flex items-center gap-3 group">
                                 <button
                                     onClick={() => handleToggleChecklist(idx)}
-                                    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                    className={`w-6 h-6 rounded-xl border-2 flex items-center justify-center shrink-0 transition-colors ${
                                         item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 hover:border-brand'
                                     }`}
                                 >
@@ -509,7 +509,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                 <input
                                     value={item.text}
                                     onChange={e => handleUpdateChecklistItem(idx, e.target.value)}
-                                    className={`flex-1 bg-transparent outline-none text-sm ${item.done ? 'line-through text-zinc-400' : 'text-zinc-700'}`}
+                                    className={`flex-1 bg-transparent outline-none text-sm ${item.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}
                                     placeholder="Checklist item..."
                                 />
                                 <button
@@ -522,7 +522,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                         ))}
                         <button
                             onClick={handleAddChecklistItem}
-                            className="flex items-center gap-2 text-sm font-bold text-brand hover:bg-brand/5 px-3 py-2 rounded-lg mt-2"
+                            className="flex items-center gap-2 text-sm font-bold text-brand hover:bg-brand/5 px-3 py-2 rounded-2xl mt-2"
                         >
                             <Plus size={14} /> Add Item
                         </button>
@@ -531,15 +531,15 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
 
                 {/* Logistics & Supplies */}
                  <section>
-                    <h3 className="text-lg font-bold mb-4">6. Logistics & Supplies</h3>
-                    <div className="p-6 bg-zinc-50 rounded-lg border border-zinc-200 space-y-4">
-                        <input type="number" placeholder="Estimated Attendees" value={eventData.estimatedAttendees || ''} onChange={e => setEventData({...eventData, estimatedAttendees: parseInt(e.target.value, 10) || 0})} className="w-full p-3 bg-white border border-zinc-200 rounded-lg"/>
+                    <h3 className="text-xl font-bold text-zinc-900 mb-4">6. Logistics & Supplies</h3>
+                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
+                        <input type="number" placeholder="Estimated Attendees" value={eventData.estimatedAttendees || ''} onChange={e => setEventData({...eventData, estimatedAttendees: parseInt(e.target.value, 10) || 0})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-100 disabled:opacity-50">
                             {isGeneratingSupplies ? <Loader2 className="animate-spin" size={16}/> : <><Sparkles size={16}/> Generate Supply Suggestions</>}
                         </button>
                         {(isGeneratingSupplies || eventData.supplyList) && (
                             <div className="pt-4">
-                                <textarea value={eventData.supplyList} onChange={e => setEventData({...eventData, supplyList: e.target.value})} className="w-full h-64 p-4 bg-white border border-zinc-200 rounded-lg font-mono text-xs" placeholder="Generating supply list..."/>
+                                <textarea value={eventData.supplyList} onChange={e => setEventData({...eventData, supplyList: e.target.value})} className="w-full h-64 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-mono text-xs outline-none focus:border-brand/30" placeholder="Generating supply list..."/>
                                 <button onClick={handleCopyList} className="mt-2 flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-900">
                                   {isCopied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy List</>}
                                 </button>
@@ -562,7 +562,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
                                     }
                                 }}
                                 placeholder="Add supply item manually..."
-                                className="flex-1 p-3 bg-white border border-zinc-200 rounded-lg text-sm"
+                                className="flex-1 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                             />
                             <button
                                 type="button"
@@ -587,7 +587,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave }) => {
             </main>
             <footer className="p-8 border-t border-zinc-100 space-y-4">
                 {saveError && (
-                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-bold flex items-center gap-2">
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-3xl text-sm text-rose-700 font-bold flex items-center gap-2">
                         <AlertTriangle size={16} className="shrink-0" /> {saveError}
                     </div>
                 )}

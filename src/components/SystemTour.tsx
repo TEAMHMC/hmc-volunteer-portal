@@ -50,7 +50,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-xl w-full rounded-2xl shadow-elevation-3 p-8 relative" onClick={e => e.stopPropagation()}>
+            <div className="bg-white max-w-xl w-full rounded-modal shadow-elevation-3 p-8 relative border border-zinc-100" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors"><X size={20}/></button>
                 
                 <div className="flex items-center gap-4 mb-6">
@@ -58,7 +58,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose }) => {
                 </div>
                 
                 <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{currentStep.title}</h2>
-                <p className="text-zinc-500 mt-4 text-lg leading-relaxed">{currentStep.content}</p>
+                <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">{currentStep.content}</p>
 
                 <div className="flex items-center justify-between mt-10">
                     <div className="flex items-center gap-2">

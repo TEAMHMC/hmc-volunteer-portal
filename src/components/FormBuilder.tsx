@@ -187,8 +187,8 @@ const FormBuilder: React.FC = () => {
                 <header className="flex items-center justify-between">
                     <div>
                         <button onClick={() => setViewingResponses(null)} className="text-sm font-bold text-zinc-500 mb-2">← Back to Forms</button>
-                        <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Survey Responses</h1>
-                        <p className="text-zinc-500 mt-1">{viewingResponses.responses.length} responses collected</p>
+                        <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Survey Responses</h1>
+                        <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">{viewingResponses.responses.length} responses collected</p>
                     </div>
                     <button
                         onClick={() => handleExportResponses(viewingResponses.responses)}
@@ -199,14 +199,14 @@ const FormBuilder: React.FC = () => {
                 </header>
 
                 {viewingResponses.responses.length === 0 ? (
-                    <div className="bg-zinc-50 rounded-2xl p-8 text-center">
+                    <div className="bg-zinc-50 rounded-card-lg p-8 text-center border border-zinc-100 shadow-elevation-1">
                         <BarChart3 className="mx-auto text-zinc-300 mb-4" size={48} />
-                        <p className="text-zinc-500">No responses collected yet.</p>
+                        <p className="text-zinc-400 font-bold text-sm">No responses collected yet.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {viewingResponses.responses.map((response, idx) => (
-                            <div key={response.id || idx} className="bg-white p-6 rounded-2xl border border-zinc-100">
+                            <div key={response.id || idx} className="bg-white p-6 rounded-card-lg border border-zinc-100 shadow-elevation-1">
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                                         {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'Unknown date'}
@@ -239,8 +239,8 @@ const FormBuilder: React.FC = () => {
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
             <header className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Forms Dashboard</h1>
-                    <p className="text-zinc-500 mt-2 font-bold text-lg">Manage data collection forms for surveys, applications, and feedback.</p>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Forms Dashboard</h1>
+                    <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Manage data collection forms for surveys, applications, and feedback.</p>
                 </div>
                 <button
                     onClick={handleCreateNewForm}
@@ -252,7 +252,7 @@ const FormBuilder: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {forms.map(form => (
-                    <div key={form.id} className="bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 flex flex-col">
+                    <div key={form.id} className="bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 flex flex-col">
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-6">
                             <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 border border-zinc-100"><FileText /></div>
@@ -263,7 +263,7 @@ const FormBuilder: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <h3 className="text-lg font-black text-zinc-900">{form.title}</h3>
+                          <h3 className="text-xl font-bold text-zinc-900">{form.title}</h3>
                           <p className="text-sm text-zinc-500 mt-2">{form.description}</p>
                           <div className="mt-3">
                             <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-bold uppercase tracking-wider rounded">
@@ -346,10 +346,10 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
             </div>
 
             <div className="grid grid-cols-12 gap-8 items-start">
-                <div className="col-span-8 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-8">
-                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-black text-zinc-900 outline-none p-2 -ml-2 rounded-lg focus:bg-zinc-50" />
+                <div className="col-span-8 bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 space-y-8">
+                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-black text-zinc-900 outline-none p-4 -ml-2 bg-zinc-50 border-2 border-zinc-100 rounded-2xl focus:border-brand/30" />
                     {fields.map(field => (
-                        <div key={field.id} className="p-6 bg-zinc-50 border border-zinc-100 rounded-2xl relative group">
+                        <div key={field.id} className="p-6 bg-zinc-50 border border-zinc-100 rounded-3xl relative group">
                             <button onClick={() => removeField(field.id)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-zinc-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                             <input value={field.question} onChange={e => updateField(field.id, 'question', e.target.value)} className="font-bold text-zinc-700 w-full bg-transparent outline-none p-1 rounded focus:bg-white" />
                             
@@ -368,10 +368,10 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
                         </div>
                     ))}
                 </div>
-                <div className="col-span-4 bg-white p-8 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
-                     <h3 className="text-lg font-bold text-zinc-900 mb-4 uppercase tracking-wider">Add Field</h3>
+                <div className="col-span-4 bg-white p-8 rounded-card-lg border border-zinc-100 shadow-elevation-1 space-y-4">
+                     <h3 className="text-xl font-bold text-zinc-900 mb-4">Add Field</h3>
                      {fieldTypes.map(field => (
-                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center gap-4 hover:border-brand/30 hover:bg-brand/5">
+                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-3xl flex items-center gap-4 hover:border-brand/30 hover:bg-brand/5">
                             <field.icon className="text-zinc-400" />
                             <span className="font-bold text-zinc-700">{field.name}</span>
                          </button>
