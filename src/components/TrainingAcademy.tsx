@@ -611,7 +611,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   }, [roleSlug, primarySlug, user.role]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-16">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Tier 1 Complete Banner */}
       {tier1Complete && !tier2CoreComplete && (
         <div className="bg-brand/5 border border-brand/20 p-5 rounded-2xl flex items-center gap-4">
@@ -648,8 +648,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
              TRAINING ACADEMY
           </div>
-          <h2 className="text-2xl md:text-2xl font-black text-zinc-900 tracking-tighter leading-none mb-4 italic">HMC Training</h2>
-          <p className="text-zinc-500 text-base font-bold leading-relaxed">
+          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">HMC Training</h2>
+          <p className="text-zinc-500 mt-2 font-bold text-lg leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
             {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
               <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{roleDisplayName}</span></span>

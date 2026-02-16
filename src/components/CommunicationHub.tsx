@@ -1573,12 +1573,12 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
   ];
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 h-full flex flex-col">
+    <div className="space-y-8 animate-in fade-in duration-500 h-full flex flex-col">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 shrink-0">
         <div>
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Communication Hub</h2>
-          <p className="text-[15px] text-zinc-500 font-bold mt-1">
+          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Communication Hub</h2>
+          <p className="text-zinc-500 mt-2 font-bold text-lg">
             Your command center for team communication and support.
           </p>
         </div>

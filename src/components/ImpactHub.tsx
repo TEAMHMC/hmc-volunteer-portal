@@ -24,11 +24,11 @@ const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) 
   const userRank = [...allVolunteers].sort((a,b) => b.points - a.points).findIndex(v => v.id === user.id) + 1;
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase leading-none">Impact Hub</h2>
-          <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
+          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Impact Hub</h2>
+          <p className="text-zinc-500 mt-2 font-bold text-lg">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0">
           <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>

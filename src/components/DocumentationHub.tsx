@@ -108,10 +108,10 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     };
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+        <div className="space-y-8 animate-in fade-in duration-700 pb-20">
             <header className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">Documentation Hub</h1>
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Documentation Hub</h1>
                     <p className="text-zinc-500 mt-2 font-bold text-lg">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
                 {canEdit && (
@@ -139,7 +139,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {Object.keys(articlesByCategory).map((category) => {
                     const categoryArticles = articlesByCategory[category];
                     return (
-                    <div key={category} className="bg-white border border-zinc-100 rounded-2xl overflow-hidden">
+                    <div key={category} className="bg-white border border-zinc-100 rounded-2xl shadow-elevation-1 overflow-hidden">
                         <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-6">
                             <h2 className="text-xl font-bold text-zinc-800">{category}</h2>
                             <ChevronDown className={`transition-transform ${expandedCategories.includes(category) ? 'rotate-180' : ''}`} />

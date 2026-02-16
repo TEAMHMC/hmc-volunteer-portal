@@ -1168,7 +1168,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-32">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
        {showToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-brand text-white px-10 py-6 rounded-full shadow-elevation-3 flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
            <div className={`p-2 rounded-lg ${toastError ? 'bg-rose-500' : 'bg-emerald-500'}`}>{toastError ? <XCircle size={16} /> : <Check size={16} />}</div>
@@ -1238,7 +1238,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-2xl font-bold text-zinc-900 tracking-normal leading-none">My Missions</h2>
+          <h2 className="text-2xl font-black text-zinc-900 tracking-tight">My Missions</h2>
           <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">Find, join, and manage community health events.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto no-scrollbar">

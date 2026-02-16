@@ -655,7 +655,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         </>
       )}
 
-      <main className={`flex-1 p-6 md:p-8 space-y-8 md:space-y-10 overflow-y-auto h-screen no-scrollbar pb-24 md:pb-16 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
+      <main className={`flex-1 p-6 md:p-8 space-y-8 overflow-y-auto h-screen no-scrollbar pb-20 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {/* Announcement Banner */}
          {(() => {
            const DISMISSED_KEY = 'hmcDismissedAnnouncements';
@@ -708,10 +708,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-2xl md:text-2xl font-bold text-zinc-900 tracking-normal leading-[1.1]">
+                    <h1 className="text-2xl font-black text-zinc-900 tracking-tight">
                       {getGreeting(displayUser.name)}.
                     </h1>
-                    <p className="text-base text-zinc-500 font-bold max-w-lg">
+                    <p className="text-zinc-500 mt-2 font-bold text-lg max-w-lg">
                       {isOnboarding
                         ? "Complete your orientation to unlock missions."
                         : "Ready to continue making a difference?"}

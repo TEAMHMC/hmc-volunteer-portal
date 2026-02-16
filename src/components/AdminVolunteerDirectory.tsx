@@ -197,10 +197,10 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
   return (
     <>
-      <div className="space-y-12 animate-in fade-in duration-500 pb-32">
+      <div className="space-y-8 animate-in fade-in duration-500 pb-20">
         <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
           <div className="max-w-xl">
-            <h2 className="text-2xl font-black text-zinc-900 tracking-tighter">Volunteer Directory</h2>
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Volunteer Directory</h2>
             <p className="text-zinc-500 mt-4 font-bold text-lg leading-relaxed">
               Authorized personnel management for <span className="text-zinc-900 font-black">{volunteers.filter(v => v.applicationStatus !== 'pendingReview').length}</span> verified community contributors.
             </p>

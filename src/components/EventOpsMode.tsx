@@ -185,16 +185,16 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="animate-spin text-brand" size={48} /></div>;
 
   return (
-    <div className="animate-in fade-in duration-500 pb-32">
-      <header className="space-y-4 mb-8 md:mb-12 px-2">
+    <div className="space-y-8 pb-20 animate-in fade-in duration-500">
+      <header className="space-y-4 px-2">
         <button onClick={onBack} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-900 transition-colors">
           <ArrowLeft size={14} /> Back to Schedule
         </button>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <span className="px-3 py-1 bg-brand text-white rounded-lg text-[9px] font-bold uppercase tracking-wider">{opportunity.category}</span>
-            <h1 className="text-2xl md:text-2xl font-black text-zinc-900 tracking-tighter uppercase leading-tight mt-3">{opportunity.title}</h1>
-            <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] mt-1">{opportunity.date} • {opportunity.serviceLocation}</p>
+            <h1 className="text-2xl font-black text-zinc-900 tracking-tight mt-3">{opportunity.title}</h1>
+            <p className="text-zinc-500 mt-2 font-bold text-lg">{opportunity.date} • {opportunity.serviceLocation}</p>
           </div>
           <div className="flex items-center gap-3">
             {canEdit && onEditEvent && (

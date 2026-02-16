@@ -354,22 +354,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-32">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-8 rounded-2xl text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-        <div className="relative z-10 flex items-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shadow-elevation-2">
-            {meetingsOnly ? <CalendarDays size={28} /> : <Briefcase size={28} />}
-          </div>
-          <div>
-            <h2 className="text-2xl font-black tracking-tight">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h2>
-            <p className="text-zinc-400 mt-1">
-              {meetingsOnly ? 'Schedule and manage team meetings' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal`}
-            </p>
-          </div>
-        </div>
-      </div>
+      <header>
+        <h1 className="text-2xl font-black text-zinc-900 tracking-tight">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h1>
+        <p className="text-zinc-500 mt-2 font-bold text-lg">
+          {meetingsOnly ? 'Schedule and manage team meetings.' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal.`}
+        </p>
+      </header>
 
       {/* Navigation Tabs — hidden in meetingsOnly mode */}
       {!meetingsOnly && (

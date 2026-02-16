@@ -158,7 +158,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
   });
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Weekly Availability Reminder Banner */}
       {showReminderBanner && (
         <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center justify-between animate-in slide-in-from-top">
