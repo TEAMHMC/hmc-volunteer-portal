@@ -116,7 +116,7 @@ async function getSignedDownloadUrl(filePath: string, expiresMinutes = 60): Prom
 }
 
 // --- TWILIO ---
-const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
+const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, TWILIO_MESSAGING_SERVICE_SID } = process.env;
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || process.env.VITE_FIREBASE_API_KEY || '';
 if (!FIREBASE_WEB_API_KEY) {
     console.error('[CRITICAL] FIREBASE_WEB_API_KEY is not set — email/password login will not work. Set it from Firebase Console → Project Settings → General → Web API Key.');
@@ -125,6 +125,20 @@ if (!FIREBASE_WEB_API_KEY) {
     console.log(`[AUTH] Using API key from ${keySource}`);
 }
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
+
+// Twilio signature validation middleware (prevents spoofed webhook requests)
+const validateTwilioSignature = (req: Request, res: Response, next: NextFunction) => {
+  if (!TWILIO_AUTH_TOKEN) return res.sendStatus(403);
+  const signature = req.headers['x-twilio-signature'] as string;
+  const portalUrl = process.env.PORTAL_URL || `http://localhost:${process.env.PORT || 8080}`;
+  const url = `${portalUrl}${req.originalUrl}`;
+  const isValid = twilio.validateRequest(TWILIO_AUTH_TOKEN, signature || '', url, req.body || {});
+  if (!isValid) {
+    console.warn('[TWILIO] Invalid signature on webhook:', req.originalUrl);
+    return res.sendStatus(403);
+  }
+  next();
+};
 
 // --- STARTUP ENV VALIDATION ---
 const REQUIRED_ENV_WARNINGS: [string, string][] = [
@@ -521,8 +535,8 @@ const sendSMS = async (
   to: string,
   body: string
 ): Promise<{ sent: boolean; reason?: string }> => {
-  // Feature flag: check if Twilio is configured
-  if (!twilioClient || !TWILIO_PHONE_NUMBER) {
+  // Feature flag: check if Twilio is configured (prefer Messaging Service SID, fallback to phone number)
+  if (!twilioClient || (!TWILIO_MESSAGING_SERVICE_SID && !TWILIO_PHONE_NUMBER)) {
     console.log('[SMS] Twilio not configured, skipping SMS');
     return { sent: false, reason: 'not_configured' };
   }
@@ -543,11 +557,13 @@ const sendSMS = async (
   }
 
   try {
-    await twilioClient.messages.create({
-      body,
-      from: TWILIO_PHONE_NUMBER,
-      to
-    });
+    const messageParams: { body: string; to: string; messagingServiceSid?: string; from?: string } = { body, to };
+    if (TWILIO_MESSAGING_SERVICE_SID) {
+      messageParams.messagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+    } else {
+      messageParams.from = TWILIO_PHONE_NUMBER;
+    }
+    await twilioClient.messages.create(messageParams);
     console.log(`[SMS] Sent to ${to}`);
     return { sent: true };
   } catch (error) {
@@ -5184,7 +5200,7 @@ app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request,
         if (sendAsSms) {
             console.log('[BROADCAST] SMS broadcast requested');
 
-            if (!twilioClient || !TWILIO_PHONE_NUMBER) {
+            if (!twilioClient || (!TWILIO_MESSAGING_SERVICE_SID && !TWILIO_PHONE_NUMBER)) {
                 console.log('[BROADCAST] Twilio not configured, skipping SMS');
             } else {
                 // Fetch all volunteers who have opted in to SMS
@@ -5218,11 +5234,13 @@ app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request,
                 // Send SMS to each volunteer
                 const smsPromises = eligibleVolunteers.map(async (vol) => {
                     try {
-                        await twilioClient!.messages.create({
-                            body: smsBody,
-                            from: TWILIO_PHONE_NUMBER,
-                            to: vol.phone
-                        });
+                        const msgParams: any = { body: smsBody, to: vol.phone };
+                        if (TWILIO_MESSAGING_SERVICE_SID) {
+                            msgParams.messagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+                        } else {
+                            msgParams.from = TWILIO_PHONE_NUMBER;
+                        }
+                        await twilioClient!.messages.create(msgParams);
                         console.log(`[BROADCAST] SMS sent to ${maskPhone(vol.phone)}`);
                         return { success: true };
                     } catch (error: any) {
@@ -8039,8 +8057,118 @@ app.get('/api/shifts', verifyToken, async (_req: Request, res: Response) => {
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// SMS ENDPOINTS & TWILIO WEBHOOKS
+// ═══════════════════════════════════════════════════════════════
+
+// POST /api/sms/send — Backend-only SMS send (authenticated)
+app.post('/api/sms/send', verifyToken, rateLimit(20, 60000), async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin && !ORG_CALENDAR_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins and coordinators can send SMS' });
+    }
+    const { to, body } = req.body;
+    if (!to || !body) {
+      return res.status(400).json({ error: 'Missing required fields: to, body' });
+    }
+    if (typeof body !== 'string' || body.length > 1600) {
+      return res.status(400).json({ error: 'Message body must be a string under 1600 characters' });
+    }
+    const phoneRegex = /^\+?1?\d{10,15}$/;
+    if (!phoneRegex.test(to.replace(/[\s()-]/g, ''))) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+    const result = await sendSMS(null, to, body);
+    if (result.sent) {
+      // Log SMS send for audit trail
+      await db.collection('sms_logs').add({
+        to, bodyPreview: body.substring(0, 100), sentBy: user.uid, sentAt: new Date().toISOString(), status: 'sent'
+      });
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'SMS send failed', reason: result.reason });
+    }
+  } catch (e: any) {
+    console.error('[SMS] /api/sms/send error:', e.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/twilio/inbound — Receive inbound SMS from Twilio
+app.post('/api/twilio/inbound', validateTwilioSignature, async (req: Request, res: Response) => {
+  try {
+    const { From, Body, MessageSid } = req.body;
+    console.log(`[TWILIO] Inbound SMS from ${maskPhone(From || '')}: ${(Body || '').substring(0, 50)}`);
+
+    // Normalize the reply keyword
+    const normalized = (Body || '').trim().toUpperCase();
+
+    // Log inbound message
+    await db.collection('sms_inbound').add({
+      from: From, body: Body, messageSid: MessageSid, receivedAt: new Date().toISOString(), normalized
+    });
+
+    // Handle common keywords
+    let replyMessage = 'Thanks for your message! Reply YES to confirm, STOP to opt out.';
+
+    if (normalized === 'YES' || normalized === 'Y' || normalized === 'CONFIRM') {
+      // Try to find a pending RSVP for this phone number
+      const phone = normalizePhone(From || '');
+      if (phone) {
+        const volSnap = await db.collection('volunteers')
+          .where('phone', '==', phone).limit(1).get();
+        if (!volSnap.empty) {
+          replyMessage = 'Thanks for confirming! See you there.';
+        }
+      }
+    } else if (normalized === 'NO' || normalized === 'N' || normalized === 'CANCEL') {
+      replyMessage = 'Got it. Your RSVP has been noted as declined.';
+    } else if (normalized === 'HELP') {
+      replyMessage = 'Health Matters Clinic Volunteer Portal. Reply YES to confirm, NO to decline, STOP to opt out of SMS.';
+    }
+    // STOP/UNSTOP are handled automatically by Twilio Messaging Service
+
+    res.type('text/xml').send(`<?xml version="1.0" encoding="UTF-8"?><Response><Message>${replyMessage}</Message></Response>`);
+  } catch (e: any) {
+    console.error('[TWILIO] Inbound handler error:', e.message);
+    // Always return 200 to Twilio to prevent retries
+    res.type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+  }
+});
+
+// POST /api/twilio/inbound-failover — Failover for inbound SMS
+app.post('/api/twilio/inbound-failover', validateTwilioSignature, async (req: Request, res: Response) => {
+  const { From, Body, MessageSid } = req.body;
+  console.warn(`[TWILIO] Failover inbound from ${maskPhone(From || '')}, SID: ${MessageSid}`);
+  await db.collection('sms_inbound').add({
+    from: From, body: Body, messageSid: MessageSid, receivedAt: new Date().toISOString(), failover: true
+  }).catch(() => {});
+  res.type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response><Message>Thanks for your message. Please try again later.</Message></Response>');
+});
+
+// POST /api/twilio/status — Delivery status callback
+app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res: Response) => {
+  try {
+    const { MessageSid, MessageStatus, To, ErrorCode, ErrorMessage } = req.body;
+    console.log(`[TWILIO] Status: ${MessageStatus} for ${maskPhone(To || '')} (SID: ${MessageSid})`);
+
+    // Persist delivery status for debugging & reporting
+    await db.collection('sms_delivery_status').add({
+      messageSid: MessageSid, status: MessageStatus, to: To,
+      errorCode: ErrorCode || null, errorMessage: ErrorMessage || null,
+      receivedAt: new Date().toISOString()
+    });
+  } catch (e: any) {
+    console.error('[TWILIO] Status callback error:', e.message);
+  }
+  // Always return 200 to Twilio
+  res.sendStatus(200);
+});
+
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
-const buildPath = path.resolve(process.cwd(), 'dist/client'); 
+const buildPath = path.resolve(process.cwd(), 'dist/client');
 app.use(express.static(buildPath, { index: false }));
 
 app.get('*', (req: Request, res: Response) => {
