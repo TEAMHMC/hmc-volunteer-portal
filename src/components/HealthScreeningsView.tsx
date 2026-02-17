@@ -14,10 +14,11 @@ interface HealthScreeningsViewProps {
 
 const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift, event, onLog }) => {
     const [view, setView] = useState<'search' | 'new_client' | 'screening'>('search');
-    const [searchBy, setSearchBy] = useState<'phone' | 'email'>('phone');
+    const [searchBy, setSearchBy] = useState<'phone' | 'email' | 'name'>('phone');
     const [query, setQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResult, setSearchResult] = useState<ClientRecord | 'not_found' | null>(null);
+    const [multipleResults, setMultipleResults] = useState<ClientRecord[]>([]);
     const [activeClient, setActiveClient] = useState<ClientRecord | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
@@ -26,6 +27,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
         setView('search');
         setQuery('');
         setSearchResult(null);
+        setMultipleResults([]);
         setActiveClient(null);
         setError('');
     };
@@ -35,11 +37,17 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
         if (!query) return;
         setIsSearching(true);
         setSearchResult(null);
+        setMultipleResults([]);
         setError('');
         try {
             const result = await apiService.post('/api/clients/search', { [searchBy]: query });
-            setSearchResult(result);
-            onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: result.id, summary: `Searched for client by ${searchBy}. Found: ${result.firstName} ${result.lastName}` });
+            if (result.multiple && Array.isArray(result.results)) {
+                setMultipleResults(result.results);
+                onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: 'N/A', summary: `Searched for client by ${searchBy}. Found ${result.results.length} matches.` });
+            } else {
+                setSearchResult(result);
+                onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: result.id, summary: `Searched for client by ${searchBy}. Found: ${result.firstName} ${result.lastName}` });
+            }
         } catch (err) {
             setSearchResult('not_found');
              onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: 'N/A', summary: `Searched for client by ${searchBy}. Result: Not Found.` });
@@ -75,16 +83,25 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                 <div className="max-w-xl mx-auto space-y-6">
                     <form onSubmit={handleSearch}>
                         <div className="flex bg-zinc-100 p-1 rounded-full">
-                            <button type="button" onClick={() => setSearchBy('phone')} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'phone' ? 'bg-white shadow' : ''}`}>By Phone</button>
-                            <button type="button" onClick={() => setSearchBy('email')} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'email' ? 'bg-white shadow' : ''}`}>By Email</button>
+                            <button type="button" onClick={() => { setSearchBy('phone'); setQuery(''); setSearchResult(null); setMultipleResults([]); }} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'phone' ? 'bg-white shadow' : ''}`}>By Phone</button>
+                            <button type="button" onClick={() => { setSearchBy('email'); setQuery(''); setSearchResult(null); setMultipleResults([]); }} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'email' ? 'bg-white shadow' : ''}`}>By Email</button>
+                            <button type="button" onClick={() => { setSearchBy('name'); setQuery(''); setSearchResult(null); setMultipleResults([]); }} className={`flex-1 p-2 text-xs font-bold rounded-full ${searchBy === 'name' ? 'bg-white shadow' : ''}`}>By Name</button>
                         </div>
                         <div className="relative mt-4">
-                            <input type={searchBy === 'phone' ? 'tel' : 'email'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Enter client ${searchBy}...`} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                            <input type={searchBy === 'phone' ? 'tel' : 'text'} value={query} onChange={e => setQuery(e.target.value)} placeholder={searchBy === 'name' ? 'Enter first or last name...' : `Enter client ${searchBy}...`} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
                             <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
                         </div>
                     </form>
+
+                    {/* Walk-in / No Contact Info */}
+                    <div className="text-center">
+                        <button onClick={() => setView('new_client')} className="px-5 py-2.5 bg-white border-2 border-dashed border-zinc-200 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto hover:border-brand/30 hover:text-brand transition-colors">
+                            <UserPlus size={14} /> Walk-In / No Contact Info
+                        </button>
+                        <p className="text-[10px] text-zinc-400 mt-2">For clients without phone or email (e.g., unhoused individuals)</p>
+                    </div>
 
                     {searchResult === 'not_found' && (
                         <div className="text-center p-8 bg-amber-50 rounded-[40px] border border-amber-200 shadow-sm hover:shadow-2xl transition-shadow">
@@ -94,11 +111,27 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                         </div>
                     )}
 
+                    {/* Multiple name results */}
+                    {multipleResults.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-zinc-500">{multipleResults.length} client{multipleResults.length > 1 ? 's' : ''} found:</p>
+                            {multipleResults.map(c => (
+                                <button key={c.id} onClick={() => handleStartScreening(c)} className="w-full p-4 bg-white border border-zinc-100 rounded-3xl text-left hover:border-brand/30 hover:shadow-sm transition-all flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-bold text-zinc-900">{c.firstName} {c.lastName}</p>
+                                        <p className="text-xs text-zinc-500">{c.dob ? `DOB: ${c.dob}` : ''}{c.phone ? ` · ${c.phone}` : ''}</p>
+                                    </div>
+                                    <HeartPulse size={16} className="text-brand shrink-0" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {searchResult && searchResult !== 'not_found' && (
                         <div className="p-8 bg-emerald-50 rounded-[40px] border border-emerald-200 shadow-sm hover:shadow-2xl transition-shadow">
                             <p className="text-xs font-bold text-emerald-800">Client Found</p>
                             <p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
-                            <p className="text-sm text-emerald-800">DOB: {searchResult.dob}</p>
+                            <p className="text-sm text-emerald-800">{searchResult.dob ? `DOB: ${searchResult.dob}` : ''}</p>
                             <button onClick={() => handleStartScreening(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2"><HeartPulse size={14}/> Start Screening</button>
                         </div>
                     )}
@@ -131,15 +164,40 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
         }
     };
 
+    const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
+
     return (
         <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
-            <h3 className="text-lg font-black text-zinc-900">Register New Client</h3>
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black text-zinc-900">Register New Client</h3>
+                <button type="button" onClick={() => setView('search')} className="text-xs font-bold text-zinc-400 hover:text-zinc-600">Back to Search</button>
+            </div>
             <form onSubmit={handleSave} className="space-y-4">
-                <input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
-                <input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
-                <input required type="date" placeholder="Date of Birth" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
-                <input required type="tel" pattern="[0-9]{10,15}" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
-                <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <div className="grid grid-cols-2 gap-4">
+                    <input required placeholder="First Name *" onChange={e => setClient({...client, firstName: e.target.value})} className={inputClass} />
+                    <input required placeholder="Last Name *" onChange={e => setClient({...client, lastName: e.target.value})} className={inputClass} />
+                </div>
+                <input placeholder="Preferred Name (Optional)" onChange={e => setClient({...client, preferredName: e.target.value} as any)} className={inputClass} />
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
+                        <input type="date" onChange={e => setClient({...client, dob: e.target.value})} className={inputClass} />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Housing Status</label>
+                        <select onChange={e => setClient({...client, housingStatus: e.target.value} as any)} className={inputClass}>
+                            <option value="">— Select —</option>
+                            <option value="housed">Housed</option>
+                            <option value="unhoused">Unhoused / Homeless</option>
+                            <option value="transitional">Transitional Housing</option>
+                            <option value="shelter">Shelter</option>
+                            <option value="unknown">Unknown / Declined</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="tel" placeholder="Phone (Optional)" onChange={e => setClient({...client, phone: e.target.value})} className={inputClass} />
+                <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className={inputClass} />
+                <textarea placeholder="Identifying Info (Optional — e.g., physical description, known alias, camp location for unhoused clients)" onChange={e => setClient({...client, identifyingInfo: e.target.value} as any)} className={`${inputClass} resize-none`} rows={2} />
                 <div className="flex gap-4">
                     <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
                     <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>

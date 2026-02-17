@@ -244,8 +244,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const EVENT_PARTICIPANT_ROLES = ['Outreach Volunteer', 'Content Writer', 'Newsletter & Content Writer', 'Social Media Team', 'Student Intern', 'Fundraising Volunteer', 'Grant Writer'];
   const isEventParticipant = EVENT_PARTICIPANT_ROLES.includes(displayUser.role);
 
-  // My Missions: requires coreVolunteerStatus AND HIPAA training (or admin, or coordinator/lead roles, or event participant with HIPAA)
-  const canAccessMissions = displayUser.isAdmin || (displayUser.coreVolunteerStatus === true && displayUser.completedHIPAATraining === true) || isCoordinatorOrLead || (isEventParticipant && displayUser.completedHIPAATraining === true);
+  // My Missions: visible to all roles except HMC Champion, Board, Advisory Board, and Tech-only roles
+  const MISSIONS_EXCLUDED_ROLES = ['HMC Champion', 'Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'];
+  const canAccessMissions = displayUser.isAdmin || !MISSIONS_EXCLUDED_ROLES.includes(displayUser.role);
 
   // Notification counts
   const [dismissedNotifTs, setDismissedNotifTs] = useState<string>(
@@ -318,10 +319,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     // MAIN
     const mainItems: NavItem[] = [{ id: 'overview', label: 'Overview', icon: Activity }];
     if (canAccessMissions) {
-      const governanceCompletedTier2 = isGovernanceRole && hasCompletedAllModules(completedTrainingIds, TIER_2_IDS);
-      if (!isGovernanceRole || governanceCompletedTier2) {
-        mainItems.push({ id: 'missions', label: 'My Missions', icon: Calendar });
-      }
+      mainItems.push({ id: 'missions', label: 'My Missions', icon: Calendar });
     }
     mainItems.push({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
     groups.push({ label: 'MAIN', items: mainItems });

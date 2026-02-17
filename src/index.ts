@@ -3177,7 +3177,26 @@ app.put('/api/referrals/:id', verifyToken, requireAdmin, async (req: Request, re
 });
 app.post('/api/clients/search', verifyToken, async (req: Request, res: Response) => {
     try {
-        const { phone, email } = req.body;
+        const { phone, email, name } = req.body;
+
+        if (name) {
+            // Name-based search: query all clients and filter by first/last name match
+            const snap = await db.collection('clients').get();
+            const nameLower = (name as string).toLowerCase().trim();
+            const matches = snap.docs.filter(d => {
+                const data = d.data();
+                const fullName = `${data.firstName || ''} ${data.lastName || ''}`.toLowerCase().trim();
+                const first = (data.firstName || '').toLowerCase();
+                const last = (data.lastName || '').toLowerCase();
+                return fullName.includes(nameLower) || first.includes(nameLower) || last.includes(nameLower);
+            }).map(d => ({ id: d.id, ...d.data() }));
+
+            if (matches.length === 0) return res.status(404).json({ error: 'Not found' });
+            if (matches.length === 1) return res.json(matches[0]);
+            // Return multiple matches for name search
+            return res.json({ multiple: true, results: matches.slice(0, 10) });
+        }
+
         let query: admin.firestore.Query = db.collection('clients');
         if (phone) query = query.where('phone', '==', phone);
         else if (email) query = query.where('email', '==', email);
@@ -3190,9 +3209,9 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
         res.status(500).json({ error: 'Client search failed' });
     }
 });
-app.post('/api/clients/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics']);
+        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo']);
         if (!clientData.name && !clientData.firstName) return res.status(400).json({ error: 'Client name required' });
         const client = {
             ...clientData,
