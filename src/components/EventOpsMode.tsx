@@ -97,8 +97,8 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     const fetchOpsData = async () => {
       try {
         setLoading(true);
-        const runData = await apiService.get(`/api/ops/run/${shift.id}/${user.id}`).catch(() => ({ 
-           opsRun: { id: `${shift.id}_${user.id}`, shiftId: shift.id, volunteerId: user.id, completedItems: [] },
+        const runData = await apiService.get(`/api/ops/run/${shift.id}/${user.id}`).catch(() => ({
+           opsRun: { id: shift.id, shiftId: shift.id, volunteerId: user.id, completedItems: [] },
            incidents: [],
            auditLogs: []
         }));

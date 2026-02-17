@@ -3984,51 +3984,67 @@ Only return valid JSON array.`;
 
 app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: Response) => {
     const { shiftId, userId } = req.params;
-    const runId = `${shiftId}_${userId}`;
-    const doc = await db.collection('mission_ops_runs').doc(runId).get();
+    // Shared checklist: stored per-shift (not per-user) so all registered users see the same state
+    const sharedDoc = await db.collection('mission_ops_runs').doc(shiftId).get();
+    // Individual signoff: stored per-user
+    const signoffDoc = await db.collection('mission_ops_signoffs').doc(`${shiftId}_${userId}`).get();
     const incidentsSnap = await db.collection('incidents').where('shiftId', '==', shiftId).get();
     const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).orderBy('timestamp', 'desc').get();
-    
+
+    const sharedData = sharedDoc.exists ? sharedDoc.data() : {};
+    const signoffData = signoffDoc.exists ? signoffDoc.data() : {};
+
     res.json({
-        opsRun: doc.exists ? { id: doc.id, ...doc.data() } : { id: runId, shiftId, userId, completedItems: [] },
+        opsRun: {
+            id: shiftId,
+            shiftId,
+            userId,
+            completedItems: sharedData?.completedItems || [],
+            ...signoffData, // signedOff, signedOffAt, signatureStoragePath
+        },
         incidents: incidentsSnap.docs.map(d => ({id: d.id, ...d.data()})),
         auditLogs: auditSnap.docs.map(d => ({id: d.id, ...d.data()})),
     });
 });
 app.post('/api/ops/checklist', verifyToken, async (req: Request, res: Response) => {
     const { runId, completedItems } = req.body;
-    await db.collection('mission_ops_runs').doc(runId).set({ completedItems }, { merge: true });
+    // runId is now the shiftId — shared across all users
+    await db.collection('mission_ops_runs').doc(runId).set({ completedItems, updatedAt: new Date().toISOString() }, { merge: true });
     res.json({ success: true });
 });
 
-// POST /api/ops/signoff — Save shift signoff with signature
+// POST /api/ops/signoff — Save shift signoff with signature (per-user)
 app.post('/api/ops/signoff', verifyToken, async (req: Request, res: Response) => {
     const user = (req as any).user;
     const { shiftId, signatureData, completedItems } = req.body;
     if (!shiftId || !signatureData) return res.status(400).json({ error: 'shiftId and signatureData required' });
 
-    const runId = `${shiftId}_${user.uid}`;
+    const signoffId = `${shiftId}_${user.uid}`;
     try {
         // Upload signature to Cloud Storage if bucket available
         let signatureStoragePath: string | undefined;
         if (bucket) {
             try {
-                signatureStoragePath = `signoffs/${runId}/signature.png`;
+                signatureStoragePath = `signoffs/${signoffId}/signature.png`;
                 const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
                 await uploadToStorage(base64Data, signatureStoragePath, 'image/png');
             } catch { signatureStoragePath = undefined; }
         }
 
-        await db.collection('mission_ops_runs').doc(runId).set({
+        // Save individual signoff to per-user collection
+        await db.collection('mission_ops_signoffs').doc(signoffId).set({
             shiftId,
             userId: user.uid,
-            completedItems: completedItems || [],
             signedOff: true,
             signedOffAt: new Date().toISOString(),
             signatureStoragePath: signatureStoragePath || null,
-            // Fall back to storing in Firestore if no Cloud Storage
             signatureData: signatureStoragePath ? null : signatureData,
         }, { merge: true });
+
+        // Also save final checklist state to shared ops run
+        if (completedItems) {
+            await db.collection('mission_ops_runs').doc(shiftId).set({ completedItems, updatedAt: new Date().toISOString() }, { merge: true });
+        }
 
         console.log(`[OPS] Shift ${shiftId} signed off by ${user.uid}`);
         res.json({ success: true });
