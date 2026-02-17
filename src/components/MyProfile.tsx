@@ -356,7 +356,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         <div className="space-y-10">
           <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-10">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Legacy Badges</h3>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 max-h-[340px] overflow-y-auto">
               {currentUser.achievements.length === 0 ? <p className="text-zinc-400 text-sm font-bold italic">No badges earned yet.</p> : currentUser.achievements.map(ach => (
                 <div key={ach.id} className="flex items-center gap-5 p-5 bg-zinc-50 rounded-2xl border border-zinc-100/50">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-400 shadow-elevation-1"><Star size={24} fill="currentColor"/></div>
