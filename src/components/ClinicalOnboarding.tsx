@@ -536,8 +536,14 @@ const DocumentViewerModal: React.FC<{
       if (iframe?.contentDocument?.body) {
         const height = iframe.contentDocument.body.scrollHeight + 40;
         setIframeHeight(Math.max(600, height));
+      } else {
+        // Can't access iframe content (cross-origin) — auto-unlock after a read-through delay
+        setTimeout(() => setHasScrolledToBottom(true), 8000);
       }
-    } catch { /* cross-origin fallback: keep default height */ }
+    } catch {
+      // Cross-origin fallback: auto-unlock after delay so users aren't permanently blocked
+      setTimeout(() => setHasScrolledToBottom(true), 8000);
+    }
   };
 
   const handleScroll = () => {
@@ -548,6 +554,36 @@ const DocumentViewerModal: React.FC<{
       }
     }
   };
+
+  // Also listen to iframe internal scroll as a fallback (for when iframe can't be auto-sized)
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const onIframeScroll = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc) {
+          const scrollTop = doc.documentElement.scrollTop || doc.body.scrollTop;
+          const scrollHeight = doc.documentElement.scrollHeight || doc.body.scrollHeight;
+          const clientHeight = doc.documentElement.clientHeight || doc.body.clientHeight;
+          if (scrollTop + clientHeight >= scrollHeight - 50) {
+            setHasScrolledToBottom(true);
+          }
+        }
+      } catch { /* cross-origin — handled by timeout fallback */ }
+    };
+    const attachListener = () => {
+      try {
+        iframe.contentDocument?.addEventListener('scroll', onIframeScroll);
+      } catch { /* cross-origin */ }
+    };
+    iframe.addEventListener('load', attachListener);
+    attachListener(); // try immediately in case already loaded
+    return () => {
+      iframe.removeEventListener('load', attachListener);
+      try { iframe.contentDocument?.removeEventListener('scroll', onIframeScroll); } catch {}
+    };
+  }, [showSignature]); // re-attach when toggling between doc view and signature
 
   // Canvas drawing functions
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
@@ -604,7 +640,7 @@ const DocumentViewerModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-modal shadow-elevation-3 border border-zinc-100 flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-modal shadow-elevation-3 border border-zinc-100 flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
           <div>
@@ -622,7 +658,7 @@ const DocumentViewerModal: React.FC<{
             <div
               ref={contentRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-6 bg-zinc-50"
+              className="flex-1 overflow-y-auto p-6 bg-zinc-50 min-h-0"
             >
               <iframe
                 ref={iframeRef}
