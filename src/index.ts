@@ -8275,8 +8275,8 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
     return e.visibleTo.includes(callerRole);
   });
 
-  // 2. Board meetings → board members + admins only (board has its own dedicated governance tab)
-  const boardEvents = (isAdmin || BOARD_ROLES.includes(callerRole)) ? boardSnap.docs.map(d => {
+  // 2. Board meetings — visible to all authenticated users on the calendar
+  const boardEvents = boardSnap.docs.map(d => {
     const m = d.data();
     const meetingType = (m.type === 'committee' || m.type === 'cab') ? 'committee' : 'board';
     return {
@@ -8293,7 +8293,7 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
       sourceCollection: 'board_meetings',
       source: 'board-meeting',
     };
-  }) : [];
+  });
 
   // 3. Opportunities → mapped to OrgCalendarEvent shape with smart category mapping
   const mapOppCategory = (category: string, title: string): string => {
@@ -8332,11 +8332,17 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
     };
   }).filter(e => e.date);
 
-  // 4. Shifts (missions) → mapped to OrgCalendarEvent shape, joined with parent opportunity for title/location
+  // 4. Shifts (missions) → only include shifts that DON'T have a parent opportunity already in the calendar
+  //    (avoids duplicate entries — the opportunity already shows as the event)
+  const oppIds = new Set(oppsSnap.docs.map(d => d.id));
   const oppsById: Record<string, any> = {};
   oppsSnap.docs.forEach(d => { oppsById[d.id] = d.data(); });
 
-  const missionEvents = shiftsSnap.docs.map(d => {
+  const missionEvents = shiftsSnap.docs.filter(d => {
+    // Skip shifts whose parent opportunity is already shown
+    const s = d.data();
+    return !s.opportunityId || !oppIds.has(s.opportunityId);
+  }).map(d => {
     const s = d.data();
     const opp = oppsById[s.opportunityId] || {};
     const shiftDate = s.startTime ? (s.startTime.includes('T') ? s.startTime.split('T')[0] : s.startTime) : '';
