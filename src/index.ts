@@ -8176,6 +8176,10 @@ app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res
 
 // --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
 const buildPath = path.resolve(process.cwd(), 'dist/client');
+// Serve public/documents directly (clinical onboarding HTML files) — ensures they're available
+// even before a fresh build copies them to dist/client
+const publicDocsPath = path.resolve(process.cwd(), 'public/documents');
+app.use('/documents', express.static(publicDocsPath));
 app.use(express.static(buildPath, { index: false }));
 
 app.get('*', (req: Request, res: Response) => {

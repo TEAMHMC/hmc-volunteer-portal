@@ -523,9 +523,22 @@ const DocumentViewerModal: React.FC<{
   const [showSignature, setShowSignature] = useState(false);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(isSigned);
   const contentRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const [iframeHeight, setIframeHeight] = useState(600);
+
+  // Auto-size iframe to its content so scrolling happens in the outer container
+  const handleIframeLoad = () => {
+    try {
+      const iframe = iframeRef.current;
+      if (iframe?.contentDocument?.body) {
+        const height = iframe.contentDocument.body.scrollHeight + 40;
+        setIframeHeight(Math.max(600, height));
+      }
+    } catch { /* cross-origin fallback: keep default height */ }
+  };
 
   const handleScroll = () => {
     if (contentRef.current) {
@@ -612,8 +625,11 @@ const DocumentViewerModal: React.FC<{
               className="flex-1 overflow-y-auto p-6 bg-zinc-50"
             >
               <iframe
+                ref={iframeRef}
                 src={document.url}
-                className="w-full min-h-[600px] bg-white rounded-3xl shadow-elevation-1"
+                onLoad={handleIframeLoad}
+                style={{ height: `${iframeHeight}px` }}
+                className="w-full bg-white rounded-3xl shadow-elevation-1 border-0"
                 title={document.title}
               />
             </div>
