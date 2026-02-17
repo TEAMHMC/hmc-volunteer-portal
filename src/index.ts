@@ -5724,17 +5724,20 @@ app.post('/api/admin/add-volunteer', verifyToken, requireAdmin, async (req: Requ
                 ...volunteer,
                 email: volunteer.email.toLowerCase(),
                 authProvider: 'manual',
-                status: volunteer.status || 'active'
+                status: 'onboarding',
+                isNewUser: true
             });
             finalUserId = docRef.id;
         }
 
         // Save volunteer data to Firestore with the correct ID
+        // IMPORTANT: Admin-added volunteers MUST go through full onboarding — no bypasses
         const volunteerData = {
             ...volunteer,
             id: finalUserId,
             email: volunteer.email.toLowerCase(),
-            status: volunteer.status || 'active',
+            status: 'onboarding',
+            isNewUser: true,
             role: volunteer.role || 'HMC Champion',
             createdAt: new Date().toISOString(),
             createdBy: 'admin',

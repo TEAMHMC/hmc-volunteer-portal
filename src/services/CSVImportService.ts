@@ -160,9 +160,9 @@ export class CSVImportService {
       hoursContributed: 0,
       isNewUser: true,
       
-      // Compliance - CSV imported volunteers start fresh
+      // Compliance - CSV imported volunteers must complete full onboarding
       compliance: {
-        application: { id: 'app-1', label: 'Application', status: 'completed', dateCompleted: new Date().toISOString() },
+        application: { id: 'app-1', label: 'Application', status: 'pending' },
         backgroundCheck: { id: 'bg-1', label: 'Background Check', status: 'pending' },
         hipaaTraining: { id: 'hipaa-1', label: 'HIPAA Training', status: 'pending' },
         training: { id: 'train-1', label: 'Training', status: 'pending' },
@@ -214,7 +214,7 @@ export class CSVImportService {
       // Metadata
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      applicationStatus: 'approved',
+      applicationStatus: 'pending',
     };
 
     return volunteer;

@@ -3,7 +3,7 @@ import ErrorBoundary from './ErrorBoundary';
 import LandingPage from './LandingPage';
 import OnboardingFlow from './OnboardingFlow';
 import Dashboard from './Dashboard';
-import MigrationFlow from './MigrationFlow';
+// MigrationFlow removed — all volunteers must complete the full OnboardingFlow
 import ClientPortal from './ClientPortal';
 import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
@@ -26,7 +26,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [gamification, setGamification] = useState<any>(null);
 
-  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'migration' | 'clientPortal'>('landing');
+  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal'>('landing');
   const [loading, setLoading] = useState(true);
 
   const setAppData = (data: any) => {
@@ -68,7 +68,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   // Periodic session revalidation every 15 minutes
   useEffect(() => {
-    if (view !== 'dashboard' && view !== 'migration') return;
+    if (view !== 'dashboard') return;
     const interval = setInterval(async () => {
       const token = localStorage.getItem('authToken');
       if (!token) { handleLogout(); return; }
@@ -157,18 +157,6 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       setAllVolunteers(prev => prev.map(v => v.id === user.id ? { ...v, ...user } : v));
   }
   
-  const handleMigrationComplete = async () => {
-    if (!currentUser) return;
-    try {
-        const user = await apiService.put('/api/volunteer', { ...currentUser, isNewUser: false, status: 'active' });
-        setCurrentUser(user);
-        setView('dashboard');
-    } catch(e) {
-        console.error("Failed to finalize migration.", e);
-        toastService.error("There was an error completing your profile setup. Please try logging in again.");
-    }
-  }
-
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
        <div className="w-20 h-20 border-t-4 border-b-4 border-brand rounded-full animate-spin" />
@@ -178,8 +166,6 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} />;
 
   if (view === 'clientPortal') return <ClientPortal onBackToLanding={handleReturnToLanding} />;
-
-  if (view === 'migration' && currentUser) return <MigrationFlow user={currentUser} onUpdateUser={handleUpdateUser} onComplete={handleMigrationComplete} />;
 
   if (view === 'dashboard' && currentUser) {
     const dashboardProps = {

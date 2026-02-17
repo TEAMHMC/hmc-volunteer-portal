@@ -1193,7 +1193,8 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                 phone: formData.phone,
                 role: formData.role,
                 tenantId: 'hmc-health',
-                status: 'active',
+                status: 'onboarding',
+                isNewUser: true,
                 identityLabel: 'HMC Champion',
                 volunteerRole: formData.role,
                 joinedDate: new Date().toISOString(),
@@ -1203,7 +1204,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                 isAdmin: false,
                 coreVolunteerStatus: false,
                 compliance: {
-                    application: { id: 'application', label: 'Application', status: 'completed' },
+                    application: { id: 'application', label: 'Application', status: 'pending' },
                     backgroundCheck: { id: 'backgroundCheck', label: 'Background Check', status: 'pending' },
                     hipaaTraining: { id: 'hipaaTraining', label: 'HIPAA Training', status: 'pending' },
                     training: { id: 'training', label: 'Baseline Training', status: 'pending' },
