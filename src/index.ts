@@ -4776,12 +4776,40 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
             return res.json({ success: true, synced: 0, skipped: 0, message: 'No events found in Event Finder Tool' });
         }
 
-        // Get existing opportunities to avoid duplicates (match by syncSourceId or normalized title+date)
+        // Get existing opportunities to avoid duplicates
         const existingSnap = await db.collection('opportunities').get();
         const existingEvents = existingSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
         // Normalize title for fuzzy matching: lowercase, strip punctuation, collapse whitespace
         const normalizeTitle = (t: string) => (t || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+        // Normalize date to YYYY-MM-DD regardless of input format
+        const normalizeDate = (d: string) => {
+            if (!d) return '';
+            // Handle "MM/DD/YYYY", "YYYY-MM-DD", "YYYY-M-D", etc.
+            const parts = d.includes('/') ? d.split('/') : d.split('-');
+            if (parts.length === 3) {
+                const [a, b, c] = parts;
+                // If first part is 4 digits, assume YYYY-MM-DD
+                if (a.length === 4) return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
+                // Otherwise assume MM/DD/YYYY
+                return `${c}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+            }
+            return d;
+        };
+
+        // Build lookup indexes for fast dedup
+        const bySyncSourceId = new Map<string, any>();
+        const byTitleDate = new Map<string, any>();
+        const byDateLocation = new Map<string, any>();
+        for (const e of existingEvents) {
+            if (e.syncSourceId) bySyncSourceId.set(e.syncSourceId, e);
+            const nd = normalizeDate(e.date);
+            const nt = normalizeTitle(e.title);
+            if (nt && nd) byTitleDate.set(`${nt}|${nd}`, e);
+            // Also index by date + normalized location for broader matching
+            const loc = normalizeTitle(e.serviceLocation || e.location || e.address || '');
+            if (nd && loc) byDateLocation.set(`${nd}|${loc}`, e);
+        }
 
         let synced = 0;
         let skipped = 0;
@@ -4792,16 +4820,31 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
         for (const event of data.events) {
             if (!event.title || !event.date) { skipped++; continue; }
 
-            // Check for existing event by syncSourceId or normalized title+date match
             const normTitle = normalizeTitle(event.title);
-            const existing = existingEvents.find(e =>
-                e.syncSourceId === event.id ||
-                (normalizeTitle(e.title) === normTitle && e.date === event.date)
-            );
+            const normDate = normalizeDate(event.date);
+            const normLocation = normalizeTitle(event.location || event.address || '');
+
+            // Multi-strategy dedup: check syncSourceId, title+date, and date+location
+            const existing =
+                (event.id ? bySyncSourceId.get(event.id) : null) ||
+                byTitleDate.get(`${normTitle}|${normDate}`) ||
+                // Title contains check: catch "Street Medicine Outreach" matching "HMC Street Medicine Outreach - Skid Row"
+                existingEvents.find(e => {
+                    const eTitle = normalizeTitle(e.title);
+                    const eDate = normalizeDate(e.date);
+                    return eDate === normDate && (eTitle.includes(normTitle) || normTitle.includes(eTitle));
+                }) ||
+                // Same date + same location = very likely same event
+                (normLocation && normLocation.length > 3 ? byDateLocation.get(`${normDate}|${normLocation}`) : null);
 
             if (existing) {
                 // Always refresh key fields from Event Finder on re-sync
                 const updates: any = {};
+                // Backfill syncSourceId if this event was matched by title/date/location but didn't have one
+                if (event.id && !existing.syncSourceId) {
+                    updates.syncSourceId = event.id;
+                    updates.syncSource = 'event-finder-tool';
+                }
                 if (event.title && event.title !== existing.title) updates.title = event.title;
                 if (event.description && event.description !== existing.description) updates.description = event.description;
                 if (event.program && event.program !== existing.category) updates.category = event.program;
