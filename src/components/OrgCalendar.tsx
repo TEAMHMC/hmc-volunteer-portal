@@ -274,14 +274,53 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
             })}
           </div>
 
-          {selectedDay && (
-            <button
-              onClick={() => setSelectedDay(null)}
-              className="mt-4 text-xs font-bold text-brand hover:underline"
-            >
-              Clear day filter
-            </button>
-          )}
+          {selectedDay && (() => {
+            const dayNum = parseInt(selectedDay.split('-')[2]);
+            const dayEvts = eventsByDay[dayNum] || [];
+            const formattedDate = new Date(selectedDay + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            return (
+              <div className="mt-6 p-5 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-zinc-900">{formattedDate}</h4>
+                  <div className="flex items-center gap-2">
+                    {canCreateEvents && (
+                      <button
+                        onClick={() => { setShowCreateModal(true); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-full text-[10px] font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
+                      >
+                        <Plus size={12} /> Add Event
+                      </button>
+                    )}
+                    <button onClick={() => setSelectedDay(null)} className="text-zinc-400 hover:text-zinc-600">
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+                {dayEvts.length === 0 ? (
+                  <p className="text-xs text-zinc-400 italic">No events scheduled this day.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {dayEvts.map(ev => {
+                      const color = getColor(ev.type);
+                      return (
+                        <button key={ev.id} onClick={() => setShowDetailEvent(ev)} className="w-full text-left p-3 bg-white rounded-2xl border border-zinc-100 hover:border-brand/30 hover:shadow-sm transition-all flex items-center gap-3">
+                          <div className={`w-2.5 h-2.5 rounded-full ${color.dot} shrink-0`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-zinc-800 truncate">{ev.title}</p>
+                            <p className="text-[10px] text-zinc-400 font-bold">
+                              {ev.startTime ? formatTimeDisplay(ev.startTime) : 'All day'}
+                              {ev.location ? ` · ${ev.location}` : ''}
+                            </p>
+                          </div>
+                          <ChevronRight size={14} className="text-zinc-300 shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Filter Panel */}

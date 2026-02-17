@@ -346,6 +346,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         };
       }
 
+      // Set completedHIPAATraining when HIPAA module is completed
+      if (moduleId === 'hipaa_nonclinical' || moduleId === 'hipaa_staff_2025') {
+        updatedUser.completedHIPAATraining = true;
+      }
+
       if (nowCompletedAll && wasNotCompletedBefore) {
         updatedUser.coreVolunteerStatus = true;
         updatedUser.coreVolunteerApprovedDate = new Date().toISOString();
@@ -422,7 +427,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         <div className="mt-5">
           {!isCompleted && !isLocked && (
             <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide transition-all hover:scale-[1.02] shadow-elevation-2">
-              {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Launch Assessment'}
+              {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Watch & Complete'}
             </button>
           )}
           {isCompleted && (
@@ -651,11 +656,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           <h2 className="text-5xl font-black tracking-tighter uppercase italic">HMC Training</h2>
           <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
-            {user.appliedRole && user.appliedRole !== 'HMC Champion' && (
-              <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.appliedRole] || user.appliedRole}</span></span>
-            )}
-            {user.role && user.role !== 'HMC Champion' && user.role !== user.appliedRole && (
-              <span className="block mt-1 text-zinc-400 text-sm">Current role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.role] || user.role}</span></span>
+            {user.role && user.role !== 'HMC Champion' && (
+              <span className="block mt-2 text-brand">Your role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.role] || user.role}</span></span>
             )}
           </p>
         </div>
@@ -978,7 +980,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                         <AlertCircle size={48} className="text-amber-400 mb-4" />
                         <p className="text-lg font-bold mb-2">Video couldn't load</p>
                         <p className="text-zinc-400 text-sm mb-6 max-w-md text-center">
-                          The video player encountered an error. You can try refreshing or proceed directly to the assessment.
+                          The video player encountered an error. Try refreshing or open the video in a new tab.
                         </p>
                         <div className="flex gap-4">
                           <button

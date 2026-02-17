@@ -340,9 +340,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     const commItems: NavItem[] = [
       { id: 'briefing', label: 'Communication Hub', icon: MessageSquare, badge: unreadDMs + openTicketsCount },
     ];
-    if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
-      commItems.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
-    }
+    // Live Chat hidden — feature not production-ready
+    // if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
+    //   commItems.push({ id: 'livechat', label: 'Live Chat', icon: MessageSquare });
+    // }
     groups.push({ label: 'COMMUNICATE', items: commItems });
 
     // COMMUNITY
@@ -880,9 +881,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'meetings' && (
            <BoardGovernance user={displayUser} meetingsOnly />
          )}
-         {activeTab === 'livechat' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
-           <LiveChatDashboard currentUser={displayUser} />
-         )}
+         {/* Live Chat hidden — feature not production-ready */}
          {activeTab === 'event-management' && (displayUser.isAdmin || (canAccessOperationalTools && EVENT_MANAGEMENT_ROLES.includes(displayUser.role))) && (
            <EventManagementView
              user={displayUser}
@@ -1253,54 +1252,49 @@ interface TimelineItem {
   location?: string;
   category?: string;
   type: 'shift' | 'event';
+  isPersonal?: boolean;
 }
 
 const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Opportunity[]; onNavigate: (tab: 'missions' | 'calendar') => void }> = ({ user, shifts, opportunities, onNavigate }) => {
   const timelineItems = useMemo(() => {
     const now = new Date();
     const items: TimelineItem[] = [];
-    const seenIds = new Set<string>();
     const seenOppIds = new Set<string>();
 
-    // Shifts assigned to user
+    // 1. User's assigned shifts (marked as personal)
     shifts
       .filter(s => user.assignedShiftIds?.includes(s.id) && new Date(s.startTime) > now)
       .forEach(s => {
         const opp = opportunities.find(o => o.id === s.opportunityId);
-        const key = `shift-${s.id}`;
-        if (!seenIds.has(key)) {
-          seenIds.add(key);
-          if (s.opportunityId) seenOppIds.add(s.opportunityId);
-          items.push({
-            id: key,
-            title: opp?.title || s.roleType,
-            date: new Date(s.startTime),
-            time: new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            location: opp?.serviceLocation,
-            category: opp?.category,
-            type: 'shift',
-          });
-        }
+        if (s.opportunityId) seenOppIds.add(s.opportunityId);
+        items.push({
+          id: `shift-${s.id}`,
+          title: opp?.title || s.roleType,
+          date: new Date(s.startTime),
+          time: new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          location: opp?.serviceLocation,
+          category: opp?.category,
+          type: 'shift',
+          isPersonal: true,
+        });
       });
 
-    // RSVPed events — skip if already shown via shift for same opportunity
+    // 2. All upcoming opportunities (org-wide events)
     opportunities
-      .filter(o => user.rsvpedEventIds?.includes(o.id) && new Date(o.date) > now)
+      .filter(o => o.date && new Date(o.date + 'T23:59:59') > now)
       .forEach(o => {
-        if (seenOppIds.has(o.id)) return;
-        const key = `event-${o.id}`;
-        if (!seenIds.has(key)) {
-          seenIds.add(key);
-          items.push({
-            id: key,
-            title: o.title,
-            date: o.date ? new Date(o.date + 'T00:00:00') : new Date(),
-            time: o.time,
-            location: o.serviceLocation,
-            category: o.category,
-            type: 'event',
-          });
-        }
+        if (seenOppIds.has(o.id)) return; // already shown via shift
+        const isRsvped = user.rsvpedEventIds?.includes(o.id);
+        items.push({
+          id: `event-${o.id}`,
+          title: o.title,
+          date: o.date ? new Date(o.date + 'T00:00:00') : new Date(),
+          time: o.time,
+          location: o.serviceLocation,
+          category: o.category,
+          type: 'event',
+          isPersonal: !!isRsvped,
+        });
       });
 
     items.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -1330,10 +1324,13 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
               <span className="px-3 py-1 bg-white/15 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
-                {heroItem.type === 'shift' ? 'Next Mission' : 'Next Event'}
+                {heroItem.isPersonal ? (heroItem.type === 'shift' ? 'Your Next Mission' : 'Your Next Event') : 'Next Event'}
               </span>
               {heroItem.category && (
                 <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black">{heroItem.category}</span>
+              )}
+              {heroItem.isPersonal && (
+                <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.15em] flex items-center gap-1"><i className="fa-solid fa-check text-[8px]" /> Signed Up</span>
               )}
             </div>
             <h4 className="text-2xl font-black tracking-tight mb-4">{heroItem.title}</h4>
@@ -1360,9 +1357,9 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
       ) : (
         <div className="bg-zinc-50 rounded-[40px] p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
-          <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming missions.</p>
-          <button onClick={() => onNavigate('missions')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 mx-auto">
-            <span className="w-2 h-2 rounded-full bg-white" />Find a Mission
+          <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming events scheduled.</p>
+          <button onClick={() => onNavigate('calendar')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 mx-auto">
+            <span className="w-2 h-2 rounded-full bg-white" />View Calendar
           </button>
         </div>
       )}
@@ -1387,7 +1384,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                 </div>
 
                 {/* Event card */}
-                <div className="flex-1 bg-white border border-zinc-100 rounded-3xl p-4 shadow-sm hover:shadow-2xl transition-shadow">
+                <div className={`flex-1 rounded-3xl p-4 shadow-sm hover:shadow-2xl transition-shadow ${item.isPersonal ? 'bg-brand/5 border-2 border-brand/20' : 'bg-white border border-zinc-100'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>
@@ -1406,9 +1403,14 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                         )}
                       </div>
                     </div>
-                    {item.category && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-white bg-brand shrink-0">{item.category}</span>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {item.isPersonal && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-brand bg-brand/10"><i className="fa-solid fa-check text-[7px] mr-1" />Signed Up</span>
+                      )}
+                      {item.category && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-white bg-brand">{item.category}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
