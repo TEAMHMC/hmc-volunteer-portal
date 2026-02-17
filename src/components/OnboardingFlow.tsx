@@ -19,6 +19,7 @@ interface OnboardingFlowProps {
   onSuccess?: () => void;
   googleClientId?: string;
   recaptchaSiteKey?: string;
+  preAuthUser?: { id: string; email: string; name: string };
 }
 
 type StepId = 'account' | 'personal' | 'background' | 'availability' | 'role' | 'details' | 'compliance' | 'orientation';
@@ -114,9 +115,23 @@ const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (token: string | null) => 
 
 const STORAGE_KEY = 'hmc_onboarding_progress';
 
-const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey }) => {
+const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey, preAuthUser }) => {
   // Load saved progress from localStorage
   const loadSavedProgress = () => {
+    // Pre-authenticated users (Google OAuth returning) skip account step
+    if (preAuthUser) {
+      return {
+        step: 'personal' as StepId,
+        formData: {
+          availDays: [],
+          email: preAuthUser.email,
+          emailVerified: true,
+          passwordBypassed: true,
+          authProvider: 'google',
+          googleCredential: '__pre_auth__',
+        }
+      };
+    }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -183,13 +198,15 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   const handleStartOver = () => {
     if (window.confirm('Are you sure you want to start over? All progress will be lost.')) {
       clearSavedProgress();
-      setStep('account');
+      setStep(preAuthUser ? 'personal' : 'account');
       setFormData({ availDays: [] });
       setFormErrors({});
     }
   };
 
-  const STEPS: StepId[] = ['account', 'personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation'];
+  const STEPS: StepId[] = preAuthUser
+    ? ['personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation']
+    : ['account', 'personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation'];
   const currentStepIndex = STEPS.indexOf(step);
 
   const prevStep = () => { if (currentStepIndex > 0) setStep(STEPS[currentStepIndex - 1]); };
@@ -381,19 +398,24 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         ],
       };
       
-      // Google OAuth users use their credential, email users use password
-      const authPayload = formData.authProvider === 'google'
-        ? { user: v, googleCredential: formData.googleCredential }
-        : { user: v, password: formData.password };
-      const response = await apiService.post('/auth/signup', authPayload, 90000);
-      
-      // Clear saved progress on successful submission
-      clearSavedProgress();
-
-      if (response && response.token && onSuccess) {
-          onSuccess();
+      if (preAuthUser) {
+        // Pre-authenticated Google user completing full onboarding — update existing doc
+        const updates = { ...v, id: preAuthUser.id, isNewUser: false, status: 'active' };
+        await apiService.put('/api/volunteer', updates);
+        clearSavedProgress();
+        if (onSuccess) onSuccess();
       } else {
-          setIsComplete(true);
+        // New user signup
+        const authPayload = formData.authProvider === 'google'
+          ? { user: v, googleCredential: formData.googleCredential }
+          : { user: v, password: formData.password };
+        const response = await apiService.post('/auth/signup', authPayload, 90000);
+        clearSavedProgress();
+        if (response && response.token && onSuccess) {
+            onSuccess();
+        } else {
+            setIsComplete(true);
+        }
       }
     } catch (error) {
       setSubmitError((error as Error).message || 'An unexpected error occurred. Please try again.');

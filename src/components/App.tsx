@@ -51,7 +51,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
           setAppData(data);
           apiService.startSessionHeartbeat();
           if (data.user.isNewUser) {
-            setView('migration');
+            setView('onboarding');
           } else {
             setView('dashboard');
           }
@@ -90,7 +90,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       setAppData(fullData);
       apiService.startSessionHeartbeat();
       if (fullData.user.isNewUser) {
-        setView('migration');
+        setView('onboarding');
       } else {
         setView('dashboard');
       }
@@ -107,7 +107,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         setAppData(fullData);
         apiService.startSessionHeartbeat();
         if (fullData.user.isNewUser) {
-            setView('migration');
+            setView('onboarding');
         } else {
             setView('dashboard');
         }
@@ -175,7 +175,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     </div>
   );
 
-  if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} />;
+  if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} />;
 
   if (view === 'clientPortal') return <ClientPortal onBackToLanding={handleReturnToLanding} />;
 
