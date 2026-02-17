@@ -329,9 +329,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         groupContactEmail: formData.groupContactEmail,
 
         // Identity fields (required by v4.0)
+        // Foundational role stays HMC Champion until admin approval
         identityLabel: 'HMC Champion',
-        volunteerRole: (formData.selectedRole as Volunteer['volunteerRole']) || 'Core Volunteer',
-        role: formData.selectedRole || 'Core Volunteer',
+        volunteerRole: 'HMC Champion' as Volunteer['volunteerRole'],
+        role: 'HMC Champion',
         appliedRole: formData.selectedRole,
 
         // Core Volunteer Training status (starts false until training complete)

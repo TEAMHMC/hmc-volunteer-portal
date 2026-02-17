@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing Orders v3.0 - Health Matters Clinic</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; line-height: 1.7; padding: 40px 32px; max-width: 800px; margin: 0 auto; background: #fff; }
+  h1 { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: #0f0f0f; }
+  h2 { font-size: 18px; font-weight: 700; margin: 32px 0 12px; color: #1a1a1a; border-bottom: 2px solid #e5e5e5; padding-bottom: 8px; }
+  h3 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; color: #333; }
+  p { margin-bottom: 12px; font-size: 14px; color: #444; }
+  ul, ol { margin: 0 0 16px 24px; font-size: 14px; color: #444; }
+  li { margin-bottom: 6px; }
+  .header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px solid #16a34a; }
+  .header .org { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #16a34a; margin-bottom: 4px; }
+  .header .version { font-size: 11px; color: #999; margin-top: 4px; }
+  .order-box { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 20px 0; }
+  .order-box h3 { margin-top: 0; color: #166534; }
+  .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13px; }
+  .critical { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #e5e5e5; padding: 10px 12px; text-align: left; }
+  th { background: #f0fdf4; font-weight: 700; color: #166534; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="org">Health Matters Clinic</div>
+  <h1>Standing Orders</h1>
+  <div class="version">Version 3.0 | Effective Date: January 2026 | Approved by Medical Director</div>
+</div>
+
+<h2>Authorization</h2>
+<p>These standing orders authorize Licensed Medical Professional volunteers of Health Matters Clinic to perform the following clinical services at HMC-sponsored community health events without requiring individual physician orders for each encounter, provided the volunteer is operating within their licensed scope of practice.</p>
+<p>These orders are issued under the authority of the HMC Medical Director and are reviewed and updated annually or as needed based on changes to clinical practice guidelines.</p>
+
+<h2>Standing Order 1: Blood Pressure Screening</h2>
+<div class="order-box">
+  <h3>Protocol</h3>
+  <ul>
+    <li>Measure blood pressure using validated automatic or manual sphygmomanometer</li>
+    <li>Patient seated, rested &ge;5 minutes, arm supported at heart level</li>
+    <li>Record systolic and diastolic pressure</li>
+  </ul>
+  <h3>Action Thresholds</h3>
+  <table>
+    <tr><th>Reading</th><th>Category</th><th>Action</th></tr>
+    <tr><td>&lt;120/80</td><td>Normal</td><td>Educate on maintenance. No referral needed.</td></tr>
+    <tr><td>120-129/&lt;80</td><td>Elevated</td><td>Lifestyle counseling. Recommend follow-up with PCP within 3-6 months.</td></tr>
+    <tr><td>130-139/80-89</td><td>Stage 1 HTN</td><td>Provide education handout. Refer to PCP within 1 month.</td></tr>
+    <tr><td>140-179/90-119</td><td>Stage 2 HTN</td><td>Provide education. Urgent referral to PCP within 1-2 weeks.</td></tr>
+    <tr><td>&ge;180/&ge;120</td><td>Hypertensive Crisis</td><td>Recheck in 5 minutes. If persistent, refer for immediate emergency evaluation. Do not discharge without confirmed plan.</td></tr>
+  </table>
+</div>
+
+<h2>Standing Order 2: Blood Glucose Screening</h2>
+<div class="order-box">
+  <h3>Protocol</h3>
+  <ul>
+    <li>Use FDA-approved point-of-care glucometer</li>
+    <li>Clean finger with alcohol swab, allow to air dry</li>
+    <li>Single-use lancet only; dispose in sharps container immediately</li>
+    <li>Record fasting status and glucose value</li>
+  </ul>
+  <h3>Action Thresholds</h3>
+  <table>
+    <tr><th>Reading</th><th>Status</th><th>Action</th></tr>
+    <tr><td>Fasting &lt;100 mg/dL</td><td>Normal</td><td>No action. Educate on healthy lifestyle.</td></tr>
+    <tr><td>Fasting 100-125 mg/dL</td><td>Pre-diabetes</td><td>Provide diabetes prevention education. Refer to PCP for confirmatory A1C.</td></tr>
+    <tr><td>Fasting &ge;126 mg/dL</td><td>Diabetes range</td><td>Refer to PCP for diagnostic workup within 1-2 weeks.</td></tr>
+    <tr><td>Random &ge;200 mg/dL</td><td>Diabetes range</td><td>Assess for symptoms (polyuria, polydipsia, weight loss). Refer to PCP urgently.</td></tr>
+    <tr><td>&lt;70 mg/dL</td><td>Hypoglycemia</td><td>Provide oral glucose/juice. Recheck in 15 minutes. If persistent or symptomatic, refer for emergency evaluation.</td></tr>
+  </table>
+</div>
+
+<h2>Standing Order 3: BMI Assessment</h2>
+<div class="order-box">
+  <h3>Protocol</h3>
+  <ul>
+    <li>Measure height (stadiometer, shoes removed) and weight (calibrated scale)</li>
+    <li>Calculate BMI: weight (kg) / height (m)&sup2;</li>
+  </ul>
+  <h3>Action Thresholds</h3>
+  <table>
+    <tr><th>BMI</th><th>Category</th><th>Action</th></tr>
+    <tr><td>&lt;18.5</td><td>Underweight</td><td>Assess nutritional status. Provide community nutrition resources.</td></tr>
+    <tr><td>18.5-24.9</td><td>Normal</td><td>Encourage maintenance of healthy weight.</td></tr>
+    <tr><td>25.0-29.9</td><td>Overweight</td><td>Lifestyle counseling. Provide nutrition and physical activity resources.</td></tr>
+    <tr><td>&ge;30.0</td><td>Obese</td><td>Lifestyle counseling. Refer to PCP for comprehensive metabolic assessment.</td></tr>
+  </table>
+</div>
+
+<h2>Standing Order 4: OraQuick HIV Rapid Testing</h2>
+<div class="order-box">
+  <h3>Prerequisites</h3>
+  <p>Volunteer must have completed the OraQuick Distribution training module in the Training Academy.</p>
+  <h3>Protocol</h3>
+  <ul>
+    <li>Provide pre-test counseling per California Department of Public Health guidelines</li>
+    <li>Administer OraQuick oral swab per manufacturer instructions</li>
+    <li>Read results at 20 minutes (no earlier than 20, no later than 40)</li>
+    <li>Provide post-test counseling regardless of result</li>
+  </ul>
+  <h3>Results</h3>
+  <ul>
+    <li><strong>Non-reactive:</strong> Counsel on prevention, PrEP availability, and window period</li>
+    <li><strong>Reactive:</strong> Provide supportive counseling. Refer to confirmatory testing and linkage to care. Provide resource card with testing sites and hotline numbers.</li>
+    <li><strong>Invalid:</strong> Re-test with new kit. If second test invalid, refer for laboratory testing.</li>
+  </ul>
+</div>
+
+<h2>Standing Order 5: Naloxone Distribution</h2>
+<div class="order-box">
+  <h3>Prerequisites</h3>
+  <p>Volunteer must have completed the Naloxone Distribution training module in the Training Academy.</p>
+  <h3>Protocol</h3>
+  <ul>
+    <li>Provide brief overdose recognition education (unresponsive, slow/no breathing, blue lips)</li>
+    <li>Demonstrate naloxone administration (nasal spray)</li>
+    <li>Distribute naloxone kit per California standing order for naloxone distribution</li>
+    <li>Document distribution: participant name (or anonymous ID), kit lot number, date</li>
+  </ul>
+  <div class="warning">Naloxone distribution does not require a prescription under California Health &amp; Safety Code Section 1714.22.</div>
+</div>
+
+<h2>Standing Order 6: Emergency Response</h2>
+<div class="critical">In any life-threatening emergency, call 911 first. Then follow the protocol below.</div>
+<ol>
+  <li>Ensure scene safety</li>
+  <li>Activate EMS (call 911)</li>
+  <li>Begin CPR/BLS if indicated and within your scope</li>
+  <li>Use AED if available and indicated</li>
+  <li>Administer naloxone if opioid overdose suspected</li>
+  <li>Notify lead clinician and Clinical Coordinator</li>
+  <li>Document all interventions and timeline</li>
+  <li>Complete incident report within 24 hours</li>
+</ol>
+
+<h2>Acknowledgment</h2>
+<p>By signing this document, you acknowledge that you have read, understood, and agree to follow these Standing Orders during your clinical volunteer service with Health Matters Clinic. You understand that these orders do not expand your licensed scope of practice and that you must always exercise professional judgment in the care of participants.</p>
+
+</body>
+</html>

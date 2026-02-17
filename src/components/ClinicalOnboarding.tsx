@@ -35,24 +35,24 @@ const CLINICAL_DOCUMENTS: DocumentItem[] = [
     id: 'policiesProcedures',
     title: 'Clinical Policies & Procedures Manual',
     description: 'Comprehensive policies and procedures for all clinical operations',
-    type: 'pdf',
-    url: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.pdf',
+    type: 'html',
+    url: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html',
     required: true
   },
   {
     id: 'screeningConsent',
     title: 'General Screening Consent Form',
     description: 'Consent form template used for client health screenings',
-    type: 'pdf',
-    url: '/documents/HMC-General-Screening-Consent-Form.pdf',
+    type: 'html',
+    url: '/documents/HMC-General-Screening-Consent-Form.html',
     required: true
   },
   {
     id: 'standingOrders',
     title: 'Standing Orders v3.0',
     description: 'Current standing orders for clinical procedures and protocols',
-    type: 'pdf',
-    url: '/documents/HMC-Standing-Orders-v3.0.pdf',
+    type: 'html',
+    url: '/documents/HMC-Standing-Orders-v3.0.html',
     required: true
   }
 ];

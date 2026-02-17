@@ -1908,7 +1908,8 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
             });
         }
 
-        user.role = user.appliedRole || 'HMC Champion';
+        // Foundational role is always HMC Champion until admin approval
+        user.role = 'HMC Champion';
         user.status = 'applicant';
         user.applicationStatus = 'pendingReview';
 
@@ -2304,7 +2305,8 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
                  profilePhoto: googleUser.picture || null,
                  authProvider: 'google',
                  role: 'HMC Champion',
-                 status: 'onboarding',
+                 status: 'applicant',
+                 applicationStatus: 'pendingReview',
                  isNewUser: true,
                  joinedDate: new Date().toISOString(),
                  onboardingProgress: 0,
@@ -5714,8 +5716,10 @@ app.post('/api/admin/review-application', verifyToken, requireAdmin, async (req:
       reviewNotes: notes || ''
     };
     if (action === 'approve') {
+      const appliedRole = (await db.collection('volunteers').doc(volunteerId).get()).data()?.appliedRole || 'Core Volunteer';
       updates.status = 'active';
-      updates.role = (await db.collection('volunteers').doc(volunteerId).get()).data()?.appliedRole || 'Core Volunteer';
+      updates.role = appliedRole;
+      updates.volunteerRole = appliedRole;
     }
     await db.collection('volunteers').doc(volunteerId).update(updates);
     const updatedDoc = await db.collection('volunteers').doc(volunteerId).get();

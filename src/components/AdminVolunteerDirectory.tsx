@@ -918,7 +918,7 @@ const RoleManagementPanel: React.FC<{currentUser: Volunteer, selectedVolunteer: 
     const [newRole, setNewRole] = useState(selectedVolunteer.role);
 
     const handleSaveRole = () => {
-        onUpdate({ ...selectedVolunteer, role: newRole });
+        onUpdate({ ...selectedVolunteer, role: newRole, volunteerRole: newRole as Volunteer['volunteerRole'] });
         setIsEditingRole(false);
     }
     
