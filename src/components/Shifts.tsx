@@ -1677,7 +1677,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             </>
           )}
 
-          {/* AVAILABLE TAB — keep existing date-grouped layout */}
+          {/* AVAILABLE TAB — flat grid matching My Schedule layout */}
           {activeTab === 'available' && (
             <>
             {(Object.keys(groupedByDate).length === 0 || Object.values(groupedByDate).every(d => d.shifts.length === 0 && d.opportunities.length === 0)) && (
@@ -1687,11 +1687,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                     <p className="text-sm text-zinc-300 mt-2">Check back later for new opportunities.</p>
                 </div>
             )}
-            {Object.entries(groupedByDate).map(([date, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) => (
-                <div key={date}>
-                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wide mb-6 px-4">{date}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {dateData.shifts.map(shift => {
+            {Object.values(groupedByDate).some(d => d.shifts.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {Object.entries(groupedByDate).flatMap(([, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) =>
+                        dateData.shifts.map(shift => {
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;
                             const isRegistered = user.assignedShiftIds?.includes(shift.id);
@@ -1799,10 +1798,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                     </div>
                                 </div>
                             );
-                        })}
-                    </div>
+                        })
+                    )}
                 </div>
-            ))}
+            )}
             </>
           )}
         </div>
