@@ -7715,26 +7715,81 @@ app.get('/api/clinical/forms/:docId/pdf', verifyToken, async (req: Request, res:
       standingOrders: 'Standing Orders v3.0',
     };
 
+    const signedDate = new Date(docInfo.signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const volRole = vol.role || vol.appliedRole || 'Volunteer';
+    const volEmail = vol.email || '';
+    const refId = `HMC-${docId.substring(0, 4).toUpperCase()}-${volunteerId.substring(0, 6).toUpperCase()}-${new Date(docInfo.signedAt).getTime().toString(36).toUpperCase()}`;
+
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
     const page = pdfDoc.addPage([612, 792]);
     const margin = 50;
+    const pageWidth = 612;
+    const contentWidth = pageWidth - margin * 2;
     let y = 792 - margin;
+    const green = rgb(0.086, 0.639, 0.247);
+    const darkGray = rgb(0.1, 0.1, 0.1);
+    const midGray = rgb(0.3, 0.3, 0.3);
+    const lightGray = rgb(0.6, 0.6, 0.6);
 
-    page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, font: fontBold, size: 16, color: rgb(0.1, 0.1, 0.1) });
+    // Header bar
+    page.drawRectangle({ x: 0, y: 792 - 4, width: pageWidth, height: 4, color: green });
+
+    // Organization name
+    page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, font: fontBold, size: 18, color: green });
+    y -= 22;
+    page.drawText('Los Angeles County, California', { x: margin, y, font, size: 9, color: midGray });
+    y -= 32;
+
+    // Title
+    page.drawLine({ start: { x: margin, y: y + 8 }, end: { x: margin + contentWidth, y: y + 8 }, thickness: 1, color: green });
+    y -= 8;
+    page.drawText('CLINICAL DOCUMENT ACKNOWLEDGMENT CERTIFICATE', { x: margin, y, font: fontBold, size: 13, color: darkGray });
+    y -= 20;
+    page.drawLine({ start: { x: margin, y: y + 4 }, end: { x: margin + contentWidth, y: y + 4 }, thickness: 0.5, color: lightGray });
     y -= 28;
-    page.drawText('Clinical Document Acknowledgment Certificate', { x: margin, y, font: fontBold, size: 13, color: rgb(0.2, 0.2, 0.2) });
-    y -= 40;
 
-    page.drawText(`Document: ${docTitles[docId] || docId}`, { x: margin, y, font: fontBold, size: 11, color: rgb(0.15, 0.15, 0.15) });
-    y -= 24;
-    page.drawText(`This certificate confirms that ${volName} has reviewed and acknowledged`, { x: margin, y, font, size: 10, color: rgb(0.2, 0.2, 0.2) });
+    // Document details section
+    page.drawText('DOCUMENT DETAILS', { x: margin, y, font: fontBold, size: 9, color: green });
+    y -= 20;
+
+    const drawField = (label: string, value: string, yPos: number) => {
+      page.drawText(label, { x: margin, y: yPos, font: fontBold, size: 9, color: midGray });
+      page.drawText(value, { x: margin + 140, y: yPos, font, size: 10, color: darkGray });
+      return yPos - 18;
+    };
+
+    y = drawField('Document:', docTitles[docId] || docId, y);
+    y = drawField('Reference ID:', refId, y);
+    y -= 12;
+
+    // Volunteer details section
+    page.drawText('VOLUNTEER DETAILS', { x: margin, y, font: fontBold, size: 9, color: green });
+    y -= 20;
+    y = drawField('Full Name:', volName, y);
+    y = drawField('Role:', volRole, y);
+    if (volEmail) y = drawField('Email:', volEmail, y);
+    y = drawField('Date Acknowledged:', signedDate, y);
+    y -= 12;
+
+    // Attestation
+    page.drawRectangle({ x: margin, y: y - 60, width: contentWidth, height: 70, color: rgb(0.96, 0.98, 0.96), borderColor: rgb(0.85, 0.92, 0.85), borderWidth: 1 });
+    y -= 6;
+    page.drawText('ATTESTATION', { x: margin + 12, y, font: fontBold, size: 9, color: green });
     y -= 16;
-    page.drawText(`the above document as required by Health Matters Clinic clinical onboarding.`, { x: margin, y, font, size: 10, color: rgb(0.2, 0.2, 0.2) });
-    y -= 40;
+    page.drawText(`I, ${volName}, confirm that I have thoroughly reviewed and understand the`, { x: margin + 12, y, font, size: 9, color: darkGray });
+    y -= 14;
+    page.drawText(`${docTitles[docId] || docId}. I acknowledge my responsibility to comply with all`, { x: margin + 12, y, font, size: 9, color: darkGray });
+    y -= 14;
+    page.drawText('policies, procedures, and standards outlined in this document as part of my clinical duties at HMC.', { x: margin + 12, y, font, size: 9, color: darkGray });
+    y -= 28;
 
-    // Embed signature (from Cloud Storage or inline)
+    // Signature
+    page.drawText('SIGNATURE', { x: margin, y, font: fontBold, size: 9, color: green });
+    y -= 20;
+
     let clinicalSigBase64: string | null = null;
     if (docInfo.signatureStoragePath && bucket) {
       try {
@@ -7751,17 +7806,27 @@ app.get('/api/clinical/forms/:docId/pdf', verifyToken, async (req: Request, res:
         const sigImage = await pdfDoc.embedPng(Buffer.from(clinicalSigBase64, 'base64'));
         const sigDims = sigImage.scale(0.5);
         const sigWidth = Math.min(sigDims.width, 200);
-        const sigHeight = (sigWidth / sigDims.width) * sigDims.height;
+        const sigHeight = Math.min((sigWidth / sigDims.width) * sigDims.height, 60);
         page.drawImage(sigImage, { x: margin, y: y - sigHeight, width: sigWidth, height: sigHeight });
-        y -= sigHeight + 10;
+        y -= sigHeight + 8;
       } catch { /* skip if signature embed fails */ }
     }
 
-    page.drawLine({ start: { x: margin, y }, end: { x: 300, y }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6) });
-    y -= 18;
-    page.drawText(`Signed by: ${volName}`, { x: margin, y, font: fontBold, size: 10, color: rgb(0.2, 0.2, 0.2) });
-    y -= 16;
-    page.drawText(`Date: ${new Date(docInfo.signedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { x: margin, y, font, size: 10, color: rgb(0.3, 0.3, 0.3) });
+    page.drawLine({ start: { x: margin, y }, end: { x: margin + 250, y }, thickness: 0.5, color: midGray });
+    y -= 14;
+    page.drawText(volName, { x: margin, y, font: fontBold, size: 10, color: darkGray });
+    page.drawText(signedDate, { x: margin + 280, y, font, size: 10, color: darkGray });
+    y -= 12;
+    page.drawText(volRole, { x: margin, y, font, size: 9, color: midGray });
+    page.drawLine({ start: { x: margin + 270, y: y + 24 }, end: { x: margin + contentWidth, y: y + 24 }, thickness: 0.5, color: midGray });
+    y -= 40;
+
+    // Footer
+    page.drawLine({ start: { x: margin, y: y + 10 }, end: { x: margin + contentWidth, y: y + 10 }, thickness: 0.5, color: lightGray });
+    y -= 8;
+    page.drawText('This certificate is electronically generated and stored in the HMC Volunteer Portal.', { x: margin, y, font: fontItalic, size: 8, color: lightGray });
+    y -= 12;
+    page.drawText(`Ref: ${refId}  |  Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { x: margin, y, font, size: 8, color: lightGray });
 
     const pdfBytes = await pdfDoc.save();
     res.setHeader('Content-Type', 'application/pdf');
