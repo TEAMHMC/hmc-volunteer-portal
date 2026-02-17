@@ -696,12 +696,22 @@ const ChecklistsView: React.FC<{
                       {stage.items.map(item => {
                           const isCompleted = completedItems.includes(item.id);
                           return (
-                          <label key={item.id} onClick={() => onCheckItem(item.id)} className={`p-6 rounded-2xl border-2 flex items-start gap-4 cursor-pointer transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-100 opacity-50' : 'bg-white border-zinc-100 hover:border-zinc-300 shadow-elevation-1'}`}>
-                              <div className="shrink-0 mt-1">
-                                  {isCompleted ? <CheckSquare size={20} className="text-brand" /> : <Square size={20} className="text-zinc-200" />}
-                              </div>
-                              <span className={`text-xs font-black uppercase tracking-tight leading-tight ${isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-600'}`}>{item.text}</span>
-                          </label>
+                          <div key={item.id} className={`p-6 rounded-2xl border-2 flex items-start gap-4 transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-100 opacity-50' : 'bg-white border-zinc-100 hover:border-zinc-300 shadow-elevation-1'}`}>
+                              <label onClick={() => onCheckItem(item.id)} className="flex items-start gap-4 cursor-pointer flex-1">
+                                <div className="shrink-0 mt-1">
+                                    {isCompleted ? <CheckSquare size={20} className="text-brand" /> : <Square size={20} className="text-zinc-200" />}
+                                </div>
+                                <span className={`text-xs font-black uppercase tracking-tight leading-tight ${isCompleted ? 'text-zinc-300 line-through' : 'text-zinc-600'}`}>{item.text}</span>
+                              </label>
+                              {item.docUrl && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); window.open(item.docUrl, '_blank'); }}
+                                  className="shrink-0 px-3 py-1.5 bg-brand/10 text-brand rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-brand/20 transition-colors flex items-center gap-1"
+                                >
+                                  <FileText size={12} /> {item.docLabel || 'View'}
+                                </button>
+                              )}
+                          </div>
                           )
                       })}
                       </div>

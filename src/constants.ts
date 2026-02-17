@@ -386,6 +386,16 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     id: 'health-fair-ops',
     name: 'Health Fair Operations',
     stages: {
+      packet: {
+        title: 'Volunteer Packet',
+        items: [
+          { id: 'hf-p-1', text: 'Review General Screening Consent Form', docUrl: '/documents/HMC-General-Screening-Consent-Form.html', docLabel: 'Consent Form' },
+          { id: 'hf-p-2', text: 'Review Standing Orders v3.0', docUrl: '/documents/HMC-Standing-Orders-v3.0.html', docLabel: 'Standing Orders' },
+          { id: 'hf-p-3', text: 'Review Clinical Policies & Procedures', docUrl: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html', docLabel: 'Policies Manual' },
+          { id: 'hf-p-4', text: 'Acknowledge: I will follow all screening protocols and escalate abnormal results to the lead clinician' },
+          { id: 'hf-p-5', text: 'Acknowledge: I understand HIPAA/privacy requirements — no photos of participants, no PHI on personal devices' },
+        ],
+      },
       setup: {
         title: 'Pre-Event Setup',
         items: [
@@ -427,6 +437,20 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     id: 'street-medicine-ops',
     name: 'Street Medicine Outreach Operations',
     stages: {
+      packet: {
+        title: 'HMC Street Medicine Volunteer Packet',
+        items: [
+          { id: 'sm-p-1', text: 'Review Clinical Onboarding & Governance Guide', docUrl: '/documents/clinical-onboarding-guide.html', docLabel: 'Onboarding Guide' },
+          { id: 'sm-p-2', text: 'Review Standing Orders v3.0 (BP, glucose, BMI, HIV, naloxone, emergency)', docUrl: '/documents/HMC-Standing-Orders-v3.0.html', docLabel: 'Standing Orders' },
+          { id: 'sm-p-3', text: 'Review General Screening Consent Form', docUrl: '/documents/HMC-General-Screening-Consent-Form.html', docLabel: 'Consent Form' },
+          { id: 'sm-p-4', text: 'Review Clinical Policies & Procedures Manual', docUrl: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html', docLabel: 'Policies Manual' },
+          { id: 'sm-p-5', text: 'Acknowledge: I have naloxone training and can administer nasal naloxone in an overdose emergency' },
+          { id: 'sm-p-6', text: 'Acknowledge: I will use the buddy system at all times — never separate from my partner' },
+          { id: 'sm-p-7', text: 'Acknowledge: I will follow de-escalation protocols if a situation becomes unsafe' },
+          { id: 'sm-p-8', text: 'Acknowledge: I will not store PHI on personal devices — all data stays on HMC-approved systems' },
+          { id: 'sm-p-9', text: 'Acknowledge: I understand the traffic-light escalation system (Green/Yellow/Red) and will escalate all Yellow and Red results to the PA' },
+        ],
+      },
       setup: {
         title: 'Pre-Outreach Preparation',
         items: [
@@ -472,6 +496,14 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     id: 'community-run-walk-ops',
     name: 'Community Run & Walk Operations',
     stages: {
+      packet: {
+        title: 'Volunteer Packet',
+        items: [
+          { id: 'rw-p-1', text: 'Review event safety briefing and route map' },
+          { id: 'rw-p-2', text: 'Acknowledge: I know the location of the first aid station and will direct injured participants there' },
+          { id: 'rw-p-3', text: 'Acknowledge: No photos of participants without consent' },
+        ],
+      },
       setup: {
         title: 'Pre-Event Setup',
         items: [
@@ -509,6 +541,13 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     id: 'wellness-workshop-ops',
     name: 'Wellness Workshop / Education Operations',
     stages: {
+      packet: {
+        title: 'Volunteer Packet',
+        items: [
+          { id: 'ww-p-1', text: 'Review workshop facilitation guide and presentation materials' },
+          { id: 'ww-p-2', text: 'Acknowledge: I will maintain participant confidentiality and a welcoming environment' },
+        ],
+      },
       setup: {
         title: 'Pre-Event Setup',
         items: [
@@ -543,6 +582,14 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     id: 'survey-station-ops',
     name: 'Survey Station Operations',
     stages: {
+      packet: {
+        title: 'Volunteer Packet',
+        items: [
+          { id: 'ss-p-1', text: 'Review approved survey script (English & Spanish)' },
+          { id: 'ss-p-2', text: 'Acknowledge: I will use only the approved script language — no deviations or personal additions' },
+          { id: 'ss-p-3', text: 'Acknowledge: One survey per participant — enforce dedup rules' },
+        ],
+      },
       setup: {
         title: 'Pre-Event Setup',
         items: [
@@ -584,6 +631,13 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
     id: 'tabling-outreach-ops',
     name: 'Tabling & Community Outreach Operations',
     stages: {
+      packet: {
+        title: 'Volunteer Packet',
+        items: [
+          { id: 'to-p-1', text: 'Review HMC talking points and mission overview' },
+          { id: 'to-p-2', text: 'Acknowledge: I will only share approved HMC messaging — no personal medical opinions' },
+        ],
+      },
       setup: {
         title: 'Setup',
         items: [

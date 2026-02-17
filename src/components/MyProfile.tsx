@@ -360,6 +360,65 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
           </div>
         </div>
       </div>
+
+      {/* Signed Clinical Documents */}
+      {currentUser.clinicalOnboarding?.documents && Object.values(currentUser.clinicalOnboarding.documents).some((d: any) => d?.signed) && (
+        <div className="bg-white rounded-[40px] p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-elevation-1"><ClipboardList size={24} /></div>
+            <div>
+              <h3 className="text-xl font-black text-zinc-900 tracking-tight">My Signed Documents</h3>
+              <p className="text-xs text-zinc-400 font-bold">Clinical onboarding documents you've reviewed and signed</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {Object.entries(currentUser.clinicalOnboarding.documents).map(([docId, doc]: [string, any]) => {
+              if (!doc?.signed) return null;
+              const titles: Record<string, string> = {
+                clinicalOnboardingGuide: 'Clinical Onboarding & Governance Guide',
+                policiesProcedures: 'Clinical Policies & Procedures Manual',
+                screeningConsent: 'General Screening Consent Form',
+                standingOrders: 'Standing Orders v3.0',
+              };
+              const docUrls: Record<string, string> = {
+                clinicalOnboardingGuide: '/documents/clinical-onboarding-guide.html',
+                policiesProcedures: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html',
+                screeningConsent: '/documents/HMC-General-Screening-Consent-Form.html',
+                standingOrders: '/documents/HMC-Standing-Orders-v3.0.html',
+              };
+              return (
+                <div key={docId} className="flex items-center justify-between p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 size={18} className="text-emerald-500" />
+                    <div>
+                      <p className="text-sm font-bold text-zinc-900">{titles[docId] || docId}</p>
+                      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
+                        Signed {new Date(doc.signedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {docUrls[docId] && (
+                      <button
+                        onClick={() => window.open(docUrls[docId], '_blank')}
+                        className="px-3 py-1.5 bg-white text-zinc-600 rounded-full text-[10px] font-bold uppercase tracking-wider border border-zinc-200 hover:bg-zinc-50 transition-colors"
+                      >
+                        View Doc
+                      </button>
+                    )}
+                    <button
+                      onClick={() => window.open(`/api/clinical/forms/${docId}/pdf`, '_blank')}
+                      className="px-3 py-1.5 bg-brand/10 text-brand rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-brand/20 transition-colors"
+                    >
+                      Certificate PDF
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

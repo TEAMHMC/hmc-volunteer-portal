@@ -486,6 +486,10 @@ export interface SupportTicket {
 export interface ChecklistItem {
     id: string;
     text: string;
+    /** URL to a document that must be reviewed (opens in viewer) */
+    docUrl?: string;
+    /** Label for the document link button */
+    docLabel?: string;
 }
 
 export interface ChecklistStage {
