@@ -14,9 +14,9 @@ import {
 } from '../constants';
 import { APP_CONFIG } from '../config';
 import {
-  CheckCircle2, Play, X, ShieldCheck,
+  CheckCircle2, Play, X,
   BrainCircuit, ArrowRight, Loader2, Sparkles, BookOpen, FileText, Download,
-  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video, Stethoscope,
+  Check, ListChecks, PlayCircle, Award, Calendar, AlertCircle, RefreshCw, Video,
   Lock, Monitor, Youtube, FileCheck, ChevronDown, PenLine
 } from 'lucide-react';
 import ClinicalOnboarding from './ClinicalOnboarding';
@@ -405,38 +405,37 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     const isLocked = tierLocked;
 
     return (
-      <div key={m.id} className={`p-5 rounded-3xl border shadow-elevation-1 flex flex-col justify-between group transition-all ${isCompleted ? 'bg-zinc-50 border-zinc-200' : isLocked ? 'bg-zinc-50/50 border-zinc-100' : 'bg-white border-zinc-100 hover:shadow-elevation-2 hover:border-zinc-200'}`}>
+      <div key={m.id} className={`p-8 rounded-3xl border-dashed border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-emerald-50/40 border-emerald-200' : isLocked ? 'bg-zinc-50/50 border-zinc-200' : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md'}`}>
         <div>
-          <div className="flex items-start justify-between mb-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-elevation-1 ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-zinc-100 text-zinc-300' : `bg-white group-hover:bg-brand text-zinc-300 group-hover:text-white`}`}>
-              {isCompleted ? <CheckCircle2 size={20} /> : m.format === 'read_ack' ? <FileCheck size={20} /> : hasVideo ? <PlayCircle size={20} /> : <BookOpen size={20} />}
+          <div className="flex items-center justify-between mb-5">
+            <div className={`relative w-11 h-11 rounded-full flex items-center justify-center ${isCompleted ? 'bg-emerald-100 text-emerald-600' : isLocked ? 'bg-zinc-100 text-zinc-300' : 'bg-zinc-100 text-zinc-500 group-hover:bg-brand/10 group-hover:text-brand'}`}>
+              {m.format === 'read_ack' ? <FileCheck size={20} /> : hasVideo ? <PlayCircle size={20} /> : <BookOpen size={20} />}
+              {isCompleted && (
+                <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <Check size={10} className="text-white" />
+                </div>
+              )}
             </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <FormatBadge format={m.format} />
-              {m.req && !isCompleted && !isLocked && <span className="px-2.5 py-0.5 bg-rose-50 text-rose-500 rounded-full text-[9px] font-bold uppercase tracking-wider border border-rose-100">Required</span>}
-              {isCompleted && <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider border border-emerald-100">Completed</span>}
-              {isLocked && <span className="px-2.5 py-0.5 bg-zinc-100 text-zinc-400 rounded-full text-[9px] font-bold uppercase tracking-wider border border-zinc-200">Locked</span>}
-            </div>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isLocked ? 'bg-zinc-50 text-zinc-400 border-zinc-200' : 'bg-white text-brand border-brand/30'}`}>
+              {m.dur}M DURATION
+            </span>
           </div>
-          <h4 className={`text-base font-black leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
-          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mt-1">
-            {m.dur} MIN {m.isAIGenerated && '• AI-GENERATED'}
-          </p>
-          <p className={`text-xs mt-3 font-bold leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
+          <h4 className={`text-xl font-black uppercase tracking-tight leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
+          <p className={`text-sm mt-3 leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
         </div>
-        <div className="mt-5">
+        <div className="mt-6">
           {!isCompleted && !isLocked && (
-            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide transition-all hover:scale-[1.02] shadow-elevation-2">
-              {m.format === 'read_ack' ? 'Read & Acknowledge' : 'Watch & Complete'}
+            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand text-white rounded-xl font-bold text-xs uppercase tracking-wide transition-all hover:scale-[1.02] hover:shadow-md">
+              Launch Mastery Assessment
             </button>
           )}
           {isCompleted && (
-            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-black text-zinc-600 rounded-full font-bold text-xs uppercase tracking-wide transition-all hover:border-brand hover:text-brand hover:scale-[1.02] flex items-center justify-center gap-2">
-              <BookOpen size={12} /> Review
+            <button onClick={() => startReview(m)} className="w-full py-3.5 bg-white border border-brand text-brand rounded-xl font-bold text-xs uppercase tracking-wide transition-all hover:bg-brand/5 hover:scale-[1.02] flex items-center justify-center gap-2">
+              Review
             </button>
           )}
           {isLocked && (
-            <div className="w-full py-3.5 bg-zinc-100 text-zinc-400 rounded-full font-bold text-xs text-center flex items-center justify-center gap-2">
+            <div className="w-full py-3.5 bg-zinc-100 text-zinc-400 rounded-xl font-bold text-xs text-center flex items-center justify-center gap-2">
               <Lock size={12} /> Complete Previous Tier
             </div>
           )}
@@ -648,59 +647,34 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* Header with progress */}
-      <div className="bg-white border border-zinc-100 p-8 md:p-8 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+      <div className="bg-white border border-zinc-100 p-8 md:p-10 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
-          <div className="inline-flex items-center gap-3 px-5 py-1.5 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-             TRAINING ACADEMY
-          </div>
-          <h2 className="text-5xl font-black tracking-tighter uppercase italic">HMC Training</h2>
+          <h2 className="text-5xl font-black tracking-tighter italic text-zinc-900">Growth Hub.</h2>
           <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
-            Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
+            Review completed orientation modules and undertake advanced training to expand your impact.
             {user.role && user.role !== 'HMC Champion' && (
               <span className="block mt-2 text-brand">Your role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.role] || user.role}</span></span>
             )}
           </p>
         </div>
 
-        <div className="w-full md:w-72 bg-zinc-50 p-6 rounded-3xl border border-zinc-100 flex flex-col items-center relative z-10 shadow-inner gap-4">
-          {/* Tier 1 Progress */}
-          <div className="flex items-center gap-4 w-full">
-            <div className="relative w-16 h-16">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier1Progress) / 100} className="text-brand transition-all duration-1000" />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier1Progress}%</div>
-            </div>
-            <div>
-              <p className="text-xs font-black text-zinc-700">Tier 1: Orientation</p>
-              <p className="text-[10px] text-zinc-400">{tier1CompletedCount}/{TIER_1_MODULES.length} videos</p>
-            </div>
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <div className="relative w-24 h-24">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle cx="48" cy="48" r="42" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
+              <circle cx="48" cy="48" r="42" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={264} strokeDashoffset={264 - (264 * overallProgress) / 100} className="text-brand transition-all duration-1000" strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center text-lg font-black text-zinc-900">{overallProgress}%</div>
           </div>
-
-          {/* Tier 2 Core Progress (hidden for governance roles, only shown after Tier 1) */}
-          {!isGovernanceRole && tier1Complete && (
-            <div className="flex items-center gap-4 w-full">
-              <div className="relative w-16 h-16">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-zinc-200" />
-                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={176} strokeDashoffset={176 - (176 * tier2CoreProgress) / 100} className="text-brand transition-all duration-1000" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-sm font-black text-zinc-900">{tier2CoreProgress}%</div>
-              </div>
-              <div>
-                <p className="text-xs font-black text-zinc-700">Tier 2: Baseline</p>
-                <p className="text-[10px] text-zinc-400">{tier2CoreCompletedCount}/{TIER_2_CORE_MODULES.length} modules</p>
-              </div>
-            </div>
-          )}
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] text-center">
+            {overallProgress >= 100 ? 'ORIENTATION COMPLETE' : `${overallCompletedCount}/${overallRequired.length} MODULES`}
+          </p>
         </div>
       </div>
 
       {/* ===== TIER 1: ORIENTATION ===== */}
       <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
         <button onClick={() => toggleTier('tier1')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center text-sm font-black shrink-0">1</div>
           <div className="flex-1 text-left">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
             <p className="text-zinc-400 text-sm font-bold mt-1">Two intro videos about HMC and volunteering</p>
@@ -732,11 +706,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             onClick={() => setShowFieldAccess(!showFieldAccess)}
             className="w-full flex items-center gap-4 mb-4 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">
-              <Calendar size={20} />
-            </div>
             <div className="flex-1 text-left">
-              <h3 className="text-2xl font-black text-zinc-900 tracking-tight">
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">
                 {governanceTier2Complete ? 'Field Access Training' : 'Want to Support In-Person Events?'}
               </h3>
               <p className="text-zinc-500 font-bold text-sm mt-1">
@@ -746,7 +717,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               </p>
             </div>
             {governanceTier2Complete ? (
-              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0">Unlocked</span>
+              <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0">Complete</span>
             ) : (
               <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0">{tier2CompletedCount}/{TIER_2_MODULES.length}</span>
             )}
@@ -765,7 +736,6 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {!isGovernanceRole && tier1Complete && (
         <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center text-sm font-black shrink-0">2</div>
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Required to unlock My Missions and event registration</p>
@@ -796,11 +766,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             onClick={() => setShowFieldAccess(!showFieldAccess)}
             className="w-full flex items-center gap-4 mb-4 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">
-              <Calendar size={20} />
-            </div>
             <div className="flex-1 text-left">
-              <h3 className="text-2xl font-black text-zinc-900 tracking-tight">
+              <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">
                 {tier2FieldComplete ? 'Field Readiness Training' : 'Want to Attend In-Person Events?'}
               </h3>
               <p className="text-zinc-500 font-bold text-sm mt-1">
@@ -830,7 +797,6 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {tier2CoreComplete && !isGovernanceRole && (
         <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier3')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center text-sm font-black shrink-0">3</div>
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Unlock specialized missions like Street Medicine, Clinical, etc.</p>
@@ -878,9 +844,6 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {roleModules.length > 0 && tier1Complete && (
         <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('role')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
-              <ShieldCheck size={20} />
-            </div>
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
               <p className="text-zinc-400 text-sm font-bold mt-1">Additional training specific to your assigned role</p>
@@ -901,10 +864,9 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {tier2CoreComplete && !isGovernanceRole && (
         <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier4')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-zinc-400 text-white flex items-center justify-center text-sm font-black shrink-0">4</div>
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
-              <p className="text-zinc-400 text-sm font-bold mt-1">Context videos — complete within 30 days to keep advanced mission access</p>
+              <p className="text-zinc-400 text-sm font-bold mt-1">Context videos -- complete within 30 days to keep advanced mission access</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <span className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold uppercase tracking-wider border border-amber-200">30 Days</span>
@@ -926,9 +888,6 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         user.appliedRole?.includes('Medical') || user.appliedRole?.includes('Licensed')) && (
         <div className={!tier1Complete ? 'opacity-60' : ''}>
           <div className="flex items-center gap-4 mb-8 pt-8 border-t border-zinc-100">
-            <div className="w-10 h-10 rounded-xl bg-brand/50 text-white flex items-center justify-center">
-              <Stethoscope size={20} />
-            </div>
             <h3 className="text-2xl font-black tracking-tight uppercase">Clinical Onboarding</h3>
             {user.clinicalOnboarding?.completed && (
               <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-bold uppercase tracking-wider">Complete</span>

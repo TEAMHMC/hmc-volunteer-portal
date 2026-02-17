@@ -40,15 +40,15 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 const EVENT_TYPES = [
   { value: '', label: 'All Types' },
+  { value: 'community-event', label: 'Community Event' },
   { value: 'wellness', label: 'Wellness' },
   { value: 'outreach', label: 'Community Outreach' },
+  { value: 'training', label: 'Training' },
   { value: 'workshop', label: 'Workshop' },
   { value: 'street-medicine', label: 'Street Medicine' },
   { value: 'health-fair', label: 'Health Fair' },
-  { value: 'training', label: 'Training' },
   { value: 'all-hands', label: 'All-Hands' },
   { value: 'committee', label: 'Committee' },
-  { value: 'community-event', label: 'Community Event' },
   { value: 'board', label: 'Board' },
   { value: 'social', label: 'Social' },
   { value: 'other', label: 'Other' },
@@ -144,7 +144,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
 
   // Filtered events — show all events for a selected day, otherwise upcoming only
   const upcomingEvents = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     let filtered = selectedDay
       ? events.filter(ev => ev.date === selectedDay) // Show all events for selected day (past or future)
       : events.filter(ev => ev.date >= today);       // Default to upcoming
@@ -520,8 +521,8 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               // Optimistic: add immediately so event appears in UI (marked for merge protection)
               setEvents(prev => [...prev, { ...newEvent, _optimistic: true }].sort((a, b) => (a.date || '').localeCompare(b.date || '')));
             }
-            // Soft re-fetch — merges with optimistic events; _optimistic flag keeps event visible
-            fetchEvents(true);
+            // Soft re-fetch after delay — gives Firestore time to index the new doc
+            setTimeout(() => fetchEvents(true), 1000);
           }}
           editingEvent={editingEvent}
         />
@@ -680,7 +681,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
     date: editingEvent?.date || '',
     startTime: editingEvent?.startTime || '',
     endTime: editingEvent?.endTime || '',
-    type: (editingEvent?.type || 'all-hands') as OrgCalendarEvent['type'],
+    type: (editingEvent?.type || 'community-event') as OrgCalendarEvent['type'],
     location: editingEvent?.location || '',
     meetLink: editingEvent?.meetLink || '',
     description: editingEvent?.description || '',
@@ -777,17 +778,17 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onCreated,
               onChange={e => updateField('type', e.target.value)}
               className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
             >
-              <option value="all-hands">All-Hands</option>
+              <option value="community-event">Community Event</option>
               <option value="wellness">Wellness</option>
               <option value="outreach">Community Outreach</option>
+              <option value="training">Training</option>
               <option value="workshop">Workshop</option>
               <option value="street-medicine">Street Medicine</option>
               <option value="health-fair">Health Fair</option>
-              <option value="training">Training</option>
+              <option value="all-hands">All-Hands</option>
               <option value="committee">Committee</option>
-              <option value="community-event">Community Event</option>
-              <option value="social">Social</option>
               <option value="board">Board</option>
+              <option value="social">Social</option>
               <option value="other">Other</option>
             </select>
           </div>

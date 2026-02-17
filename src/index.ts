@@ -3526,7 +3526,7 @@ const handleVolunteerMatch = async (
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
 app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Response) => {
     try {
-        const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source } = req.body;
+        const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source, contactPreference } = req.body;
 
         if (!eventId || !name || !email) {
             return res.status(400).json({ error: 'eventId, name, and email are required' });
@@ -3546,6 +3546,7 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
             guests: guests || 0,
             needs: needs || '',
             source: source || 'event-finder-tool',
+            contactPreference: contactPreference || 'email',
             checkinToken,
             checkedIn: false,
             checkedInAt: null,
@@ -3573,6 +3574,12 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
         await publicBatch.commit();
 
         console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
+
+        // Send SMS confirmation if phone provided and contact preference is text
+        if (phone && (contactPreference === 'text' || contactPreference === 'sms')) {
+            const smsBody = `Hi ${name}! You're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. We'll send you a reminder before the event. See you there! - Health Matters Clinic`;
+            sendSMS(null, phone, smsBody).catch(err => console.error(`[PUBLIC RSVP] SMS confirmation failed:`, err));
+        }
 
         // Fire-and-forget: process volunteer matching asynchronously
         processVolunteerMatch(rsvpRef.id, {
@@ -4744,6 +4751,9 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
         }
 
         const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+        if (!APPS_SCRIPT_URL) {
+            return res.status(400).json({ error: 'Event Finder sync is not configured. Add APPS_SCRIPT_URL to your environment variables in Cloud Run.' });
+        }
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getEvents`, {
             headers: { 'Accept': 'application/json' },
             redirect: 'follow',
