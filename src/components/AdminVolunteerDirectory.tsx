@@ -11,6 +11,16 @@ import {
 import { GOVERNANCE_ROLES } from '../constants';
 import { toastService } from '../services/toastService';
 
+const downloadPdf = async (url: string) => {
+  const token = localStorage.getItem('authToken');
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+};
+
 interface DirectoryProps {
   volunteers: Volunteer[];
   setVolunteers: React.Dispatch<React.SetStateAction<Volunteer[]>>;
@@ -310,7 +320,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             <td key={dId} className="text-center">
                               {!isClinical ? <span className="text-zinc-100">—</span> :
                                 v.clinicalDocuments[dId]?.signed ? (
-                                  <button onClick={() => window.open(`/api/clinical/forms/${dId}/pdf?volunteerId=${v.id}`, '_blank')} title="Download signed PDF">
+                                  <button onClick={() => downloadPdf(`/api/clinical/forms/${dId}/pdf?volunteerId=${v.id}`)} title="Download signed PDF">
                                     <CheckCircle size={14} className="text-emerald-500 mx-auto hover:text-brand cursor-pointer" />
                                   </button>
                                 ) : <X size={14} className="text-zinc-200 mx-auto" />

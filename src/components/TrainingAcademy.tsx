@@ -1033,51 +1033,15 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                     </>
                   ) : (
                     <>
-                      <p className="text-zinc-500 font-bold text-center">Watch the video above, then proceed to the assessment.</p>
+                      <p className="text-zinc-500 font-bold text-center">Watch the full video above, then confirm completion below.</p>
                       <button
-                        onClick={() => { setQuizStage('concepts'); loadQuizContent(); }}
-                        className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        onClick={() => handleCompleteModule(activeSession.id, activeSession.title)}
+                        className="w-full py-6 bg-emerald-500 border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                        I've Watched This - Continue to Assessment <ArrowRight size={18} />
+                        <Check size={18} /> I've Watched This — Confirm Completion
                       </button>
                     </>
                   )}
-                </div>
-              ) : quizStage !== 'read_ack' && loadingQuiz ? (
-                <div className="py-20 flex flex-col items-center gap-6">
-                   <Loader2 size={48} className="text-brand animate-spin" />
-                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider animate-pulse">Generating Assessment...</p>
-                </div>
-              ) : quizStage === 'concepts' ? (
-                <div className="space-y-8 animate-in fade-in">
-                  <h5 className="text-lg font-black text-zinc-900">Learning Objective:</h5>
-                  <p className="text-zinc-600 font-bold italic">"{quizData?.learningObjective}"</p>
-                  <h5 className="text-lg font-black text-zinc-900 pt-4 border-t">Key Concepts to Review:</h5>
-                  <div className="space-y-4">
-                    {quizData?.keyConcepts?.map((item: { concept: string, description: string }, i: number) => (
-                      <div key={i} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 shadow-elevation-1">
-                        <p className="font-black text-zinc-800 text-sm">{item.concept}</p>
-                        <p className="text-sm text-zinc-500 mt-1">{item.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={() => setQuizStage('question')} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                    Proceed to Question
-                  </button>
-                </div>
-              ) : quizStage === 'question' ? (
-                <div className="animate-in fade-in">
-                  <div className="space-y-4 bg-zinc-50 p-8 rounded-3xl border border-zinc-100 shadow-inner">
-                     <p className="text-zinc-900 font-black text-xl leading-tight">"{quizData?.question}"</p>
-                  </div>
-                  <textarea value={quizResponse} onChange={e => setQuizResponse(e.target.value)} className="w-full h-32 bg-zinc-50 border-2 border-zinc-100 rounded-2xl p-4 font-bold text-sm outline-none focus:border-brand/30 mt-6" placeholder="Your response..." />
-                  {submitError && <p className="text-rose-500 text-xs text-center mt-4 font-bold">{submitError}</p>}
-                  <button onClick={handleSubmitQuiz} disabled={quizResponse.trim() === '' || isSubmitting} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 disabled:opacity-30 mt-6 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                     {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <div className="w-2 h-2 rounded-full bg-white" />}
-                     Submit & Complete Module
-                  </button>
                 </div>
               ) : null}
            </div>

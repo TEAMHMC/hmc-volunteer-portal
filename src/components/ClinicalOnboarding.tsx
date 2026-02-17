@@ -8,6 +8,16 @@ import {
   AlertTriangle, Loader2, X, Award, Shield, ClipboardCheck, Stethoscope, Download
 } from 'lucide-react';
 
+const downloadPdf = async (url: string) => {
+  const token = localStorage.getItem('authToken');
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+};
+
 interface ClinicalOnboardingProps {
   user: Volunteer;
   onUpdate: (user: Volunteer) => void;
@@ -290,7 +300,7 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                             Signed on {new Date(clinicalOnboarding.documents?.[doc.id as keyof typeof clinicalOnboarding.documents]?.signedAt || '').toLocaleDateString()}
                           </p>
                           <button
-                            onClick={(e) => { e.stopPropagation(); window.open(`/api/clinical/forms/${doc.id}/pdf`, '_blank'); }}
+                            onClick={(e) => { e.stopPropagation(); downloadPdf(`/api/clinical/forms/${doc.id}/pdf`); }}
                             className="flex items-center gap-1 text-xs text-brand font-bold hover:underline"
                           >
                             <Download size={12} /> PDF

@@ -9,6 +9,16 @@ import { toastService } from '../services/toastService';
 
 const formatPhoneNumber = (value: string) => value.replace(/\D/g, '').slice(0, 10).replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
 
+const downloadPdf = async (url: string) => {
+  const token = localStorage.getItem('authToken');
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+};
+
 const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => void }> = ({ currentUser, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -407,7 +417,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                       </button>
                     )}
                     <button
-                      onClick={() => window.open(`/api/clinical/forms/${docId}/pdf`, '_blank')}
+                      onClick={() => downloadPdf(`/api/clinical/forms/${docId}/pdf`)}
                       className="px-3 py-1.5 bg-brand/10 text-brand rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-brand/20 transition-colors"
                     >
                       Certificate PDF
