@@ -21,7 +21,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--update-env-vars'
-      - 'APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec'
+      - 'APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec,EMAIL_SERVICE_URL=https://script.google.com/macros/s/AKfycbxMOK7JiV_nTZKLQCDumFALNY_v-m-M5PST2zuhQLShT3WcqG_8hmTCcB6PHzHpcts4Tg/exec'
 
 images:
   - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:$COMMIT_SHA'
