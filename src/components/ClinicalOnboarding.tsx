@@ -492,6 +492,9 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
                   I have current malpractice insurance coverage
                 </span>
               </label>
+              <p className="text-xs text-zinc-400 mt-2 ml-8">
+                For more details on coverage requirements, visit the <button type="button" onClick={() => { setActiveSection('documents'); const doc = CLINICAL_DOCUMENTS.find(d => d.id === 'policiesProcedures'); if (doc) setActiveDocument(doc); }} className="text-brand font-bold hover:underline">"Scope of Practice and Delegation Policy"</button> section in the Clinical Policies & Procedures Manual.
+              </p>
             </div>
           </div>
 

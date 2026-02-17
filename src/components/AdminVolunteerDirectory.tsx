@@ -190,6 +190,15 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
     }
   };
 
+  const handleViewCredentialFile = async (volunteerId: string, field: string) => {
+    try {
+      const result = await apiService.get(`/api/volunteer/${volunteerId}/credential-file/${field}`);
+      if (result.url) window.open(result.url, '_blank');
+    } catch {
+      toastService.error('Unable to open credential file.');
+    }
+  };
+
   const handleDeleteVolunteer = async () => {
     if (!selectedVolunteer) return;
     setIsDeleting(true);
@@ -796,6 +805,69 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
                         </div>
                       )}
+
+                          {/* Clinical Credentials */}
+                          {selectedVolunteer.clinicalOnboarding?.credentials && (
+                            <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
+                              <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><ShieldCheck size={10} /> Clinical Credentials</p>
+                              <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">NPI Number</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.npi || '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">License Number</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.licenseNumber || '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">License State</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.licenseState || '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">License Expiration</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.licenseExpiration ? new Date(selectedVolunteer.clinicalOnboarding.credentials.licenseExpiration).toLocaleDateString() : '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">License File</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.licenseFileUrl ? (
+                                    <button onClick={() => handleViewCredentialFile(selectedVolunteer.id, 'licenseFileUrl')} className="text-brand hover:underline">View Upload</button>
+                                  ) : '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">DEA Number</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.deaNumber || '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">DEA Expiration</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.deaExpiration ? new Date(selectedVolunteer.clinicalOnboarding.credentials.deaExpiration).toLocaleDateString() : '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Board Certification</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.boardCertification || '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Board Cert Expiration</p>
+                                  <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.boardCertExpiration ? new Date(selectedVolunteer.clinicalOnboarding.credentials.boardCertExpiration).toLocaleDateString() : '---'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Malpractice Insurance</p>
+                                  <p className={`text-sm font-bold ${selectedVolunteer.clinicalOnboarding.credentials.malpracticeInsurance ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                    {selectedVolunteer.clinicalOnboarding.credentials.malpracticeInsurance ? 'Yes' : 'No'}
+                                  </p>
+                                </div>
+                                {selectedVolunteer.clinicalOnboarding.credentials.malpracticeFileUrl && (
+                                  <div>
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Malpractice File</p>
+                                    <button onClick={() => handleViewCredentialFile(selectedVolunteer.id, 'malpracticeFileUrl')} className="text-sm font-bold text-brand hover:underline">View Upload</button>
+                                  </div>
+                                )}
+                              </div>
+                              {selectedVolunteer.clinicalOnboarding.completedAt && (
+                                <p className="text-[10px] text-zinc-400 font-bold mt-2">Onboarding completed: {new Date(selectedVolunteer.clinicalOnboarding.completedAt).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          )}
+
                     </div>
 
                     {/* Task Assignment Section */}
