@@ -651,8 +651,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           <h2 className="text-5xl font-black tracking-tighter uppercase italic">HMC Training</h2>
           <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
             Complete orientation and baseline training to become operational. Then unlock program-specific clearances.
-            {roleDisplayName && roleDisplayName !== 'HMC Champion' && roleDisplayName !== 'Volunteer' && (
-              <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{roleDisplayName}</span></span>
+            {user.appliedRole && user.appliedRole !== 'HMC Champion' && (
+              <span className="block mt-2 text-brand">Applied role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.appliedRole] || user.appliedRole}</span></span>
+            )}
+            {user.role && user.role !== 'HMC Champion' && user.role !== user.appliedRole && (
+              <span className="block mt-1 text-zinc-400 text-sm">Current role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.role] || user.role}</span></span>
             )}
           </p>
         </div>

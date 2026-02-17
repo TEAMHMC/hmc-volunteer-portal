@@ -15,127 +15,273 @@
   li { margin-bottom: 6px; }
   .header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px solid #16a34a; }
   .header .org { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #16a34a; margin-bottom: 4px; }
+  .header .subtitle { font-size: 14px; color: #666; margin-top: 4px; }
   .header .version { font-size: 11px; color: #999; margin-top: 4px; }
   .note { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13px; }
   .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13px; }
-  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
-  th, td { border: 1px solid #e5e5e5; padding: 10px 12px; text-align: left; }
-  th { background: #f9fafb; font-weight: 700; color: #333; }
+  .critical { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13px; font-weight: 600; }
+  .signature-block { margin-top: 48px; padding-top: 24px; border-top: 2px solid #e5e5e5; }
+  .signature-line { display: flex; gap: 32px; margin-bottom: 32px; flex-wrap: wrap; }
+  .signature-field { flex: 1; min-width: 200px; margin-bottom: 8px; }
+  .signature-field .line { border-bottom: 1px solid #333; height: 32px; margin-bottom: 4px; }
+  .signature-field .label { font-size: 11px; color: #666; }
+  .final-note { background: #f9fafb; border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; margin-top: 32px; font-size: 12px; color: #666; line-height: 1.6; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="org">Health Matters Clinic</div>
-  <h1>Clinical Policies &amp; Procedures Manual</h1>
-  <div class="version">Version 1.0 | Effective Date: January 2026</div>
+  <h1>Clinical Policies and Procedures Manual</h1>
+  <div class="subtitle">Mobile Health Screening Programs &mdash; Los Angeles County, California</div>
+  <div class="version">Version 1.0 | Approved By: Executive Director &amp; Physician Assistant</div>
 </div>
 
-<h2>Section 1: Patient Intake &amp; Registration</h2>
-<h3>1.1 Registration Process</h3>
-<p>All participants must complete a registration form before receiving any clinical services. Registration includes collection of basic demographic information, contact details, and a brief health history. No government-issued identification is required.</p>
-<h3>1.2 Consent Requirements</h3>
-<p>Written informed consent must be obtained from every participant before any screening or clinical service is performed. For minors (under 18), consent must be provided by a parent or legal guardian. The General Screening Consent Form (see separate document) is the standardized consent form for all routine screenings.</p>
-<h3>1.3 Language Access</h3>
-<p>HMC serves a predominantly bilingual (English/Spanish) community. All consent forms and key documents are available in both languages. Interpreter services must be provided for participants who speak other languages. Never use a minor child as an interpreter for clinical discussions.</p>
+<!-- ============================================================ -->
+<!-- SECTION I: ORGANIZATIONAL OVERVIEW                           -->
+<!-- ============================================================ -->
 
-<h2>Section 2: Screening Protocols</h2>
-<h3>2.1 Blood Pressure Screening</h3>
-<ul>
-  <li>Use calibrated automatic or manual sphygmomanometer</li>
-  <li>Patient should be seated, rested for 5 minutes, feet flat on floor, arm supported at heart level</li>
-  <li>Take reading on bare arm (no clothing barrier)</li>
-  <li>Record systolic and diastolic values</li>
-  <li>If reading is &ge;180/120, recheck in 5 minutes. If persistent, refer for immediate evaluation</li>
-  <li>Provide education handout for readings &ge;130/80</li>
-</ul>
+<h2>I. Organizational Overview</h2>
 
-<h3>2.2 Blood Glucose Screening</h3>
-<ul>
-  <li>Use FDA-approved point-of-care glucometer with test strips within expiration date</li>
-  <li>Clean participant's finger with alcohol swab, allow to dry</li>
-  <li>Use single-use lancet only; dispose in sharps container immediately after use</li>
-  <li>Record fasting/non-fasting status and glucose value</li>
-  <li>Fasting glucose &ge;126 mg/dL or random glucose &ge;200 mg/dL: refer for follow-up with primary care</li>
-</ul>
+<h3>A. Mission and Purpose</h3>
+<p>Health Matters Clinic is a California nonprofit public benefit corporation organized under Internal Revenue Code Section 501(c)(3) with the mission to break down barriers to healthcare access so that all community members can live their healthiest lives. The organization operates mobile health screening programs and community health outreach services targeting medically underserved populations in Los Angeles County including individuals experiencing homelessness, communities of color, low-income families, and other vulnerable populations facing significant health disparities. Health Matters Clinic provides screening services, health education, care navigation, and connection to community resources as a strategy to identify unmet health needs and facilitate linkage to ongoing medical care through partnering healthcare organizations.</p>
 
-<h3>2.3 BMI Assessment</h3>
-<ul>
-  <li>Measure height using stadiometer (shoes removed)</li>
-  <li>Measure weight using calibrated scale</li>
-  <li>Calculate BMI using standard formula: weight (kg) / height (m)&sup2;</li>
-  <li>Provide education and community resources for BMI outside healthy range (18.5&ndash;24.9)</li>
-</ul>
+<h3>B. Regulatory Status</h3>
+<p>Health Matters Clinic operates as a contractor providing services under agreement with Los Angeles County Department of Mental Health. The organization provides health screening services and health education in community settings including parks, community centers, and other public venues. Health Matters Clinic is not licensed as a clinic under California Health and Safety Code Division 2, Chapter 1, Article 2, and does not provide diagnosis, treatment, or medication prescribing services. All screening activities are conducted under standing orders authorized by a California-licensed Physician Assistant who serves as supervising practitioner. The organization maintains general liability insurance and professional liability insurance covering clinical screening services. Workers' compensation coverage is maintained for all personnel including volunteers.</p>
 
-<h3>2.4 HIV Rapid Testing (OraQuick)</h3>
-<ul>
-  <li>Requires completion of OraQuick distribution training module</li>
-  <li>Follow manufacturer instructions exactly</li>
-  <li>Provide pre-test counseling and post-test counseling per California guidelines</li>
-  <li>Reactive results: provide referral to confirmatory testing and linkage to care</li>
-  <li>All test kits must be tracked by lot number in the supply log</li>
-</ul>
+<h3>C. Clinical Governance Structure</h3>
+<p>The Physician Assistant serves as the clinical director and supervising practitioner responsible for all clinical aspects of screening programs. The Physician Assistant reports to the Executive Director for administrative matters while maintaining independent clinical judgment authority. The Physician Assistant is responsible for developing and authorizing standing orders, establishing clinical policies and procedures, overseeing clinical training and competency verification, reviewing adverse events and implementing quality improvement initiatives, and maintaining compliance with applicable professional standards and regulatory requirements. Registered Nurses may be designated by the Physician Assistant to provide clinical supervision of other licensed and unlicensed personnel during screening events. All clinical personnel operate within their respective scopes of practice as defined by California law and under the supervision structure specified in organizational policies.</p>
 
-<h3>2.5 Naloxone Distribution</h3>
-<ul>
-  <li>Requires completion of Naloxone distribution training module</li>
-  <li>Provide brief education on opioid overdose recognition and naloxone administration</li>
-  <li>Document distribution including participant information and kit lot number</li>
-  <li>Follow California standing order for naloxone distribution</li>
-</ul>
+<!-- ============================================================ -->
+<!-- SECTION II: SCOPE OF PRACTICE AND DELEGATION POLICY          -->
+<!-- ============================================================ -->
 
-<h2>Section 3: Medication &amp; Supply Management</h2>
-<h3>3.1 Supply Chain</h3>
-<p>The Clinical Coordinator is responsible for maintaining adequate supplies for all clinical events. A supply checklist must be completed before and after each event.</p>
-<h3>3.2 Medication Storage</h3>
-<p>All medications and test kits must be stored according to manufacturer specifications. Temperature-sensitive items must be transported in insulated containers with temperature monitoring.</p>
-<h3>3.3 Expiration Tracking</h3>
-<p>No expired medications, test kits, or supplies may be used. Check expiration dates as part of the pre-event supply check. Report expired items to the Clinical Coordinator for replacement.</p>
+<h2>II. Scope of Practice and Delegation Policy</h2>
 
-<h2>Section 4: Incident Reporting</h2>
-<h3>4.1 Reportable Incidents</h3>
-<p>The following must be reported within 24 hours using the HMC incident report form:</p>
-<ul>
-  <li>Adverse reactions to any screening or procedure</li>
-  <li>Needlestick or bloodborne pathogen exposures</li>
-  <li>Participant falls, injuries, or medical emergencies</li>
-  <li>Equipment malfunction during clinical use</li>
-  <li>HIPAA breaches or data security incidents</li>
-  <li>Volunteer injury during clinical service</li>
-</ul>
-<h3>4.2 Reporting Process</h3>
-<ol>
-  <li>Ensure immediate safety of all parties</li>
-  <li>Notify lead clinician on-site</li>
-  <li>Complete the incident report form (available in portal)</li>
-  <li>Submit to Clinical Coordinator within 24 hours</li>
-  <li>Medical Director will review all incident reports within 72 hours</li>
-</ol>
+<h3>A. Physician Assistant Scope of Practice</h3>
+<p>The Physician Assistant is licensed under California Business and Professions Code Division 2, Chapter 7.7, and practices within the scope of practice defined by statute and California Code of Regulations Title 16, Division 13.9. The Physician Assistant may perform medical services under supervision of a physician, or in settings where physician supervision is not required, as authorized by law. The Physician Assistant may conduct health assessments, order and interpret screening tests within scope of practice, provide health counseling and education, develop standing orders authorizing specific screening activities to be performed by licensed and unlicensed personnel, provide clinical supervision of other healthcare personnel, and make referrals to physicians and other healthcare providers. The Physician Assistant may not independently prescribe controlled substances without Drug Enforcement Administration registration and applicable practice agreements, perform surgical procedures beyond those within scope of practice and for which training has been obtained, or practice outside areas of clinical competency without appropriate supervision or consultation.</p>
 
-<h2>Section 5: Quality Assurance</h2>
-<p>HMC conducts ongoing quality assurance reviews:</p>
-<ul>
-  <li>Monthly review of screening data and outcomes</li>
-  <li>Quarterly clinical competency assessments</li>
-  <li>Annual policy review and update</li>
-  <li>Post-event debriefs for all clinical events</li>
-</ul>
+<h3>B. Registered Nurse Scope of Practice</h3>
+<p>Registered Nurses are licensed under California Business and Professions Code Division 2, Chapter 6, and practice within the scope of practice defined in Section 2725. Registered Nurses may observe and assess patient health status, administer medications and treatments as prescribed by authorized providers, perform procedures for which they have received training and demonstrated competency, provide health education and counseling, supervise Licensed Vocational Nurses and unlicensed personnel, and delegate tasks to Licensed Vocational Nurses and unlicensed personnel when appropriate under the delegation provisions of the California Nurse Practice Act. Registered Nurses may perform health screening activities independently or under Physician Assistant standing orders. Registered Nurses may not diagnose medical conditions, prescribe medications or treatments, or perform procedures outside their scope of practice or for which they have not been trained and deemed competent.</p>
 
-<h2>Section 6: Infection Prevention</h2>
-<h3>6.1 Standard Precautions</h3>
-<p>Standard precautions apply to all participant encounters regardless of suspected or confirmed infection status:</p>
-<ul>
-  <li>Hand hygiene with soap/water or alcohol-based hand rub before and after every encounter</li>
-  <li>Gloves for contact with blood, body fluids, mucous membranes, or non-intact skin</li>
-  <li>Face protection when splash or spray is anticipated</li>
-  <li>Proper waste segregation: regular waste, biohazard waste, sharps</li>
-</ul>
+<h3>C. Licensed Vocational Nurse Scope of Practice</h3>
+<p>Licensed Vocational Nurses are licensed under California Business and Professions Code Division 2, Chapter 6.5, and practice under the supervision of Registered Nurses or physicians. Licensed Vocational Nurses may perform basic nursing care under supervision, administer certain medications and treatments as delegated by Registered Nurses or as prescribed by authorized providers, perform standardized procedures for which they have received specific training through California Board of Registered Nursing approved programs, and collect specimens and perform basic health measurements. Licensed Vocational Nurses may perform health screening activities under Physician Assistant standing orders and under Registered Nurse or Physician Assistant supervision. Licensed Vocational Nurses may not perform assessments requiring professional nursing judgment, supervise other licensed personnel, or perform procedures outside their scope of practice or for which standardized procedure training has not been completed.</p>
 
-<h3>6.2 Sharps Safety</h3>
-<p>All sharps must be disposed of in FDA-approved sharps containers immediately after use. Never recap needles. Sharps containers must be sealed and returned to HMC for proper disposal after each event.</p>
+<h3>D. Medical Assistant Scope of Practice</h3>
+<p>Medical Assistants are unlicensed personnel who may perform certain basic clinical procedures under physician or Registered Nurse supervision as provided in California Business and Professions Code Section 2069. Medical Assistants may measure and record vital signs including blood pressure, pulse, respirations, and temperature, obtain capillary blood for glucose testing under direct supervision, administer medications by intradermal, subcutaneous, or intramuscular injection under physician supervision after appropriate training, perform electrocardiograms, and remove sutures and change dressings on stable post-operative patients. Medical Assistants must work under direct supervision of a licensed healthcare provider who is physically present in the immediate area and immediately available. Medical Assistants may not perform procedures independently, make clinical assessments or nursing diagnoses, administer intravenous medications, or perform procedures outside the specific tasks authorized under Business and Professions Code Section 2069.</p>
 
-<h2>Section 7: Acknowledgment</h2>
-<p>By signing this document, you acknowledge that you have read and understood the Clinical Policies &amp; Procedures Manual, and agree to follow all policies and protocols described herein during your volunteer service with Health Matters Clinic.</p>
+<h3>E. Community Health Worker and Volunteer Scope</h3>
+<p>Community Health Workers and volunteers are unlicensed personnel who may perform certain non-invasive health screening activities under direct supervision of licensed personnel. Community Health Workers and volunteers may administer validated screening questionnaires, perform non-invasive measurements such as height, weight, and body mass index after appropriate training, perform blood pressure measurement under supervision after competency verification, provide health education using approved materials, facilitate connection to community resources and healthcare services, and provide language interpretation when qualified. Community Health Workers with additional specialized training may perform capillary blood glucose testing and HIV rapid testing after certification training and under licensed supervision. All Community Health Worker and volunteer activities must be performed under direct supervision of licensed personnel, meaning a licensed healthcare provider is immediately available on-site to provide assistance and oversight. Community Health Workers and volunteers may not perform clinical assessments, make independent clinical decisions, provide medical advice, or perform any activity requiring clinical licensure.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION III: INFORMED CONSENT PROCEDURES                     -->
+<!-- ============================================================ -->
+
+<h2>III. Informed Consent Procedures</h2>
+
+<h3>A. General Principles of Informed Consent</h3>
+<p>All participants must provide voluntary informed consent prior to receiving any screening services. Informed consent requires that participants understand the nature of screening services being offered, the voluntary nature of participation, the confidential handling of personal health information, and their right to decline any or all services. Consent must be obtained without coercion or undue influence. Participants must be informed that screening results are preliminary and not diagnostic, that abnormal screening results require follow-up evaluation by a healthcare provider, and that Health Matters Clinic does not provide diagnosis or treatment services. Participants must be informed of how screening results will be communicated and what referral resources will be provided if needed. Consent may be withdrawn at any time, and participants may discontinue participation in any screening activity without consequence.</p>
+
+<h3>B. General Health Screening Consent</h3>
+<p>Written informed consent must be obtained using the Health Matters Clinic General Health Screening Consent Form prior to providing any screening services. The consent form must be available in English and Spanish, and verbal translation must be provided for participants who speak other languages using qualified interpreters. The consent form must explain that services include health screenings such as blood pressure, blood glucose, body mass index, and questionnaires about health and social needs. The form must state that participation is voluntary, that participants may decline any specific screening, and that declining to participate will not affect access to other services or resources. The form must explain that results are preliminary screening results and not medical diagnoses, that participants will receive their results and information about what the results mean, and that referrals to healthcare providers will be offered when needed. The form must include a basic statement about privacy protection and confidential handling of information. Participants must sign and date the consent form, or if unable to write, must provide verbal consent witnessed by two staff members who sign attesting to the participant's verbal consent.</p>
+
+<h3>C. HIV Testing Specific Consent</h3>
+<p>HIV testing requires separate specific informed consent in accordance with California Health and Safety Code Section 120980. The HIV testing consent form must be separate from the general screening consent and must specifically identify that HIV testing will be performed. Verbal pre-test counseling must be provided and must include explanation of the HIV antibody test, the meaning of reactive and non-reactive results, the window period during which recent infection may not be detected, prevention strategies to reduce HIV transmission risk, and the confidential nature of HIV testing and results. The participant must have the opportunity to ask questions and must sign a specific HIV testing consent form prior to testing. Consent for HIV testing may be withdrawn at any time prior to testing. Special considerations apply to minors age 12 and older, who may consent to HIV testing without parental consent under California Family Code Section 6926, though parental notification is encouraged when appropriate and when the minor does not object.</p>
+
+<h3>D. Consent for Minors</h3>
+<p>Screening services for minors under age 18 generally require consent from a parent or legal guardian. The parent or guardian must sign the consent form and must be present during screening unless the minor is an emancipated minor or meets other criteria for independent consent. Exceptions exist under California law for specific services. Minors age 12 and older may consent independently to HIV testing, sexually transmitted infection testing and treatment, mental health counseling, and substance abuse treatment without parental consent. Emancipated minors may consent to all healthcare services. When providing services to minors who may consent independently, personnel must verify that the legal criteria are met and must document the basis for providing services without parental consent. Mandatory reporting requirements must be followed if abuse or neglect is suspected.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION IV: CLINICAL DOCUMENTATION STANDARDS                 -->
+<!-- ============================================================ -->
+
+<h2>IV. Clinical Documentation Standards</h2>
+
+<h3>A. Documentation Requirements</h3>
+<p>All participant encounters must be documented in accordance with professional standards for clinical record-keeping. Documentation serves multiple purposes including supporting continuity of care, providing legal protection, facilitating quality improvement, and enabling program evaluation. Each encounter must be documented using the Health Matters Clinic Participant Encounter Form or approved electronic documentation system. Documentation must be completed contemporaneously with service delivery, meaning during or immediately following the encounter while details are fresh. Backdating of documentation is prohibited. All documentation must include participant identification information collected in accordance with organizational privacy policies, date and location of screening event, screening services provided with specific results, name and credentials of personnel performing each screening, any abnormal findings or concerns, notifications made to the Physician Assistant with date and time, referrals provided with specific destination information, and health education materials given to participant. Documentation must be legible if handwritten or typed if using electronic systems. Only standard medical abbreviations included on an approved abbreviation list may be used. Documentation must be objective, factual, and free from personal judgments or stigmatizing language.</p>
+
+<h3>B. Error Correction Procedures</h3>
+<p>Errors in documentation must be corrected using appropriate procedures to maintain documentation integrity. For paper records, errors must be corrected by drawing a single line through the incorrect entry so the original entry remains legible, writing the correction above or beside the error, and initialing and dating the correction. Entries must never be obliterated, erased, or made illegible. Correction fluid or tape must not be used. For electronic records, amendments must be made using the amendment function if available, which creates an audit trail showing both original and corrected entries. If the electronic system does not have amendment functionality, an addendum must be added clearly marked as a correction with date and time of the addendum and identification of the person making the correction. Late entries made after the encounter date must be clearly identified as late entries with documentation of the actual date of entry. Fraudulent alteration of documentation or backdating is prohibited and may constitute professional misconduct.</p>
+
+<h3>C. Record Retention and Storage</h3>
+<p>Clinical documentation must be retained for a minimum of seven years from the date of service or until the participant reaches age 25, whichever is longer, in accordance with California record retention requirements for healthcare services. Records of minors must be retained until the individual reaches age 25 to account for extended statute of limitations for minors. Paper records must be stored in locked, secure locations with access limited to authorized personnel. Electronic records must be password-protected with access controls limiting viewing and editing to authorized personnel only. Backup procedures must be in place for electronic records. Records must be organized to allow timely retrieval when needed for continuity of care, quality improvement, or legal purposes. When records are no longer required to be retained, they must be destroyed in a manner that protects confidentiality such as shredding or secure electronic deletion.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION V: PRIVACY AND CONFIDENTIALITY POLICY                -->
+<!-- ============================================================ -->
+
+<h2>V. Privacy and Confidentiality Policy</h2>
+
+<h3>A. Privacy Protection Principles</h3>
+<p>Health Matters Clinic is committed to protecting participant privacy and maintaining confidentiality of personal health information. Although the organization is not a covered entity under the Health Insurance Portability and Accountability Act and is therefore not subject to HIPAA regulations, the organization voluntarily adopts privacy protection practices consistent with HIPAA standards as a matter of ethical practice and participant trust. All personnel must protect participant privacy and maintain confidentiality of all information obtained during screening encounters. Personal health information should be collected only when necessary for screening purposes or program evaluation. Information collected should be the minimum necessary to accomplish the intended purpose. Participants should be informed about what information is being collected and how it will be used. Screening encounters should be conducted in settings that provide reasonable privacy to the extent possible given community venue constraints.</p>
+
+<h3>B. Confidential Communication Practices</h3>
+<p>All discussions of screening results or health-related information must be conducted privately to protect participant confidentiality. Personnel must speak quietly when discussing results and must position themselves to prevent others from overhearing conversations. Screening results must never be announced publicly or discussed in the presence of other participants or community members. Private spaces such as tents, vehicles, or separated areas should be utilized when discussing sensitive information or abnormal results. Visual privacy should also be protected by positioning participants so that screening procedures and results cannot be observed by others. Computer screens or paper records containing participant information must be positioned to prevent casual viewing by unauthorized individuals. Personnel must not discuss participant information with family members, friends, or others unless the participant has specifically authorized such disclosure and has signed a release of information form.</p>
+
+<h3>C. Data Collection and De-Identification</h3>
+<p>Health Matters Clinic collects limited participant information for purposes of providing screening results, facilitating referrals, and conducting program evaluation. Current practice involves collecting de-identified or limited data sets that do not include full names, addresses, social security numbers, or other identifiers that would allow individual identification in program databases. Consent forms and individual screening records containing identifiable information are maintained only in paper form in secure storage. Aggregate data used for program evaluation and grant reporting is de-identified and reported only in summary statistical form without individual identifiers. As the organization develops electronic health record capabilities and pursues Medi-Cal reimbursement for Community Health Worker services, systems will be implemented to comply with HIPAA requirements for protected health information including execution of Business Associate Agreements with technology vendors, implementation of technical safeguards including encryption and access controls, workforce training on HIPAA compliance, and breach notification procedures.</p>
+
+<h3>D. Special Confidentiality Protections</h3>
+<p>California law provides enhanced confidentiality protections for certain categories of health information. HIV-related information is subject to particularly stringent confidentiality requirements under California Health and Safety Code Sections 120975 and 121010. HIV test results and any information that identifies an individual has HIV may not be disclosed without specific written authorization from the individual except in very limited circumstances specified by law. Mental health information is protected under California Civil Code Section 56.10 and may not be disclosed without authorization except for treatment purposes or other specified exceptions. Substance abuse treatment information is protected under federal confidentiality regulations at 42 CFR Part 2. Information about reproductive health services, sexually transmitted infection testing and treatment, and mental health services for minors who have consented to such services independently may not be disclosed to parents without the minor's consent except in limited circumstances. All personnel must receive training on these special confidentiality protections and must comply with applicable requirements.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION VI: EMERGENCY RESPONSE PROTOCOL                      -->
+<!-- ============================================================ -->
+
+<h2>VI. Emergency Response Protocol</h2>
+
+<h3>A. Recognition of Medical Emergencies</h3>
+<p>All personnel must be trained to recognize signs and symptoms of medical emergencies that require immediate intervention. Life-threatening emergencies requiring immediate activation of emergency medical services include chest pain or pressure that may indicate acute myocardial infarction, difficulty breathing or severe shortness of breath, symptoms of stroke including sudden facial drooping, arm weakness, or slurred speech, loss of consciousness or significantly altered mental status, seizure activity, severe bleeding that cannot be readily controlled, signs of severe allergic reaction including difficulty breathing, facial or tongue swelling, or widespread hives, and any situation in which a participant appears critically ill or in imminent danger. Other urgent situations that require immediate Physician Assistant evaluation include hypertensive crisis with blood pressure 180/120 mmHg or higher, blood glucose less than 70 mg/dL with symptoms of hypoglycemia or greater than 400 mg/dL, participant expression of suicidal ideation with intent or plan, and symptoms suggesting other serious medical conditions requiring urgent medical care.</p>
+
+<h3>B. Emergency Medical Services Activation</h3>
+<p>Emergency medical services must be activated by calling 911 immediately for any life-threatening emergency. The person discovering the emergency should immediately call for help to summon the on-site Physician Assistant or senior clinical person while another team member calls 911 if multiple personnel are available. If only one person is present, 911 should be called before notifying other team members if the situation is clearly life-threatening. The 911 caller should be prepared to provide the exact location address including any landmarks or specific location details to assist emergency responders in locating the site, nature of the emergency, condition of the participant, vital signs if available, any interventions already provided, and call-back telephone number. The caller should remain on the line until the 911 dispatcher indicates it is acceptable to disconnect. One team member should be designated to meet emergency responders at the street or main entrance to direct them to the participant's location. The participant must not be left alone and must be continuously monitored until emergency responders arrive and assume care.</p>
+
+<h3>C. Basic Emergency Interventions</h3>
+<p>Personnel trained and certified in cardiopulmonary resuscitation and automated external defibrillator use should initiate basic life support measures when indicated for participants in cardiac or respiratory arrest. An automated external defibrillator should be available at screening events and should be applied according to device prompts if a participant is found to be unresponsive and not breathing or not breathing normally. Chest compressions should be initiated for pulseless participants in accordance with current American Heart Association guidelines. Participants experiencing hypoglycemia with blood glucose less than 70 mg/dL who are conscious and able to swallow should be given glucose tablets or sugary drink to raise blood glucose quickly. Participants who are seizing should be protected from injury by moving hard objects away and placing something soft under the head, but should not be restrained. Nothing should be placed in the mouth of a seizing individual. Participants experiencing severe allergic reactions should be positioned for comfort and to maintain airway patency while awaiting emergency medical services. If an epinephrine auto-injector is available and personnel are trained in its use, it should be administered according to protocol for anaphylaxis with airway compromise. All interventions must be within the scope of training of the personnel providing assistance.</p>
+
+<h3>D. Post-Emergency Procedures</h3>
+<p>Following any medical emergency, an incident report must be completed and submitted to the Physician Assistant and Executive Director within 24 hours. The incident report must include a detailed description of the event, participant identification information, vital signs and assessment findings, interventions provided by Health Matters Clinic personnel, time of emergency medical services activation, emergency medical services response time and actions, participant disposition, and names of all personnel involved. The Physician Assistant must review all emergency incidents to determine if any improvements in policies, procedures, training, or equipment are needed. Critical incidents may require root cause analysis to identify contributing factors and prevent recurrence. Family notification should be made when appropriate and with participant consent if the participant is able to provide consent. For emergencies occurring to minors or participants who cannot consent to family notification, reasonable efforts should be made to notify emergency contacts. Documentation of emergency notification efforts must be included in the incident report. All emergency incidents must be reviewed at regular quality assurance meetings.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION VII: ADVERSE EVENT AND INCIDENT REPORTING            -->
+<!-- ============================================================ -->
+
+<h2>VII. Adverse Event and Incident Reporting</h2>
+
+<h3>A. Definitions and Reporting Requirements</h3>
+<p>An adverse event is any untoward occurrence associated with provision of screening services including but not limited to medical emergencies, injuries occurring during screening, medication errors if medications are administered, equipment malfunctions resulting in incorrect results or participant harm, breaches of participant confidentiality, and complaints about quality of care or staff conduct. A near miss is an event that could have resulted in harm but did not, either by chance or through timely intervention. All adverse events and near misses must be reported regardless of severity. Serious adverse events including death, serious injury, or events requiring hospitalization must be reported immediately to the Physician Assistant and Executive Director. Less serious adverse events must be reported within 24 hours using the Adverse Event Report Form. Near misses should be reported to allow identification of system vulnerabilities before actual harm occurs.</p>
+
+<h3>B. Mandatory Reporting to External Authorities</h3>
+<p>California law requires healthcare providers and other designated mandated reporters to report suspected abuse or neglect to appropriate authorities. Under California Penal Code Section 11165.7, mandated reporters including healthcare providers must immediately report known or reasonably suspected child abuse or neglect to a child protective agency by telephone and must submit a written report within 36 hours. Reportable child abuse includes physical abuse, sexual abuse, emotional abuse, and neglect. Under Welfare and Institutions Code Section 15630, mandated reporters must report known or reasonably suspected abuse of elders age 65 and older or dependent adults age 18 to 64 with physical or mental limitations to Adult Protective Services or local law enforcement. Reportable elder and dependent adult abuse includes physical abuse, abandonment, isolation, financial abuse, and neglect. Failure to report when required is a misdemeanor punishable by fine and imprisonment. The identity of mandated reporters is confidential. Good faith reporting is protected from civil or criminal liability even if the report is ultimately determined to be unfounded.</p>
+
+<h3>C. Incident Investigation and Root Cause Analysis</h3>
+<p>All adverse events must be investigated to determine contributing factors and identify opportunities for improvement. The Physician Assistant is responsible for conducting or overseeing adverse event investigations. Investigation should begin as soon as possible after an event occurs while facts are fresh. The investigation should include interviews with personnel involved, review of relevant documentation, examination of equipment if equipment malfunction is suspected, and analysis of policies and procedures to determine if they were followed or if modifications are needed. Serious adverse events require formal root cause analysis using a structured methodology to identify not just immediate causes but underlying system factors that contributed to the event. Root cause analysis should identify contributing factors in areas such as communication failures, training gaps, equipment issues, environmental factors, and procedural deficiencies. Action plans must be developed to address identified causes and prevent recurrence. Implementation of corrective actions must be monitored and effectiveness must be evaluated.</p>
+
+<h3>D. Reporting to Liability Insurance Carrier</h3>
+<p>Events that may result in liability claims must be reported to the organization's liability insurance carrier in accordance with policy requirements. Potentially compensable events include any occurrence that results or may result in participant injury, allegations of negligence or malpractice, participant complaints alleging substandard care or poor outcomes, and any incident that may reasonably lead to a claim or lawsuit. Most insurance policies require prompt notice of such events, and failure to provide timely notice may jeopardize coverage. The Executive Director in consultation with the Physician Assistant is responsible for determining which events require insurance carrier notification. Insurance carrier notification should generally be made for any serious adverse event, any event in which a participant or family member expresses intent to pursue legal action, and any event in which legal action appears likely based on the severity of outcome or participant dissatisfaction. Personnel should not admit fault or make statements regarding organizational liability when communicating with participants or families following adverse events, as such statements may affect insurance coverage or legal defense.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION VIII: INFECTION PREVENTION AND CONTROL               -->
+<!-- ============================================================ -->
+
+<h2>VIII. Infection Prevention and Control</h2>
+
+<h3>A. Standard Precautions</h3>
+<p>Standard precautions must be observed for all participant encounters regardless of known or perceived infection status. Standard precautions are based on the principle that all blood and body fluids may contain infectious agents and include hand hygiene, use of personal protective equipment, respiratory hygiene and cough etiquette, safe injection practices, and safe handling of contaminated equipment and surfaces. These practices protect both personnel and participants from transmission of infectious diseases. All personnel must receive training in standard precautions prior to performing any clinical procedures and must demonstrate competency in infection control practices. Compliance with standard precautions must be monitored through direct observation during screening events. Violations of infection control procedures must be addressed immediately through re-education and, if necessary, removal of personnel from clinical duties until retraining and competency verification are completed.</p>
+
+<h3>B. Hand Hygiene</h3>
+<p>Hand hygiene is the single most important measure for preventing transmission of infectious organisms. Hands must be washed or sanitized before and after each participant contact, after contact with blood or body fluids, after removing gloves, before performing aseptic procedures, after touching contaminated surfaces or equipment, and after using the restroom or before eating. Hand hygiene may be performed using either handwashing with soap and water or alcohol-based hand sanitizer. Handwashing with soap and water is required when hands are visibly soiled and is preferred after caring for participants with known or suspected Clostridioides difficile or norovirus infection. When hands are not visibly soiled, alcohol-based hand sanitizer containing at least 60 percent alcohol is effective and convenient for hand hygiene at screening events. Adequate supplies of hand soap, paper towels, and alcohol-based hand sanitizer must be available at all screening events. Personnel must be observed performing hand hygiene appropriately and must be corrected if hand hygiene is omitted or performed inadequately.</p>
+
+<h3>C. Personal Protective Equipment</h3>
+<p>Personal protective equipment must be used to prevent contact with blood and body fluids. Disposable non-sterile gloves must be worn for all procedures involving potential contact with blood including capillary blood glucose testing, and for any contact with non-intact skin or mucous membranes. Gloves must be changed between participants and must not be reused or washed for reuse. Hands must be washed or sanitized after glove removal. Gloves must be removed promptly after completing the procedure and must not be worn while touching clean surfaces, equipment, or other participants. Face shields or masks and eye protection should be worn when splashing of blood or body fluids is anticipated, though this is uncommon in screening settings. Disposable gowns or aprons should be worn if clothing is likely to become contaminated. Adequate supplies of appropriately sized gloves must be available at all screening events in multiple sizes to accommodate different hand sizes.</p>
+
+<h3>D. Sharps Safety and Disposal</h3>
+<p>All sharps including lancets must be handled with extreme care to prevent percutaneous injuries. Single-use auto-retracting lancets that automatically retract the blade after use should be used for all capillary punctures. Conventional lancets without safety features must not be used. Used sharps must be disposed of immediately after use in FDA-cleared sharps disposal containers that are closable, puncture-resistant, and leak-proof. Sharps containers must be located within arm's reach of the location where sharps are used. Sharps must never be recapped, bent, or broken before disposal. Sharps containers must be placed in a stable location where they will not tip over and must be kept out of reach of children. Containers must be replaced when the fill line is reached or when the container is three-quarters full. Full sharps containers must be sealed and disposed of according to California Medical Waste Management Act requirements through a licensed medical waste hauler or using a mail-back sharps disposal system.</p>
+
+<h3>E. Bloodborne Pathogen Exposure Control</h3>
+<p>All personnel who may have occupational exposure to blood or other potentially infectious materials must receive training in bloodborne pathogen exposure prevention in accordance with Cal/OSHA Bloodborne Pathogens Standard, Title 8 California Code of Regulations Section 5193. Training must be provided before personnel perform procedures with exposure risk and must be repeated annually. An exposure incident is defined as a specific eye, mouth, other mucous membrane, non-intact skin, or percutaneous contact with blood or other potentially infectious materials that results from performance of duties. Common exposure incidents include needlestick injuries and splashes to eyes or mucous membranes. All exposure incidents must be reported immediately to the Physician Assistant regardless of perceived significance. Prompt reporting allows for timely initiation of post-exposure prophylaxis if indicated. Following exposure, the source individual should be tested for HIV and hepatitis B and C if consent can be obtained. The exposed individual should undergo baseline testing and should be evaluated for need for post-exposure prophylaxis and follow-up testing. All exposure incidents must be documented and investigated to identify causes and implement preventive measures.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION IX: QUALITY ASSURANCE AND PERFORMANCE IMPROVEMENT    -->
+<!-- ============================================================ -->
+
+<h2>IX. Quality Assurance and Performance Improvement</h2>
+
+<h3>A. Quality Assurance Program Structure</h3>
+<p>Health Matters Clinic maintains a quality assurance and performance improvement program to monitor and enhance the quality and safety of screening services. The Physician Assistant serves as the quality assurance program director and is responsible for oversight of all quality improvement activities. The quality assurance program includes ongoing monitoring of clinical processes and outcomes, systematic identification of opportunities for improvement, implementation of evidence-based interventions to improve quality and safety, and evaluation of effectiveness of improvement initiatives. Quality assurance activities are integrated into regular operational processes and are considered a core organizational function rather than an ancillary activity. All personnel are expected to participate in quality improvement activities and to report quality concerns or improvement ideas.</p>
+
+<h3>B. Performance Monitoring and Metrics</h3>
+<p>Key performance indicators are monitored on an ongoing basis to assess program quality and identify trends. Clinical quality metrics include screening volumes by type, percentage of participants with abnormal screening results requiring referral, documented Physician Assistant consultation for urgent findings, completion of incident reports for adverse events, and equipment quality control compliance rates. Process metrics include consent form completion rates, documentation completeness, and timeliness of documentation completion. Participant experience metrics include participant satisfaction when surveys are conducted and complaints or concerns received. Personnel metrics include training completion rates, competency verification documentation, and turnover of clinical volunteers. Data is compiled quarterly and reviewed by the Physician Assistant to identify areas meeting quality standards and areas requiring improvement attention.</p>
+
+<h3>C. Quality Improvement Initiatives</h3>
+<p>When quality monitoring identifies opportunities for improvement or when adverse events reveal system weaknesses, formal quality improvement initiatives are undertaken using structured improvement methodologies. The Plan-Do-Study-Act cycle is utilized for testing and implementing changes. The improvement process begins with clearly defining the problem or opportunity, analyzing root causes or contributing factors, and establishing measurable objectives for improvement. Interventions are designed based on evidence-based practices and best practices from similar organizations. Changes are implemented, typically initially on a small scale to allow testing and refinement. Data is collected to evaluate whether the intervention achieved desired outcomes. If successful, the intervention is standardized and spread throughout the organization. If unsuccessful, the intervention is modified or abandoned and alternative approaches are tested. All quality improvement initiatives are documented including problem statement, objectives, interventions implemented, results achieved, and sustainment plans.</p>
+
+<h3>D. External Benchmarking and Best Practices</h3>
+<p>Health Matters Clinic seeks to learn from other organizations providing similar services and to adopt evidence-based best practices. The Physician Assistant and other organizational leaders participate in professional networks, attend conferences, and review published literature to stay informed about advances in community health screening, mobile health services, and population health management. Performance metrics are compared when possible to published benchmarks or data from peer organizations to assess relative performance. Site visits to exemplary programs may be conducted to observe effective practices. Consultant expertise may be engaged to provide external perspective and recommendations for improvement. When credible evidence supports specific practices that could enhance quality or safety, consideration is given to adoption or adaptation of such practices for Health Matters Clinic operations.</p>
+
+<!-- ============================================================ -->
+<!-- SECTION X: PERSONNEL TRAINING AND COMPETENCY VERIFICATION    -->
+<!-- ============================================================ -->
+
+<h2>X. Personnel Training and Competency Verification</h2>
+
+<h3>A. Orientation and General Training Requirements</h3>
+<p>All personnel including employees, contractors, volunteers, and students must complete orientation before performing any duties. Orientation must include organizational mission, values, and culture, overview of screening services provided, introduction to Health Matters Clinic policies and procedures, review of confidentiality and privacy requirements, health and safety training including infection control and emergency procedures, and role-specific responsibilities and expectations. Documentation of orientation completion must be maintained in personnel files. Licensed personnel must provide copies of current licenses and professional liability insurance certificates if required. All personnel must sign acknowledgment that they have received, read, and understand applicable policies and procedures. Personnel must sign confidentiality agreements committing to protect participant privacy and maintain confidentiality of participant information and organizational proprietary information.</p>
+
+<h3>B. Clinical Skills Training and Competency Verification</h3>
+<p>Personnel who will perform clinical procedures must complete role-specific clinical skills training prior to independently performing such procedures. Training must include didactic instruction covering relevant anatomy and physiology, indications and contraindications for the procedure, step-by-step procedure instructions, infection control requirements, documentation requirements, and recognition of abnormal findings requiring escalation. Following didactic training, personnel must complete supervised practice, performing the procedure under direct observation while receiving coaching and feedback. Competency must be verified through return demonstration observed by the Physician Assistant or designated clinical supervisor using a standardized competency checklist. The evaluator must observe the personnel independently performing the complete procedure from start to finish including all preparation, performance, and post-procedure steps. Performance must meet all elements on the competency checklist to be considered competent. If performance is deficient in any area, additional training and practice must be provided and competency verification repeated. Competency verification must be documented with signatures of the evaluator and the personnel being verified, and documentation must be maintained in personnel files.</p>
+
+<h3>C. Continuing Education and Annual Competency Revalidation</h3>
+<p>Maintaining clinical competency requires ongoing practice and periodic retraining. Annual competency revalidation is required for all personnel performing clinical procedures. Revalidation may be accomplished through direct observation of procedure performance by the Physician Assistant or designated supervisor, or through written or computer-based testing if appropriate for the specific skill being validated. Revalidation verifies that personnel continue to perform procedures correctly and in accordance with current policies and procedures. Changes to procedures or updates to clinical protocols require training on the changes and revalidation of competency before personnel may perform procedures using the updated protocols. Extended absence from performing a particular procedure may require retraining and revalidation before resuming independent performance. Licensed personnel are responsible for maintaining their own professional licenses and meeting continuing education requirements mandated by their licensing boards. Licensed personnel must provide updated license verifications annually. Personnel may have privileges to perform specific procedures suspended or revoked if performance is consistently deficient, if serious procedural errors occur, or if the individual demonstrates unwillingness to follow procedures and accept feedback.</p>
+
+<h3>D. Supervision and Performance Feedback</h3>
+<p>All clinical activities must be appropriately supervised according to the supervision requirements for each role. The Physician Assistant provides overall clinical supervision and is immediately available during all screening events. Registered Nurses may provide direct supervision of Licensed Vocational Nurses, Medical Assistants, Community Health Workers, and volunteers performing clinical procedures. Direct supervision means the supervisor is physically present in the immediate area and immediately available to provide assistance, answer questions, and intervene if problems arise. For personnel who are learning new procedures or who have recently been deemed competent, closer supervision is appropriate with the supervisor directly observing more procedures. As personnel gain experience and consistently demonstrate competent performance, supervision may be less intensive but the supervisor must remain immediately available. Supervisors should provide ongoing performance feedback, both positive reinforcement for excellent performance and constructive corrective feedback when improvement is needed. Serious or repeated performance deficiencies must be documented and may result in removal from clinical duties, additional training requirements, or termination from the program if performance does not improve.</p>
+
+<!-- ============================================================ -->
+<!-- POLICY MANUAL AUTHORIZATION                                  -->
+<!-- ============================================================ -->
+
+<h2>Policy Manual Authorization</h2>
+
+<p>This Clinical Policies and Procedures Manual establishes official policies governing clinical operations of Health Matters Clinic mobile health screening programs. All personnel performing clinical duties must be familiar with applicable policies and must comply with established procedures. This manual is a living document subject to periodic review and revision to reflect changes in clinical practice standards, regulatory requirements, organizational structure, or operational needs. The manual must be reviewed at minimum annually by the Physician Assistant and Executive Director to ensure policies remain current and appropriate. Interim revisions may be made at any time to address emerging issues or incorporate improvements identified through quality assurance activities. Substantive policy changes require approval by both the Physician Assistant and Executive Director through signature on revision documentation. All personnel must be notified of policy changes and must receive training on new or revised procedures before implementation. This manual supersedes all previous policy documents and establishes the official standard of practice for Health Matters Clinic screening operations effective on the date of authorization below.</p>
+
+<div class="signature-block">
+
+  <p style="font-size: 14px; font-weight: 700; color: #333; margin-bottom: 24px;">Authorization Signatures</p>
+
+  <div class="signature-line">
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Physician Assistant Signature</div>
+    </div>
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Date</div>
+    </div>
+  </div>
+  <div class="signature-line">
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Printed Name</div>
+    </div>
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Title: Clinical Director</div>
+    </div>
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">California PA License Number</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 32px;"></div>
+
+  <div class="signature-line">
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Executive Director Signature</div>
+    </div>
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Date</div>
+    </div>
+  </div>
+  <div class="signature-line">
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Printed Name</div>
+    </div>
+    <div class="signature-field">
+      <div class="line"></div>
+      <div class="label">Title: Health Matters Clinic</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="final-note">
+  <p style="font-size: 12px; color: #666; margin-bottom: 0;">This manual must be reviewed and signed by both the Physician Assistant and Executive Director prior to implementation. The original signed document must be maintained in Health Matters Clinic administrative files. Copies must be available for reference by all clinical personnel. Questions regarding policy interpretation or implementation should be directed to the Physician Assistant or Executive Director.</p>
+</div>
 
 </body>
 </html>
