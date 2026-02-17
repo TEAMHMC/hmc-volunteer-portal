@@ -373,6 +373,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         tasks: [],
         achievements: [{ id: 'a-wel', title: 'Welcome to the Team!', icon: 'Heart', dateEarned: new Date().toISOString() }],
         roleAssessment: formData.roleAssessment,
+        aiRoleMatches: formData.aiRoleMatches || [],
         // Mark orientation videos as completed if watched during onboarding
         completedTrainingIds: [
           ...(formData.watchedIntro ? ['hmc_orientation'] : []),
@@ -1133,6 +1134,8 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         setExtractedSkills(result.extractedSkills || []);
         // Auto-select the top recommendation
         onChange('selectedRole', result.recommendations[0].roleName);
+        // Persist AI recommendations for admin review
+        onChange('aiRoleMatches', result.recommendations.map((r: any) => ({ role: r.roleName, match: r.matchPercentage, reasoning: r.reasoning })));
       } else {
         // AI returned empty recommendations - show message and let user select manually
         const errorMsg = result?.error || 'Unable to analyze resume. Please select a role manually.';

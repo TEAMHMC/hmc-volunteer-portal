@@ -553,6 +553,27 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                             )}
                           </div>
 
+                          {/* AI Role Matches */}
+                          {(selectedVolunteer as any).aiRoleMatches?.length > 0 && (
+                            <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
+                              <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Star size={10} /> AI Role Matches</p>
+                              <div className="space-y-2">
+                                {(selectedVolunteer as any).aiRoleMatches.map((m: any, i: number) => (
+                                  <div key={i} className={`p-3 rounded-3xl border ${m.role === selectedVolunteer.appliedRole ? 'bg-brand/5 border-brand/20' : 'bg-white border-zinc-100'}`}>
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm font-bold text-zinc-800 flex items-center gap-2">
+                                        {m.role}
+                                        {m.role === selectedVolunteer.appliedRole && <span className="px-2 py-0.5 bg-brand text-white rounded-full text-[9px] font-bold uppercase">Selected</span>}
+                                      </p>
+                                      <span className="text-xs font-bold text-brand">{m.match}% match</span>
+                                    </div>
+                                    {m.reasoning && <p className="text-xs text-zinc-500 mt-1">{m.reasoning}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Personal Info */}
                           <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><User size={10} /> Personal Information</p>
