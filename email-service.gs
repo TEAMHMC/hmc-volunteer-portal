@@ -453,28 +453,38 @@ function buildEmail(type, data) {
   // ─── 17. Event Registration Confirmation ───
   if (type === "event_registration_confirmation") {
     var evTitle = safeText(data.eventTitle || "a community event");
-    return {
-      subject: "You're signed up: " + evTitle,
-      html:
-        layoutStart("Registration Confirmed") +
-        greeting(name) +
-        bodyText("You're registered for the following event:") +
-        eventBox(
-          evTitle,
-          infoRow("Date", data.eventDate || "") +
-          infoRow("Location", data.eventLocation || "See event details")
-        ) +
-        bodyText("<strong>What to bring:</strong>") +
+    var evType = (data.eventType || "").toLowerCase();
+    var isTrng = (evType === "training" || evType === "workshop");
+    var bringSection = isTrng
+      ? bodyText("<strong>What you'll need:</strong>") +
+        bulletList([
+          "A computer or mobile device with internet access",
+          "A quiet space to focus",
+          "Something to take notes with"
+        ])
+      : bodyText("<strong>What to bring:</strong>") +
         bulletList([
           "Your HMC volunteer badge (if you have one)",
           "Comfortable closed-toe shoes",
           "Water bottle",
           "A positive attitude!"
-        ]) +
+        ]);
+    return {
+      subject: "You're signed up: " + evTitle,
+      html:
+        layoutStart(isTrng ? "Training Registration Confirmed" : "Registration Confirmed") +
+        greeting(name) +
+        bodyText("You're registered for the following " + (isTrng ? "training" : "event") + ":") +
+        eventBox(
+          evTitle,
+          infoRow("Date", data.eventDate || "") +
+          (isTrng ? "" : infoRow("Location", data.eventLocation || "See event details"))
+        ) +
+        bringSection +
         subtle("If you can no longer attend, please update your registration in the portal so another volunteer can take your spot.") +
         button("View My Schedule", CONFIG.WEBSITE_URL + "/missions") +
         layoutEnd(),
-      text: "You're registered for " + evTitle + " on " + (data.eventDate || "") + " at " + (data.eventLocation || "") + "."
+      text: "You're registered for " + evTitle + " on " + (data.eventDate || "") + (isTrng ? "" : " at " + (data.eventLocation || "")) + "."
     };
   }
 

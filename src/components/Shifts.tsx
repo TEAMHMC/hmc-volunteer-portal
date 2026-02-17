@@ -733,7 +733,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showEventDetail, setShowEventDetail] = useState<Opportunity | null>(null);
-  const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string; eventId: string; eventTitle: string; eventLocation: string } | null>(null);
+  const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string; eventId: string; eventTitle: string; eventLocation: string; eventType?: string } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Opportunity | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   
@@ -845,6 +845,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           eventLocation: opp?.serviceLocation || '',
           volunteerEmail: user.email || '',
           volunteerName: user.name || '',
+          eventType: opp?.type || '',
           status: regStatus.isPending ? 'pending_training' : 'confirmed',
         });
         // Update local state
@@ -892,7 +893,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
   const handleAssignVolunteer = async (volunteerId: string) => {
     if (!showStaffingModal) return;
-    const { role, eventId, eventDate, eventTitle, eventLocation } = showStaffingModal;
+    const { role, eventId, eventDate, eventTitle, eventLocation, eventType } = showStaffingModal;
 
     // Find the matching shift for this event + role
     const matchingShift = shifts.find(s => s.opportunityId === eventId && s.roleType === role);
@@ -906,6 +907,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
         eventTitle,
         eventDate,
         eventLocation,
+        eventType: eventType || '',
         volunteerEmail: volunteer?.email || '',
         volunteerName: volunteer?.name || '',
       });
@@ -1356,7 +1358,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                               <span className="font-bold">{q.role}</span>
                               <div className="flex items-center gap-2">
                                 <span className={`${actualFilled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{actualFilled} / {q.count} Filled</span>
-                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="text-xs font-bold bg-brand/10 text-brand px-2 py-1 rounded-full">Find Volunteer</button>}
+                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation, eventType: opp.type })} className="text-xs font-bold bg-brand/10 text-brand px-2 py-1 rounded-full">Find Volunteer</button>}
                               </div>
                             </div>
                             {assignedVols.length > 0 && (
@@ -1391,7 +1393,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                       }) : (
                         <div className="space-y-2">
                           <p className="text-xs text-zinc-400 italic">No staffing roles configured for this event.</p>
-                          <button onClick={() => setShowStaffingModal({ role: 'Volunteer', eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation })} className="flex items-center gap-2 text-xs font-bold bg-brand/10 text-brand px-3 py-2 rounded-full hover:bg-brand/20 transition-colors">
+                          <button onClick={() => setShowStaffingModal({ role: 'Volunteer', eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation, eventType: opp.type })} className="flex items-center gap-2 text-xs font-bold bg-brand/10 text-brand px-3 py-2 rounded-full hover:bg-brand/20 transition-colors">
                             <UserPlus size={14} /> Assign / Invite Volunteer
                           </button>
                         </div>

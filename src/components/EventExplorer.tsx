@@ -244,6 +244,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           eventTitle: opportunity?.title,
           eventDate: opportunity?.date,
           eventLocation: opportunity?.serviceLocation,
+          eventType: opportunity?.type || '',
           volunteerEmail: user.email,
           volunteerName: user.name
         });

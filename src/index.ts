@@ -958,28 +958,38 @@ const EmailTemplates = {
   }),
 
   // Event Registration Confirmation
-  event_registration_confirmation: (data: EmailTemplateData) => ({
-    subject: `You're Signed Up: ${data.eventTitle}`,
-    html: `${emailHeader('Event Registration Confirmed')}
-      <p>Hi ${data.volunteerName},</p>
-      <p>You're registered for the following event:</p>
-      <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
-        <h3 style="margin: 0 0 12px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventTitle}</h3>
-        <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
-        <p style="margin: 0;"><strong>Location:</strong> ${data.eventLocation}</p>
-      </div>
-      <p><strong>What to bring:</strong></p>
+  event_registration_confirmation: (data: EmailTemplateData) => {
+    const isTraining = ['training', 'workshop'].includes((data.eventType || '').toLowerCase());
+    const whatToBring = isTraining
+      ? `<p><strong>What you'll need:</strong></p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">A computer or mobile device with internet access</li>
+        <li style="margin: 8px 0;">A quiet space to focus</li>
+        <li style="margin: 8px 0;">Something to take notes with</li>
+      </ul>`
+      : `<p><strong>What to bring:</strong></p>
       <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
         <li style="margin: 8px 0;">Your HMC volunteer badge (if you have one)</li>
         <li style="margin: 8px 0;">Comfortable closed-toe shoes</li>
         <li style="margin: 8px 0;">Water bottle</li>
         <li style="margin: 8px 0;">A positive attitude!</li>
-      </ul>
+      </ul>`;
+    return {
+    subject: `You're Signed Up: ${data.eventTitle}`,
+    html: `${emailHeader(isTraining ? 'Training Registration Confirmed' : 'Event Registration Confirmed')}
+      <p>Hi ${data.volunteerName},</p>
+      <p>You're registered for the following ${isTraining ? 'training' : 'event'}:</p>
+      <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <h3 style="margin: 0 0 12px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventTitle}</h3>
+        <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        ${isTraining ? '' : `<p style="margin: 0;"><strong>Location:</strong> ${data.eventLocation}</p>`}
+      </div>
+      ${whatToBring}
       <p style="color: #6b7280;">If you can no longer attend, please update your registration in the portal so another volunteer can take your spot.</p>
       ${actionButton('View My Schedule', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, You're registered for ${data.eventTitle} on ${data.eventDate} at ${data.eventLocation}. See you there!`
-  }),
+    text: `Hi ${data.volunteerName}, You're registered for ${data.eventTitle} on ${data.eventDate}${isTraining ? '' : ` at ${data.eventLocation}`}. See you there!`
+  }; },
 
   // Coordinator Registration Alert
   coordinator_registration_alert: (data: EmailTemplateData) => ({
@@ -1124,7 +1134,21 @@ const EmailTemplates = {
   // ── Event Reminder Cadence Templates ──
 
   // Stage 2: 7-Day Reminder
-  event_reminder_7day: (data: EmailTemplateData) => ({
+  event_reminder_7day: (data: EmailTemplateData) => {
+    const isTraining = ['training', 'workshop'].includes((data.eventType || '').toLowerCase());
+    const whatToBring = isTraining
+      ? `<p><strong>What you'll need:</strong></p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">A computer or mobile device with internet access</li>
+        <li style="margin: 8px 0;">A quiet space to focus</li>
+      </ul>`
+      : `<p><strong>What to bring:</strong></p>
+      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
+        <li style="margin: 8px 0;">Your HMC volunteer badge (if you have one)</li>
+        <li style="margin: 8px 0;">Comfortable closed-toe shoes</li>
+        <li style="margin: 8px 0;">Water bottle</li>
+      </ul>`;
+    return {
     subject: `One Week Until ${data.eventName}`,
     html: `${emailHeader('One Week to Go!')}
       <p>Hi ${data.volunteerName},</p>
@@ -1133,18 +1157,13 @@ const EmailTemplates = {
         <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px; text-transform: uppercase;">Coming Up</p>
         <p style="margin: 0 0 16px 0; font-size: 28px; font-weight: bold;">${data.eventDate}</p>
         <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${data.eventName}</p>
-        <p style="margin: 0; opacity: 0.9;">${data.location || 'TBD'}</p>
+        ${isTraining ? '' : `<p style="margin: 0; opacity: 0.9;">${data.location || 'TBD'}</p>`}
       </div>
-      <p><strong>What to bring:</strong></p>
-      <ul style="margin: 16px 0; padding-left: 20px; color: #4b5563;">
-        <li style="margin: 8px 0;">Your HMC volunteer badge (if you have one)</li>
-        <li style="margin: 8px 0;">Comfortable closed-toe shoes</li>
-        <li style="margin: 8px 0;">Water bottle</li>
-      </ul>
+      ${whatToBring}
       ${actionButton('View Event Details', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, ${data.eventName} is one week away on ${data.eventDate} at ${data.location || 'TBD'}. See you there!`
-  }),
+    text: `Hi ${data.volunteerName}, ${data.eventName} is one week away on ${data.eventDate}${isTraining ? '' : ` at ${data.location || 'TBD'}`}. See you there!`
+  }; },
 
   // Stage 3: 72-Hour Reminder
   event_reminder_72h: (data: EmailTemplateData) => ({
@@ -3317,7 +3336,7 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
 // --- VOLUNTEER MATCH FOR PUBLIC RSVPS ---
 const processVolunteerMatch = async (
   rsvpId: string,
-  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string }
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string; eventType?: string }
 ): Promise<void> => {
   try {
     const { eventId, eventTitle, eventDate, name, email, phone } = rsvpData;
@@ -3443,7 +3462,7 @@ const handleVolunteerMatch = async (
   volunteerId: string,
   volData: FirebaseFirestore.DocumentData,
   matchType: 'email' | 'phone',
-  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string }
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; eventType?: string }
 ): Promise<void> => {
   const isTrained = volData.status === 'active' && (volData.onboardingProgress >= 100 || volData.coreVolunteerStatus === true);
 
@@ -3476,7 +3495,8 @@ const handleVolunteerMatch = async (
         volunteerName,
         eventTitle: rsvpData.eventTitle,
         eventDate: formatEventDate(rsvpData.eventDate),
-        eventLocation: 'See event details'
+        eventLocation: 'See event details',
+        eventType: rsvpData.eventType || '',
       });
     }
 
@@ -3582,13 +3602,15 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
         }
 
         // Fire-and-forget: process volunteer matching asynchronously
+        const oppType = eventDoc.exists ? (eventDoc.data() as any)?.type || '' : '';
         processVolunteerMatch(rsvpRef.id, {
             eventId,
             eventTitle: eventTitle || '',
             eventDate: eventDate || '',
             name,
             email,
-            phone: phone || ''
+            phone: phone || '',
+            eventType: oppType,
         }).catch(err => console.error(`[PUBLIC RSVP] Background match failed for ${rsvpRef.id}:`, err));
 
         res.json({
@@ -5087,7 +5109,7 @@ app.post('/api/events/unregister', verifyToken, async (req: Request, res: Respon
 // Event registration endpoint - registers volunteer for event and sends confirmation email
 app.post('/api/events/register', verifyToken, async (req: Request, res: Response) => {
   try {
-    const { volunteerId, eventId, shiftId, eventTitle, eventDate, eventLocation, volunteerEmail, volunteerName } = req.body;
+    const { volunteerId, eventId, shiftId, eventTitle, eventDate, eventLocation, volunteerEmail, volunteerName, eventType } = req.body;
 
     // Auth: caller must be the volunteer themselves or an admin/coordinator
     const callerUid = (req as any).user?.uid;
@@ -5220,7 +5242,8 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           volunteerName: volunteerName || 'Volunteer',
           eventTitle: eventTitle || 'Community Event',
           eventDate: formatEventDate(eventDate || 'TBD'),
-          eventLocation: eventLocation || 'TBD'
+          eventLocation: eventLocation || 'TBD',
+          eventType: eventType || '',
         });
         // Log Stage 1 in reminder_log to prevent duplicate confirmation sends
         try { await logReminderSent(volunteerId, eventId, 1); } catch (e) { console.error('[EVENTS] Failed to log reminder sent:', e); }
@@ -6410,6 +6433,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
                 eventDate: eventDate,
                 eventTime: time,
                 location: location,
+                eventType: opp.type || opp.eventType || '',
               });
               result.sent++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
             } else { result.skipped++; volDetails.push({ volunteerId: volDoc.id, status: 'skipped', timestamp: new Date().toISOString() }); }
