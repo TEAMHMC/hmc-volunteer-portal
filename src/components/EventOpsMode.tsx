@@ -259,6 +259,11 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         .map(id => SERVICE_OFFERINGS.find(s => s.id === id))
         .filter(Boolean) as typeof SERVICE_OFFERINGS;
 
+    // Derive clinical lead requirement from serviceOfferingIds if not explicitly set
+    const hasClinicalLead = opportunity.requiresClinicalLead ?? (opportunity.serviceOfferingIds || []).some(id =>
+        ['so-screening', 'so-vaccine', 'so-mental-health'].includes(id)
+    );
+
     const formatTime = (iso: string) => {
         if (!iso) return '';
         try {
@@ -305,8 +310,8 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                     <p className="text-sm font-bold text-zinc-400 mt-1">Services</p>
                 </div>
                 <div className="p-8 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-3xl border border-amber-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
-                    <Shield size={20} className={`mx-auto mb-2 ${opportunity.requiresClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
-                    <p className="text-3xl font-black text-zinc-900">{opportunity.requiresClinicalLead ? 'Yes' : 'No'}</p>
+                    <Shield size={20} className={`mx-auto mb-2 ${hasClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
+                    <p className="text-3xl font-black text-zinc-900">{hasClinicalLead ? 'Yes' : 'No'}</p>
                     <p className="text-sm font-bold text-zinc-400 mt-1">Clinical Lead</p>
                 </div>
             </div>

@@ -6,7 +6,7 @@ import { apiService } from '../services/apiService';
 import {
   Search, MoreVertical, ShieldCheck,
   X, Award, Mail, Phone, FileCheck, Fingerprint, Star,
-  Filter, UserPlus, ChevronRight, ChevronDown, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck, User, MapPin, AlertCircle, Clock, Briefcase, FileText, Calendar, Globe
+  Filter, UserPlus, ChevronRight, ChevronDown, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck, User, MapPin, AlertCircle, Clock, Briefcase, FileText, Calendar, Globe, Pencil, Save
 } from 'lucide-react';
 import { GOVERNANCE_ROLES } from '../constants';
 import { toastService } from '../services/toastService';
@@ -57,6 +57,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
   const [complianceData, setComplianceData] = useState<any[]>([]);
   const [complianceLoading, setComplianceLoading] = useState(false);
   const [showFullApplication, setShowFullApplication] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState<Record<string, any>>({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const applicantsCount = volunteers.filter(v => v.applicationStatus === 'pendingReview').length;
 
@@ -111,7 +114,80 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         handleUpdateVolunteer(updatedVolunteer);
     }
   };
-  
+
+  const handleStartEditProfile = () => {
+    if (!selectedVolunteer) return;
+    setEditProfileData({
+      legalFirstName: selectedVolunteer.legalFirstName || '',
+      legalLastName: selectedVolunteer.legalLastName || '',
+      preferredFirstName: selectedVolunteer.preferredFirstName || '',
+      preferredLastName: selectedVolunteer.preferredLastName || '',
+      phone: selectedVolunteer.phone || '',
+      address: selectedVolunteer.address || '',
+      city: selectedVolunteer.city || '',
+      state: selectedVolunteer.state || '',
+      zipCode: selectedVolunteer.zipCode || '',
+      dob: selectedVolunteer.dob || '',
+      gender: selectedVolunteer.gender || '',
+      tshirtSize: selectedVolunteer.tshirtSize || '',
+      eContactName: selectedVolunteer.emergencyContact?.name || '',
+      eContactRelationship: selectedVolunteer.emergencyContact?.relationship || '',
+      eContactCellPhone: selectedVolunteer.emergencyContact?.cellPhone || '',
+      eContactEmail: selectedVolunteer.emergencyContact?.email || '',
+      isGroupVolunteer: selectedVolunteer.isGroupVolunteer || false,
+      groupType: selectedVolunteer.groupType || '',
+      groupName: selectedVolunteer.groupName || '',
+      groupSize: selectedVolunteer.groupSize || '',
+      groupContactEmail: selectedVolunteer.groupContactEmail || '',
+      appliedRole: selectedVolunteer.appliedRole || '',
+    });
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!selectedVolunteer) return;
+    setIsSavingProfile(true);
+    try {
+      const name = `${editProfileData.preferredFirstName || editProfileData.legalFirstName} ${editProfileData.preferredLastName || editProfileData.legalLastName}`.trim();
+      const updatedVolunteer: Volunteer = {
+        ...selectedVolunteer,
+        legalFirstName: editProfileData.legalFirstName,
+        legalLastName: editProfileData.legalLastName,
+        preferredFirstName: editProfileData.preferredFirstName,
+        preferredLastName: editProfileData.preferredLastName,
+        name: name || selectedVolunteer.name,
+        phone: editProfileData.phone,
+        address: editProfileData.address,
+        city: editProfileData.city,
+        state: editProfileData.state,
+        zipCode: editProfileData.zipCode,
+        dob: editProfileData.dob,
+        gender: editProfileData.gender,
+        tshirtSize: editProfileData.tshirtSize,
+        emergencyContact: {
+          name: editProfileData.eContactName,
+          relationship: editProfileData.eContactRelationship,
+          cellPhone: editProfileData.eContactCellPhone,
+          email: editProfileData.eContactEmail,
+        },
+        isGroupVolunteer: editProfileData.isGroupVolunteer,
+        groupType: editProfileData.groupType,
+        groupName: editProfileData.groupName,
+        groupSize: editProfileData.groupSize ? Number(editProfileData.groupSize) : undefined,
+        groupContactEmail: editProfileData.groupContactEmail,
+        appliedRole: editProfileData.appliedRole,
+      };
+      await handleUpdateVolunteer(updatedVolunteer);
+      setIsEditingProfile(false);
+      toastService.success('Profile updated successfully.');
+    } catch {
+      toastService.error('Failed to update profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+
   const handleReview = async (action: 'approve' | 'reject', notes: string) => {
     if (!selectedVolunteer) return;
     setIsReviewing(true);
@@ -444,12 +520,174 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                     </div>
                  </div>
                  <div className="flex items-center gap-2">
+                   {currentUser.isAdmin && (
+                     <button onClick={handleStartEditProfile} className="p-4 bg-brand/10 rounded-full text-brand hover:bg-brand/20 transition-colors" title="Edit profile"><Pencil size={20} /></button>
+                   )}
                    {currentUser.isAdmin && selectedVolunteer.id !== currentUser.id && (
                      <button onClick={() => setShowDeleteConfirm(true)} className="p-4 bg-rose-50 rounded-full text-rose-300 hover:text-rose-600 transition-colors" title="Delete volunteer"><Trash2 size={20} /></button>
                    )}
-                   <button onClick={() => setSelectedVolunteer(null)} className="p-4 bg-zinc-50 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24} /></button>
+                   <button onClick={() => { setSelectedVolunteer(null); setIsEditingProfile(false); }} className="p-4 bg-zinc-50 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24} /></button>
                  </div>
               </header>
+              {isEditingProfile ? (
+                <main className="p-8 overflow-y-auto space-y-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-black text-zinc-900">Edit Profile</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => setIsEditingProfile(false)} className="px-4 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-700 border border-zinc-200 rounded-full">Cancel</button>
+                      <button onClick={handleSaveProfile} disabled={isSavingProfile} className="px-4 py-2 text-sm font-bold text-white bg-brand border border-black rounded-full shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2">
+                        {isSavingProfile ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Changes
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Personal Info */}
+                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Personal Information</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Legal First Name</label>
+                        <input value={editProfileData.legalFirstName} onChange={e => setEditProfileData(p => ({ ...p, legalFirstName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Legal Last Name</label>
+                        <input value={editProfileData.legalLastName} onChange={e => setEditProfileData(p => ({ ...p, legalLastName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Preferred First Name</label>
+                        <input value={editProfileData.preferredFirstName} onChange={e => setEditProfileData(p => ({ ...p, preferredFirstName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Preferred Last Name</label>
+                        <input value={editProfileData.preferredLastName} onChange={e => setEditProfileData(p => ({ ...p, preferredLastName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Date of Birth</label>
+                        <input type="date" value={editProfileData.dob} onChange={e => setEditProfileData(p => ({ ...p, dob: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Gender</label>
+                        <select value={editProfileData.gender} onChange={e => setEditProfileData(p => ({ ...p, gender: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30">
+                          <option value="">Select...</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Non-binary">Non-binary</option>
+                          <option value="Prefer not to say">Prefer not to say</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">T-Shirt Size</label>
+                        <select value={editProfileData.tshirtSize} onChange={e => setEditProfileData(p => ({ ...p, tshirtSize: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30">
+                          <option value="">Select...</option>
+                          <option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="2XL">2XL</option><option value="3XL">3XL</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Applied Role</label>
+                        <select value={editProfileData.appliedRole} onChange={e => setEditProfileData(p => ({ ...p, appliedRole: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30">
+                          <option value="">Select...</option>
+                          {APP_CONFIG.HMC_ROLES.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Contact Information</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Phone</label>
+                        <input value={editProfileData.phone} onChange={e => setEditProfileData(p => ({ ...p, phone: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Address</label>
+                        <input value={editProfileData.address} onChange={e => setEditProfileData(p => ({ ...p, address: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">City</label>
+                        <input value={editProfileData.city} onChange={e => setEditProfileData(p => ({ ...p, city: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">State</label>
+                          <input value={editProfileData.state} onChange={e => setEditProfileData(p => ({ ...p, state: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Zip</label>
+                          <input value={editProfileData.zipCode} onChange={e => setEditProfileData(p => ({ ...p, zipCode: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Emergency Contact */}
+                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Emergency Contact</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Name</label>
+                        <input value={editProfileData.eContactName} onChange={e => setEditProfileData(p => ({ ...p, eContactName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Relationship</label>
+                        <input value={editProfileData.eContactRelationship} onChange={e => setEditProfileData(p => ({ ...p, eContactRelationship: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Phone</label>
+                        <input value={editProfileData.eContactCellPhone} onChange={e => setEditProfileData(p => ({ ...p, eContactCellPhone: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Email</label>
+                        <input value={editProfileData.eContactEmail} onChange={e => setEditProfileData(p => ({ ...p, eContactEmail: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Group Volunteer */}
+                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Group / Organization Affiliation</p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Group Volunteer</label>
+                      <button
+                        onClick={() => setEditProfileData(p => ({ ...p, isGroupVolunteer: !p.isGroupVolunteer }))}
+                        className={`w-10 h-6 rounded-full transition-colors ${editProfileData.isGroupVolunteer ? 'bg-brand' : 'bg-zinc-200'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${editProfileData.isGroupVolunteer ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                      <span className="text-sm font-bold text-zinc-600">{editProfileData.isGroupVolunteer ? 'Yes' : 'No'}</span>
+                    </div>
+                    {editProfileData.isGroupVolunteer && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Group Type</label>
+                          <select value={editProfileData.groupType} onChange={e => setEditProfileData(p => ({ ...p, groupType: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30">
+                            <option value="">Select...</option>
+                            <option value="Student Organization">Student Organization</option>
+                            <option value="Faith-Based Group">Faith-Based Group</option>
+                            <option value="Corporate Team">Corporate Team</option>
+                            <option value="Community Group">Community Group</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Organization Name</label>
+                          <input value={editProfileData.groupName} onChange={e => setEditProfileData(p => ({ ...p, groupName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Group Size</label>
+                          <input value={editProfileData.groupSize} onChange={e => setEditProfileData(p => ({ ...p, groupSize: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Group Contact Email</label>
+                          <input value={editProfileData.groupContactEmail} onChange={e => setEditProfileData(p => ({ ...p, groupContactEmail: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </main>
+              ) : (
               <main className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto">
                  <div className="space-y-8">
                     <div className="space-y-2">
@@ -928,6 +1166,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                  </div>
                  {selectedVolunteer.applicationStatus === 'pendingReview' && <ApplicationReviewPanel volunteer={selectedVolunteer} onReview={handleReview} isReviewing={isReviewing} />}
               </main>
+              )}
            </div>
         </div>
       )}
