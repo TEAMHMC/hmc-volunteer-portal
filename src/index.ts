@@ -2348,39 +2348,16 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
              // Initialize gamification profile
              await GamificationService.getProfile(userId);
 
-             // Send welcome email
-             await EmailService.send('welcome_volunteer', {
-               toEmail: googleUser.email,
-               volunteerName: googleUser.name || 'Volunteer',
-               appliedRole: 'HMC Champion',
-             });
-
-             // Notify ALL admins about new Google sign-up
-             for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
-               try {
-                 await EmailService.send('admin_new_applicant', {
-                   toEmail: adminEmail,
-                   volunteerName: googleUser.name || 'New Applicant',
-                   volunteerEmail: googleUser.email,
-                   appliedRole: 'HMC Champion',
-                   applicationId: userId.substring(0, 12).toUpperCase(),
-                 });
-               } catch (adminEmailErr) {
-                 console.error(`[GOOGLE-AUTH] Failed to send admin notification to ${maskEmail(adminEmail)}:`, adminEmailErr);
-               }
-             }
-             // In-app notification fallback
+             // Send welcome email (admin notifications deferred until application completion in PUT /api/volunteer)
              try {
-               await db.collection('admin_notifications').add({
-                 type: 'new_application',
-                 volunteerName: googleUser.name || 'New Applicant',
-                 volunteerEmail: googleUser.email,
-                 volunteerId: userId,
+               await EmailService.send('welcome_volunteer', {
+                 toEmail: googleUser.email,
+                 volunteerName: googleUser.name || 'Volunteer',
                  appliedRole: 'HMC Champion',
-                 status: 'unread',
-                 createdAt: new Date().toISOString(),
                });
-             } catch (notifErr) { console.error('[GOOGLE-AUTH] Failed to create in-app notification:', notifErr); }
+             } catch (welcomeErr) {
+               console.error(`[GOOGLE-AUTH] Failed to send welcome email:`, welcomeErr);
+             }
 
              // Process referral if provided
              if (referralCode) {
@@ -3739,12 +3716,33 @@ ${eventDate ? `<p class="event-date">${eventDate}</p>` : ''}
 <input type="email" id="emailInput" placeholder="Enter your email" required autocomplete="email" autocapitalize="off">
 <button type="submit" class="btn" id="submitBtn">Check In</button>
 </form>
+<form id="walkinForm" class="hidden">
+<p style="color:#666;font-size:14px;margin-bottom:16px;font-weight:500">No registration found. Check in as a walk-in:</p>
+<input type="text" id="walkinName" placeholder="Your full name" required autocomplete="name" style="width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none;margin-bottom:12px">
+<input type="email" id="walkinEmail" placeholder="Your email" required autocomplete="email" autocapitalize="off" style="width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none">
+<button type="submit" class="btn">Check In as Walk-In</button>
+</form>
 <div id="loading" class="hidden" style="margin-top:20px"><div class="spinner"></div><span style="color:#666;font-size:14px">Checking in...</span></div>
 <div id="message" class="msg hidden"></div>
 </div>
 <p class="footer">HEALTH MATTERS CLINIC</p>
 <script>
-var form=document.getElementById('checkinForm'),email=document.getElementById('emailInput'),btn=document.getElementById('submitBtn'),loading=document.getElementById('loading'),msg=document.getElementById('message');
+var form=document.getElementById('checkinForm'),email=document.getElementById('emailInput'),loading=document.getElementById('loading'),msg=document.getElementById('message'),walkinForm=document.getElementById('walkinForm'),walkinName=document.getElementById('walkinName'),walkinEmail=document.getElementById('walkinEmail');
+function showResult(res){
+loading.classList.add('hidden');
+msg.classList.remove('hidden');
+if(res.ok&&res.data.success){
+msg.className='msg success';
+msg.innerHTML='<div class="check-icon">\\u2705</div><strong>You\\u2019re Checked In!</strong><br>Welcome, '+(res.data.name||'')+'<br><small style="color:#233dff">'+(res.data.eventTitle||'')+'</small>';
+}else if(res.data.code==='already_checked_in'){
+msg.className='msg already';
+msg.innerHTML='<div class="check-icon">\\u2714\\uFE0F</div><strong>Already Checked In</strong><br>You\\u2019re all set!';
+}else{
+msg.className='msg error';
+msg.innerHTML='<strong>Something went wrong</strong><br>Please try again.';
+form.classList.remove('hidden');
+}
+}
 form.addEventListener('submit',function(e){
 e.preventDefault();
 var val=email.value.trim();
@@ -3755,22 +3753,12 @@ msg.classList.add('hidden');
 fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',email:val})})
 .then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,data:d}})})
 .then(function(res){
+if(res.data.code==='no_rsvp'){
 loading.classList.add('hidden');
-msg.classList.remove('hidden');
-if(res.ok&&res.data.success){
-msg.className='msg success';
-msg.innerHTML='<div class="check-icon">\\u2705</div><strong>You\\u2019re Checked In!</strong><br>Welcome, '+(res.data.name||'')+'<br><small style="color:#233dff">'+(res.data.eventTitle||'')+'</small>';
-}else if(res.data.code==='already_checked_in'){
-msg.className='msg already';
-msg.innerHTML='<div class="check-icon">\\u2714\\uFE0F</div><strong>Already Checked In</strong><br>You\\u2019re all set!';
-}else if(res.data.code==='no_rsvp'){
-msg.className='msg error';
-msg.innerHTML='<strong>No RSVP Found</strong><br>We couldn\\u2019t find a registration for this email.<br><small>Please check your email or register at the event.</small>';
-form.classList.remove('hidden');
+walkinEmail.value=val;
+walkinForm.classList.remove('hidden');
 }else{
-msg.className='msg error';
-msg.innerHTML='<strong>Something went wrong</strong><br>Please try again.';
-form.classList.remove('hidden');
+showResult(res);
 }
 }).catch(function(){
 loading.classList.add('hidden');
@@ -3778,6 +3766,24 @@ msg.classList.remove('hidden');
 msg.className='msg error';
 msg.innerHTML='<strong>Connection error</strong><br>Please check your internet and try again.';
 form.classList.remove('hidden');
+});
+});
+walkinForm.addEventListener('submit',function(e){
+e.preventDefault();
+var name=walkinName.value.trim(),em=walkinEmail.value.trim();
+if(!name||!em)return;
+walkinForm.classList.add('hidden');
+loading.classList.remove('hidden');
+msg.classList.add('hidden');
+fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',email:em,name:name,walkIn:true})})
+.then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,data:d}})})
+.then(function(res){showResult(res);})
+.catch(function(){
+loading.classList.add('hidden');
+msg.classList.remove('hidden');
+msg.className='msg error';
+msg.innerHTML='<strong>Connection error</strong><br>Please check your internet and try again.';
+walkinForm.classList.remove('hidden');
 });
 });
 </script>
@@ -3794,7 +3800,7 @@ form.classList.remove('hidden');
 // POST /api/public/event-checkin-submit - Email-based check-in from QR code page
 app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: Request, res: Response) => {
     try {
-        const { eventId, email } = req.body;
+        const { eventId, email, name, walkIn } = req.body;
 
         if (!eventId || !email) {
             return res.status(400).json({ error: 'eventId and email are required' });
@@ -3824,7 +3830,42 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
             }
         }
 
+        // No RSVP found — handle walk-in or return error
         if (rsvpSnapshot.empty) {
+            if (walkIn && name) {
+                // Create a walk-in RSVP and check them in immediately
+                const eventDoc = await db.collection('opportunities').doc(eventId).get();
+                const eventData = eventDoc.exists ? eventDoc.data() : null;
+                const checkedInAt = new Date().toISOString();
+                const walkinRsvp = {
+                    eventId,
+                    email: normalizedEmail,
+                    name: String(name).trim(),
+                    guests: 0,
+                    rsvpDate: checkedInAt,
+                    checkedIn: true,
+                    checkedInAt,
+                    checkedInMethod: 'qr-walkin',
+                    isWalkIn: true,
+                    eventTitle: eventData?.title || '',
+                    eventDate: eventData?.date || '',
+                };
+                await db.collection('public_rsvps').add(walkinRsvp);
+                // Increment event check-in count
+                if (eventDoc.exists) {
+                    await db.collection('opportunities').doc(eventId).update({
+                        checkinCount: admin.firestore.FieldValue.increment(1)
+                    });
+                }
+                console.log(`[QR CHECKIN] Walk-in checked in for event ${eventId}: ${String(name).trim()} (${normalizedEmail})`);
+                return res.json({
+                    success: true,
+                    name: String(name).trim(),
+                    eventTitle: eventData?.title || '',
+                    checkedInAt,
+                    walkIn: true,
+                });
+            }
             return res.status(404).json({ error: 'No RSVP found for this email', code: 'no_rsvp' });
         }
 
@@ -4289,17 +4330,84 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;
         const updates = req.body;
-        // SECURITY: Whitelist fields volunteers can update on their own profile
-        const { isAdmin, compliance, points, hoursContributed, status,
-                applicationStatus, coreVolunteerStatus, eventEligibility,
-                volunteerRole, role, appliedRole, appliedRoleStatus,
-                ...safeUpdates } = updates;
-        // Encrypt SSN if being updated
-        if (safeUpdates.ssn) safeUpdates.ssn = encryptSSN(safeUpdates.ssn);
-        // Ensure they can only update their own doc
         const docId = user.uid;
-        await db.collection('volunteers').doc(docId).set(safeUpdates, { merge: true });
+
+        // Check if this is an onboarding completion (new user finishing their application)
+        const existingDoc = await db.collection('volunteers').doc(docId).get();
+        const isOnboardingCompletion = existingDoc.exists && existingDoc.data()?.isNewUser === true;
+
+        let finalUpdates: any;
+        if (isOnboardingCompletion) {
+            // Allow all onboarding fields through — only strip isAdmin for safety
+            const { isAdmin, ...onboardingUpdates } = updates;
+            finalUpdates = onboardingUpdates;
+        } else {
+            // SECURITY: Whitelist fields volunteers can update on their own profile
+            const { isAdmin, compliance, points, hoursContributed, status,
+                    applicationStatus, coreVolunteerStatus, eventEligibility,
+                    volunteerRole, role, appliedRole, appliedRoleStatus,
+                    ...safeUpdates } = updates;
+            finalUpdates = safeUpdates;
+        }
+
+        // Encrypt SSN if being updated
+        if (finalUpdates.ssn) finalUpdates.ssn = encryptSSN(finalUpdates.ssn);
+        // Ensure they can only update their own doc
+        await db.collection('volunteers').doc(docId).set(finalUpdates, { merge: true });
         const updated = (await db.collection('volunteers').doc(docId).get()).data();
+
+        // Send admin notifications when a pre-auth user completes their application
+        if (isOnboardingCompletion) {
+            const volName = updates.name || `${updates.legalFirstName || ''} ${updates.legalLastName || ''}`.trim() || 'New Applicant';
+            const volEmail = updates.email || user.profile?.email || '';
+            const volAppliedRole = updates.appliedRole || 'HMC Champion';
+
+            // Send application confirmation email to the applicant
+            try {
+                await EmailService.send('application_received', {
+                    toEmail: volEmail,
+                    volunteerName: volName,
+                    appliedRole: volAppliedRole,
+                    applicationId: docId.substring(0, 12).toUpperCase(),
+                });
+            } catch (emailErr) {
+                console.error('[ONBOARDING] Failed to send application confirmation email:', emailErr);
+            }
+
+            // Notify ALL admins
+            for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
+                try {
+                    await EmailService.send('admin_new_applicant', {
+                        toEmail: adminEmail,
+                        volunteerName: volName,
+                        volunteerEmail: volEmail,
+                        appliedRole: volAppliedRole,
+                        applicationId: docId.substring(0, 12).toUpperCase(),
+                    });
+                    console.log(`[ONBOARDING] Sent admin notification to ${maskEmail(adminEmail)} for completed application: ${maskEmail(volEmail)}`);
+                } catch (adminEmailErr) {
+                    console.error(`[ONBOARDING] Failed to send admin notification to ${maskEmail(adminEmail)}:`, adminEmailErr);
+                }
+            }
+
+            // In-app notification
+            try {
+                await db.collection('admin_notifications').add({
+                    type: 'new_application',
+                    volunteerName: volName,
+                    volunteerEmail: volEmail,
+                    volunteerId: docId,
+                    appliedRole: volAppliedRole,
+                    status: 'unread',
+                    createdAt: new Date().toISOString(),
+                });
+            } catch (notifErr) {
+                console.error('[ONBOARDING] Failed to create in-app notification:', notifErr);
+            }
+
+            console.log(`[ONBOARDING] Pre-auth user ${maskEmail(volEmail)} completed full application as ${volAppliedRole}`);
+        }
+
         res.json({ ...updated, id: docId });
     } catch (error: any) {
         console.error('[VOLUNTEER] Failed to update profile:', error);

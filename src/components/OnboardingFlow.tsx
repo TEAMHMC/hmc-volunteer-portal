@@ -120,17 +120,30 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   const loadSavedProgress = () => {
     // Pre-authenticated users (Google OAuth returning) skip account step
     if (preAuthUser) {
-      return {
-        step: 'personal' as StepId,
-        formData: {
-          availDays: [],
-          email: preAuthUser.email,
-          emailVerified: true,
-          passwordBypassed: true,
-          authProvider: 'google',
-          googleCredential: '__pre_auth__',
-        }
+      const preAuthDefaults = {
+        availDays: [],
+        email: preAuthUser.email,
+        emailVerified: true,
+        passwordBypassed: true,
+        authProvider: 'google',
+        googleCredential: '__pre_auth__',
       };
+      // Restore saved progress from localStorage so form data survives page refreshes
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const savedStep = parsed.step || 'personal';
+          // Only restore if saved step is valid for preAuth flow (not 'account')
+          return {
+            step: (savedStep === 'account' ? 'personal' : savedStep) as StepId,
+            formData: { ...preAuthDefaults, ...(parsed.formData || {}), email: preAuthUser.email },
+          };
+        }
+      } catch (e) {
+        console.warn('Failed to load saved onboarding progress for pre-auth user');
+      }
+      return { step: 'personal' as StepId, formData: preAuthDefaults };
     }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
