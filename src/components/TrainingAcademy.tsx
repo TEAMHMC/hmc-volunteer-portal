@@ -354,14 +354,15 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       if (nowCompletedAll && wasNotCompletedBefore) {
         updatedUser.coreVolunteerStatus = true;
         updatedUser.coreVolunteerApprovedDate = new Date().toISOString();
+        const roleConfig = APP_CONFIG.HMC_ROLES.find(r => r.label === user.role || r.id === getRoleSlug(user.role));
+        const roleEligibility = roleConfig?.eventEligibility;
         updatedUser.eventEligibility = {
           ...(user.eventEligibility || {}),
           canDeployCore: true,
-          streetMedicineGate: false,
-          clinicGate: false,
-          healthFairGate: true,
-          naloxoneDistribution: false,
-          oraQuickDistribution: false,
+          streetMedicineGate: roleEligibility?.streetMedicineGate ?? false,
+          clinicGate: roleEligibility?.clinicGate ?? false,
+          healthFairGate: roleEligibility?.healthFairGate ?? true,
+          naloxoneDistribution: roleEligibility?.naloxoneDistribution ?? false,
           qualifiedEventTypes: ['Health Fair', 'Community Outreach', 'Wellness Meetup']
         };
         analyticsService.logEvent('core_volunteer_training_complete', { userId: user.id, userRole: user.role });
@@ -601,8 +602,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       sections.push({ title: 'Community Health Outreach', program: 'community_health_outreach', modules: PROGRAM_COMMUNITY_HEALTH_OUTREACH });
     }
 
-    // Street Medicine — only for roles with street medicine gate or clinical roles
-    if (PROGRAM_STREET_MEDICINE.length > 0 && (eligibility?.streetMedicineGate || showClinical)) {
+    // Street Medicine — available to all operational roles (any volunteer can train for it)
+    if (PROGRAM_STREET_MEDICINE.length > 0) {
       sections.push({ title: 'Street Medicine', program: 'street_medicine', modules: PROGRAM_STREET_MEDICINE });
     }
 
@@ -761,10 +762,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 2B: FIELD READINESS (collapsed, shown after Core Baseline) ===== */}
       {!isGovernanceRole && tier2CoreComplete && (
-        <div className="pt-8 border-t border-zinc-100">
+        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button
             onClick={() => setShowFieldAccess(!showFieldAccess)}
-            className="w-full flex items-center gap-4 mb-4 group"
+            className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors"
           >
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">
@@ -781,10 +782,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             ) : (
               <span className="px-3 py-1.5 bg-zinc-100 text-zinc-500 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0">{tier2FieldCompletedCount}/{TIER_2_FIELD_MODULES.length}</span>
             )}
-            <ChevronDown size={20} className={`text-zinc-400 transition-transform ${showFieldAccess ? 'rotate-180' : ''}`} />
+            <ChevronDown size={20} className={`text-zinc-400 transition-transform shrink-0 ${showFieldAccess ? 'rotate-180' : ''}`} />
           </button>
           {showFieldAccess && (
-            <div className="mt-6">
+            <div className="p-6 md:p-8 pt-0 md:pt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {TIER_2_FIELD_MODULES.map(m => renderModuleCard(m, false))}
               </div>

@@ -96,12 +96,19 @@ const EventDayCheckin: React.FC<{ eventId: string; eventDate: string }> = ({ eve
     }
   };
 
+  // Auto-refresh check-in stats when panel is expanded
+  useEffect(() => {
+    if (!expanded) return;
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, [expanded, eventId]);
+
   if (!isEventDayOrPast) return null;
 
   return (
     <div className="mt-3 pt-3 border-t border-zinc-100">
       <button
-        onClick={() => { setExpanded(!expanded); if (!expanded && !stats) fetchStats(); }}
+        onClick={() => { setExpanded(!expanded); if (!expanded) fetchStats(); }}
         className="flex items-center gap-2 text-[10px] font-black text-brand uppercase tracking-[0.2em] hover:underline"
       >
         <ClipboardList size={12} />
@@ -505,11 +512,15 @@ const EditEventModal: React.FC<{
         return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
       };
       const time = `${fmt(startTime)} - ${fmt(endTime)}`;
+      const hasClinicalService = serviceOfferingIds?.some((id: string) =>
+        ['so-screening', 'so-vaccine', 'so-mental-health'].includes(id)
+      );
       await onSave({
         title, description, date, serviceLocation: location, category, startTime, endTime, time,
         estimatedAttendees, staffingQuotas: quotas, slotsTotal, serviceOfferingIds,
         equipment: selectedEquipment,
         checklist: checklist.filter(c => c.text.trim()),
+        requiresClinicalLead: hasClinicalService || false,
       });
     } finally {
       setIsSaving(false);
