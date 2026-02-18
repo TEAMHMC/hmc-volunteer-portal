@@ -447,14 +447,12 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
         title: 'HMC Street Medicine Volunteer Packet',
         items: [
           { id: 'sm-p-1', text: 'Review SMO Volunteer Info Sheet (greeting script, event workflow, do\'s & don\'ts)' },
-          { id: 'sm-p-2', text: 'Review Standing Orders v3.0 (BP, glucose, BMI, HIV, naloxone, emergency)', docUrl: '/documents/HMC-Standing-Orders-v3.0.html', docLabel: 'Standing Orders' },
-          { id: 'sm-p-3', text: 'Review General Screening Consent Form', docUrl: '/documents/HMC-General-Screening-Consent-Form.html', docLabel: 'Consent Form' },
-          { id: 'sm-p-4', text: 'Review Clinical Policies & Procedures Manual', docUrl: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html', docLabel: 'Policies Manual' },
+          { id: 'sm-p-2', text: 'Review Volunteer Field Reference — screening protocols (BP, glucose, BMI, HIV, naloxone, emergency) and the traffic-light escalation system', docUrl: '/documents/HMC-Volunteer-Field-Reference.html', docLabel: 'Field Reference' },
           { id: 'sm-p-5', text: 'Acknowledge: I have naloxone training and can administer nasal naloxone in an overdose emergency' },
           { id: 'sm-p-6', text: 'Acknowledge: I will use the buddy system at all times — never separate from my partner' },
           { id: 'sm-p-7', text: 'Acknowledge: I will follow de-escalation protocols — remain calm, listen attentively, speak in a soothing tone' },
           { id: 'sm-p-8', text: 'Acknowledge: No PHI on personal devices, no photos without consent, no medical advice from non-clinical volunteers' },
-          { id: 'sm-p-9', text: 'Acknowledge: I understand the traffic-light escalation system (Green/Yellow/Red) and will escalate all Yellow and Red results to the lead clinician' },
+          { id: 'sm-p-9', text: 'Acknowledge: I understand the traffic-light escalation system — GREEN (routine, no action), YELLOW (abnormal, notify PA immediately), RED (emergency, call 911) — and will escalate all Yellow and Red results to the lead clinician' },
         ],
       },
       setup: {

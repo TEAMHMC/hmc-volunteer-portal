@@ -5,7 +5,7 @@ import {
   Megaphone, MessageSquare, LifeBuoy, Send, Plus, Sparkles, Loader2, Clock,
   Trash2, CheckCircle, Search, ChevronDown, User, Filter, X, Check, Smartphone,
   Hash, Users, GripVertical, MoreHorizontal, AlertCircle, ArrowRight, FileText,
-  Tag, Flag, History, ChevronRight, MessageCircle, Bell, Eye
+  Tag, Flag, History, ChevronRight, MessageCircle, Bell, Eye, Pencil, Paperclip, Download
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
@@ -692,8 +692,14 @@ const TicketDetailModal: React.FC<{
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'notes' | 'activity'>('details');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSubject, setEditSubject] = useState(ticket.subject);
+  const [editDescription, setEditDescription] = useState(ticket.description);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const canModify = userMode === 'admin' || ticket.submittedBy === user.id || ticket.assignedTo === user.id;
+  const canEditContent = userMode === 'admin' || ticket.submittedBy === user.id;
   const isAssignedToMe = ticket.assignedTo === user.id;
 
   const getCategoryInfo = (cat: TicketCategory) => {
@@ -800,6 +806,76 @@ const TicketDetailModal: React.FC<{
     });
   };
 
+  const handleSaveEdit = () => {
+    if (!editSubject.trim() || !editDescription.trim()) return;
+    const activity: TicketActivity = {
+      id: `act-${Date.now()}`,
+      type: 'status_change',
+      description: `${user.name} edited the ticket subject/description`,
+      performedBy: user.id,
+      performedByName: user.name,
+      timestamp: new Date().toISOString(),
+    };
+    onUpdate({
+      subject: editSubject.trim(),
+      description: editDescription.trim(),
+      activity: [...(ticket.activity || []), activity],
+      updatedAt: new Date().toISOString(),
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditSubject(ticket.subject);
+    setEditDescription(ticket.description);
+    setIsEditing(false);
+  };
+
+  const handleAttachmentUpload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toastService.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+    const allowedTypes = [
+      'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toastService.error('File type not supported. Allowed: images, PDFs, documents, text files.');
+      return;
+    }
+    setIsUploadingAttachment(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const result = await apiService.post(`/api/support_tickets/${ticket.id}/attachments`, {
+        fileName: file.name,
+        fileData: base64,
+        contentType: file.type,
+      });
+      if (result.attachment) {
+        const updatedAttachments = [...(ticket.attachments || []), result.attachment];
+        onUpdate({ attachments: updatedAttachments });
+      }
+      toastService.success('Attachment uploaded successfully.');
+    } catch (error) {
+      console.error('Failed to upload attachment:', error);
+      toastService.error('Failed to upload attachment.');
+    } finally {
+      setIsUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+    }
+  };
+
   const categoryInfo = getCategoryInfo(ticket.category);
   const priorityInfo = getPriorityInfo(ticket.priority);
 
@@ -827,7 +903,28 @@ const TicketDetailModal: React.FC<{
                 {ticket.status.replace('_', ' ')}
               </span>
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 truncate">{ticket.subject}</h2>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editSubject}
+                  onChange={e => setEditSubject(e.target.value)}
+                  className="text-xl font-bold text-zinc-900 w-full p-1 bg-zinc-50 border-2 border-brand/30 rounded-lg outline-none"
+                  autoFocus
+                />
+              ) : (
+                <h2 className="text-xl font-bold text-zinc-900 truncate">{ticket.subject}</h2>
+              )}
+              {canEditContent && !isEditing && ticket.status !== 'closed' && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-1.5 hover:bg-zinc-100 rounded-lg shrink-0 text-zinc-400 hover:text-zinc-600 transition-colors"
+                  title="Edit ticket"
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
+            </div>
             <p className="text-xs text-zinc-400 mt-1">
               Opened by {ticket.submitterName} on {new Date(ticket.createdAt).toLocaleString()}
             </p>
@@ -866,9 +963,90 @@ const TicketDetailModal: React.FC<{
               <div className="lg:col-span-2 space-y-6">
                 <div>
                   <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Description</h4>
-                  <div className="bg-zinc-50 p-4 rounded-3xl border border-zinc-100">
-                    <p className="text-sm text-zinc-600 whitespace-pre-wrap">{ticket.description}</p>
-                  </div>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={editDescription}
+                        onChange={e => setEditDescription(e.target.value)}
+                        className="w-full min-h-[120px] p-4 bg-zinc-50 border-2 border-brand/30 rounded-2xl outline-none resize-none font-bold text-sm"
+                      />
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={!editSubject.trim() || !editDescription.trim()}
+                          className="px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 shadow-elevation-2"
+                        >
+                          <Check size={14} /> Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-zinc-50 p-4 rounded-3xl border border-zinc-100">
+                      <p className="text-sm text-zinc-600 whitespace-pre-wrap">{ticket.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Attachments Section */}
+                <div>
+                  <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">
+                    <Paperclip size={10} className="inline mr-1" /> Attachments ({(ticket.attachments || []).length})
+                  </h4>
+                  {(ticket.attachments || []).length > 0 ? (
+                    <div className="space-y-2">
+                      {(ticket.attachments || []).map(att => (
+                        <div key={att.id} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
+                          <FileText size={16} className="text-zinc-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-zinc-700 truncate">{att.fileName}</p>
+                            <p className="text-xs text-zinc-400">
+                              {(att.fileSize / 1024).toFixed(1)}KB &middot; {att.uploadedByName} &middot; {new Date(att.uploadedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <a
+                            href={`${APP_CONFIG.API_BASE_URL}/api/support_tickets/${ticket.id}/attachments/${att.id}/download`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 hover:bg-zinc-200 rounded-lg text-zinc-500 hover:text-zinc-700 transition-colors shrink-0"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400">No attachments</p>
+                  )}
+                  {canModify && ticket.status !== 'closed' && (
+                    <div className="mt-3">
+                      <input
+                        ref={attachmentInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAttachmentUpload(file);
+                        }}
+                      />
+                      <button
+                        onClick={() => attachmentInputRef.current?.click()}
+                        disabled={isUploadingAttachment}
+                        className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                      >
+                        {isUploadingAttachment ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
+                        {isUploadingAttachment ? 'Uploading...' : 'Add Attachment'}
+                      </button>
+                      <p className="text-[10px] text-zinc-400 mt-1">Max 5MB. Images, PDFs, documents, or text files.</p>
+                    </div>
+                  )}
                 </div>
 
                 {isAssignedToMe && ticket.status !== 'closed' && (
@@ -1106,6 +1284,8 @@ const OpsSupportView: React.FC<{
   const [newTicketVisibility, setNewTicketVisibility] = useState<'public' | 'team' | 'private'>('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedTicket, setDraggedTicket] = useState<string | null>(null);
+  const [newTicketAttachments, setNewTicketAttachments] = useState<File[]>([]);
+  const newTicketAttachmentRef = useRef<HTMLInputElement>(null);
 
   // Ticket visibility filtering
   const isCoordinatorOrLead = user.role.includes('Coordinator') || user.role.includes('Lead');
@@ -1169,6 +1349,30 @@ const OpsSupportView: React.FC<{
         notes: [],
         activity: [initialActivity],
       };
+      // Upload any pending attachments
+      const uploadedAttachments: SupportTicket['attachments'] = [];
+      for (const file of newTicketAttachments) {
+        try {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string).split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          const attResult = await apiService.post(`/api/support_tickets/${savedTicket.id}/attachments`, {
+            fileName: file.name,
+            fileData: base64,
+            contentType: file.type,
+          });
+          if (attResult.attachment) uploadedAttachments.push(attResult.attachment);
+        } catch (err) {
+          console.error('Failed to upload attachment during ticket creation:', err);
+        }
+      }
+      if (uploadedAttachments.length > 0) {
+        savedTicket.attachments = uploadedAttachments;
+      }
+
       setSupportTickets(prev => [savedTicket, ...prev]);
       setShowNewTicket(false);
       setNewTicketSubject('');
@@ -1176,6 +1380,7 @@ const OpsSupportView: React.FC<{
       setNewTicketCategory('technical');
       setNewTicketPriority('medium');
       setNewTicketVisibility('public');
+      setNewTicketAttachments([]);
     } catch (error) {
       console.error('Failed to submit ticket:', error);
       toastService.error('Failed to submit ticket. Please try again.');
@@ -1360,12 +1565,12 @@ const OpsSupportView: React.FC<{
 
       {/* Kanban Board */}
       <div className="flex-1 p-6 overflow-x-auto">
-        <div className="flex gap-6 min-w-max h-full">
+        <div className="grid grid-cols-3 gap-6 min-w-[900px] h-full">
           {/* Open Column */}
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'open')}
-            className={`w-80 rounded-[40px] border-2 ${getColumnColor('open')} flex flex-col`}
+            className={`rounded-[40px] border-2 ${getColumnColor('open')} flex flex-col`}
           >
             <div className="p-4 border-b border-amber-200/50">
               <div className="flex items-center gap-3">
@@ -1390,7 +1595,7 @@ const OpsSupportView: React.FC<{
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'in_progress')}
-            className={`w-80 rounded-[40px] border-2 ${getColumnColor('in_progress')} flex flex-col`}
+            className={`rounded-[40px] border-2 ${getColumnColor('in_progress')} flex flex-col`}
           >
             <div className="p-4 border-b border-brand/20">
               <div className="flex items-center gap-3">
@@ -1415,7 +1620,7 @@ const OpsSupportView: React.FC<{
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'closed')}
-            className={`w-80 rounded-[40px] border-2 ${getColumnColor('closed')} flex flex-col`}
+            className={`rounded-[40px] border-2 ${getColumnColor('closed')} flex flex-col`}
           >
             <div className="p-4 border-b border-emerald-200/50">
               <div className="flex items-center gap-3">
@@ -1514,6 +1719,53 @@ const OpsSupportView: React.FC<{
                   placeholder="Provide details about your issue..."
                   className="w-full min-h-[150px] p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 resize-none font-bold text-sm"
                 />
+              </div>
+              {/* Attachments for new ticket */}
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
+                  <Paperclip size={12} className="inline mr-1" /> Attachments
+                </label>
+                {newTicketAttachments.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {newTicketAttachments.map((file, idx) => (
+                      <div key={idx} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
+                        <FileText size={14} className="text-zinc-400 shrink-0" />
+                        <span className="text-sm font-bold text-zinc-700 truncate flex-1">{file.name}</span>
+                        <span className="text-xs text-zinc-400">{(file.size / 1024).toFixed(1)}KB</span>
+                        <button
+                          onClick={() => setNewTicketAttachments(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-1 hover:bg-zinc-200 rounded text-zinc-400 hover:text-zinc-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  ref={newTicketAttachmentRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 5 * 1024 * 1024) {
+                        toastService.error('File too large. Maximum size is 5MB.');
+                        return;
+                      }
+                      setNewTicketAttachments(prev => [...prev, file]);
+                    }
+                    if (newTicketAttachmentRef.current) newTicketAttachmentRef.current.value = '';
+                  }}
+                />
+                <button
+                  onClick={() => newTicketAttachmentRef.current?.click()}
+                  className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:bg-zinc-200 transition-colors"
+                >
+                  <Paperclip size={14} /> Add File
+                </button>
+                <p className="text-[10px] text-zinc-400 mt-1">Max 5MB per file. Images, PDFs, documents, or text files.</p>
               </div>
               <div className="bg-brand/5 p-4 rounded-3xl border border-brand/10">
                 <p className="text-xs text-brand font-bold flex items-center gap-2">

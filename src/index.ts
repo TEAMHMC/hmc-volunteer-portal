@@ -3682,6 +3682,189 @@ app.post('/api/public/checkin', rateLimit(20, 60000), async (req: Request, res: 
     }
 });
 
+// GET /api/public/event-checkin/:eventId - Serve standalone HTML check-in page for QR code scanning
+app.get('/api/public/event-checkin/:eventId', rateLimit(30, 60000), async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+
+        // Validate eventId format (alphanumeric + hyphens only, XSS prevention)
+        if (!eventId || !/^[a-zA-Z0-9\-]+$/.test(eventId)) {
+            return res.status(400).send('Invalid event ID');
+        }
+
+        // Fetch event for title/date
+        const eventDoc = await db.collection('opportunities').doc(eventId).get();
+        const eventData = eventDoc.exists ? eventDoc.data() : null;
+        const eventTitle = eventData?.title || 'Health Matters Clinic Event';
+        const eventDate = eventData?.date || '';
+
+        const logoUrl = 'https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png';
+        const submitUrl = `/api/public/event-checkin-submit`;
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check-in | Health Matters Clinic</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{-webkit-font-smoothing:antialiased;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(180deg,#f5f3ef 0%,#eae7e2 100%);min-height:100vh;padding:48px 24px}
+.card{max-width:380px;margin:0 auto;background:white;border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.logo{width:72px;height:72px;border-radius:18px;margin:0 auto 24px;display:block;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+h1{color:#1a1a1a;font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px}
+.subtitle{color:#666;font-size:17px;margin-bottom:8px}
+.event-info{background:#f8f9fc;padding:20px;border-radius:16px;margin-bottom:28px}
+.event-title{font-weight:600;color:#1a1a1a;font-size:16px;line-height:1.4;margin-bottom:4px}
+.event-date{color:#233dff;font-size:13px;font-weight:600}
+input[type=email]{width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none;transition:border-color 0.2s}
+input[type=email]:focus{border-color:#233dff}
+.btn{display:inline-block;width:100%;background:#233dff;color:white;padding:16px;border-radius:100px;border:none;font-weight:700;font-size:15px;font-family:Inter,sans-serif;cursor:pointer;margin-top:16px;box-shadow:0 4px 12px rgba(35,61,255,0.3);transition:opacity 0.2s}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.msg{margin-top:20px;padding:16px;border-radius:16px;font-size:14px;font-weight:600}
+.msg.success{background:#ecfdf5;color:#065f46}
+.msg.already{background:#fefce8;color:#854d0e}
+.msg.error{background:#fef2f2;color:#991b1b}
+.footer{text-align:center;color:#999;font-size:11px;margin-top:24px;font-weight:500;letter-spacing:0.5px}
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none}
+.check-icon{font-size:48px;margin-bottom:16px}
+</style></head>
+<body>
+<div class="card" id="card">
+<img src="${logoUrl}" alt="Health Matters Clinic" class="logo">
+<h1>Event Check-In</h1>
+<p class="subtitle">Welcome!</p>
+<div class="event-info">
+<p class="event-title">${eventTitle.replace(/'/g, '&#39;').replace(/"/g, '&quot;')}</p>
+${eventDate ? `<p class="event-date">${eventDate}</p>` : ''}
+</div>
+<form id="checkinForm">
+<input type="email" id="emailInput" placeholder="Enter your email" required autocomplete="email" autocapitalize="off">
+<button type="submit" class="btn" id="submitBtn">Check In</button>
+</form>
+<div id="loading" class="hidden" style="margin-top:20px"><div class="spinner"></div><span style="color:#666;font-size:14px">Checking in...</span></div>
+<div id="message" class="msg hidden"></div>
+</div>
+<p class="footer">HEALTH MATTERS CLINIC</p>
+<script>
+var form=document.getElementById('checkinForm'),email=document.getElementById('emailInput'),btn=document.getElementById('submitBtn'),loading=document.getElementById('loading'),msg=document.getElementById('message');
+form.addEventListener('submit',function(e){
+e.preventDefault();
+var val=email.value.trim();
+if(!val)return;
+form.classList.add('hidden');
+loading.classList.remove('hidden');
+msg.classList.add('hidden');
+fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',email:val})})
+.then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,data:d}})})
+.then(function(res){
+loading.classList.add('hidden');
+msg.classList.remove('hidden');
+if(res.ok&&res.data.success){
+msg.className='msg success';
+msg.innerHTML='<div class="check-icon">\\u2705</div><strong>You\\u2019re Checked In!</strong><br>Welcome, '+(res.data.name||'')+'<br><small style="color:#233dff">'+(res.data.eventTitle||'')+'</small>';
+}else if(res.data.code==='already_checked_in'){
+msg.className='msg already';
+msg.innerHTML='<div class="check-icon">\\u2714\\uFE0F</div><strong>Already Checked In</strong><br>You\\u2019re all set!';
+}else if(res.data.code==='no_rsvp'){
+msg.className='msg error';
+msg.innerHTML='<strong>No RSVP Found</strong><br>We couldn\\u2019t find a registration for this email.<br><small>Please check your email or register at the event.</small>';
+form.classList.remove('hidden');
+}else{
+msg.className='msg error';
+msg.innerHTML='<strong>Something went wrong</strong><br>Please try again.';
+form.classList.remove('hidden');
+}
+}).catch(function(){
+loading.classList.add('hidden');
+msg.classList.remove('hidden');
+msg.className='msg error';
+msg.innerHTML='<strong>Connection error</strong><br>Please check your internet and try again.';
+form.classList.remove('hidden');
+});
+});
+</script>
+</body></html>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    } catch (error: any) {
+        console.error('[EVENT CHECKIN PAGE] Failed:', error);
+        res.status(500).send('Something went wrong');
+    }
+});
+
+// POST /api/public/event-checkin-submit - Email-based check-in from QR code page
+app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: Request, res: Response) => {
+    try {
+        const { eventId, email } = req.body;
+
+        if (!eventId || !email) {
+            return res.status(400).json({ error: 'eventId and email are required' });
+        }
+
+        // Normalize email
+        const normalizedEmail = String(email).toLowerCase().trim();
+
+        // Query public_rsvps for this event + email
+        let rsvpSnapshot = await db.collection('public_rsvps')
+            .where('eventId', '==', eventId)
+            .where('email', '==', normalizedEmail)
+            .limit(1)
+            .get();
+
+        // Fallback: case-insensitive search if direct query misses
+        if (rsvpSnapshot.empty) {
+            const allRsvps = await db.collection('public_rsvps')
+                .where('eventId', '==', eventId)
+                .get();
+            const match = allRsvps.docs.find(doc => {
+                const data = doc.data();
+                return data.email && String(data.email).toLowerCase().trim() === normalizedEmail;
+            });
+            if (match) {
+                rsvpSnapshot = { empty: false, docs: [match] } as any;
+            }
+        }
+
+        if (rsvpSnapshot.empty) {
+            return res.status(404).json({ error: 'No RSVP found for this email', code: 'no_rsvp' });
+        }
+
+        const rsvpDoc = rsvpSnapshot.docs[0];
+
+        // Use transaction to prevent double check-in
+        const checkedInAt = new Date().toISOString();
+        const result = await db.runTransaction(async (tx) => {
+            const rsvpSnap = await tx.get(rsvpDoc.ref);
+            const rsvpData = rsvpSnap.data();
+            if (!rsvpData) throw new Error('RSVP not found');
+            if (rsvpData.checkedIn) {
+                return { alreadyCheckedIn: true, checkedInAt: rsvpData.checkedInAt };
+            }
+            tx.update(rsvpDoc.ref, { checkedIn: true, checkedInAt, checkedInMethod: 'qr-email' });
+            const eventRef = db.collection('opportunities').doc(eventId);
+            const eventSnap = await tx.get(eventRef);
+            if (eventSnap.exists) {
+                tx.update(eventRef, { checkinCount: admin.firestore.FieldValue.increment(1 + (rsvpData.guests || 0)) });
+            }
+            return { alreadyCheckedIn: false, name: rsvpData.name, eventTitle: rsvpData.eventTitle };
+        });
+
+        if (result.alreadyCheckedIn) {
+            return res.status(400).json({ error: 'Already checked in', code: 'already_checked_in', checkedInAt: result.checkedInAt });
+        }
+
+        console.log(`[QR CHECKIN] Checked in via email for event ${eventId}: ${normalizedEmail}`);
+        res.json({
+            success: true,
+            name: result.name,
+            eventTitle: result.eventTitle,
+            checkedInAt
+        });
+    } catch (error: any) {
+        console.error('[QR CHECKIN] Failed:', error);
+        res.status(500).json({ error: 'Failed to check in' });
+    }
+});
+
 // GET /api/events/:id/rsvp-stats - Protected endpoint for admins/coordinators to see RSVP stats
 app.get('/api/events/:id/rsvp-stats', verifyToken, async (req: Request, res: Response) => {
     const userProfile = (req as any).user?.profile;
@@ -4454,7 +4637,7 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             'urgency', 'description', 'title', 'date', 'serviceLocation', 'category',
             'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime', 'time', 'address',
             'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64', 'locationCoordinates',
-            'checklistOverride'
+            'checklistOverride', 'serviceOfferingIds', 'equipment', 'checklist'
         ];
         const sanitizedUpdates: any = {};
         for (const field of allowedFields) {
@@ -5424,10 +5607,12 @@ app.post('/api/support_tickets', verifyToken, async (req: Request, res: Response
 });
 
 // Update support ticket (for assignment, status changes, etc.)
-app.put('/api/support_tickets/:ticketId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.put('/api/support_tickets/:ticketId', verifyToken, async (req: Request, res: Response) => {
     try {
         const { ticketId } = req.params;
         const updates = req.body;
+        const reqUser = (req as any).user;
+        const isAdmin = reqUser?.profile?.isAdmin === true;
 
         // Validate ticket exists
         const ticketRef = db.collection('support_tickets').doc(ticketId);
@@ -5436,10 +5621,22 @@ app.put('/api/support_tickets/:ticketId', verifyToken, requireAdmin, async (req:
             return res.status(404).json({ error: 'Ticket not found' });
         }
 
+        const ticketData = ticketDoc.data()!;
+        const isSubmitter = ticketData.submittedBy === reqUser?.uid;
+
+        // Permission check: must be admin or the ticket submitter
+        if (!isAdmin && !isSubmitter) {
+            return res.status(403).json({ error: 'Not authorized to update this ticket' });
+        }
+
+        // Non-admin submitters can only update limited fields
+        const allowedFieldsForSubmitter = ['subject', 'description', 'notes', 'activity', 'updatedAt', 'attachments'];
+
         // Sanitize updates: remove undefined values (Firestore rejects them)
         // and use FieldValue.deleteField() for explicit field removal
         const sanitized: Record<string, any> = { updatedAt: new Date().toISOString() };
         for (const [key, value] of Object.entries(updates)) {
+            if (!isAdmin && !allowedFieldsForSubmitter.includes(key)) continue;
             if (value === undefined) {
                 sanitized[key] = admin.firestore.FieldValue.delete();
             } else {
@@ -5450,11 +5647,113 @@ app.put('/api/support_tickets/:ticketId', verifyToken, requireAdmin, async (req:
         await ticketRef.update(sanitized);
 
         const updatedTicket = (await ticketRef.get()).data();
-        console.log(`[SUPPORT] Ticket ${ticketId} updated:`, Object.keys(updates).join(', '));
+        console.log(`[SUPPORT] Ticket ${ticketId} updated by ${isAdmin ? 'admin' : 'submitter'}:`, Object.keys(updates).join(', '));
         res.json({ id: ticketId, ...updatedTicket });
     } catch (error: any) {
         console.error('[SUPPORT] Failed to update support ticket:', error);
         res.status(500).json({ error: 'Failed to update support ticket' });
+    }
+});
+
+// Upload attachment to a support ticket
+app.post('/api/support_tickets/:ticketId/attachments', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { ticketId } = req.params;
+        const { fileName, fileData, contentType } = req.body;
+        const reqUser = (req as any).user;
+        const isAdmin = reqUser?.profile?.isAdmin === true;
+
+        if (!fileName || !fileData || !contentType) {
+            return res.status(400).json({ error: 'fileName, fileData, and contentType are required' });
+        }
+
+        // Validate file size (base64 is ~33% larger than binary, so 5MB binary = ~6.67MB base64)
+        if (fileData.length > 6.67 * 1024 * 1024) {
+            return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
+        }
+
+        // Validate content type
+        const allowedTypes = [
+            'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+            'application/pdf',
+            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+        ];
+        if (!allowedTypes.includes(contentType)) {
+            return res.status(400).json({ error: 'File type not allowed.' });
+        }
+
+        // Validate ticket exists and check permissions
+        const ticketRef = db.collection('support_tickets').doc(ticketId);
+        const ticketDoc = await ticketRef.get();
+        if (!ticketDoc.exists) {
+            return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        const ticketData = ticketDoc.data()!;
+        const isSubmitter = ticketData.submittedBy === reqUser?.uid;
+        if (!isAdmin && !isSubmitter) {
+            return res.status(403).json({ error: 'Not authorized to add attachments to this ticket' });
+        }
+
+        // Sanitize filename
+        const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const timestamp = Date.now();
+        const storagePath = `support-tickets/${ticketId}/attachments/${timestamp}-${sanitizedName}`;
+
+        // Upload to storage
+        await uploadToStorage(fileData, storagePath, contentType);
+
+        const buffer = Buffer.from(fileData, 'base64');
+        const attachment = {
+            id: `att-${timestamp}`,
+            fileName: fileName,
+            fileSize: buffer.length,
+            contentType,
+            storagePath,
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: reqUser?.uid || 'unknown',
+            uploadedByName: reqUser?.profile?.name || reqUser?.profile?.email || 'Unknown',
+        };
+
+        // Append to ticket's attachments array
+        const existingAttachments = ticketData.attachments || [];
+        await ticketRef.update({
+            attachments: [...existingAttachments, attachment],
+            updatedAt: new Date().toISOString(),
+        });
+
+        console.log(`[SUPPORT] Attachment uploaded for ticket ${ticketId}: ${fileName}`);
+        res.json({ attachment, success: true });
+    } catch (error: any) {
+        console.error('[SUPPORT] Failed to upload attachment:', error);
+        res.status(500).json({ error: 'Failed to upload attachment' });
+    }
+});
+
+// Download attachment from a support ticket
+app.get('/api/support_tickets/:ticketId/attachments/:attachmentId/download', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { ticketId, attachmentId } = req.params;
+
+        const ticketRef = db.collection('support_tickets').doc(ticketId);
+        const ticketDoc = await ticketRef.get();
+        if (!ticketDoc.exists) {
+            return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        const ticketData = ticketDoc.data()!;
+        const attachments = ticketData.attachments || [];
+        const attachment = attachments.find((a: any) => a.id === attachmentId);
+        if (!attachment) {
+            return res.status(404).json({ error: 'Attachment not found' });
+        }
+
+        const signedUrl = await getSignedDownloadUrl(attachment.storagePath);
+        res.redirect(signedUrl);
+    } catch (error: any) {
+        console.error('[SUPPORT] Failed to download attachment:', error);
+        res.status(500).json({ error: 'Failed to download attachment' });
     }
 });
 

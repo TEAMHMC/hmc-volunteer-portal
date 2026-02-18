@@ -1773,19 +1773,10 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               </button>
                                             );
                                           })()}
-                                          {canManageEvents && (
+                                          {canManageEvents && !user.assignedShiftIds?.includes(shift.id) && (
                                             (() => {
-                                              const eventDate = new Date(opp.date + 'T00:00:00');
-                                              const today = new Date();
-                                              const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                                              const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
                                               const isRegistered = user.assignedShiftIds?.includes(shift.id);
-
-                                              return isWithinWeek ? (
-                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
-                                                   <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
-                                                </button>
-                                              ) : (
+                                              return (
                                                 <button
                                                   onClick={() => handleToggleRegistration(shift.id)}
                                                   disabled={slotsLeft === 0 && !isRegistered}

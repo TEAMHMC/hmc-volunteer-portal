@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -37,7 +37,7 @@ interface EventOpsModeProps {
   canEdit?: boolean;
 }
 
-type OpsTab = 'overview' | 'checklists' | 'survey' | 'intake' | 'screenings' | 'incidents' | 'signoff' | 'audit';
+type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'incidents' | 'signoff' | 'audit';
 
 const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts, setOpportunities, onEditEvent, canEdit }) => {
   const [activeTab, setActiveTab] = useState<OpsTab>('overview');
@@ -174,7 +174,8 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
     { id: 'overview', label: 'Brief', icon: BookUser },
     { id: 'checklists', label: 'Tasks', icon: ListChecks },
-    { id: 'survey', label: 'Survey', icon: QrCode },
+    { id: 'checkin', label: 'Check-In', icon: QrCode },
+    { id: 'survey', label: 'Survey', icon: FileText },
     { id: 'intake', label: 'Intake', icon: ClipboardPaste },
     { id: 'screenings', label: 'Health', icon: HeartPulse },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
@@ -228,6 +229,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-[40px] md:rounded-[40px] p-8 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[600px] relative">
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
+          {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
@@ -451,6 +453,181 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
           </a>
         )}
     </div>
+    );
+};
+
+const CheckInView: React.FC<{ opportunity: Opportunity; user: Volunteer }> = ({ opportunity, user }) => {
+    const [rsvpStats, setRsvpStats] = useState<any>(null);
+    const [rsvps, setRsvps] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [checkingIn, setCheckingIn] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    const checkinUrl = `${window.location.origin}/api/public/event-checkin/${opportunity.id}`;
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkinUrl)}`;
+
+    const fetchData = async () => {
+        try {
+            const [stats, rsvpList] = await Promise.all([
+                apiService.get(`/api/events/${opportunity.id}/rsvp-stats`),
+                apiService.get(`/api/events/${opportunity.id}/public-rsvps`)
+            ]);
+            setRsvpStats(stats);
+            setRsvps(Array.isArray(rsvpList) ? rsvpList : []);
+        } catch (err) {
+            console.error('[CheckInView] Failed to fetch data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 30000);
+        return () => clearInterval(interval);
+    }, [opportunity.id]);
+
+    const handlePrint = () => {
+        const w = window.open('', '_blank');
+        if (!w) return;
+        w.document.write(`<!DOCTYPE html><html><head><title>QR Check-In - ${opportunity.title}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px;text-align:center}
+img{width:300px;height:300px;margin-bottom:32px}h1{font-size:28px;font-weight:700;margin-bottom:8px;color:#1a1a1a}
+p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:600;color:#233dff;margin-top:24px}</style></head>
+<body><img src="${qrImageUrl}" alt="QR Code"><h1>${opportunity.title.replace(/"/g, '&quot;')}</h1>
+<p>${opportunity.date || ''}</p><p class="scan">Scan to Check In</p></body></html>`);
+        w.document.close();
+        w.onload = () => w.print();
+    };
+
+    const handleCopyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(checkinUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch { /* fallback ignored */ }
+    };
+
+    const handleManualCheckin = async (rsvpId: string) => {
+        setCheckingIn(rsvpId);
+        try {
+            await apiService.post(`/api/events/${opportunity.id}/manual-checkin`, { rsvpId });
+            // Optimistic update
+            setRsvps(prev => prev.map(r => r.id === rsvpId ? { ...r, checkedIn: true, checkedInAt: new Date().toISOString() } : r));
+            if (rsvpStats) {
+                setRsvpStats((prev: any) => prev ? { ...prev, checkedInCount: (prev.checkedInCount || 0) + 1 } : prev);
+            }
+        } catch (err) {
+            console.error('[CheckInView] Manual check-in failed:', err);
+            toastService.error('Failed to check in attendee');
+        } finally {
+            setCheckingIn(null);
+        }
+    };
+
+    const totalRsvps = rsvpStats?.totalExpectedAttendees || rsvps.length || 0;
+    const checkedInCount = rsvpStats?.checkedInCount || rsvps.filter(r => r.checkedIn).length;
+    const checkInRate = totalRsvps > 0 ? Math.round((checkedInCount / totalRsvps) * 100) : 0;
+
+    const filteredRsvps = rsvps
+        .filter(r => {
+            if (!searchQuery) return true;
+            const q = searchQuery.toLowerCase();
+            return (r.name && r.name.toLowerCase().includes(q)) || (r.email && r.email.toLowerCase().includes(q));
+        })
+        .sort((a, b) => {
+            if (a.checkedIn && !b.checkedIn) return 1;
+            if (!a.checkedIn && b.checkedIn) return -1;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+    if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-brand" size={32} /></div>;
+
+    return (
+        <div className="space-y-10 animate-in fade-in">
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Check-In</h2>
+
+            {/* QR Code Card */}
+            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner text-center space-y-6">
+                <img src={qrImageUrl} alt="Check-in QR Code" className="mx-auto rounded-2xl shadow-elevation-2" style={{ width: 220, height: 220 }} />
+                <div>
+                    <p className="text-lg font-bold text-zinc-900">{opportunity.title}</p>
+                    {opportunity.date && <p className="text-sm text-zinc-500 font-medium mt-1">{opportunity.date}</p>}
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                    <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity shadow-elevation-2">
+                        <FileText size={14} /> Print QR Code
+                    </button>
+                    <button onClick={handleCopyLink} className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-700 rounded-full text-[11px] font-bold uppercase tracking-wider border border-zinc-200 hover:bg-zinc-100 transition-colors">
+                        {copied ? <><Check size={14} className="text-emerald-500" /> Copied!</> : <><ClipboardPaste size={14} /> Copy Link</>}
+                    </button>
+                </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-4">
+                <div className="p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <p className="text-3xl font-black text-zinc-900">{totalRsvps}</p>
+                    <p className="text-sm font-bold text-blue-500 mt-1">RSVPs</p>
+                </div>
+                <div className="p-6 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <p className="text-3xl font-black text-zinc-900">{checkedInCount}</p>
+                    <p className="text-sm font-bold text-emerald-500 mt-1">Checked In</p>
+                </div>
+                <div className="p-6 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-3xl border border-amber-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <p className="text-3xl font-black text-zinc-900">{checkInRate}%</p>
+                    <p className="text-sm font-bold text-amber-500 mt-1">Check-in Rate</p>
+                </div>
+            </div>
+
+            {/* Attendee List */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Attendee List</p>
+                    <p className="text-[10px] font-bold text-zinc-400">{checkedInCount}/{totalRsvps} checked in</p>
+                </div>
+                <div className="relative">
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" />
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm font-medium text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30 transition-all"
+                    />
+                </div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {filteredRsvps.length === 0 && (
+                        <p className="text-center text-sm text-zinc-400 py-8">No attendees found</p>
+                    )}
+                    {filteredRsvps.map((rsvp) => (
+                        <div key={rsvp.id} className={`flex items-center justify-between px-5 py-3.5 rounded-2xl border transition-all ${rsvp.checkedIn ? 'bg-emerald-50/50 border-emerald-100/50' : 'bg-white border-zinc-100 hover:border-zinc-200'}`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-bold shrink-0 ${rsvp.checkedIn ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`}>
+                                    {rsvp.checkedIn ? <Check size={14} /> : (rsvp.name?.charAt(0)?.toUpperCase() || '?')}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-zinc-800 truncate">{rsvp.name || 'Unknown'}</p>
+                                    <p className="text-[11px] text-zinc-400 truncate">{rsvp.email || ''}{rsvp.guests ? ` +${rsvp.guests} guest${rsvp.guests > 1 ? 's' : ''}` : ''}</p>
+                                </div>
+                            </div>
+                            {rsvp.checkedIn ? (
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider shrink-0">Checked In</span>
+                            ) : (
+                                <button
+                                    onClick={() => handleManualCheckin(rsvp.id)}
+                                    disabled={checkingIn === rsvp.id}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-full text-[10px] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50 shrink-0"
+                                >
+                                    {checkingIn === rsvp.id ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />} Check In
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 };
 

@@ -481,6 +481,16 @@ export interface SupportTicket {
     notes?: TicketNote[];
     activity?: TicketActivity[];
     responses?: any[];
+    attachments?: Array<{
+        id: string;
+        fileName: string;
+        fileSize: number;
+        contentType: string;
+        storagePath: string;
+        uploadedAt: string;
+        uploadedBy: string;
+        uploadedByName: string;
+    }>;
 }
 
 export interface ChecklistItem {
