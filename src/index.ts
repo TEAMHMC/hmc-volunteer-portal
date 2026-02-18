@@ -8628,9 +8628,18 @@ app.post('/api/incidents/create', verifyToken, async (req: Request, res: Respons
 // --- AUDIT LOG PERSISTENCE ---
 app.post('/api/audit-logs/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const { action, details, userId, eventId } = req.body;
-        const createdAt = new Date().toISOString();
-        const log = { action, details, userId, eventId, createdAt };
+        const { id, actionType, summary, actorUserId, actorRole, shiftId, eventId, targetSystem, targetId, timestamp } = req.body;
+        const log = {
+            actionType: actionType || req.body.action || 'UNKNOWN',
+            summary: summary || req.body.details || '',
+            actorUserId: actorUserId || req.body.userId || (req as any).user?.uid || '',
+            actorRole: actorRole || '',
+            shiftId: shiftId || '',
+            eventId: eventId || '',
+            targetSystem: targetSystem || '',
+            targetId: targetId || '',
+            timestamp: timestamp || new Date().toISOString(),
+        };
         const ref = await db.collection('audit_logs').add(log);
         res.json({ id: ref.id, ...log });
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
