@@ -83,4 +83,44 @@ The HMC Street Medicine program provides direct, on-the-street medical care, soc
 - Building trust and consistent relationships with our unhoused neighbors.`,
         tags: ['program', 'street medicine', 'outreach']
     },
+    {
+        id: 'protocol-001',
+        category: 'Volunteer Protocols & References',
+        title: 'Volunteer Field Reference',
+        content: 'Comprehensive field reference covering screening protocols (blood pressure, glucose, BMI, HIV, naloxone, emergency response) and the traffic-light escalation system for volunteer operations.',
+        documentUrl: '/documents/HMC-Volunteer-Field-Reference.html',
+        tags: ['protocol', 'field reference', 'screening', 'escalation', 'volunteer']
+    },
+    {
+        id: 'protocol-002',
+        category: 'Volunteer Protocols & References',
+        title: 'Clinical Onboarding Guide',
+        content: 'Step-by-step onboarding guide for clinical volunteers including orientation, compliance requirements, scope of practice, and supervision protocols.',
+        documentUrl: '/documents/clinical-onboarding-guide.html',
+        tags: ['protocol', 'clinical', 'onboarding', 'guide']
+    },
+    {
+        id: 'protocol-003',
+        category: 'Volunteer Protocols & References',
+        title: 'Clinical Policies & Procedures Manual',
+        content: 'Full clinical policies and procedures manual covering governance structure, volunteer expectations, compliance standards, and operational protocols.',
+        documentUrl: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html',
+        tags: ['protocol', 'clinical', 'policies', 'procedures', 'manual']
+    },
+    {
+        id: 'protocol-004',
+        category: 'Volunteer Protocols & References',
+        title: 'Standing Orders v3.0',
+        content: 'Current standing orders for clinical procedures and protocols used during health screenings, wellness events, and street medicine operations.',
+        documentUrl: '/documents/HMC-Standing-Orders-v3.0.html',
+        tags: ['protocol', 'standing orders', 'clinical', 'procedures']
+    },
+    {
+        id: 'protocol-005',
+        category: 'Volunteer Protocols & References',
+        title: 'General Screening Consent Form',
+        content: 'Standard consent form template used for health screenings and clinical services at HMC events.',
+        documentUrl: '/documents/HMC-General-Screening-Consent-Form.html',
+        tags: ['protocol', 'consent', 'screening', 'form']
+    },
 ];

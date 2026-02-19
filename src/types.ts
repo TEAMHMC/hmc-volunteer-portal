@@ -380,6 +380,7 @@ export interface KnowledgeBaseArticle {
   content: string;
   tags?: string[];
   visibleTo?: string[];
+  documentUrl?: string;
 }
 
 export interface FormField {

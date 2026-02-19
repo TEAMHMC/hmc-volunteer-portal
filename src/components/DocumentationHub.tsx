@@ -14,7 +14,7 @@ interface DocumentationHubProps {
 
 const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [expandedCategories, setExpandedCategories] = useState<string[]>(['Policies & Procedures']);
+    const [expandedCategories, setExpandedCategories] = useState<string[]>(['Policies & Procedures', 'Volunteer Protocols & References']);
     const [selectedArticle, setSelectedArticle] = useState<KnowledgeBaseArticle | null>(null);
     const [articles, setArticles] = useState<KnowledgeBaseArticle[]>(KNOWLEDGE_BASE_ARTICLES);
     const [showNewArticleModal, setShowNewArticleModal] = useState(false);
@@ -208,7 +208,7 @@ const ArticleModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white max-w-3xl w-full rounded-modal shadow-elevation-2 flex flex-col max-h-[90vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
+            <div className={`bg-white w-full rounded-modal shadow-elevation-2 flex flex-col max-h-[90vh] border border-zinc-100 ${article.documentUrl ? 'max-w-5xl' : 'max-w-3xl'}`} onClick={e => e.stopPropagation()}>
                 <header className="p-6 border-b border-zinc-100 flex items-start justify-between">
                     <div>
                         <p className="text-xs font-bold text-brand uppercase">{article.category}</p>
@@ -228,7 +228,19 @@ const ArticleModal: React.FC<{
                         <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-700"><X size={20}/></button>
                     </div>
                 </header>
-                <main className="p-8 prose overflow-y-auto" dangerouslySetInnerHTML={{ __html: renderContent(article.content) }} />
+                {article.documentUrl ? (
+                    <main className="flex-1 overflow-hidden flex flex-col">
+                        <p className="px-8 pt-6 pb-4 text-sm text-zinc-500 font-bold leading-relaxed">{article.content}</p>
+                        <iframe
+                            src={article.documentUrl}
+                            className="flex-1 w-full border-t border-zinc-100"
+                            title={article.title}
+                            style={{ minHeight: '60vh' }}
+                        />
+                    </main>
+                ) : (
+                    <main className="p-8 prose overflow-y-auto" dangerouslySetInnerHTML={{ __html: renderContent(article.content) }} />
+                )}
             </div>
         </div>
     );

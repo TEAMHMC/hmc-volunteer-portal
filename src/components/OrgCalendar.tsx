@@ -90,6 +90,31 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
   const isAdmin = user.isAdmin;
   const canCreateEvents = isAdmin || ORG_CALENDAR_ROLES.includes(user.role);
 
+  // Convert opportunities prop to calendar event format as fallback
+  const opportunityEvents = useMemo((): OrgCalendarEvent[] => {
+    return opportunities.filter(o => o.date).map(o => {
+      const cat = (o.category || '').toLowerCase();
+      let type: OrgCalendarEvent['type'] = 'community-event';
+      if (cat.includes('wellness') || cat.includes('community run') || cat.includes('walk')) type = 'wellness';
+      else if (cat.includes('outreach') || cat.includes('tabling') || cat.includes('survey')) type = 'outreach';
+      else if (cat.includes('workshop') || cat.includes('education')) type = 'workshop';
+      else if (cat.includes('street medicine')) type = 'street-medicine';
+      else if (cat.includes('health fair')) type = 'health-fair';
+      else if (cat.includes('training')) type = 'training';
+      return {
+        id: o.id,
+        title: o.title,
+        description: o.description || '',
+        date: o.date.includes('T') ? o.date.split('T')[0] : o.date,
+        startTime: o.time || '',
+        type,
+        location: o.serviceLocation || '',
+        source: 'event-finder' as const,
+        rsvps: [],
+      } as OrgCalendarEvent;
+    });
+  }, [opportunities]);
+
   const fetchEvents = useCallback(async (soft = false) => {
     try {
       if (!soft) setLoading(true);
@@ -103,16 +128,21 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           return [...fetched, ...optimistic].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
         });
       } else {
-        setEvents(fetched);
+        if (fetched.length > 0) {
+          setEvents(fetched);
+        } else {
+          // API returned empty — use opportunities prop as fallback
+          setEvents(opportunityEvents);
+        }
       }
     } catch (error) {
       console.error('[OrgCalendar] Failed to fetch events:', error);
-      // Only clear events on initial load failure, not on re-fetch
-      if (!soft) setEvents([]);
+      // Fallback to opportunities prop data instead of empty
+      if (!soft) setEvents(opportunityEvents);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [opportunityEvents]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
