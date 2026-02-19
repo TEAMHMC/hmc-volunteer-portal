@@ -42,42 +42,53 @@ function decryptSSN(encrypted: string): string {
 }
 
 // --- FIREBASE ADMIN SDK ---
+// Each method is tried independently so a failure in one doesn't block the fallback
 let firebaseConfigured = false;
-try {
-  // Method 1: Service account JSON file path
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+
+// Method 1: Service account JSON file path
+if (!firebaseConfigured && process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+  try {
     const serviceAccount = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8'));
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     firebaseConfigured = true;
     console.log("✅ Firebase Admin SDK initialized with service account file.");
+  } catch (e) {
+    console.warn("⚠️ Method 1 (service account file) failed:", (e as Error).message);
   }
-  // Method 2: Service account JSON as environment variable (for cloud platforms)
-  else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+}
+
+// Method 2: Service account JSON as environment variable
+if (!firebaseConfigured && process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     firebaseConfigured = true;
     console.log("✅ Firebase Admin SDK initialized with service account from env.");
+  } catch (e) {
+    console.warn("⚠️ Method 2 (service account env var) failed:", (e as Error).message);
   }
-  // Method 3: Application default credentials (GCP/Cloud Run) or FIREBASE_CONFIG
-  else if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
+}
+
+// Method 3: Application default credentials (GCP/Cloud Run)
+if (!firebaseConfigured && (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG)) {
+  try {
+    admin.initializeApp({ credential: admin.credential.applicationDefault() });
     firebaseConfigured = true;
     console.log("✅ Firebase Admin SDK initialized with application default credentials.");
+  } catch (e) {
+    console.warn("⚠️ Method 3 (application default credentials) failed:", (e as Error).message);
   }
-  // No explicit credentials - try default initialization (works on GCP)
-  else {
+}
+
+// Method 4: Default initialization (works on GCP where metadata server provides credentials)
+if (!firebaseConfigured) {
+  try {
     admin.initializeApp();
-    firebaseConfigured = true; // Assume it works on GCP
+    firebaseConfigured = true;
     console.log("✅ Firebase Admin SDK initialized with default settings.");
+  } catch (e) {
+    console.error("❌ Firebase Admin SDK initialization failed — all methods exhausted:", (e as Error).message);
   }
-} catch (e) {
-  console.error("❌ Firebase Admin SDK initialization failed:", e);
 }
 const db = admin.firestore();
 const auth = admin.auth();
