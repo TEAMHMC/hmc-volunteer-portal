@@ -37,15 +37,27 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
     const responseText = await response.text();
 
     if (!response.ok) {
-      // On 403, redirect to login with clear message
+      // On 403, check if it's actually a session/auth issue vs a permission error
       if (response.status === 403) {
-        console.error(`[Session] 403 on ${endpoint} — session expired or invalid.`);
-        localStorage.removeItem('authToken');
-        // Only redirect if we're not already on the landing page
-        if (endpoint !== '/auth/me') {
-          window.location.reload();
+        let errorMessage = 'Forbidden';
+        try {
+          const errJson = JSON.parse(responseText);
+          errorMessage = errJson.error || errorMessage;
+        } catch { /* not JSON */ }
+
+        // Only treat as session expiration if the error mentions auth/session/token keywords
+        const isSessionError = /unauthorized|session|token|no.*provided/i.test(errorMessage);
+        if (isSessionError) {
+          console.error(`[Session] 403 on ${endpoint} — session expired or invalid.`);
+          localStorage.removeItem('authToken');
+          if (endpoint !== '/auth/me') {
+            window.location.reload();
+          }
+          throw new Error('Your session has expired. Please log in again.');
         }
-        throw new Error('Your session has expired. Please log in again.');
+
+        // Permission error (training gate, role check, etc.) — just throw, don't log out
+        throw new Error(errorMessage);
       }
 
       // Try to parse as JSON error response

@@ -13,7 +13,7 @@ import * as dotenv from 'dotenv';
 import fs from 'fs';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { STATIC_MODULE_CONTENT } from './staticModuleContent';
-import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS } from './constants';
+import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS, TIER_1_IDS, TIER_2_CORE_IDS, hasCompletedAllModules } from './constants';
 
 // --- CONFIGURATION ---
 dotenv.config();
@@ -5428,12 +5428,23 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
 
     // Training gate enforcement — admins/coordinators can bypass when registering others
     const isSelfRegistration = callerUid === volunteerId;
-    if (isSelfRegistration) {
-      if (!volunteerData.coreVolunteerStatus && !callerProfile?.isAdmin) {
-        return res.status(403).json({ error: 'You must complete Core Volunteer training before registering for events' });
+    if (isSelfRegistration && !callerProfile?.isAdmin) {
+      // Auto-heal: if completedTrainingIds show training is done but coreVolunteerStatus was
+      // never persisted (due to previous field-stripping bug), fix it now
+      const completedIds: string[] = volunteerData.completedTrainingIds || [];
+      const tier1Done = hasCompletedAllModules(completedIds, TIER_1_IDS);
+      const tier2Done = hasCompletedAllModules(completedIds, TIER_2_CORE_IDS);
+      if (tier1Done && tier2Done && !volunteerData.coreVolunteerStatus) {
+        volunteerData.coreVolunteerStatus = true;
+        volunteerData.completedHIPAATraining = true;
+        volunteerRef.update({ coreVolunteerStatus: true, completedHIPAATraining: true }).catch(() => {});
       }
-      if (!volunteerData.completedHIPAATraining && !callerProfile?.isAdmin) {
-        return res.status(403).json({ error: 'You must complete HIPAA training before registering for events' });
+
+      if (!volunteerData.coreVolunteerStatus) {
+        return res.status(400).json({ error: 'You must complete Core Volunteer training before registering for events' });
+      }
+      if (!volunteerData.completedHIPAATraining) {
+        return res.status(400).json({ error: 'You must complete HIPAA training before registering for events' });
       }
     }
 
@@ -5448,10 +5459,10 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
 
         // Check program-specific gates based on event category
         if (eventCategory.includes('street medicine') && !eligibility.streetMedicineGate) {
-          return res.status(403).json({ error: 'You must complete Street Medicine training before registering for Street Medicine events' });
+          return res.status(400).json({ error: 'You must complete Street Medicine training before registering for Street Medicine events' });
         }
         if ((eventCategory.includes('clinical') || eventCategory.includes('screening') || eventCategory.includes('vaccination')) && !eligibility.clinicGate) {
-          return res.status(403).json({ error: 'You must complete Clinical training before registering for clinical events' });
+          return res.status(400).json({ error: 'You must complete Clinical training before registering for clinical events' });
         }
       }
     }
