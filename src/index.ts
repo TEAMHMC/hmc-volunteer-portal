@@ -2493,6 +2493,12 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             console.warn('[AUTH/ME] Gamification profile fetch failed:', gpErr);
         }
 
+        // Auto-fix stale isNewUser flag for users who already completed onboarding
+        if (userProfile.isNewUser && (userProfile.applicationStatus || userProfile.onboardingProgress === 100)) {
+            userProfile.isNewUser = false;
+            db.collection('volunteers').doc(userId).update({ isNewUser: false }).catch(() => {});
+        }
+
         res.json({
             user: userProfile,
             gamification,

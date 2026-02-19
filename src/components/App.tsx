@@ -50,7 +50,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         if (data.user) {
           setAppData(data);
           apiService.startSessionHeartbeat();
-          if (data.user.isNewUser) {
+          const needsOnboarding = data.user.isNewUser && !data.user.applicationStatus && data.user.onboardingProgress !== 100;
+          if (needsOnboarding) {
             setView('onboarding');
           } else {
             setView('dashboard');
@@ -89,7 +90,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       const fullData = await apiService.get('/auth/me'); // Fetch all data after login
       setAppData(fullData);
       apiService.startSessionHeartbeat();
-      if (fullData.user.isNewUser) {
+      const needsOnboarding = fullData.user.isNewUser && !fullData.user.applicationStatus && fullData.user.onboardingProgress !== 100;
+      if (needsOnboarding) {
         setView('onboarding');
       } else {
         setView('dashboard');
@@ -106,7 +108,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         const fullData = await apiService.get('/auth/me');
         setAppData(fullData);
         apiService.startSessionHeartbeat();
-        if (fullData.user.isNewUser) {
+        const needsOnboarding = fullData.user.isNewUser && !fullData.user.applicationStatus && fullData.user.onboardingProgress !== 100;
+        if (needsOnboarding) {
             setView('onboarding');
         } else {
             setView('dashboard');
