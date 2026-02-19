@@ -1509,7 +1509,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           if (card.type === 'shift') {
                             const shift = card.shift;
                             const isRegistered = user.assignedShiftIds?.includes(shift.id);
-                            const slotsLeft = shift.slotsTotal - shift.slotsFilled;
+                            // Show total available across ALL shifts for this event (not just this one shift)
+                            const allEventShifts = shifts.filter(s => s.opportunityId === shift.opportunityId);
+                            const slotsLeft = allEventShifts.reduce((sum, s) => sum + Math.max(0, s.slotsTotal - s.slotsFilled), 0);
                             const regStatus = getRegistrationStatus(opp);
                             const isPendingTraining = isRegistered && regStatus.isPending;
                             return (
@@ -1707,7 +1709,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;
                             const isRegistered = user.assignedShiftIds?.includes(shift.id);
-                            const slotsLeft = shift.slotsTotal - shift.slotsFilled;
+                            // Show total available across ALL shifts for this event (not just this one shift)
+                            const allEventShifts = shifts.filter(s => s.opportunityId === shift.opportunityId);
+                            const slotsLeft = allEventShifts.reduce((sum, s) => sum + Math.max(0, s.slotsTotal - s.slotsFilled), 0);
 
                             const regStatus = getRegistrationStatus(opp);
                             const isPendingTraining = isRegistered && regStatus.isPending;

@@ -4349,8 +4349,11 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
             finalUpdates = onboardingUpdates;
         } else {
             // SECURITY: Whitelist fields volunteers can update on their own profile
+            // NOTE: coreVolunteerStatus and eventEligibility are allowed through
+            // because TrainingAcademy sets them when a volunteer completes training.
+            // The backend registration endpoint independently validates training gates.
             const { isAdmin, compliance, points, hoursContributed, status,
-                    applicationStatus, coreVolunteerStatus, eventEligibility,
+                    applicationStatus,
                     volunteerRole, role, appliedRole, appliedRoleStatus,
                     ...safeUpdates } = updates;
             finalUpdates = safeUpdates;
