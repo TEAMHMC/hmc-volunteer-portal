@@ -116,6 +116,15 @@ async function uploadToStorage(base64Data: string, filePath: string, contentType
   return filePath;
 }
 
+async function downloadFileBuffer(filePath: string): Promise<{ buffer: Buffer; metadata: any }> {
+  if (!bucket) throw new Error('Cloud Storage not configured');
+  const file = bucket.file(filePath);
+  const [buffer] = await file.download();
+  const [metadata] = await file.getMetadata();
+  return { buffer, metadata };
+}
+
+// Legacy helper — tries signed URL first, falls back to error
 async function getSignedDownloadUrl(filePath: string, expiresMinutes = 60): Promise<string> {
   if (!bucket) throw new Error('Cloud Storage not configured');
   const file = bucket.file(filePath);
@@ -5888,8 +5897,10 @@ app.get('/api/support_tickets/:ticketId/attachments/:attachmentId/download', ver
             return res.status(404).json({ error: 'Attachment not found' });
         }
 
-        const signedUrl = await getSignedDownloadUrl(attachment.storagePath);
-        res.redirect(signedUrl);
+        const { buffer, metadata } = await downloadFileBuffer(attachment.storagePath);
+        res.set('Content-Type', attachment.contentType || metadata.contentType || 'application/octet-stream');
+        res.set('Content-Disposition', `attachment; filename="${attachment.fileName || 'download'}"`);
+        res.send(buffer);
     } catch (error: any) {
         console.error('[SUPPORT] Failed to download attachment:', error);
         res.status(500).json({ error: 'Failed to download attachment' });
@@ -8049,8 +8060,10 @@ app.get('/api/admin/volunteer/:id/resume', verifyToken, requireAdmin, async (req
     if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
     const vol = volDoc.data()!;
     if (!vol.resume?.storagePath) return res.status(404).json({ error: 'No resume on file' });
-    const url = await getSignedDownloadUrl(vol.resume.storagePath, 15);
-    res.json({ url, name: vol.resume.name });
+    const { buffer, metadata } = await downloadFileBuffer(vol.resume.storagePath);
+    res.set('Content-Type', vol.resume.type || metadata.contentType || 'application/pdf');
+    res.set('Content-Disposition', `attachment; filename="${vol.resume.name || 'resume.pdf'}"`);
+    res.send(buffer);
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
@@ -8087,8 +8100,10 @@ app.get('/api/volunteer/:id/credential-file/:field', verifyToken, async (req: Re
     if (!storagePath || typeof storagePath !== 'string' || !storagePath.startsWith('credentials/')) {
       return res.status(404).json({ error: 'Credential file not found' });
     }
-    const url = await getSignedDownloadUrl(storagePath, 15);
-    res.json({ url });
+    const { buffer, metadata } = await downloadFileBuffer(storagePath);
+    res.set('Content-Type', metadata.contentType || 'application/pdf');
+    res.set('Content-Disposition', `inline; filename="${field}.pdf"`);
+    res.send(buffer);
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
@@ -8100,13 +8115,28 @@ app.post('/api/events/:id/flyer', verifyToken, async (req: Request, res: Respons
     const ext = fileName?.split('.').pop() || 'png';
     const storagePath = `flyers/${req.params.id}/flyer.${ext}`;
     await uploadToStorage(base64, storagePath, contentType || 'image/png');
-    const url = await getSignedDownloadUrl(storagePath, 60 * 24 * 7); // 7-day URL
+    // Store the serving endpoint URL (not a signed URL which would expire)
+    const flyerUrl = `/api/events/${req.params.id}/flyer/download`;
     await db.collection('opportunities').doc(req.params.id).update({
-        flyerUrl: url,
+        flyerUrl,
         flyerStoragePath: storagePath,
         flyerBase64: admin.firestore.FieldValue.delete(),
     });
-    res.json({ flyerUrl: url, storagePath });
+    res.json({ flyerUrl, storagePath });
+  } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+// Serve flyer image from Cloud Storage (no signed URL needed)
+app.get('/api/events/:id/flyer/download', async (req: Request, res: Response) => {
+  try {
+    const oppDoc = await db.collection('opportunities').doc(req.params.id).get();
+    if (!oppDoc.exists) return res.status(404).json({ error: 'Event not found' });
+    const storagePath = oppDoc.data()?.flyerStoragePath;
+    if (!storagePath) return res.status(404).json({ error: 'No flyer uploaded' });
+    const { buffer, metadata } = await downloadFileBuffer(storagePath);
+    res.set('Content-Type', metadata.contentType || 'image/png');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(buffer);
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 

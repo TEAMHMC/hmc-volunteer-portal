@@ -1009,15 +1009,26 @@ const TicketDetailModal: React.FC<{
                               {(att.fileSize / 1024).toFixed(1)}KB &middot; {att.uploadedByName} &middot; {new Date(att.uploadedAt).toLocaleDateString()}
                             </p>
                           </div>
-                          <a
-                            href={`${APP_CONFIG.API_BASE_URL}/api/support_tickets/${ticket.id}/attachments/${att.id}/download`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={async () => {
+                              try {
+                                const token = localStorage.getItem('authToken');
+                                const resp = await fetch(`/api/support_tickets/${ticket.id}/attachments/${att.id}/download`, {
+                                  headers: { 'Authorization': `Bearer ${token}` },
+                                });
+                                if (!resp.ok) throw new Error('Download failed');
+                                const blob = await resp.blob();
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url; a.download = att.fileName || 'download'; a.click();
+                                URL.revokeObjectURL(url);
+                              } catch { /* ignore */ }
+                            }}
                             className="p-2 hover:bg-zinc-200 rounded-lg text-zinc-500 hover:text-zinc-700 transition-colors shrink-0"
                             title="Download"
                           >
                             <Download size={14} />
-                          </a>
+                          </button>
                         </div>
                       ))}
                     </div>

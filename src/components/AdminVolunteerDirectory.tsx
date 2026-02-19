@@ -259,8 +259,18 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
   const handleDownloadResume = async (volunteerId: string) => {
     try {
-      const result = await apiService.get(`/api/admin/volunteer/${volunteerId}/resume`);
-      if (result.url) window.open(result.url, '_blank');
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/admin/volunteer/${volunteerId}/resume`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const fileName = disposition.match(/filename="(.+)"/)?.[1] || 'resume.pdf';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName; a.click();
+      URL.revokeObjectURL(url);
     } catch {
       toastService.error('No resume on file or download failed.');
     }
@@ -268,8 +278,14 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
   const handleViewCredentialFile = async (volunteerId: string, field: string) => {
     try {
-      const result = await apiService.get(`/api/volunteer/${volunteerId}/credential-file/${field}`);
-      if (result.url) window.open(result.url, '_blank');
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/volunteer/${volunteerId}/credential-file/${field}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
     } catch {
       toastService.error('Unable to open credential file.');
     }
