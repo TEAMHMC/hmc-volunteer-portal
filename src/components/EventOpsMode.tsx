@@ -349,7 +349,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
-          {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
+          {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => { toastService.error('Failed to save incident report to server. Report recorded locally only.'); }); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
                 try {
@@ -1848,7 +1848,8 @@ const ItineraryView: React.FC<{
     opportunity: Opportunity;
     shift: Shift;
     allVolunteers: Volunteer[];
-}> = ({ user, opportunity, shift, allVolunteers }) => {
+    eventShifts: Shift[];
+}> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
     const [itinerary, setItinerary] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [setupDiagram, setSetupDiagram] = useState('');
@@ -1859,10 +1860,28 @@ const ItineraryView: React.FC<{
     const [copied, setCopied] = useState(false);
     const diagramTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Derive registered volunteers for this shift
+    // Derive registered volunteers using ALL available data sources:
+    // 1. shift.assignedVolunteerIds (source of truth from the shift record)
+    // 2. All eventShifts' assignedVolunteerIds (for cross-shift visibility)
+    // 3. Volunteer's own assignedShiftIds (reverse mapping, may be stale)
+    // 4. Volunteer's rsvpedEventIds (RSVP-based registration)
     const registeredVolunteers = useMemo(() => {
-        return allVolunteers.filter(v => (v.assignedShiftIds || []).includes(shift.id));
-    }, [allVolunteers, shift.id]);
+        // Collect all volunteer IDs assigned to this event's shifts
+        const assignedIds = new Set<string>();
+        // Primary: current shift's assigned volunteers
+        (shift.assignedVolunteerIds || []).forEach(id => assignedIds.add(id));
+        // Secondary: all event shifts' assigned volunteers
+        eventShifts.forEach(s => (s.assignedVolunteerIds || []).forEach(id => assignedIds.add(id)));
+
+        // Also check volunteers who RSVP'd to this event's opportunity
+        const eventId = opportunity.id;
+        allVolunteers.forEach(v => {
+            if ((v.assignedShiftIds || []).some(sid => eventShifts.some(s => s.id === sid))) assignedIds.add(v.id);
+            if ((v.rsvpedEventIds || []).includes(eventId)) assignedIds.add(v.id);
+        });
+
+        return allVolunteers.filter(v => assignedIds.has(v.id));
+    }, [allVolunteers, shift.assignedVolunteerIds, eventShifts, opportunity.id]);
 
     const volunteerCount = registeredVolunteers.length || opportunity.slotsFilled || 0;
 
