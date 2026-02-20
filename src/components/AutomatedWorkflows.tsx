@@ -124,7 +124,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-2xl bg-brand/5 text-brand flex items-center justify-center">
                     <Bell size={20} />
@@ -241,7 +241,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                     <Stethoscope size={20} />
@@ -286,7 +286,7 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                 </button>
 
                                 {isExpanded && (
-                                    <div className="border-t border-zinc-100 p-5 space-y-6">
+                                    <div className="border-t border-zinc-100 p-4 md:p-5 space-y-4 md:space-y-6">
                                         {/* Google Meet Link */}
                                         <div>
                                             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Google Meet Link</label>
@@ -506,7 +506,7 @@ const AutomatedWorkflows: React.FC = () => {
     ];
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+        <div className="space-y-6 md:space-y-12 animate-in fade-in duration-700 pb-20">
             {showToast && (
                 <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-10 py-6 rounded-full shadow-elevation-3 flex items-center gap-4 z-[2000] animate-in slide-in-from-bottom-10">
                    <div className="p-2 rounded-lg bg-emerald-500"><CheckCircle size={16} /></div>
@@ -514,12 +514,12 @@ const AutomatedWorkflows: React.FC = () => {
                 </div>
             )}
             <header>
-                <h1 className="text-5xl font-black tracking-tighter uppercase italic">Automated Workflows</h1>
-                <p className="text-lg font-medium text-zinc-500 mt-2">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
+                <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Automated Workflows</h1>
+                <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Set up automatic actions to save time and ensure a consistent volunteer experience.</p>
             </header>
 
             {/* Tab Navigation */}
-            <div className="flex items-center gap-2 bg-zinc-100 p-1.5 rounded-full w-fit">
+            <div className="flex items-center gap-2 bg-zinc-100 p-1.5 rounded-full w-fit overflow-x-auto">
                 {TABS.map(tab => (
                     <button
                         key={tab.id}
@@ -539,9 +539,9 @@ const AutomatedWorkflows: React.FC = () => {
             {/* Workflows Tab */}
             {activeTab === 'workflows' && (
                 <>
-                    <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                    <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
                         {/* Channel preference */}
-                        <div className="mb-8 pb-8 border-b border-zinc-100">
+                        <div className="mb-4 md:mb-8 pb-4 md:pb-8 border-b border-zinc-100">
                             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Notification Channel</h3>
                             <div className="flex items-center gap-3">
                                 {([
@@ -566,11 +566,11 @@ const AutomatedWorkflows: React.FC = () => {
                             </div>
                         </div>
 
-                        <h3 className="text-xl font-bold text-zinc-900 mb-8">Active & Inactive Workflows</h3>
+                        <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4 md:mb-8">Active & Inactive Workflows</h3>
                         <div className="divide-y divide-zinc-100">
                             {workflows.map(wf => (
-                                <div key={wf.id} className="py-6 flex items-center justify-between">
-                                    <div className="flex items-center gap-6">
+                                <div key={wf.id} className="py-4 md:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4 md:gap-6">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${wf.enabled ? 'bg-brand/5 text-brand' : 'bg-zinc-100 text-zinc-400'}`}>
                                             <wf.icon size={24} />
                                         </div>
@@ -603,8 +603,8 @@ const AutomatedWorkflows: React.FC = () => {
                             ))}
                         </div>
                         {hasChanges && (
-                            <div className="mt-8 pt-8 border-t border-zinc-100 flex justify-end">
-                                <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-3 px-8 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
+                            <div className="mt-4 md:mt-8 pt-4 md:pt-8 border-t border-zinc-100 flex justify-end">
+                                <button onClick={handleSaveChanges} disabled={isSaving} className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-3 px-8 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
                                    {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                                 </button>
                             </div>
@@ -613,8 +613,8 @@ const AutomatedWorkflows: React.FC = () => {
 
                     {/* Recent Activity */}
                     {runs.length > 0 && (
-                        <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-                            <h3 className="text-xl font-bold text-zinc-900 mb-6 flex items-center gap-3">
+                        <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                            <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4 md:mb-6 flex items-center gap-3">
                                 <History size={18} />
                                 Recent Activity
                             </h3>
@@ -641,14 +641,14 @@ const AutomatedWorkflows: React.FC = () => {
 
             {/* Event Reminder Cadence Tab */}
             {activeTab === 'cadence' && (
-                <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
                     <ReminderCadencePanel showNotification={showNotification} />
                 </div>
             )}
 
             {/* SMO Monthly Cycle Tab */}
             {activeTab === 'smo' && (
-                <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
                     <SMOCyclePanel showNotification={showNotification} />
                 </div>
             )}

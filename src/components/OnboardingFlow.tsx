@@ -455,12 +455,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   
   if (isComplete) {
     return (
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 p-8 md:p-8 relative overflow-hidden">
+      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 p-4 md:p-8 relative overflow-hidden">
         <div className="text-center py-20 animate-in fade-in">
             <CheckCircle size={64} className="mx-auto text-emerald-500 mb-6" />
             <h2 className="text-2xl font-black text-zinc-900">Application Submitted!</h2>
             <p className="text-zinc-500 mt-4 max-w-md mx-auto">Thank you for applying to volunteer with Health Matters Clinic. Our team will review your application and you will receive an email notification regarding your status soon.</p>
-            <button onClick={onBackToLanding} className="mt-8 px-8 py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
+            <button onClick={onBackToLanding} className="mt-8 px-4 md:px-8 py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-white" />
               Return to Home
             </button>
@@ -477,10 +477,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
            <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
          )}
        </div>
-       <div className={`max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-8 md:p-8' : 'p-8 md:p-8'} relative overflow-hidden`}>
+       <div className={`max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-4 md:p-8' : 'p-4 md:p-8'} relative overflow-hidden`}>
         {renderStepContent()}
         {step !== 'account' && (
-          <div className="flex items-center gap-4 pt-8 mt-8 border-t border-zinc-100">
+          <div className="flex items-center gap-4 pt-6 md:pt-8 mt-6 md:mt-8 border-t border-zinc-100">
             {currentStepIndex > 0 && <button onClick={prevStep} className="py-5 px-10 bg-white border border-black text-zinc-900 rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
               <div className="w-2 h-2 rounded-full bg-black" />
               Back
@@ -586,7 +586,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
   };
 
   return (
-     <div className="space-y-8 animate-in fade-in">
+     <div className="space-y-6 md:space-y-8 animate-in fade-in">
         <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic leading-none">Create Your Volunteer Account</h2>
         
         {googleClientId && (
@@ -682,7 +682,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 // --- PERSONAL STEP ---
 const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Personal Information</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -730,7 +730,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
           <label className="text-sm font-bold text-zinc-600 block mb-2">Street Address *</label>
           <input type="text" value={data.address || ''} onChange={e => onChange('address', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="123 Main St" />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-bold text-zinc-600 block mb-2">City *</label>
             <input type="text" value={data.city || ''} onChange={e => onChange('city', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Los Angeles" />
@@ -816,7 +816,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
 // --- BACKGROUND STEP ---
 const BackgroundStep: React.FC<any> = ({ data, onChange, errors }) => {
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Background & Education</h2>
       <p className="text-zinc-500">Tell us a bit about your background. This helps us match you with the right volunteer opportunities.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1060,7 +1060,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Availability</h2>
 
       <div>
@@ -1188,10 +1188,10 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
   const availableRoles = APP_CONFIG.HMC_ROLES.filter(r => r.category !== 'admin').map(r => r.label);
 
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Role Selection</h2>
 
-      <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8">
+      <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 md:p-8">
         <div className="flex items-center gap-4 mb-4">
           <UploadCloud size={32} className="text-brand" />
           <div>
@@ -1283,7 +1283,7 @@ const DetailsStep: React.FC<any> = ({ data, onChange, errors }) => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Role-Specific Questions</h2>
       <p className="text-zinc-500">Please answer the following questions for the <strong>{data.selectedRole}</strong> role.</p>
       <div className="space-y-6">
@@ -1340,7 +1340,7 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Compliance & Consent</h2>
       <p className="text-zinc-500">Please review and agree to the following requirements.</p>
 
@@ -1371,12 +1371,12 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 // --- ORIENTATION STEP ---
 const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError }) => {
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
       <p className="text-zinc-500">Complete the following orientation modules to finalize your application.</p>
 
       <div className="space-y-4">
-        <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
+        <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-zinc-900">Get to Know Health Matters Clinic</h3>
             <span className="text-xs font-bold text-zinc-500">~12 min</span>
@@ -1397,7 +1397,7 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
           </button>
         </div>
 
-        <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
+        <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-zinc-900">Because You're a Champion</h3>
             <span className="text-xs font-bold text-zinc-500">~6 min</span>

@@ -248,7 +248,7 @@ const BulkUploadEventsModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
       <div className="bg-white rounded-modal max-w-xl w-full shadow-elevation-3 border border-zinc-100">
-        <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
+        <div className="p-4 md:p-8 border-b border-zinc-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Import Events</h2>
             <p className="text-sm text-zinc-600 mt-1">Upload a CSV file to create multiple events at once</p>
@@ -258,7 +258,7 @@ const BulkUploadEventsModal: React.FC<{
           </button>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="p-4 md:p-8 space-y-6">
           {result ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -287,7 +287,7 @@ const BulkUploadEventsModal: React.FC<{
               </button>
 
               <div
-                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-2xl p-4 md:p-8 text-center transition-colors ${
                   file ? 'border-emerald-300 bg-emerald-50' : 'border-zinc-200 hover:border-zinc-400'
                 }`}
               >
@@ -1182,7 +1182,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
        {showToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-brand text-white px-10 py-6 rounded-full shadow-elevation-3 flex items-center gap-4 z-[5000] animate-in slide-in-from-bottom-10">
            <div className={`p-2 rounded-lg ${toastError ? 'bg-rose-500' : 'bg-emerald-500'}`}>{toastError ? <XCircle size={16} /> : <Check size={16} />}</div>
@@ -1210,7 +1210,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
        {showEventDetail && (
          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowEventDetail(null)}>
            <div className="bg-white rounded-modal max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-elevation-3 border border-zinc-100" onClick={(e) => e.stopPropagation()}>
-             <div className="p-8">
+             <div className="p-4 md:p-8">
                <div className="flex justify-between items-start mb-6">
                  <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-brand/10 text-brand">{normalizeCategory(showEventDetail.category)}</span>
                  <button onClick={() => setShowEventDetail(null)} className="p-2 rounded-3xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"><X size={20} /></button>
@@ -1253,8 +1253,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
       {!manageOnly && (
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-5xl font-black tracking-tighter uppercase italic">My Missions</h2>
-          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Find, join, and manage community health events.</p>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">My Missions</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">Find, join, and manage community health events.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
@@ -1290,7 +1290,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                </h3>
                <div className="space-y-4">
                  {opportunities.filter(o => o.approvalStatus === 'pending').map(opp => (
-                   <div key={opp.id} className="bg-amber-50 p-8 rounded-[40px] border border-amber-200 shadow-sm hover:shadow-2xl transition-shadow">
+                   <div key={opp.id} className="bg-amber-50 p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-amber-200 shadow-sm hover:shadow-2xl transition-shadow">
                      <div className="flex items-start justify-between gap-4">
                        <div>
                          <h3 className="font-bold text-zinc-900">{opp.title}</h3>
@@ -1341,7 +1341,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                 const dateB = new Date(b.date + 'T00:00:00').getTime();
                 return dateA - dateB;
               }).map(opp => (
-                 <div key={opp.id} className={`bg-white p-8 rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow flex flex-col ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
+                 <div key={opp.id} className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow flex flex-col ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h3 className="font-bold truncate">{opp.title}</h3>
@@ -1489,7 +1489,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           {activeTab === 'my-schedule' && (
             <>
               {myScheduleCards.length === 0 && (
-                <div className="py-32 text-center bg-zinc-50 rounded-[40px] border border-dashed border-zinc-200">
+                <div className="py-32 text-center bg-zinc-50 rounded-2xl md:rounded-[40px] border border-dashed border-zinc-200">
                     <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
                     <p className="text-zinc-400 font-bold text-sm">You have no upcoming missions.</p>
                     <p className="text-sm text-zinc-300 mt-2">Browse available missions to get started.</p>
@@ -1515,7 +1515,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const regStatus = getRegistrationStatus(opp);
                             const isPendingTraining = isRegistered && regStatus.isPending;
                             return (
-                              <div key={shift.id} className={`bg-white rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-sm hover:shadow-2xl transition-shadow' : isRegistered ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
+                              <div key={shift.id} className={`bg-white rounded-2xl md:rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-sm hover:shadow-2xl transition-shadow' : isRegistered ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
                                 {isRegistered && (
                                   <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-brand text-white'}`}>
                                     {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
@@ -1551,7 +1551,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                     </div>
                                   </div>
                                   <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
-                                  <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                  <h3 className="text-base md:text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                   <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wide mb-4">
                                     <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                   </div>
@@ -1607,7 +1607,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                           } else {
                             const isRsvped = user.rsvpedEventIds?.includes(opp.id);
                             return (
-                              <div key={`opp-${opp.id}`} className={`bg-white rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
+                              <div key={`opp-${opp.id}`} className={`bg-white rounded-2xl md:rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isRsvped ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
                                 {isRsvped && (
                                   <div className="absolute top-0 right-0 px-6 py-2 bg-brand text-white rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                                     <Check size={14} /> Confirmed
@@ -1619,7 +1619,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                     {dateLabel}
                                   </div>
                                   <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
-                                  <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                  <h3 className="text-base md:text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                   <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wide mb-4">
                                     <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                   </div>
@@ -1659,7 +1659,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             return (
                               <div
                                 key={card.type === 'shift' ? `past-${shift!.id}` : `past-opp-${opp.id}`}
-                                className="bg-zinc-50 rounded-[40px] border border-zinc-200 transition-all duration-300 flex flex-col overflow-hidden opacity-50 hover:opacity-75 cursor-pointer"
+                                className="bg-zinc-50 rounded-2xl md:rounded-[40px] border border-zinc-200 transition-all duration-300 flex flex-col overflow-hidden opacity-50 hover:opacity-75 cursor-pointer"
                                 onClick={() => setShowEventDetail(opp)}
                               >
                                 <div className="p-6 md:p-8 flex-1">
@@ -1696,7 +1696,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           {activeTab === 'available' && (
             <>
             {(Object.keys(groupedByDate).length === 0 || Object.values(groupedByDate).every(d => d.shifts.length === 0 && d.opportunities.length === 0)) && (
-                <div className="py-32 text-center bg-zinc-50 rounded-[40px] border border-dashed border-zinc-200">
+                <div className="py-32 text-center bg-zinc-50 rounded-2xl md:rounded-[40px] border border-dashed border-zinc-200">
                     <Calendar className="mx-auto text-zinc-200 mb-6" size={64} strokeWidth={1.5}/>
                     <p className="text-zinc-400 font-bold text-sm">No available missions found.</p>
                     <p className="text-sm text-zinc-300 mt-2">Check back later for new opportunities.</p>
@@ -1717,7 +1717,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                             const isPendingTraining = isRegistered && regStatus.isPending;
 
                             return (
-                                <div key={shift.id} className={`bg-white rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-sm hover:shadow-2xl transition-shadow' : isRegistered ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
+                                <div key={shift.id} className={`bg-white rounded-2xl md:rounded-[40px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${isPendingTraining ? 'border-amber-400 shadow-sm hover:shadow-2xl transition-shadow' : isRegistered ? 'border-brand shadow-elevation-3' : 'border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
                                     {isRegistered && (
                                        <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl rounded-tr-[44px] text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isPendingTraining ? 'bg-amber-500 text-white' : 'bg-brand text-white'}`}>
                                           {isPendingTraining ? <><AlertTriangle size={12} /> Pending Approval</> : <><Check size={14} /> Confirmed</>}
@@ -1754,7 +1754,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       </div>
 
                                       <p className="text-xs font-bold text-brand mb-2">{normalizeCategory(opp.category)}</p>
-                                      <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
+                                      <h3 className="text-base md:text-xl font-bold text-zinc-900 leading-tight mb-2 cursor-pointer hover:text-brand transition-colors" onClick={() => setShowEventDetail(opp)}>{opp.title}</h3>
                                       <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-wide mb-6">
                                         <MapPin size={14} className="text-zinc-300" /> {opp.serviceLocation}
                                       </div>

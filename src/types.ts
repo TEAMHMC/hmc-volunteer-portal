@@ -317,6 +317,7 @@ export interface Volunteer {
   };
 
   // Additional Fields
+  isTeamLead?: boolean;
   managedBy?: string;
   registeredOpportunityIds?: string[];
   applicationStatus?: 'pendingReview' | 'approved' | 'rejected';
@@ -643,9 +644,34 @@ export interface ScreeningRecord {
   abnormalFlag: boolean;
   abnormalReason?: string;
   performedBy: string;
+  performedByName?: string;
   shiftId: string;
   eventId: string;
   timestamp: string;
+  // Clinical screening fields
+  vitals?: {
+    bloodPressure?: { systolic: number; diastolic: number };
+    heartRate?: number | null;
+    glucose?: number | null;
+    temperature?: number | null;
+    weight?: number | null;
+    height?: number | null;
+    oxygenSat?: number | null;
+  };
+  flags?: {
+    bloodPressure?: { level: string; label: string; color: string } | null;
+    glucose?: { level: string; label: string; color: string } | null;
+  };
+  notes?: string;
+  followUpNeeded?: boolean;
+  followUpReason?: string;
+  clientName?: string;
+  // Clinical review
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewNotes?: string;
+  clinicalAction?: 'Cleared' | 'Referred to ER' | 'Follow-up Scheduled' | 'Additional Testing';
 }
 
 export interface MissionOpsRun {
@@ -827,18 +853,31 @@ export interface ReferralResource {
     "Resource Name": string;
     "Service Category": string;
     "Key Offerings": string;
+    "Resource Type"?: string;
+    "Data type"?: string;
     "Eligibility Criteria": string;
     "Languages Spoken": string;
     "Target Population": string;
     "Operation Hours": string;
+    "Contact Person Name"?: string;
     "Contact Phone": string;
     "Contact Email": string;
     "Address": string;
     "Website": string;
     "SPA": string;
     "Active / Inactive": "checked" | "unchecked";
+    "Contact Info Notes"?: string;
+    "Intake / Referral Process Notes"?: string;
+    "SLA / Typical Response Time"?: string;
+    "Source"?: string;
+    "Last Modified By"?: string;
 
     // AI-verified fields
+    "AI Contact Phone"?: string;
+    "AI Contact Email"?: string;
+    "AI Address"?: string;
+    "Core Business Summary"?: string;
+    "Contact Info Verification"?: string;
     aiVerifiedAddress?: string;
     aiVerifiedPhone?: string;
     aiVerifiedEmail?: string;
@@ -847,17 +886,29 @@ export interface ReferralResource {
     lastVerifiedAt?: string;
 
     // Quality Metrics
+    "Average Rating"?: number;
+    "Number of Feedbacks"?: number;
     averageRating?: number;
     totalReferrals?: number;
     successfulOutcomes?: number;
     avgResponseTimeHours?: number;
     slaComplianceRate?: number;
 
-    // Feedback summary
+    // Feedback & Service
+    "Feedback Database"?: string;
+    "Service Received (from Feedback Database)"?: string;
+    "Satisfaction Rating (from Feedback Database)"?: string;
+    "Feedback Comments (from Feedback Database)"?: string;
+    "Feedback Summary"?: string;
+    "Referred Service Feedback"?: string;
     feedbackSummary?: string;
     lastFeedbackDate?: string;
 
-    // Partner agency link
+    // Linked data
+    "Linked Clients"?: string;
+    "Partner Agency"?: string;
+    "Date Added"?: string;
+    "Last Updated"?: string;
     partnerAgencyId?: string;
 
     createdAt?: string;
@@ -892,6 +943,92 @@ export interface OrgCalendarEvent {
   recurrenceNote?: string;   // Human-readable: "Every 1st Monday"
   createdBy?: string;
   source?: 'org-calendar' | 'board-meeting' | 'event-finder' | 'shift';
+}
+
+// ============================================================
+// STATION ROTATION PLANNER TYPES
+// ============================================================
+
+export type BuddyRole = 'hands_on' | 'observer';
+
+export interface BuddyPair {
+  id: string;
+  volunteerId1: string;
+  volunteerId2: string;
+  currentRoles: Record<string, BuddyRole>;
+  pairType: 'core' | 'lead_outreach' | 'lead_volunteer';
+  label?: string;
+}
+
+export type StationStatus = 'active' | 'depleted' | 'closed';
+
+export interface Station {
+  id: string;
+  name: string;
+  shortName: string;
+  status: StationStatus;
+  depletedAt?: string;
+  depletedReason?: string;
+  requiresClinical?: boolean;
+  supplies?: string[];
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  roleA: string;
+  roleB: string;
+  swapRoles: boolean;
+  linkedTool?: 'screenings' | 'intake' | 'tracker';
+}
+
+export interface RotationSlot {
+  slotIndex: number;
+  startTime: string;
+  endTime: string;
+  assignments: {
+    pairId: string;
+    stationId: string;
+    rolesSwapped: boolean;
+  }[];
+}
+
+export type RovingStatus = 'inactive' | 'active';
+
+export interface RovingTeam {
+  status: RovingStatus;
+  activatedAt?: string;
+  leadPairId?: string;
+  assignedPairIds: string[];
+  reason?: string;
+}
+
+export interface ReallocationEntry {
+  id: string;
+  timestamp: string;
+  pairId: string;
+  fromStationId: string;
+  toStationId: string;
+  reason: string;
+  triggeredBy: string;
+}
+
+export interface StationRotationConfig {
+  eventId: string;
+  buddyPairs: BuddyPair[];
+  clinicalLeadId?: string;
+  stations: Station[];
+  layoutTemplate?: 'linear' | 'l-shape' | 'staggered' | 'custom';
+  canvasWidth: number;
+  canvasHeight: number;
+  setupStart: string;
+  serviceStart: string;
+  serviceEnd: string;
+  breakdownEnd: string;
+  rotationMinutes: number;
+  rotationSlots: RotationSlot[];
+  rovingTeam: RovingTeam;
+  reallocationLog: ReallocationEntry[];
+  updatedAt: string;
+  updatedBy: string;
 }
 
 export interface CSVImportRow {

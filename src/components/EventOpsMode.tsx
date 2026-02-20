@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry, ClientServiceLog } from '../types';
+import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry, ClientServiceLog, BuddyPair, BuddyRole, Station, StationStatus, RotationSlot, RovingTeam, StationRotationConfig, ReallocationEntry } from '../types';
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -45,6 +45,48 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+
+  // Volunteer self check-in/check-out state
+  const [checkinStatus, setCheckinStatus] = useState<{ checkedIn: boolean; checkedOut?: boolean; checkedInAt?: string; buddyName?: string; buddyRole?: string; pairLabel?: string } | null>(null);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<{ hoursServed: number; pointsEarned: number } | null>(null);
+
+  // Load check-in status
+  useEffect(() => {
+    apiService.get(`/api/ops/volunteer-checkin/${opportunity.id}/status`)
+      .then(data => setCheckinStatus(data))
+      .catch(() => setCheckinStatus({ checkedIn: false }));
+  }, [opportunity.id]);
+
+  const handleCheckIn = async () => {
+    setIsCheckingIn(true);
+    try {
+      const result = await apiService.post(`/api/ops/volunteer-checkin/${opportunity.id}`, { shiftId: shift.id });
+      setCheckinStatus({ checkedIn: true, checkedInAt: new Date().toISOString(), buddyName: result.buddyAssignment?.buddyName, buddyRole: result.buddyAssignment?.buddyRole, pairLabel: result.buddyAssignment?.pairLabel });
+      if (result.buddyAssignment) {
+        toastService.success(`Paired with ${result.buddyAssignment.buddyName}!`);
+      } else {
+        toastService.success("You're checked in! Waiting for buddy assignment.");
+      }
+    } catch {
+      toastService.error('Check-in failed. Please try again.');
+    }
+    setIsCheckingIn(false);
+  };
+
+  const handleCheckOut = async () => {
+    setIsCheckingOut(true);
+    try {
+      const result = await apiService.post(`/api/ops/volunteer-checkout/${opportunity.id}`, {});
+      setCheckoutResult(result);
+      setCheckinStatus(prev => prev ? { ...prev, checkedOut: true } : prev);
+      toastService.success(`Checked out! ${result.hoursServed}h logged, +${result.pointsEarned} points`);
+    } catch {
+      toastService.error('Check-out failed. Please try again.');
+    }
+    setIsCheckingOut(false);
+  };
 
   const checklistTemplate = useMemo(() => {
     // If lead has saved a custom override for this event, use it
@@ -210,10 +252,10 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <span className="px-3 py-1 bg-brand text-white rounded-lg text-[9px] font-bold uppercase tracking-wider">{opportunity.category}</span>
-            <h1 className="text-5xl font-black tracking-tighter uppercase italic mt-3">{opportunity.title}</h1>
-            <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">{opportunity.date} • {opportunity.serviceLocation}</p>
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic mt-3">{opportunity.title}</h1>
+            <p className="text-zinc-500 mt-2 md:mt-4 font-medium text-sm md:text-lg leading-relaxed">{opportunity.date} • {opportunity.serviceLocation}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {canEdit && onEditEvent && (
               <button
                 onClick={() => onEditEvent(opportunity)}
@@ -222,27 +264,84 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
                 <Pencil size={12} /> Edit Event
               </button>
             )}
-            <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Mission Active
-            </div>
+            {/* Volunteer Self Check-In / Check-Out */}
+            {checkinStatus && !checkinStatus.checkedIn && (
+              <button
+                onClick={handleCheckIn}
+                disabled={isCheckingIn}
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-full text-sm font-black uppercase tracking-wider hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-elevation-2"
+                style={{ minHeight: '44px' }}
+              >
+                {isCheckingIn ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                I'm Here
+              </button>
+            )}
+            {checkinStatus?.checkedIn && !checkinStatus.checkedOut && (
+              <button
+                onClick={handleCheckOut}
+                disabled={isCheckingOut}
+                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-700 text-white rounded-full text-sm font-black uppercase tracking-wider hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-elevation-2"
+                style={{ minHeight: '44px' }}
+              >
+                {isCheckingOut ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                Check Out
+              </button>
+            )}
+            {checkinStatus?.checkedOut && checkoutResult && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-black uppercase tracking-wider border border-emerald-200">
+                <CheckCircle size={14} /> {checkoutResult.hoursServed}h • +{checkoutResult.pointsEarned}pts
+              </div>
+            )}
+            {checkinStatus?.checkedIn && !checkinStatus.checkedOut && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Checked In
+              </div>
+            )}
+            {(!checkinStatus || (!checkinStatus.checkedIn && !checkinStatus.checkedOut)) && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Mission Active
+              </div>
+            )}
           </div>
         </div>
       </header>
-      
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
-        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-2 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
+
+      {/* Buddy Assignment Card — shows after check-in */}
+      {checkinStatus?.checkedIn && !checkinStatus.checkedOut && checkinStatus.buddyName && (
+        <div className="mx-2 p-5 bg-gradient-to-r from-brand/5 to-blue-50 rounded-2xl border border-brand/10 flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+              <Users size={20} className="text-brand" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Your Buddy</p>
+              <p className="text-sm font-black text-zinc-900">{checkinStatus.buddyName}</p>
+              <p className="text-[10px] font-bold text-zinc-500">{checkinStatus.buddyRole} • {checkinStatus.pairLabel}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {checkinStatus?.checkedIn && !checkinStatus.checkedOut && !checkinStatus.buddyName && (
+        <div className="mx-2 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-3">
+          <Loader2 size={16} className="animate-spin text-amber-500" />
+          <p className="text-xs font-bold text-amber-700">Waiting for buddy assignment — you'll be paired when another volunteer checks in</p>
+        </div>
+      )}
+
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-8 items-start">
+        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-1.5 md:p-2 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
             {TABS.filter(tab => !tab.adminOnly || user.isAdmin).map(tab => (
-              <button 
-                key={tab.id} 
-                onClick={() => setActiveTab(tab.id as any)} 
-                className={`flex-1 min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-3 px-6 py-4 rounded-full text-[13px] font-bold transition-all ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2 scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 min-w-0 lg:w-full flex flex-col lg:flex-row items-center gap-1 md:gap-3 px-3 md:px-6 py-2.5 md:py-4 rounded-xl md:rounded-full text-[10px] md:text-[13px] font-bold transition-all ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
               >
-                <tab.icon size={16} /> <span className="whitespace-nowrap">{tab.label}</span>
+                <tab.icon size={14} className="md:w-4 md:h-4 shrink-0" /> <span className="whitespace-nowrap truncate">{tab.label}</span>
               </button>
             ))}
         </div>
-        
-        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-[40px] md:rounded-[40px] p-8 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[600px] relative">
+
+        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[400px] md:min-h-[600px] relative">
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}
@@ -296,7 +395,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Operational Brief</h2>
 
         {/* Section A: Mission Summary */}
-        <div className="p-8 md:p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-4">
+        <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-4">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Mission Summary</p>
             <p className="text-base font-bold text-zinc-700 leading-relaxed">
                 {opportunity.description || `${opportunity.category} event: ${opportunity.title}`}
@@ -312,25 +411,25 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         <div className="space-y-4">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Goals & Targets</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-8 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
-                    <Target size={20} className="mx-auto text-blue-500 mb-2" />
-                    <p className="text-3xl font-black text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
-                    <p className="text-sm font-bold text-zinc-400 mt-1">Target Attendance</p>
+                <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-2xl md:rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <Target size={18} className="mx-auto text-blue-500 mb-1.5" />
+                    <p className="text-2xl md:text-3xl font-black text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
+                    <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Target</p>
                 </div>
-                <div className="p-8 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
-                    <Users size={20} className="mx-auto text-emerald-500 mb-2" />
-                    <p className="text-3xl font-black text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-lg">/{opportunity.slotsTotal}</span></p>
-                    <p className="text-sm font-bold text-zinc-400 mt-1">Volunteers</p>
+                <div className="p-4 md:p-8 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl md:rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <Users size={18} className="mx-auto text-emerald-500 mb-1.5" />
+                    <p className="text-2xl md:text-3xl font-black text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-base md:text-lg">/{opportunity.slotsTotal}</span></p>
+                    <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Volunteers</p>
                 </div>
-                <div className="p-8 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-3xl border border-violet-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
-                    <HeartPulse size={20} className="mx-auto text-violet-500 mb-2" />
-                    <p className="text-3xl font-black text-zinc-900">{services.length}</p>
-                    <p className="text-sm font-bold text-zinc-400 mt-1">Services</p>
+                <div className="p-4 md:p-8 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-2xl md:rounded-3xl border border-violet-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <HeartPulse size={18} className="mx-auto text-violet-500 mb-1.5" />
+                    <p className="text-2xl md:text-3xl font-black text-zinc-900">{services.length}</p>
+                    <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Services</p>
                 </div>
-                <div className="p-8 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-3xl border border-amber-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
-                    <Shield size={20} className={`mx-auto mb-2 ${hasClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
-                    <p className="text-3xl font-black text-zinc-900">{hasClinicalLead ? 'Yes' : 'No'}</p>
-                    <p className="text-sm font-bold text-zinc-400 mt-1">Clinical Lead</p>
+                <div className="p-4 md:p-8 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-2xl md:rounded-3xl border border-amber-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                    <Shield size={18} className={`mx-auto mb-1.5 ${hasClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
+                    <p className="text-2xl md:text-3xl font-black text-zinc-900">{hasClinicalLead ? 'Yes' : 'No'}</p>
+                    <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Clinical Lead</p>
                 </div>
             </div>
         </div>
@@ -1183,8 +1282,6 @@ const DistributionTrackerView: React.FC<{
     const [clientHealthScreening, setClientHealthScreening] = useState(false);
     const [clientFullConsult, setClientFullConsult] = useState(false);
     const [clientReferralGiven, setClientReferralGiven] = useState(false);
-    const [clientHivToGo, setClientHivToGo] = useState(false);
-    const [clientHivWithTeam, setClientHivWithTeam] = useState(false);
     const [clientHarmReduction, setClientHarmReduction] = useState(false);
     const [clientResources, setClientResources] = useState<string[]>([]);
     const [clientNotes, setClientNotes] = useState('');
@@ -1232,7 +1329,7 @@ const DistributionTrackerView: React.FC<{
         const raceMap: Record<string, number> = {};
         const ageMap: Record<string, number> = {};
         let resourcesOnly = 0, healthScreening = 0, fullConsult = 0;
-        let referrals = 0, hivToGo = 0, hivTeam = 0, harmReduction = 0;
+        let referrals = 0, harmReduction = 0;
         const resourceMap: Record<string, number> = {};
 
         clientLogs.forEach(log => {
@@ -1243,8 +1340,6 @@ const DistributionTrackerView: React.FC<{
             if (log.healthScreeningOnly) healthScreening++;
             if (log.fullConsult) fullConsult++;
             if (log.referralGiven) referrals++;
-            if (log.hivSelfTestToGo) hivToGo++;
-            if (log.hivSelfTestWithTeam) hivTeam++;
             if (log.harmReductionSupplies) harmReduction++;
             (log.resourcesDistributed || []).forEach(r => {
                 resourceMap[r] = (resourceMap[r] || 0) + 1;
@@ -1257,7 +1352,7 @@ const DistributionTrackerView: React.FC<{
             race: Object.entries(raceMap).sort((a, b) => b[1] - a[1]),
             age: Object.entries(ageMap).sort((a, b) => b[1] - a[1]),
             serviceTypes: { resourcesOnly, healthScreening, fullConsult },
-            services: { referrals, hivToGo, hivTeam, harmReduction },
+            services: { referrals, harmReduction },
             resources: Object.entries(resourceMap).sort((a, b) => b[1] - a[1]),
         };
     }, [clientLogs]);
@@ -1271,7 +1366,7 @@ const DistributionTrackerView: React.FC<{
     const resetClientForm = () => {
         setClientGender(''); setClientRace(''); setClientAge(''); setClientZip('');
         setClientResourcesOnly(false); setClientHealthScreening(false); setClientFullConsult(false);
-        setClientReferralGiven(false); setClientHivToGo(false); setClientHivWithTeam(false);
+        setClientReferralGiven(false);
         setClientHarmReduction(false); setClientResources([]); setClientNotes('');
     };
 
@@ -1293,8 +1388,8 @@ const DistributionTrackerView: React.FC<{
                 healthScreeningOnly: clientHealthScreening,
                 fullConsult: clientFullConsult,
                 referralGiven: clientReferralGiven,
-                hivSelfTestToGo: clientHivToGo,
-                hivSelfTestWithTeam: clientHivWithTeam,
+                hivSelfTestToGo: false,
+                hivSelfTestWithTeam: false,
                 harmReductionSupplies: clientHarmReduction,
                 resourcesDistributed: clientResources,
                 notes: clientNotes || undefined,
@@ -1420,14 +1515,6 @@ const DistributionTrackerView: React.FC<{
                                     <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.referrals}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-zinc-700">HIV Self-Test To-Go</span>
-                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.hivToGo}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-zinc-700">HIV Self-Test w/ Team</span>
-                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.hivTeam}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
                                     <span className="text-sm font-bold text-zinc-700">Harm Reduction Supplies</span>
                                     <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.harmReduction}</span>
                                 </div>
@@ -1507,8 +1594,6 @@ const DistributionTrackerView: React.FC<{
                                         {log.healthScreeningOnly && <span className="px-2 py-0.5 bg-violet-50 text-violet-600 rounded-full text-[9px] font-black uppercase">Health Screening</span>}
                                         {log.fullConsult && <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase">Full Consult</span>}
                                         {log.referralGiven && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase">Referral</span>}
-                                        {log.hivSelfTestToGo && <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase">HIV Test To-Go</span>}
-                                        {log.hivSelfTestWithTeam && <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase">HIV Test w/ Team</span>}
                                         {log.harmReductionSupplies && <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full text-[9px] font-black uppercase">Harm Reduction</span>}
                                         {(log.resourcesDistributed || []).map(r => (
                                             <span key={r} className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-full text-[9px] font-bold">{r}</span>
@@ -1685,12 +1770,6 @@ const DistributionTrackerView: React.FC<{
                                 <div className="flex flex-wrap gap-2">
                                     <button type="button" onClick={() => setClientReferralGiven(!clientReferralGiven)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientReferralGiven ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
                                         Referral Given
-                                    </button>
-                                    <button type="button" onClick={() => setClientHivToGo(!clientHivToGo)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHivToGo ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
-                                        HIV Self-Test To-Go
-                                    </button>
-                                    <button type="button" onClick={() => setClientHivWithTeam(!clientHivWithTeam)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHivWithTeam ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
-                                        HIV Self-Test w/ Team
                                     </button>
                                     <button type="button" onClick={() => setClientHarmReduction(!clientHarmReduction)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHarmReduction ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
                                         Harm Reduction Supplies
@@ -2041,7 +2120,7 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
             <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Itinerary</h2>
 
             {/* Section 1: Event Summary */}
-            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-4">
+            <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-4">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Event Summary</p>
                 <div className="space-y-3">
                     <h3 className="text-lg font-black text-zinc-900">{opportunity.title}</h3>
@@ -2069,7 +2148,7 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
             </div>
 
             {/* Section 2: Generate Itinerary */}
-            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-5">
+            <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-5">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">AI Itinerary Generator</p>
                 <p className="text-sm font-medium text-zinc-500 leading-relaxed">
                     Generate a customized event day itinerary based on the event details, volunteer roster, and HMC standard operating procedures.
@@ -2107,7 +2186,7 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
                             )}
                         </div>
                     </div>
-                    <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner">
+                    <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner">
                         <div className="prose prose-sm max-w-none">
                             {renderMarkdown(itinerary)}
                         </div>
@@ -2145,32 +2224,1205 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
                 </div>
             )}
 
-            {/* Section 4: Setup Diagram */}
-            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-4">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Station Setup Diagram</p>
-                <p className="text-sm font-medium text-zinc-500 leading-relaxed">
-                    Sketch out your station layout below. Changes are auto-saved.
-                </p>
-                <textarea
-                    value={setupDiagram}
-                    onChange={e => setSetupDiagram(e.target.value)}
-                    rows={16}
-                    placeholder={`Enter your station layout here. Example:
+            {/* Section 4: Station Rotation Planner */}
+            <StationRotationPlanner
+                eventId={opportunity.id}
+                registeredVolunteers={registeredVolunteers}
+                shift={shift}
+                user={user}
+            />
+        </div>
+    );
+};
 
-┌─────────────────────────────────────────┐
-│                ENTRANCE                  │
-├──────┬──────┬──────┬──────┬─────────────┤
-│CHECK │SCREEN│MENTAL│WOUND │ RESOURCE    │
-│ IN   │ ING  │HEALTH│ CARE │ DISTRIB.    │
-├──────┴──────┴──────┴──────┴─────────────┤
-│            EXAMINATION AREA              │
-├─────────────────────────────────────────┤
-│         CHECK-OUT / REFERRALS            │
-└─────────────────────────────────────────┘`}
-                    className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-mono text-sm outline-none focus:border-brand/30 resize-y leading-relaxed"
-                    style={{ minHeight: '200px' }}
-                />
+// ============================================================
+// STATION ROTATION PLANNER - DEFAULT STATIONS
+// ============================================================
+const DEFAULT_STREET_MEDICINE_STATIONS: Station[] = [
+    { id: 'st-1', name: 'Check-in / Line Management', shortName: 'Check-in', status: 'active', position: { x: 20, y: 120 }, width: 110, height: 70, roleA: 'Greeter', roleB: 'Logger', swapRoles: false, linkedTool: 'tracker' },
+    { id: 'st-2', name: 'Blood Pressure / Vitals', shortName: 'BP/Vitals', status: 'active', requiresClinical: true, supplies: ['BP cuff', 'Pulse oximeter'], position: { x: 150, y: 120 }, width: 110, height: 70, roleA: 'Hands-On', roleB: 'Observer', swapRoles: true, linkedTool: 'screenings' },
+    { id: 'st-3', name: 'HIV Testing', shortName: 'HIV Test', status: 'active', requiresClinical: true, supplies: ['OraQuick kits', 'Gloves'], position: { x: 280, y: 120 }, width: 110, height: 70, roleA: 'Hands-On', roleB: 'Observer', swapRoles: true, linkedTool: 'screenings' },
+    { id: 'st-4', name: 'Harm Reduction Supply Distribution', shortName: 'Harm Red.', status: 'active', supplies: ['Narcan', 'Fentanyl test strips', 'Condoms'], position: { x: 410, y: 120 }, width: 110, height: 70, roleA: 'Educator', roleB: 'Distributor', swapRoles: false, linkedTool: 'tracker' },
+    { id: 'st-5', name: 'Food Distribution', shortName: 'Food', status: 'active', supplies: ['Meals', 'Water', 'Snacks'], position: { x: 540, y: 120 }, width: 110, height: 70, roleA: 'Server', roleB: 'Server', swapRoles: false, linkedTool: 'tracker' },
+    { id: 'st-6', name: 'Referrals & Screenings', shortName: 'Referrals', status: 'active', supplies: ['Referral forms', 'Tablets'], position: { x: 670, y: 120 }, width: 110, height: 70, roleA: 'Screener', roleB: 'Navigator', swapRoles: false, linkedTool: 'intake' },
+];
+
+const STATION_COLORS: Record<string, string> = {
+    'st-1': '#3b82f6', 'st-2': '#ef4444', 'st-3': '#f59e0b',
+    'st-4': '#8b5cf6', 'st-5': '#10b981', 'st-6': '#06b6d4',
+};
+
+const STATION_PRIORITY: Record<string, number> = {
+    'st-1': 10, 'st-2': 8, 'st-3': 7, 'st-6': 6, 'st-4': 5, 'st-5': 4,
+};
+
+function getStationColor(id: string): string {
+    return STATION_COLORS[id] || '#6b7280';
+}
+
+// ============================================================
+// BUDDY PAIR BUILDER
+// ============================================================
+const BuddyPairBuilder: React.FC<{
+    registeredVolunteers: Volunteer[];
+    buddyPairs: BuddyPair[];
+    clinicalLeadId?: string;
+    onUpdate: (pairs: BuddyPair[], clinicalLeadId?: string) => void;
+}> = ({ registeredVolunteers, buddyPairs, clinicalLeadId, onUpdate }) => {
+    const [selectedVolunteer, setSelectedVolunteer] = useState<string | null>(null);
+
+    const pairedIds = useMemo(() => {
+        const ids = new Set<string>();
+        buddyPairs.forEach(p => { ids.add(p.volunteerId1); ids.add(p.volunteerId2); });
+        return ids;
+    }, [buddyPairs]);
+
+    const unpairedVolunteers = useMemo(() =>
+        registeredVolunteers.filter(v => !pairedIds.has(v.id)),
+    [registeredVolunteers, pairedIds]);
+
+    const clinicalVolunteers = useMemo(() =>
+        registeredVolunteers.filter(v =>
+            v.volunteerRole === 'Licensed Medical Professional' ||
+            v.volunteerRole === 'Medical Admin' ||
+            v.role?.toLowerCase().includes('medical') ||
+            v.role?.toLowerCase().includes('clinical')
+        ),
+    [registeredVolunteers]);
+
+    // Detect lead volunteers by role
+    const detectPairType = (v: Volunteer): BuddyPair['pairType'] => {
+        const role = (v.volunteerRole || v.role || '').toLowerCase();
+        if (role.includes('outreach') || role.includes('o&e')) return 'lead_outreach';
+        if (role.includes('volunteer lead') || role.includes('events lead')) return 'lead_volunteer';
+        return 'core';
+    };
+
+    const handleVolunteerTap = (volunteerId: string) => {
+        if (!selectedVolunteer) {
+            setSelectedVolunteer(volunteerId);
+        } else if (selectedVolunteer === volunteerId) {
+            setSelectedVolunteer(null);
+        } else {
+            // Pair them
+            const v1 = registeredVolunteers.find(v => v.id === selectedVolunteer);
+            const v2 = registeredVolunteers.find(v => v.id === volunteerId);
+            if (!v1 || !v2) return;
+
+            const pairType = detectPairType(v1) !== 'core' ? detectPairType(v1) : detectPairType(v2);
+            const newPair: BuddyPair = {
+                id: `pair-${Date.now()}`,
+                volunteerId1: selectedVolunteer,
+                volunteerId2: volunteerId,
+                currentRoles: { [selectedVolunteer]: 'hands_on', [volunteerId]: 'observer' },
+                pairType,
+                label: pairType === 'lead_outreach' ? 'O&E Leads' :
+                       pairType === 'lead_volunteer' ? 'Vol. Leads' :
+                       `Pair ${String.fromCharCode(65 + buddyPairs.filter(p => p.pairType === 'core').length)}`,
+            };
+            onUpdate([...buddyPairs, newPair], clinicalLeadId);
+            setSelectedVolunteer(null);
+        }
+    };
+
+    const handleUnpair = (pairId: string) => {
+        onUpdate(buddyPairs.filter(p => p.id !== pairId), clinicalLeadId);
+    };
+
+    const handleToggleRole = (pairId: string) => {
+        const updated = buddyPairs.map(p => {
+            if (p.id !== pairId) return p;
+            const swapped: Record<string, BuddyRole> = {};
+            Object.entries(p.currentRoles).forEach(([vid, role]) => {
+                swapped[vid] = role === 'hands_on' ? 'observer' : 'hands_on';
+            });
+            return { ...p, currentRoles: swapped };
+        });
+        onUpdate(updated, clinicalLeadId);
+    };
+
+    const handleAutoPair = () => {
+        const remaining = [...unpairedVolunteers];
+        const newPairs = [...buddyPairs];
+        // Auto-pair leads first, then core volunteers
+        const leads = remaining.filter(v => detectPairType(v) !== 'core');
+        const cores = remaining.filter(v => detectPairType(v) === 'core');
+        const ordered = [...leads, ...cores];
+
+        while (ordered.length >= 2) {
+            const v1 = ordered.shift()!;
+            const v2 = ordered.shift()!;
+            const pairType = detectPairType(v1) !== 'core' ? detectPairType(v1) : detectPairType(v2);
+            newPairs.push({
+                id: `pair-${Date.now()}-${newPairs.length}`,
+                volunteerId1: v1.id,
+                volunteerId2: v2.id,
+                currentRoles: { [v1.id]: 'hands_on', [v2.id]: 'observer' },
+                pairType,
+                label: pairType === 'lead_outreach' ? 'O&E Leads' :
+                       pairType === 'lead_volunteer' ? 'Vol. Leads' :
+                       `Pair ${String.fromCharCode(65 + newPairs.filter(p => p.pairType === 'core').length)}`,
+            });
+        }
+        onUpdate(newPairs, clinicalLeadId);
+    };
+
+    const getVolName = (id: string) => {
+        const v = registeredVolunteers.find(v => v.id === id);
+        return v ? (v.preferredFirstName || v.legalFirstName || v.name || 'Unknown') : 'Removed';
+    };
+
+    // Warn about removed volunteers
+    const missingVolunteers = useMemo(() => {
+        const regIds = new Set(registeredVolunteers.map(v => v.id));
+        const missing: string[] = [];
+        buddyPairs.forEach(p => {
+            if (!regIds.has(p.volunteerId1)) missing.push(p.volunteerId1);
+            if (!regIds.has(p.volunteerId2)) missing.push(p.volunteerId2);
+        });
+        return missing;
+    }, [buddyPairs, registeredVolunteers]);
+
+    const leadPairs = buddyPairs.filter(p => p.pairType !== 'core');
+    const corePairs = buddyPairs.filter(p => p.pairType === 'core');
+
+    return (
+        <div className="space-y-5">
+            {missingVolunteers.length > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-bold">
+                    <AlertTriangle size={14} /> {missingVolunteers.length} paired volunteer(s) no longer registered for this shift
+                </div>
+            )}
+
+            {/* Clinical Lead */}
+            <div className="space-y-2">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Clinical Lead</p>
+                <select
+                    value={clinicalLeadId || ''}
+                    onChange={e => onUpdate(buddyPairs, e.target.value || undefined)}
+                    className="w-full p-2.5 bg-white border-2 border-zinc-100 rounded-xl text-sm font-bold outline-none focus:border-brand/30"
+                >
+                    <option value="">Select Clinical Lead...</option>
+                    {clinicalVolunteers.map(v => (
+                        <option key={v.id} value={v.id}>
+                            {v.preferredFirstName || v.legalFirstName} {v.legalLastName} — {v.volunteerRole || v.role}
+                        </option>
+                    ))}
+                </select>
             </div>
+
+            {/* Unassigned Volunteer Pool */}
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">
+                        Unassigned ({unpairedVolunteers.length})
+                    </p>
+                    {unpairedVolunteers.length >= 2 && (
+                        <button
+                            onClick={handleAutoPair}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-full text-[10px] font-black uppercase tracking-wide hover:bg-brand/90 transition-all"
+                        >
+                            <Shuffle size={12} /> Auto-Pair All
+                        </button>
+                    )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {unpairedVolunteers.map(v => (
+                        <button
+                            key={v.id}
+                            onClick={() => handleVolunteerTap(v.id)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                                selectedVolunteer === v.id
+                                    ? 'bg-brand text-white ring-2 ring-brand/30 scale-105'
+                                    : 'bg-white border border-zinc-200 text-zinc-700 hover:border-brand/30'
+                            }`}
+                            style={{ minHeight: '44px' }}
+                        >
+                            <Users size={12} />
+                            {v.preferredFirstName || v.legalFirstName || v.name}
+                            <span className="text-[9px] opacity-60">{v.volunteerRole || v.role}</span>
+                        </button>
+                    ))}
+                    {unpairedVolunteers.length === 0 && (
+                        <p className="text-xs text-zinc-400 font-medium italic">All volunteers paired</p>
+                    )}
+                </div>
+                {selectedVolunteer && (
+                    <p className="text-xs text-brand font-bold animate-pulse">
+                        Tap another volunteer to pair with {getVolName(selectedVolunteer)}
+                    </p>
+                )}
+            </div>
+
+            {/* Lead Pairs */}
+            {leadPairs.length > 0 && (
+                <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Lead Pairs</p>
+                    {leadPairs.map(pair => (
+                        <PairCard key={pair.id} pair={pair} getVolName={getVolName} onToggle={handleToggleRole} onUnpair={handleUnpair} />
+                    ))}
+                </div>
+            )}
+
+            {/* Core Pairs */}
+            <div className="space-y-2">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Core Pairs ({corePairs.length})</p>
+                {corePairs.map(pair => (
+                    <PairCard key={pair.id} pair={pair} getVolName={getVolName} onToggle={handleToggleRole} onUnpair={handleUnpair} />
+                ))}
+                {corePairs.length === 0 && (
+                    <p className="text-xs text-zinc-400 font-medium italic">Tap volunteers above to create pairs</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const PairCard: React.FC<{
+    pair: BuddyPair;
+    getVolName: (id: string) => string;
+    onToggle: (pairId: string) => void;
+    onUnpair: (pairId: string) => void;
+}> = ({ pair, getVolName, onToggle, onUnpair }) => {
+    const handsOnId = Object.entries(pair.currentRoles).find(([, r]) => r === 'hands_on')?.[0];
+    const observerId = Object.entries(pair.currentRoles).find(([, r]) => r === 'observer')?.[0];
+    return (
+        <div className="flex items-center gap-2 p-3 bg-white border border-zinc-100 rounded-xl">
+            <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide ${
+                pair.pairType === 'lead_outreach' ? 'bg-orange-100 text-orange-700' :
+                pair.pairType === 'lead_volunteer' ? 'bg-purple-100 text-purple-700' :
+                'bg-blue-100 text-blue-700'
+            }`}>
+                {pair.label || pair.id}
+            </div>
+            <div className="flex-1 flex items-center gap-2 text-xs font-bold text-zinc-700 min-w-0 flex-wrap">
+                <span className="flex items-center gap-1"><Hand size={10} className="text-green-500" /> {getVolName(handsOnId || pair.volunteerId1)}</span>
+                <span className="text-zinc-300">|</span>
+                <span className="flex items-center gap-1"><Eye size={10} className="text-blue-500" /> {getVolName(observerId || pair.volunteerId2)}</span>
+            </div>
+            <button onClick={() => onToggle(pair.id)} className="p-1.5 hover:bg-zinc-50 rounded-lg transition-all" title="Swap roles" style={{ minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shuffle size={14} className="text-zinc-400" />
+            </button>
+            <button onClick={() => onUnpair(pair.id)} className="p-1.5 hover:bg-red-50 rounded-lg transition-all" title="Unpair" style={{ minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserMinus size={14} className="text-red-400" />
+            </button>
+        </div>
+    );
+};
+
+// ============================================================
+// SIDEWALK LAYOUT CANVAS
+// ============================================================
+const SidewalkLayoutCanvas: React.FC<{
+    stations: Station[];
+    buddyPairs: BuddyPair[];
+    rotationSlots: RotationSlot[];
+    rovingTeam: RovingTeam;
+    canvasWidth: number;
+    canvasHeight: number;
+    layoutTemplate: string;
+    onUpdateStations: (stations: Station[]) => void;
+    onUpdateLayout: (template: string) => void;
+}> = ({ stations, buddyPairs, rotationSlots, rovingTeam, canvasWidth, canvasHeight, layoutTemplate, onUpdateStations, onUpdateLayout }) => {
+    const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+    const [draggingId, setDraggingId] = useState<string | null>(null);
+    const canvasRef = useRef<HTMLDivElement>(null);
+
+    const getCurrentPairForStation = (stationId: string): BuddyPair | undefined => {
+        const now = new Date();
+        const currentSlot = rotationSlots.find(slot => {
+            const [sh, sm] = slot.startTime.split(':').map(Number);
+            const [eh, em] = slot.endTime.split(':').map(Number);
+            const slotStart = new Date(); slotStart.setHours(sh, sm, 0, 0);
+            const slotEnd = new Date(); slotEnd.setHours(eh, em, 0, 0);
+            return now >= slotStart && now < slotEnd;
+        });
+        if (!currentSlot) return undefined;
+        const assignment = currentSlot.assignments.find(a => a.stationId === stationId);
+        if (!assignment) return undefined;
+        return buddyPairs.find(p => p.id === assignment.pairId);
+    };
+
+    const applyTemplate = (template: string) => {
+        const updated = stations.map((s, i) => {
+            const st = { ...s };
+            switch (template) {
+                case 'linear':
+                    st.position = { x: 20 + i * 130, y: 120 };
+                    break;
+                case 'l-shape':
+                    if (i < 3) st.position = { x: 20 + i * 130, y: 60 };
+                    else st.position = { x: 280, y: 60 + (i - 2) * 90 };
+                    break;
+                case 'staggered':
+                    st.position = { x: 20 + i * 130, y: i % 2 === 0 ? 80 : 170 };
+                    break;
+                default:
+                    break;
+            }
+            return st;
+        });
+        onUpdateStations(updated);
+        onUpdateLayout(template);
+    };
+
+    const handleAddStation = () => {
+        const newId = `st-${Date.now()}`;
+        const newStation: Station = {
+            id: newId,
+            name: 'New Station',
+            shortName: 'New',
+            status: 'active',
+            position: { x: 20, y: 200 },
+            width: 110,
+            height: 70,
+        };
+        onUpdateStations([...stations, newStation]);
+    };
+
+    const handleRemoveStation = (id: string) => {
+        onUpdateStations(stations.filter(s => s.id !== id));
+    };
+
+    // Desktop drag-and-drop
+    const handleDragStart = (e: React.DragEvent, stationId: string) => {
+        setDraggingId(stationId);
+        e.dataTransfer.setData('text/plain', stationId);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        if (!draggingId || !canvasRef.current) return;
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = Math.max(0, Math.min(canvasWidth - 110, e.clientX - rect.left - 55));
+        const y = Math.max(0, Math.min(canvasHeight - 70, e.clientY - rect.top - 35));
+        const updated = stations.map(s =>
+            s.id === draggingId ? { ...s, position: { x: Math.round(x), y: Math.round(y) } } : s
+        );
+        onUpdateStations(updated);
+        setDraggingId(null);
+    };
+
+    // Mobile tap-to-move
+    const handleCanvasTap = (e: React.MouseEvent) => {
+        if (!selectedStationId || !canvasRef.current) return;
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = Math.max(0, Math.min(canvasWidth - 110, e.clientX - rect.left - 55));
+        const y = Math.max(0, Math.min(canvasHeight - 70, e.clientY - rect.top - 35));
+        const updated = stations.map(s =>
+            s.id === selectedStationId ? { ...s, position: { x: Math.round(x), y: Math.round(y) } } : s
+        );
+        onUpdateStations(updated);
+        setSelectedStationId(null);
+    };
+
+    const handleStationTap = (e: React.MouseEvent, stationId: string) => {
+        e.stopPropagation();
+        if (selectedStationId === stationId) {
+            setSelectedStationId(null);
+        } else {
+            setSelectedStationId(stationId);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Template presets + controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] mr-2">Layout</p>
+                {(['linear', 'l-shape', 'staggered'] as const).map(t => (
+                    <button
+                        key={t}
+                        onClick={() => applyTemplate(t)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
+                            layoutTemplate === t ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                        }`}
+                        style={{ minHeight: '36px' }}
+                    >
+                        {t === 'l-shape' ? 'L-Shape' : t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                ))}
+                <div className="flex-1" />
+                <button
+                    onClick={handleAddStation}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-[10px] font-black uppercase hover:bg-green-100 transition-all"
+                    style={{ minHeight: '36px' }}
+                >
+                    <Plus size={12} /> Station
+                </button>
+            </div>
+
+            {selectedStationId && (
+                <p className="text-xs text-brand font-bold animate-pulse">
+                    Tap on the canvas to move {stations.find(s => s.id === selectedStationId)?.shortName}
+                </p>
+            )}
+
+            {/* Canvas */}
+            <div
+                ref={canvasRef}
+                onClick={handleCanvasTap}
+                onDragOver={e => e.preventDefault()}
+                onDrop={handleDrop}
+                className="relative bg-gradient-to-b from-zinc-200 via-zinc-100 to-zinc-50 rounded-2xl border-2 border-zinc-200 overflow-x-auto"
+                style={{ width: '100%', minHeight: `${Math.max(250, canvasHeight)}px`, height: `${canvasHeight}px` }}
+            >
+                {/* Road decoration */}
+                <div className="absolute top-0 left-0 right-0 h-10 bg-zinc-400 rounded-t-2xl flex items-center justify-center">
+                    <div className="flex items-center gap-3">
+                        {[...Array(8)].map((_, i) => (
+                            <div key={i} className="w-10 h-1 bg-yellow-400 rounded" />
+                        ))}
+                    </div>
+                    <span className="absolute right-4 text-[9px] font-black text-zinc-200 uppercase tracking-widest">Street</span>
+                </div>
+                {/* Curb line */}
+                <div className="absolute top-10 left-0 right-0 h-3 bg-zinc-300" />
+                {/* Sidewalk label */}
+                <div className="absolute bottom-2 left-4 text-[9px] font-black text-zinc-300 uppercase tracking-widest">Sidewalk</div>
+
+                {/* Station blocks */}
+                {stations.map(station => {
+                    const pair = getCurrentPairForStation(station.id);
+                    const isRoving = rovingTeam.status === 'active' && rovingTeam.assignedPairIds.some(pid =>
+                        rotationSlots.some(sl => sl.assignments.some(a => a.pairId === pid && a.stationId === station.id))
+                    );
+                    return (
+                        <div
+                            key={station.id}
+                            draggable
+                            onDragStart={e => handleDragStart(e, station.id)}
+                            onClick={e => handleStationTap(e, station.id)}
+                            className={`absolute rounded-xl border-2 cursor-pointer transition-all select-none flex flex-col items-center justify-center text-center p-1 ${
+                                selectedStationId === station.id ? 'ring-2 ring-brand ring-offset-2 scale-105 z-10' :
+                                station.status === 'depleted' ? 'opacity-50' : 'hover:scale-102'
+                            }`}
+                            style={{
+                                left: station.position.x,
+                                top: station.position.y,
+                                width: station.width,
+                                height: station.height,
+                                minWidth: '90px',
+                                backgroundColor: station.status === 'depleted' ? '#f4f4f5' : `${getStationColor(station.id)}15`,
+                                borderColor: station.status === 'depleted' ? '#d4d4d8' : getStationColor(station.id),
+                            }}
+                        >
+                            <span className="text-[10px] font-black leading-tight" style={{ color: getStationColor(station.id) }}>
+                                {station.shortName}
+                            </span>
+                            {pair && (
+                                <span className="text-[8px] font-bold text-zinc-500 mt-0.5 truncate max-w-full px-1">
+                                    {pair.label}
+                                </span>
+                            )}
+                            {station.status === 'depleted' && (
+                                <span className="text-[7px] font-black text-red-500 uppercase">Depleted</span>
+                            )}
+                            {isRoving && (
+                                <span className="text-[7px] font-black text-orange-500 uppercase">Roving</span>
+                            )}
+                            {selectedStationId === station.id && (
+                                <button
+                                    onClick={e => { e.stopPropagation(); handleRemoveStation(station.id); }}
+                                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                                >
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+// ============================================================
+// ROTATION SCHEDULE VIEW
+// ============================================================
+const RotationScheduleView: React.FC<{
+    buddyPairs: BuddyPair[];
+    stations: Station[];
+    rotationSlots: RotationSlot[];
+    serviceStart: string;
+    serviceEnd: string;
+    rotationMinutes: number;
+    onUpdateSlots: (slots: RotationSlot[]) => void;
+    onUpdateRotationMinutes: (minutes: number) => void;
+}> = ({ buddyPairs, stations, rotationSlots, serviceStart, serviceEnd, rotationMinutes, onUpdateSlots, onUpdateRotationMinutes }) => {
+
+    const corePairs = buddyPairs.filter(p => p.pairType === 'core');
+    const activeStations = stations.filter(s => s.status === 'active');
+
+    const generateSchedule = () => {
+        if (corePairs.length === 0 || activeStations.length === 0) return;
+
+        const [startH, startM] = serviceStart.split(':').map(Number);
+        const [endH, endM] = serviceEnd.split(':').map(Number);
+        const totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        const numSlots = Math.floor(totalMinutes / rotationMinutes);
+        const N = corePairs.length;
+        const S = activeStations.length;
+
+        const slots: RotationSlot[] = [];
+        for (let k = 0; k < numSlots; k++) {
+            const slotStartMin = (startH * 60 + startM) + k * rotationMinutes;
+            const slotEndMin = slotStartMin + rotationMinutes;
+            const sH = Math.floor(slotStartMin / 60);
+            const sM = slotStartMin % 60;
+            const eH = Math.floor(slotEndMin / 60);
+            const eM = slotEndMin % 60;
+
+            const assignments = corePairs.map((pair, i) => ({
+                pairId: pair.id,
+                stationId: activeStations[(i + k) % S].id,
+                rolesSwapped: k % 2 === 1,
+            }));
+
+            slots.push({
+                slotIndex: k,
+                startTime: `${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}`,
+                endTime: `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}`,
+                assignments,
+            });
+        }
+        onUpdateSlots(slots);
+    };
+
+    const getStationName = (id: string) => stations.find(s => s.id === id)?.shortName || id;
+    const getPairLabel = (id: string) => buddyPairs.find(p => p.id === id)?.label || id;
+
+    return (
+        <div className="space-y-4">
+            {/* Controls */}
+            <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.1em]">Rotation</label>
+                    <select
+                        value={rotationMinutes}
+                        onChange={e => onUpdateRotationMinutes(Number(e.target.value))}
+                        className="p-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none"
+                    >
+                        {[20, 30, 40, 45, 60].map(m => <option key={m} value={m}>{m} min</option>)}
+                    </select>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500">
+                    <Clock size={12} /> {serviceStart} — {serviceEnd}
+                </div>
+                <div className="flex-1" />
+                <button
+                    onClick={generateSchedule}
+                    disabled={corePairs.length === 0 || activeStations.length === 0}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-full text-[10px] font-black uppercase tracking-wide hover:bg-brand/90 disabled:opacity-40 transition-all"
+                    style={{ minHeight: '44px' }}
+                >
+                    <Grid3X3 size={14} /> Generate Schedule
+                </button>
+            </div>
+
+            {corePairs.length === 0 && (
+                <p className="text-xs text-amber-600 font-bold">Create buddy pairs first to generate a rotation schedule.</p>
+            )}
+
+            {/* Schedule Grid */}
+            {rotationSlots.length > 0 && (
+                <div className="overflow-x-auto -mx-2 px-2">
+                    <table className="w-full text-xs border-collapse min-w-[400px]">
+                        <thead>
+                            <tr>
+                                <th className="p-2 text-left text-[10px] font-black text-zinc-400 uppercase tracking-wide border-b border-zinc-100">Time</th>
+                                {corePairs.map(pair => (
+                                    <th key={pair.id} className="p-2 text-center text-[10px] font-black text-zinc-400 uppercase tracking-wide border-b border-zinc-100">
+                                        {pair.label}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rotationSlots.map(slot => (
+                                <tr key={slot.slotIndex} className="border-b border-zinc-50">
+                                    <td className="p-2 font-bold text-zinc-600 whitespace-nowrap">
+                                        {slot.startTime}–{slot.endTime}
+                                    </td>
+                                    {corePairs.map(pair => {
+                                        const assignment = slot.assignments.find(a => a.pairId === pair.id);
+                                        if (!assignment) return <td key={pair.id} className="p-2 text-center text-zinc-300">—</td>;
+                                        const stId = assignment.stationId;
+                                        return (
+                                            <td key={pair.id} className="p-2 text-center">
+                                                <div
+                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black"
+                                                    style={{
+                                                        backgroundColor: `${getStationColor(stId)}15`,
+                                                        color: getStationColor(stId),
+                                                    }}
+                                                >
+                                                    {getStationName(stId)}
+                                                    {assignment.rolesSwapped && <Shuffle size={8} className="opacity-50" />}
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div className="flex items-center gap-3 mt-3 text-[9px] text-zinc-400 font-bold">
+                        <span className="flex items-center gap-1"><Shuffle size={8} /> = Roles swapped (observer ↔ hands-on)</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============================================================
+// LIVE OPS CONTROLS
+// ============================================================
+const LiveOpsControls: React.FC<{
+    stations: Station[];
+    buddyPairs: BuddyPair[];
+    rotationSlots: RotationSlot[];
+    rovingTeam: RovingTeam;
+    reallocationLog: ReallocationEntry[];
+    serviceStart: string;
+    rotationMinutes: number;
+    user: Volunteer;
+    onUpdateStations: (stations: Station[]) => void;
+    onReallocate: (entry: Omit<ReallocationEntry, 'id' | 'timestamp'>) => void;
+    onUpdateRovingTeam: (team: RovingTeam) => void;
+    eventId: string;
+}> = ({ stations, buddyPairs, rotationSlots, rovingTeam, reallocationLog, serviceStart, rotationMinutes, user, onUpdateStations, onReallocate, onUpdateRovingTeam, eventId }) => {
+    const [depletedReason, setDepletedReason] = useState<Record<string, string>>({});
+
+    // Current rotation slot based on time
+    const currentSlotIndex = useMemo(() => {
+        const now = new Date();
+        const idx = rotationSlots.findIndex(slot => {
+            const [sh, sm] = slot.startTime.split(':').map(Number);
+            const [eh, em] = slot.endTime.split(':').map(Number);
+            const start = new Date(); start.setHours(sh, sm, 0, 0);
+            const end = new Date(); end.setHours(eh, em, 0, 0);
+            return now >= start && now < end;
+        });
+        return idx;
+    }, [rotationSlots]);
+
+    const currentSlot = currentSlotIndex >= 0 ? rotationSlots[currentSlotIndex] : null;
+
+    const handleMarkDepleted = (stationId: string) => {
+        const updated = stations.map(s =>
+            s.id === stationId ? { ...s, status: 'depleted' as StationStatus, depletedAt: new Date().toISOString(), depletedReason: depletedReason[stationId] || 'Supplies exhausted' } : s
+        );
+        onUpdateStations(updated);
+
+        // Find pair at this station and suggest reallocation
+        if (currentSlot) {
+            const assignment = currentSlot.assignments.find(a => a.stationId === stationId);
+            if (assignment) {
+                const activeStations = updated.filter(s => s.status === 'active');
+                // Score by priority + understaffing
+                const assignedCounts: Record<string, number> = {};
+                currentSlot.assignments.forEach(a => {
+                    if (updated.find(s => s.id === a.stationId)?.status === 'active') {
+                        assignedCounts[a.stationId] = (assignedCounts[a.stationId] || 0) + 1;
+                    }
+                });
+                let bestStation = activeStations[0];
+                let bestScore = -1;
+                for (const st of activeStations) {
+                    const priority = STATION_PRIORITY[st.id] || 3;
+                    const understaffBonus = (assignedCounts[st.id] || 0) === 0 ? 5 : 0;
+                    const score = priority + understaffBonus;
+                    if (score > bestScore) { bestScore = score; bestStation = st; }
+                }
+                if (bestStation) {
+                    onReallocate({
+                        pairId: assignment.pairId,
+                        fromStationId: stationId,
+                        toStationId: bestStation.id,
+                        reason: depletedReason[stationId] || 'Station depleted',
+                        triggeredBy: user.id,
+                    });
+                    toastService.success(`Pair reallocated to ${bestStation.shortName}`);
+                }
+            }
+        }
+    };
+
+    const handleReactivateStation = (stationId: string) => {
+        const updated = stations.map(s =>
+            s.id === stationId ? { ...s, status: 'active' as StationStatus, depletedAt: undefined, depletedReason: undefined } : s
+        );
+        onUpdateStations(updated);
+    };
+
+    const handleActivateRoving = () => {
+        const leadPair = buddyPairs.find(p => p.pairType === 'lead_outreach');
+        onUpdateRovingTeam({
+            status: 'active',
+            activatedAt: new Date().toISOString(),
+            leadPairId: leadPair?.id,
+            assignedPairIds: leadPair ? [leadPair.id] : [],
+            reason: 'Roving team activated for outreach',
+        });
+        toastService.success('Roving team activated');
+    };
+
+    const handleDeactivateRoving = () => {
+        onUpdateRovingTeam({
+            status: 'inactive',
+            assignedPairIds: [],
+        });
+        toastService.info('Roving team deactivated — pairs returned to rotation');
+    };
+
+    const handleAddPairToRoving = (pairId: string) => {
+        if (rovingTeam.assignedPairIds.includes(pairId)) return;
+        onUpdateRovingTeam({
+            ...rovingTeam,
+            assignedPairIds: [...rovingTeam.assignedPairIds, pairId],
+        });
+    };
+
+    const handleRemovePairFromRoving = (pairId: string) => {
+        onUpdateRovingTeam({
+            ...rovingTeam,
+            assignedPairIds: rovingTeam.assignedPairIds.filter(id => id !== pairId),
+        });
+    };
+
+    const getPairLabel = (id: string) => buddyPairs.find(p => p.id === id)?.label || id;
+    const getStationName = (id: string) => stations.find(s => s.id === id)?.shortName || id;
+
+    return (
+        <div className="space-y-5">
+            {/* Current Rotation Timer */}
+            <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Current Rotation</p>
+                    {currentSlot ? (
+                        <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase">
+                            <Play size={10} /> Slot {currentSlotIndex + 1} — {currentSlot.startTime}–{currentSlot.endTime}
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-black uppercase">
+                            <Pause size={10} /> Not in service window
+                        </span>
+                    )}
+                </div>
+                {currentSlot && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {currentSlot.assignments.map(a => (
+                            <div key={a.pairId} className="flex items-center gap-1 px-2 py-1 bg-white border border-zinc-100 rounded-lg text-[10px] font-bold">
+                                <span className="text-zinc-500">{getPairLabel(a.pairId)}</span>
+                                <ArrowRight size={8} className="text-zinc-300" />
+                                <span style={{ color: getStationColor(a.stationId) }}>{getStationName(a.stationId)}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {currentSlot && (
+                    <button
+                        onClick={async () => {
+                            const assignmentSummary = currentSlot.assignments.map(a =>
+                                `${getPairLabel(a.pairId)} → ${getStationName(a.stationId)}`
+                            ).join(', ');
+                            try {
+                                await apiService.post(`/api/ops/rotation-notify/${eventId}`, {
+                                    slotIndex: currentSlotIndex,
+                                    message: `Rotation ${currentSlotIndex + 1}: ${assignmentSummary}`,
+                                });
+                                toastService.success('Rotation notification sent to all volunteers');
+                            } catch { toastService.error('Failed to send notification'); }
+                        }}
+                        className="mt-3 flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-full text-[10px] font-black uppercase tracking-wide hover:bg-brand/90 transition-all"
+                        style={{ minHeight: '36px' }}
+                    >
+                        <Send size={12} /> Notify All Volunteers
+                    </button>
+                )}
+            </div>
+
+            {/* Station Status Board */}
+            <div className="space-y-2">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Station Status</p>
+                {stations.map(station => (
+                    <div key={station.id} className="flex items-center gap-2 p-3 bg-white border border-zinc-100 rounded-xl flex-wrap">
+                        <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: station.status === 'active' ? '#10b981' : '#ef4444' }}
+                        />
+                        <span className="text-xs font-black text-zinc-700 flex-1 min-w-0">{station.shortName}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-wide ${
+                            station.status === 'active' ? 'text-green-600' : 'text-red-500'
+                        }`}>
+                            {station.status}
+                        </span>
+                        {station.status === 'active' ? (
+                            <div className="flex items-center gap-1">
+                                <input
+                                    type="text"
+                                    placeholder="Reason..."
+                                    value={depletedReason[station.id] || ''}
+                                    onChange={e => setDepletedReason(prev => ({ ...prev, [station.id]: e.target.value }))}
+                                    className="w-24 px-2 py-1 text-[10px] border border-zinc-200 rounded-lg outline-none"
+                                />
+                                <button
+                                    onClick={() => handleMarkDepleted(station.id)}
+                                    className="px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-black uppercase hover:bg-red-100 transition-all"
+                                    style={{ minHeight: '32px' }}
+                                >
+                                    Deplete
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => handleReactivateStation(station.id)}
+                                className="px-2 py-1 bg-green-50 text-green-600 rounded-lg text-[10px] font-black uppercase hover:bg-green-100 transition-all"
+                                style={{ minHeight: '32px' }}
+                            >
+                                Reactivate
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Roving Team */}
+            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-3">
+                <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.15em]">Roving Team</p>
+                    {rovingTeam.status === 'inactive' ? (
+                        <button
+                            onClick={handleActivateRoving}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white rounded-full text-[10px] font-black uppercase hover:bg-orange-600 transition-all"
+                            style={{ minHeight: '36px' }}
+                        >
+                            <Radio size={12} /> Activate
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleDeactivateRoving}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-200 text-zinc-600 rounded-full text-[10px] font-black uppercase hover:bg-zinc-300 transition-all"
+                            style={{ minHeight: '36px' }}
+                        >
+                            <Pause size={12} /> Deactivate
+                        </button>
+                    )}
+                </div>
+                {rovingTeam.status === 'active' && (
+                    <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                            {rovingTeam.assignedPairIds.map(pid => (
+                                <div key={pid} className="flex items-center gap-1 px-2 py-1 bg-white border border-orange-200 rounded-lg text-[10px] font-bold text-orange-700">
+                                    <Radio size={10} /> {getPairLabel(pid)}
+                                    <button onClick={() => handleRemovePairFromRoving(pid)} className="ml-1 hover:text-red-500"><X size={10} /></button>
+                                </div>
+                            ))}
+                        </div>
+                        {/* Add pair to roving */}
+                        <div className="flex flex-wrap gap-1">
+                            {buddyPairs.filter(p => !rovingTeam.assignedPairIds.includes(p.id)).map(p => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => handleAddPairToRoving(p.id)}
+                                    className="px-2 py-1 bg-white border border-zinc-200 rounded-lg text-[9px] font-bold text-zinc-500 hover:border-orange-300 transition-all"
+                                >
+                                    + {p.label}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-[9px] text-orange-500 font-medium">
+                            Tasks: Conduct surveys, distribute harm reduction supplies, direct clients to stations
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Reallocation Log */}
+            {reallocationLog.length > 0 && (
+                <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Reallocation Log</p>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {reallocationLog.slice().reverse().map((entry, i) => (
+                            <div key={entry.id || i} className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-lg text-[10px] font-bold text-zinc-600">
+                                <Zap size={10} className="text-amber-500 shrink-0" />
+                                <span>{getPairLabel(entry.pairId)}</span>
+                                <span className="text-zinc-300">{getStationName(entry.fromStationId)}</span>
+                                <ArrowRight size={8} className="text-zinc-300 shrink-0" />
+                                <span style={{ color: getStationColor(entry.toStationId) }}>{getStationName(entry.toStationId)}</span>
+                                <span className="text-zinc-400 ml-auto whitespace-nowrap">{entry.reason}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============================================================
+// STATION ROTATION PLANNER — TOP-LEVEL ORCHESTRATOR
+// ============================================================
+const StationRotationPlanner: React.FC<{
+    eventId: string;
+    registeredVolunteers: Volunteer[];
+    shift: Shift;
+    user: Volunteer;
+}> = ({ eventId, registeredVolunteers, shift, user }) => {
+    const [activeSection, setActiveSection] = useState<'pairs' | 'layout' | 'schedule' | 'live'>('pairs');
+    const [config, setConfig] = useState<StationRotationConfig>({
+        eventId,
+        buddyPairs: [],
+        stations: [...DEFAULT_STREET_MEDICINE_STATIONS],
+        layoutTemplate: 'linear',
+        canvasWidth: 800,
+        canvasHeight: 280,
+        setupStart: '',
+        serviceStart: '',
+        serviceEnd: '',
+        breakdownEnd: '',
+        rotationMinutes: 40,
+        rotationSlots: [],
+        rovingTeam: { status: 'inactive', assignedPairIds: [] },
+        reallocationLog: [],
+        updatedAt: '',
+        updatedBy: '',
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Derive service times from shift
+    useEffect(() => {
+        if (shift.startTime && shift.endTime) {
+            const parseTime = (t: string) => {
+                if (t.includes('T')) {
+                    const d = new Date(t);
+                    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                }
+                const match = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+                if (!match) return t;
+                let h = parseInt(match[1]);
+                const m = match[2];
+                if (match[3]?.toUpperCase() === 'PM' && h < 12) h += 12;
+                if (match[3]?.toUpperCase() === 'AM' && h === 12) h = 0;
+                return `${String(h).padStart(2, '0')}:${m}`;
+            };
+            setConfig(prev => ({
+                ...prev,
+                setupStart: prev.setupStart || parseTime(shift.startTime),
+                serviceStart: prev.serviceStart || parseTime(shift.startTime),
+                serviceEnd: prev.serviceEnd || parseTime(shift.endTime),
+                breakdownEnd: prev.breakdownEnd || parseTime(shift.endTime),
+            }));
+        }
+    }, [shift.startTime, shift.endTime]);
+
+    // Load config from API
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await apiService.get(`/api/ops/station-rotation/${eventId}`);
+                if (res.config) {
+                    setConfig(prev => ({ ...prev, ...res.config }));
+                }
+            } catch { /* No config yet, use defaults */ }
+            setIsLoading(false);
+        })();
+    }, [eventId]);
+
+    // Debounced auto-save (1.5s)
+    useEffect(() => {
+        if (isLoading) return;
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(async () => {
+            try {
+                await apiService.put(`/api/ops/station-rotation/${eventId}`, {
+                    ...config,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: user.id,
+                });
+            } catch { /* Silent fail for auto-save */ }
+        }, 1500);
+        return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    }, [config, isLoading]);
+
+    const updateConfig = (partial: Partial<StationRotationConfig>) => {
+        setConfig(prev => ({ ...prev, ...partial }));
+    };
+
+    const handleReallocate = (entry: Omit<ReallocationEntry, 'id' | 'timestamp'>) => {
+        const fullEntry: ReallocationEntry = {
+            ...entry,
+            id: `realloc-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+        };
+        updateConfig({ reallocationLog: [...config.reallocationLog, fullEntry] });
+        // Also save to backend
+        apiService.post(`/api/ops/station-rotation/${eventId}/reallocate`, fullEntry).catch(() => {});
+    };
+
+    const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Licensed Medical Professional'];
+    const isLeadUser = user.isAdmin || LEAD_ROLES.includes(user.role);
+
+    const sections = [
+        { key: 'pairs' as const, label: 'Buddy Pairs', icon: Users },
+        { key: 'layout' as const, label: 'Layout', icon: Layout },
+        { key: 'schedule' as const, label: 'Schedule', icon: Calendar },
+        { key: 'live' as const, label: 'Live Ops', icon: Radio },
+    ];
+
+    if (isLoading) {
+        return (
+            <div className="p-5 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner flex items-center justify-center gap-3">
+                <Loader2 size={20} className="animate-spin text-brand" />
+                <span className="text-sm font-bold text-zinc-400">Loading station rotation...</span>
+            </div>
+        );
+    }
+
+    // Simplified view for regular volunteers — just show assignment + schedule
+    if (!isLeadUser) {
+        const myPair = config.buddyPairs.find(p => p.volunteerId1 === user.id || p.volunteerId2 === user.id);
+        const now = new Date();
+        const currentSlot = config.rotationSlots.find(slot => {
+            const [sh, sm] = slot.startTime.split(':').map(Number);
+            const [eh, em] = slot.endTime.split(':').map(Number);
+            const s = new Date(); s.setHours(sh, sm, 0, 0);
+            const e = new Date(); e.setHours(eh, em, 0, 0);
+            return now >= s && now < e;
+        });
+        const myAssignment = currentSlot?.assignments.find(a => a.pairId === myPair?.id);
+        const myStation = myAssignment ? config.stations.find(s => s.id === myAssignment.stationId) : null;
+        const nextSlotIdx = currentSlot ? currentSlot.slotIndex + 1 : 0;
+        const nextSlot = config.rotationSlots.find(s => s.slotIndex === nextSlotIdx);
+        const nextAssignment = nextSlot?.assignments.find(a => a.pairId === myPair?.id);
+        const nextStation = nextAssignment ? config.stations.find(s => s.id === nextAssignment.stationId) : null;
+        const buddyName = myPair
+            ? registeredVolunteers.find(v => v.id === (myPair.volunteerId1 === user.id ? myPair.volunteerId2 : myPair.volunteerId1))?.name
+            : null;
+
+        return (
+            <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-4">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">My Station Assignment</p>
+                {myPair ? (
+                    <div className="space-y-3">
+                        {buddyName && (
+                            <div className="flex items-center gap-3 p-3 bg-brand/5 rounded-xl border border-brand/10">
+                                <Users size={16} className="text-brand shrink-0" />
+                                <div>
+                                    <p className="text-xs font-black text-zinc-900">Buddy: {buddyName}</p>
+                                    <p className="text-[10px] text-zinc-500">{myPair.label}</p>
+                                </div>
+                            </div>
+                        )}
+                        {myStation ? (
+                            <div className="p-4 bg-white rounded-xl border border-zinc-200 space-y-2">
+                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Current Station</p>
+                                <p className="text-lg font-black text-zinc-900">{myStation.name}</p>
+                                {myStation.roleA && <p className="text-xs text-zinc-500">Roles: {myStation.roleA} / {myStation.roleB}</p>}
+                                {currentSlot && <p className="text-xs font-bold text-brand">{currentSlot.startTime} – {currentSlot.endTime}</p>}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-zinc-500 font-bold">No active rotation right now. Check back during service hours.</p>
+                        )}
+                        {nextStation && nextSlot && (
+                            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-wider">Up Next</p>
+                                <p className="text-sm font-bold text-blue-900">{nextStation.name} at {nextSlot.startTime}</p>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-sm text-zinc-500 font-bold">You haven't been assigned a buddy pair yet. Check in with your lead.</p>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Station Rotation Planner</p>
+                <span className="text-[9px] font-bold text-zinc-300">Auto-saved</span>
+            </div>
+
+            {/* Section pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+                {sections.map(s => (
+                    <button
+                        key={s.key}
+                        onClick={() => setActiveSection(s.key)}
+                        className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wide whitespace-nowrap transition-all ${
+                            activeSection === s.key
+                                ? 'bg-brand text-white shadow-md'
+                                : 'bg-white text-zinc-500 border border-zinc-200 hover:border-brand/30'
+                        }`}
+                        style={{ minHeight: '44px' }}
+                    >
+                        <s.icon size={14} />
+                        {s.label}
+                        {s.key === 'pairs' && config.buddyPairs.length > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-[8px]">{config.buddyPairs.length}</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {/* Active section content */}
+            {activeSection === 'pairs' && (
+                <BuddyPairBuilder
+                    registeredVolunteers={registeredVolunteers}
+                    buddyPairs={config.buddyPairs}
+                    clinicalLeadId={config.clinicalLeadId}
+                    onUpdate={(pairs, clId) => updateConfig({ buddyPairs: pairs, clinicalLeadId: clId })}
+                />
+            )}
+
+            {activeSection === 'layout' && (
+                <SidewalkLayoutCanvas
+                    stations={config.stations}
+                    buddyPairs={config.buddyPairs}
+                    rotationSlots={config.rotationSlots}
+                    rovingTeam={config.rovingTeam}
+                    canvasWidth={config.canvasWidth}
+                    canvasHeight={config.canvasHeight}
+                    layoutTemplate={config.layoutTemplate || 'linear'}
+                    onUpdateStations={stations => updateConfig({ stations })}
+                    onUpdateLayout={t => updateConfig({ layoutTemplate: t as StationRotationConfig['layoutTemplate'] })}
+                />
+            )}
+
+            {activeSection === 'schedule' && (
+                <RotationScheduleView
+                    buddyPairs={config.buddyPairs}
+                    stations={config.stations}
+                    rotationSlots={config.rotationSlots}
+                    serviceStart={config.serviceStart || '10:00'}
+                    serviceEnd={config.serviceEnd || '14:00'}
+                    rotationMinutes={config.rotationMinutes}
+                    onUpdateSlots={slots => updateConfig({ rotationSlots: slots })}
+                    onUpdateRotationMinutes={m => updateConfig({ rotationMinutes: m })}
+                />
+            )}
+
+            {activeSection === 'live' && (
+                <LiveOpsControls
+                    stations={config.stations}
+                    buddyPairs={config.buddyPairs}
+                    rotationSlots={config.rotationSlots}
+                    rovingTeam={config.rovingTeam}
+                    reallocationLog={config.reallocationLog}
+                    serviceStart={config.serviceStart || '10:00'}
+                    rotationMinutes={config.rotationMinutes}
+                    user={user}
+                    eventId={eventId}
+                    onUpdateStations={stations => updateConfig({ stations })}
+                    onReallocate={handleReallocate}
+                    onUpdateRovingTeam={team => updateConfig({ rovingTeam: team })}
+                />
+            )}
         </div>
     );
 };

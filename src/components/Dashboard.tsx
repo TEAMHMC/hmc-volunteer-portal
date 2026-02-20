@@ -111,8 +111,8 @@ const EventManagementView: React.FC<{
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Event Management</h2>
-          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Create, edit, and manage community health events.</p>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Event Management</h2>
+          <p className="text-zinc-500 mt-3 md:mt-4 font-medium text-base md:text-lg leading-relaxed">Create, edit, and manage community health events.</p>
         </div>
         <div className="flex bg-white border border-zinc-100 p-1.5 md:p-2 rounded-full shadow-elevation-1 shrink-0">
           {subTabs.map(tab => (
@@ -371,7 +371,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
     // ROLE-SPECIFIC
     const roleItems: NavItem[] = [];
-    if (displayUser.role === 'Volunteer Lead' && canAccessOperationalTools) {
+    if ((displayUser.isTeamLead || displayUser.role === 'Volunteer Lead') && canAccessOperationalTools) {
       roleItems.push({ id: 'my-team', label: 'My Team', icon: Users });
     }
     if (canAccessOperationalTools && medicalRoles.includes(displayUser.role)) {
@@ -437,7 +437,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {showTour && <SystemTour onComplete={handleTourComplete} onClose={handleTourComplete} />}
       
       {showBetaBanner && (
-        <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-bold z-[101] md:pl-[320px] gap-4 px-12 md:px-4">
+        <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-bold z-[101] md:pl-[320px] gap-4 px-4">
             <ShieldAlert size={16} className="text-amber-600 shrink-0" />
             <span className="text-center">This is a beta release. Please report any issues to <a href="mailto:dev@healthmatters.clinic" className="underline font-black">dev@healthmatters.clinic</a>.</span>
             <button onClick={handleDismissBetaBanner} className="p-2 rounded-full hover:bg-amber-200/50 absolute right-4 md:static">
@@ -458,7 +458,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       </div>
 
       {/* Mobile top header */}
-      <div className={`fixed top-10 left-0 right-0 h-14 bg-white border-b border-zinc-200 flex md:hidden items-center justify-between px-4 z-[98] ${showBetaBanner ? (viewingAsRole ? 'mt-24' : 'mt-12') : (viewingAsRole ? 'mt-12' : '')}`}>
+      <div className={`fixed top-10 left-0 right-0 h-14 bg-white/90 backdrop-blur-xl border-b border-zinc-200/50 flex md:hidden items-center justify-between px-4 z-[98] ${showBetaBanner ? (viewingAsRole ? 'mt-24' : 'mt-12') : (viewingAsRole ? 'mt-12' : '')}`}>
         <button onClick={() => setShowMobileMenu(true)} className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center">
           <Menu size={20} className="text-zinc-700" />
         </button>
@@ -482,7 +482,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {showMobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[299] md:hidden" onClick={() => setShowMobileMenu(false)} />
-          <div className="fixed inset-y-0 left-0 w-[300px] bg-white z-[300] md:hidden flex flex-col p-6 gap-6 overflow-y-auto animate-in slide-in-from-left duration-200">
+          <div className="fixed inset-y-0 left-0 w-[min(300px,85vw)] bg-white z-[300] md:hidden flex flex-col p-5 gap-5 overflow-y-auto animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center">
@@ -536,7 +536,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
 
       {/* Mobile bottom tab bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 flex md:hidden items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-[98]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-zinc-200/50 flex md:hidden items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-[98]">
         {[
           { id: 'overview', label: 'Home', icon: Activity },
           { id: 'academy', label: 'Training', icon: GraduationCap },
@@ -820,10 +820,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-zinc-400">{getFormattedDate()}</p>
-                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">
+                    <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">
                       {getGreeting(displayUser.name)}.
                     </h1>
-                    <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed max-w-lg">
+                    <p className="text-zinc-500 mt-3 md:mt-4 font-medium text-base md:text-lg leading-relaxed max-w-lg">
                       {isOnboarding
                         ? "Complete your orientation to unlock missions."
                         : "Ready to continue making a difference?"}
@@ -860,7 +860,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   const lvl = computeLevel(displayUser.points);
                   if (lvl.isMaxLevel) {
                     return (
-                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-[40px] p-8 text-center">
+                      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-3xl md:rounded-[40px] p-5 md:p-8 text-center">
                         <p className="text-sm font-bold text-amber-700">
                           <i className="fa-solid fa-crown text-amber-500 mr-2" />
                           Max Level Reached — {lvl.title}
@@ -869,7 +869,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                     );
                   }
                   return (
-                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-[40px] p-8 shadow-sm hover:shadow-2xl transition-shadow">
+                    <div className="bg-gradient-to-r from-white to-zinc-50/50 border border-zinc-200 rounded-3xl md:rounded-[40px] p-5 md:p-8 shadow-sm hover:shadow-2xl transition-shadow">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-zinc-600">
                           <i className="fa-solid fa-star text-brand mr-1.5" />
@@ -891,7 +891,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   );
                 })()}
             </header>
-            {displayUser.role === 'Volunteer Lead' ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} newApplicantsCount={newApplicantsCount} />}
+            {(displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} newApplicantsCount={newApplicantsCount} />}
             <ComingUp user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} />
            </>
          )}
@@ -899,7 +899,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
 
-         {activeTab === 'my-team' && displayUser.role === 'Volunteer Lead' && canAccessOperationalTools && <AdminVolunteerDirectory volunteers={allVolunteers.filter(v => v.managedBy === displayUser.id)} setVolunteers={setAllVolunteers} currentUser={displayUser} />}
+         {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
@@ -956,22 +956,22 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Hero Card - Glass morphism style */}
-          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-[40px] p-8 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-3xl md:rounded-[40px] p-5 md:p-8 text-white shadow-elevation-3 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-              <div className="relative z-10 flex flex-col justify-between min-h-[200px]">
+              <div className="relative z-10 flex flex-col justify-between min-h-[160px] md:min-h-[200px]">
                 <div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-widest mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-widest mb-5 md:mb-8">
                       <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
                       Getting Started
                     </div>
-                    <h3 className="text-2xl md:text-2xl font-bold tracking-normal leading-[1.1] mb-6">
+                    <h3 className="text-xl md:text-2xl font-bold tracking-normal leading-[1.1] mb-4 md:mb-6">
                       Welcome to the team, {user.name?.split(' ')[0]}.
                     </h3>
-                    <p className="text-lg font-bold text-white/80 max-w-lg leading-relaxed">
+                    <p className="text-base md:text-lg font-bold text-white/80 max-w-lg leading-relaxed">
                       Complete 2 short orientation videos to unlock community missions. You can already explore Training Academy, Comms, Doc Hub, and Impact Hub.
                     </p>
                 </div>
-                <button onClick={() => onNavigate('academy')} className="w-fit mt-8 px-8 py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-bold text-base uppercase tracking-wide shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
+                <button onClick={() => onNavigate('academy')} className="w-fit mt-6 md:mt-8 px-6 md:px-8 py-4 md:py-5 bg-white text-zinc-900 border border-zinc-950 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:shadow-elevation-2 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group/btn">
                     <span className="w-2 h-2 rounded-full bg-zinc-950" />
                     Start Training
                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -983,7 +983,7 @@ const OnboardingView = ({ user, onNavigate }: { user: Volunteer, onNavigate: (ta
 
         <div className="space-y-6">
           {/* Profile Status Card - Glass effect */}
-          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
+          <div className="bg-white/80 backdrop-blur-xl p-5 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-xl font-bold text-zinc-900">Profile Status</h4>
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
@@ -1066,7 +1066,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
           {/* Training Required Card - Modern gradient */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[40px] p-8 md:p-8 border border-amber-200/50 shadow-sm hover:shadow-2xl transition-shadow relative overflow-hidden">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-amber-200/50 shadow-sm hover:shadow-2xl transition-shadow relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="relative z-10">
               <div className="flex items-start gap-5 mb-6">
@@ -1074,7 +1074,7 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
                   <GraduationCap size={28} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-amber-900 tracking-tight mb-2">
+                  <h3 className="text-xl md:text-2xl font-black text-amber-900 tracking-tight mb-2">
                     {trainingDone && !roleApproved ? 'Awaiting Role Approval' : 'Complete Your Training'}
                   </h3>
                   <p className="text-amber-700 font-bold">
@@ -1128,14 +1128,14 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
           </div>
         </div>
         <div className="space-y-10">
-          <div className="bg-zinc-50 p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
+          <div className="bg-zinc-50 p-5 md:p-8 rounded-3xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6">
             <h4 className="text-xl font-bold text-zinc-900">Quick Actions</h4>
             <div className="space-y-4">
-              <button onClick={() => onNavigate('academy')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
-                <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
+              <button onClick={() => onNavigate('academy')} className="w-full text-left p-4 md:p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
+                <span className="font-bold text-sm md:text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Continue Training</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
-              <button onClick={() => onNavigate('profile')} className="w-full text-left p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
-                <span className="font-bold text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
+              <button onClick={() => onNavigate('profile')} className="w-full text-left p-4 md:p-6 bg-white rounded-full border border-zinc-950 shadow-elevation-1 flex items-center justify-between group hover:border-brand/30 hover:shadow-elevation-2 transition-all uppercase tracking-wide">
+                <span className="font-bold text-sm md:text-base text-zinc-800 flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-zinc-950" />Update Profile</span><ArrowRight size={16} className="text-zinc-400 group-hover:text-brand transition-colors"/>
               </button>
             </div>
           </div>
@@ -1201,12 +1201,12 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   };
 
   return (
-    <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+    <div className="bg-white rounded-3xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
       {/* Tab Header */}
       <div className="flex border-b border-zinc-100">
         <button
           onClick={() => setActiveCardTab('actions')}
-          className={`flex-1 px-6 py-4 text-sm font-bold transition-colors relative ${activeCardTab === 'actions' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`flex-1 px-4 md:px-6 py-3 md:py-4 text-sm font-bold transition-colors relative ${activeCardTab === 'actions' ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           <i className="fa-solid fa-list-check mr-2" />Actions
           {actionItems.length > 0 && activeCardTab !== 'actions' && (
@@ -1372,10 +1372,10 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
       {/* Hero Card */}
       {heroItem ? (
-        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-[40px] p-8 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-brand via-[#4F5FFF] to-indigo-600 rounded-3xl md:rounded-[40px] p-5 md:p-8 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <span className="px-3 py-1 bg-white/15 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
                 {heroItem.isPersonal ? (heroItem.type === 'shift' ? 'Your Next Mission' : 'Your Next Event') : 'Next Event'}
               </span>
@@ -1386,8 +1386,8 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
                 <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.15em] flex items-center gap-1"><i className="fa-solid fa-check text-[8px]" /> Signed Up</span>
               )}
             </div>
-            <h4 className="text-2xl font-black tracking-tight mb-4">{heroItem.title}</h4>
-            <div className="flex items-center gap-6 text-sm text-white/80 font-bold flex-wrap">
+            <h4 className="text-xl md:text-2xl font-black tracking-tight mb-3 md:mb-4">{heroItem.title}</h4>
+            <div className="flex items-center gap-4 md:gap-6 text-sm text-white/80 font-bold flex-wrap">
               <span className="flex items-center gap-2">
                 <i className="fa-solid fa-calendar text-xs" />
                 {heroItem.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -1408,7 +1408,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           </div>
         </div>
       ) : (
-        <div className="bg-zinc-50 rounded-[40px] p-8 border border-zinc-100 text-center">
+        <div className="bg-zinc-50 rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-zinc-100 text-center">
           <i className="fa-solid fa-compass text-zinc-300 text-2xl mb-3" />
           <p className="text-zinc-400 font-bold text-sm mb-3">No upcoming events scheduled.</p>
           <button onClick={() => onNavigate('calendar')} className="px-5 py-2.5 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide flex items-center gap-2 mx-auto">

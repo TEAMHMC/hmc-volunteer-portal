@@ -329,19 +329,19 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
     return (
         <div className={inline ? "w-full flex flex-col animate-in fade-in" : "fixed inset-0 bg-white z-[1000] flex flex-col animate-in fade-in"}>
             {!inline && (
-            <header className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
-                <h2 className="text-5xl font-black tracking-tighter uppercase italic">Create New Event</h2>
+            <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
+                <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Create New Event</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
             </header>
             )}
-            <main className={inline ? "p-0 space-y-10" : "flex-1 p-8 md:p-8 overflow-y-auto space-y-10"}>
+            <main className={inline ? "p-0 space-y-6 md:space-y-10" : "flex-1 p-4 md:p-8 overflow-y-auto space-y-6 md:space-y-10"}>
                 {/* Basic Details */}
                 <section>
-                    <h3 className="text-xl font-bold text-zinc-900 mb-4">1. Event Details</h3>
+                    <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4">1. Event Details</h3>
                     <div className="space-y-4">
                         <input type="text" placeholder="Event Title" value={eventData.title} onChange={e => setEventData({...eventData, title: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         <textarea placeholder="Description" value={eventData.description} onChange={e => setEventData({...eventData, description: e.target.value})} className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Event Type</label>
                                 <select value={eventData.category} onChange={e => setEventData({...eventData, category: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
@@ -357,7 +357,7 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
                             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Full Address</label>
                             <input type="text" placeholder="e.g., 123 W. Manchester Blvd, Inglewood, CA 90301" value={(eventData as any).address || ''} onChange={e => setEventData({...eventData, address: e.target.value} as any)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date</label>
                                 <input type="date" value={eventData.date} onChange={e => setEventData({...eventData, date: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
@@ -433,8 +433,8 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
 
                 {/* Service Offerings */}
                 <section>
-                     <h3 className="text-xl font-bold text-zinc-900 mb-4">2. Service Offerings</h3>
-                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                     <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4">2. Service Offerings</h3>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {SERVICE_OFFERINGS.map(service => (
                             <button key={service.id} onClick={() => handleServiceToggle(service.id)} className={`p-4 border-2 rounded-2xl text-left ${eventData.serviceOfferingIds?.includes(service.id) ? 'border-brand bg-brand/5' : 'bg-white border-zinc-100'}`}>
                                 <h4 className="font-bold text-zinc-900">{service.name}</h4>
@@ -446,8 +446,8 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
                 
                 {/* Staffing Quotas */}
                 <section>
-                    <h3 className="text-xl font-bold text-zinc-900 mb-4">3. Required Staffing</h3>
-                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
+                    <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4">3. Required Staffing</h3>
+                    <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
                         {eventData.staffingQuotas?.length === 0 && <p className="text-zinc-400 font-bold text-sm text-center">Select services to automatically add staffing requirements.</p>}
                         {eventData.staffingQuotas?.map(quota => (
                             <div key={quota.role} className="flex items-center justify-between">
@@ -477,11 +477,11 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
 
                 {/* Equipment & Resources */}
                 <section>
-                    <h3 className="text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                    <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
                         <Package size={20} /> 4. Equipment & Resources
                     </h3>
                     <p className="text-sm text-zinc-500 mb-4">Select the equipment and resources needed for this event. Adjust quantities as needed.</p>
-                    <div className="space-y-6">
+                    <div className="space-y-4 md:space-y-6">
                         {Object.entries(equipmentByCategory).map(([category, items]) => (
                             <div key={category}>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">{category}</p>
@@ -532,10 +532,10 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
 
                 {/* Event Checklist */}
                 <section>
-                    <h3 className="text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                    <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
                         <ClipboardList size={20} /> 5. Pre-Event Checklist
                     </h3>
-                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-3">
+                    <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-3">
                         {checklist.map((item, idx) => (
                             <div key={idx} className="flex items-center gap-3 group">
                                 <button
@@ -571,10 +571,10 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
 
                 {/* Logistics & Supplies */}
                  <section>
-                    <h3 className="text-xl font-bold text-zinc-900 mb-4">6. Logistics & Supplies</h3>
-                    <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
+                    <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4">6. Logistics & Supplies</h3>
+                    <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 shadow-elevation-1 space-y-4">
                         <input type="number" placeholder="Estimated Attendees" value={eventData.estimatedAttendees || ''} onChange={e => setEventData({...eventData, estimatedAttendees: parseInt(e.target.value, 10) || 0})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
-                        <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-100 disabled:opacity-50">
+                        <button onClick={handleGenerateSupplies} disabled={isGeneratingSupplies} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border border-black text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-100 disabled:opacity-50 min-h-[44px]">
                             {isGeneratingSupplies ? <Loader2 className="animate-spin" size={16}/> : <><Sparkles size={16}/> Generate Supply Suggestions</>}
                         </button>
                         {(isGeneratingSupplies || eventData.supplyList) && (
@@ -625,14 +625,14 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
                 </section>
 
             </main>
-            <footer className="p-8 border-t border-zinc-100 space-y-4">
+            <footer className="p-4 md:p-8 border-t border-zinc-100 space-y-4">
                 {saveError && (
                     <div className="p-4 bg-rose-50 border border-rose-200 rounded-3xl text-sm text-rose-700 font-bold flex items-center gap-2">
                         <AlertTriangle size={16} className="shrink-0" /> {saveError}
                     </div>
                 )}
                 <div className="flex justify-end">
-                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide border border-black shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50">
+                    <button onClick={handleSaveEvent} disabled={isSaving || !eventData.title} className="flex items-center gap-3 px-6 py-4 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide border border-black shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 min-h-[44px] w-full sm:w-auto justify-center">
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : <><Save size={16}/> Save Event</>}
                     </button>
                 </div>

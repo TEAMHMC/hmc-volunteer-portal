@@ -354,18 +354,18 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Header */}
       <header>
-        <h1 className="text-5xl font-black tracking-tighter uppercase italic">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h1>
-        <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
+        <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h1>
+        <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">
           {meetingsOnly ? 'Schedule and manage team meetings.' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal.`}
         </p>
       </header>
 
       {/* Navigation Tabs — hidden in meetingsOnly mode */}
       {!meetingsOnly && (
-        <div className="flex gap-2 bg-zinc-100 p-2 rounded-[40px]">
+        <div className="flex gap-2 bg-zinc-100 p-2 rounded-2xl md:rounded-[40px]">
           {[
             { id: 'meetings', label: 'Meetings', icon: CalendarDays },
             { id: 'forms', label: 'Required Forms', icon: FileSignature },
@@ -390,7 +390,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
       {/* Meetings Tab */}
       {(activeTab === 'meetings' || meetingsOnly) && (
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-8">
           {/* Quick Actions */}
           <div className="flex gap-4 flex-wrap">
             {canManageMeetings && (
@@ -412,13 +412,13 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Upcoming Meetings */}
-          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-8 border-b border-zinc-100">
-              <h3 className="text-xl font-bold text-zinc-900">Upcoming Meetings</h3>
+          <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+            <div className="p-4 md:p-8 border-b border-zinc-100">
+              <h3 className="text-base md:text-xl font-bold text-zinc-900">Upcoming Meetings</h3>
             </div>
             <div className="divide-y divide-zinc-100">
               {meetings.filter(m => m.status === 'scheduled').length === 0 && (
-                <div className="p-8 text-center text-zinc-400">
+                <div className="p-4 md:p-8 text-center text-zinc-400">
                   <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No upcoming meetings scheduled</p>
                   <p className="text-sm text-zinc-600 mt-1">New meetings will appear here once scheduled.</p>
@@ -525,14 +525,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Past Meetings with Minutes */}
-          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-8 border-b border-zinc-100">
-              <h3 className="text-xl font-bold text-zinc-900">Meeting Minutes</h3>
+          <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+            <div className="p-4 md:p-8 border-b border-zinc-100">
+              <h3 className="text-base md:text-xl font-bold text-zinc-900">Meeting Minutes</h3>
               <p className="text-sm text-zinc-600 mt-1">Review and approve minutes from past meetings</p>
             </div>
             <div className="divide-y divide-zinc-100">
               {meetings.filter(m => m.status === 'completed').length === 0 && (
-                <div className="p-8 text-center text-zinc-400">
+                <div className="p-4 md:p-8 text-center text-zinc-400">
                   <FileText size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No completed meetings yet</p>
                 </div>
@@ -574,14 +574,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
       {/* Forms Tab */}
       {activeTab === 'forms' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {BOARD_GOVERNANCE_DOCS.requiredForms.map(form => {
             const signedAt = formSignatures[form.id];
             const isSigned = !!signedAt;
             return (
               <div
                 key={form.id}
-                className={`p-8 rounded-[40px] border-2 shadow-sm hover:shadow-2xl transition-shadow transition-all ${
+                className={`p-4 md:p-8 rounded-2xl md:rounded-[40px] border-2 shadow-sm hover:shadow-2xl transition-shadow transition-all ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' :
                   form.required ? 'border-rose-200 bg-rose-50/30' : 'border-zinc-100 bg-white'
                 }`}
@@ -602,7 +602,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     )}
                   </div>
                 </div>
-                <h4 className="text-xl font-bold text-zinc-900">{form.title}</h4>
+                <h4 className="text-base md:text-xl font-bold text-zinc-900">{form.title}</h4>
                 <p className="text-sm text-zinc-600 mt-2 leading-relaxed">{form.description}</p>
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mt-3">{form.dueDate}</p>
                 {isSigned && (
@@ -635,17 +635,17 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
       {/* Documents Tab */}
       {activeTab === 'documents' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {BOARD_GOVERNANCE_DOCS.governanceDocs.map(doc => (
             <div
               key={doc.id}
               onClick={() => setShowDocViewer(doc.id)}
-              className="p-8 rounded-[40px] border border-zinc-100 bg-white shadow-sm hover:shadow-2xl transition-shadow hover:border-zinc-200 cursor-pointer group"
+              className="p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 bg-white shadow-sm hover:shadow-2xl transition-shadow hover:border-zinc-200 cursor-pointer group"
             >
               <div className="w-12 h-12 rounded-3xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                 <FileText size={24} />
               </div>
-              <h4 className="text-xl font-bold text-zinc-900">{doc.title}</h4>
+              <h4 className="text-base md:text-xl font-bold text-zinc-900">{doc.title}</h4>
               <p className="text-sm text-zinc-600 mt-2 line-clamp-2">{doc.description}</p>
               <div className="flex items-center gap-2 mt-4 text-sm font-bold text-brand">
                 View Document <ChevronRight size={14} />
@@ -657,11 +657,11 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
       {/* Give or Get Tab */}
       {activeTab === 'give-or-get' && (
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-8">
           {/* Goal Setting */}
           {giveOrGet.goal === 0 && (
-            <div className="bg-brand/5 border border-brand/20 p-8 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
-              <h4 className="text-xl font-bold text-zinc-900 mb-2">Set Your Annual Commitment</h4>
+            <div className="bg-brand/5 border border-brand/20 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
+              <h4 className="text-base md:text-xl font-bold text-zinc-900 mb-2">Set Your Annual Commitment</h4>
               <p className="text-sm text-zinc-600 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
               <div className="flex gap-3">
                 <input
@@ -691,7 +691,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Progress Overview */}
           {giveOrGet.goal > 0 && (
-            <div className="bg-gradient-to-br from-brand to-brand-hover p-8 rounded-[40px] text-white">
+            <div className="bg-gradient-to-br from-brand to-brand-hover p-4 md:p-8 rounded-2xl md:rounded-[40px] text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-2xl font-black tracking-tight">Your Give or Get Progress</h3>
@@ -710,14 +710,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           )}
 
           {/* Breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-3xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Gift size={24} />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-zinc-900">Personal Giving</h4>
+                  <h4 className="text-base md:text-xl font-bold text-zinc-900">Personal Giving</h4>
                   <p className="text-sm text-zinc-600">Your direct contributions</p>
                 </div>
               </div>
@@ -741,13 +741,13 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+            <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-3xl bg-brand/10 flex items-center justify-center text-brand">
                   <TrendingUp size={24} />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-zinc-900">Fundraised</h4>
+                  <h4 className="text-base md:text-xl font-bold text-zinc-900">Fundraised</h4>
                   <p className="text-sm text-zinc-600">From your network</p>
                 </div>
               </div>
@@ -762,10 +762,10 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           </div>
 
           {/* Prospects */}
-          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
+          <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+            <div className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between">
               <div>
-                <h4 className="text-xl font-bold text-zinc-900">Fundraising Prospects</h4>
+                <h4 className="text-base md:text-xl font-bold text-zinc-900">Fundraising Prospects</h4>
                 <p className="text-sm text-zinc-600 mt-1">Track potential donors and outreach</p>
               </div>
               <button
@@ -778,7 +778,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             </div>
             <div className="divide-y divide-zinc-100">
               {giveOrGet.prospects.length === 0 && (
-                <div className="p-8 text-center text-zinc-400">
+                <div className="p-4 md:p-8 text-center text-zinc-400">
                   <Target size={32} className="mx-auto mb-3 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No prospects yet</p>
                   <p className="text-sm text-zinc-600 mt-1">Add potential donors to track your outreach</p>
@@ -853,9 +853,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Donation History */}
           {(giveOrGet.donationLog?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-              <div className="p-8 border-b border-zinc-100">
-                <h4 className="text-xl font-bold text-zinc-900">Donation Log</h4>
+            <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+              <div className="p-4 md:p-8 border-b border-zinc-100">
+                <h4 className="text-base md:text-xl font-bold text-zinc-900">Donation Log</h4>
               </div>
               <div className="divide-y divide-zinc-100">
                 {giveOrGet.donationLog.map((entry, idx) => (
@@ -980,7 +980,7 @@ const FormSigningModal: React.FC<{
       <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-zinc-900">{form.title}</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">{form.title}</h3>
             <p className="text-sm text-zinc-600">{form.dueDate}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
@@ -1059,7 +1059,7 @@ const MinutesReviewModal: React.FC<{
       <div className="bg-white max-w-3xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-zinc-900">Meeting Minutes</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">Meeting Minutes</h3>
             <p className="text-sm text-zinc-600">{meeting.title} — {new Date(meeting.date + 'T00:00:00').toLocaleDateString()}</p>
           </div>
           <div className="flex gap-2">
@@ -1139,7 +1139,7 @@ const EmergencyMeetingModal: React.FC<{
             <div className="w-10 h-10 rounded-3xl bg-rose-100 flex items-center justify-center text-rose-600">
               <AlertTriangle size={20} />
             </div>
-            <h3 className="text-xl font-bold text-zinc-900">Request Emergency Meeting</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">Request Emergency Meeting</h3>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
@@ -1176,7 +1176,7 @@ const MeetingFormModal: React.FC<{
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
+          <h3 className="text-base md:text-xl font-bold text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -1257,7 +1257,7 @@ const AddProspectModal: React.FC<{ onClose: () => void; onAdd: (p: Prospect) => 
       <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-zinc-900">Add Prospect</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">Add Prospect</h3>
             <p className="text-sm text-zinc-600">Track a potential donor or sponsor</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
@@ -1336,7 +1336,7 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-zinc-900">Log {type === 'personal' ? 'Personal Donation' : 'Fundraising Activity'}</h3>
+          <h3 className="text-base md:text-xl font-bold text-zinc-900">Log {type === 'personal' ? 'Personal Donation' : 'Fundraising Activity'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -1418,7 +1418,7 @@ www.healthmatters.clinic`;
       <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-zinc-900">Fundraising Email Draft</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">Fundraising Email Draft</h3>
             <p className="text-sm text-zinc-600">For: {prospect.name}{prospect.email ? ` (${prospect.email})` : ''}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
@@ -1513,7 +1513,7 @@ const DocumentViewerModal: React.FC<{
       <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-zinc-900">{doc.title}</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">{doc.title}</h3>
             <p className="text-sm text-zinc-600">{doc.description}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -1551,7 +1551,7 @@ const DocumentViewerModal: React.FC<{
               </div>
             </div>
           ) : (
-            <div className="bg-zinc-50 p-8 rounded-3xl min-h-[400px] flex items-center justify-center">
+            <div className="bg-zinc-50 p-4 md:p-8 rounded-3xl min-h-[400px] flex items-center justify-center">
               <div className="text-center text-zinc-400">
                 <FileText size={64} className="mx-auto mb-4" />
                 <p className="text-zinc-400 font-bold text-sm">Document Unavailable</p>

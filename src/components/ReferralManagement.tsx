@@ -71,16 +71,16 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter uppercase italic">Referral Management</h1>
-          <p className="text-lg font-medium text-zinc-500 mt-2">Client intake, referrals, and service coordination</p>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Referral Management</h1>
+          <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Client intake, referrals, and service coordination</p>
         </div>
         <button
           onClick={fetchAllData}
-          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 border border-black text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-200"
+          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 border border-black text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-200 min-h-[44px] w-full sm:w-auto"
         >
           <RefreshCw size={16} /> Refresh Data
         </button>
@@ -112,7 +112,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
         {activeTab === 'dashboard' && (
           <DashboardView
             clients={clients}
@@ -165,15 +165,15 @@ const DashboardView: React.FC<{
   ];
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-4 md:space-y-8">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {kpis.map((kpi, i) => (
-          <div key={i} className={`p-6 rounded-3xl border bg-${kpi.color}-50 border-${kpi.color}-100 shadow-elevation-1`}>
+          <div key={i} className={`p-4 md:p-6 rounded-3xl border bg-${kpi.color}-50 border-${kpi.color}-100 shadow-elevation-1`}>
             <div className={`w-12 h-12 rounded-2xl bg-${kpi.color}-100 text-${kpi.color}-600 flex items-center justify-center mb-4`}>
               {kpi.icon}
             </div>
-            <p className="text-3xl font-black text-zinc-900">{kpi.value}</p>
+            <p className="text-xl md:text-3xl font-black text-zinc-900">{kpi.value}</p>
             <p className="text-sm font-bold text-zinc-400">{kpi.label}</p>
           </div>
         ))}
@@ -181,8 +181,8 @@ const DashboardView: React.FC<{
 
       {/* SLA Report */}
       {slaReport && (
-        <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
-          <h3 className="text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
+        <div className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
+          <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4 flex items-center gap-2">
             <Clock size={20} /> 72-Hour SLA Compliance
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -208,8 +208,8 @@ const DashboardView: React.FC<{
 
       {/* Urgent Referrals */}
       {urgentReferrals.length > 0 && (
-        <div className="p-6 bg-rose-50 rounded-3xl border border-rose-200 shadow-elevation-1">
-          <h3 className="text-xl font-bold text-rose-800 mb-4 flex items-center gap-2">
+        <div className="p-4 md:p-6 bg-rose-50 rounded-3xl border border-rose-200 shadow-elevation-1">
+          <h3 className="text-base md:text-xl font-bold text-rose-800 mb-4 flex items-center gap-2">
             <AlertTriangle size={20} /> Urgent/Emergency Referrals ({urgentReferrals.length})
           </h3>
           <div className="space-y-3">
@@ -232,7 +232,7 @@ const DashboardView: React.FC<{
 
       {/* Recent Activity */}
       <div>
-        <h3 className="text-xl font-bold text-zinc-900 mb-4">Recent Referrals</h3>
+        <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-4">Recent Referrals</h3>
         <div className="space-y-3">
           {referrals.slice(0, 10).map(r => (
             <div key={r.id} className="p-4 bg-zinc-50 rounded-3xl border border-zinc-100 flex items-center justify-between">
@@ -279,8 +279,8 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
   );
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 gap-4">
         <div className="relative flex-1 max-w-md">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
@@ -293,7 +293,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
         </div>
         <button
           onClick={() => setShowNewClient(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide"
+          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto justify-center"
         >
           <Plus size={18} /> New Client
         </button>
@@ -368,7 +368,7 @@ const ReferralsView: React.FC<{
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center gap-4 mb-6">
         <div className="flex gap-2">
           {['all', 'pending', 'urgent'].map(f => (
@@ -429,11 +429,11 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
   const isOverdue = referral.status === 'Pending' && now > deadline;
 
   return (
-    <div className={`p-8 rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
-      <div className="flex items-start justify-between mb-4">
+    <div className={`p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
+      <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-2">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h3 className="text-xl font-bold text-zinc-900">{referral.clientName}</h3>
+            <h3 className="text-base md:text-xl font-bold text-zinc-900">{referral.clientName}</h3>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               referral.urgency === 'Emergency' ? 'bg-rose-100 text-rose-700' :
               referral.urgency === 'Urgent' ? 'bg-amber-100 text-amber-700' :
@@ -465,18 +465,18 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
       </div>
 
       {referral.status === 'Pending' && (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => updateStatus('In Progress')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50"
+            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50 min-h-[44px] w-full sm:w-auto"
           >
             Mark In Progress
           </button>
           <button
             onClick={() => updateStatus('Completed')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50"
+            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50 min-h-[44px] w-full sm:w-auto"
           >
             Mark Completed
           </button>
@@ -496,7 +496,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
   );
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div className="relative flex-1 max-w-md">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -512,7 +512,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredResources.map((resource, i) => (
-          <div key={i} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 hover:border-brand/20 transition-colors">
+          <div key={i} className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 hover:border-brand/20 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-zinc-900">{resource['Resource Name']}</h3>
               {resource.averageRating && (
@@ -550,11 +550,11 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
   const [showNewPartner, setShowNewPartner] = useState(false);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowNewPartner(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide"
+          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto justify-center"
         >
           <Plus size={18} /> Add Partner
         </button>
@@ -562,7 +562,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {partners.map(partner => (
-          <div key={partner.id} className="p-6 bg-white rounded-3xl border border-zinc-100 shadow-elevation-1">
+          <div key={partner.id} className="p-4 md:p-6 bg-white rounded-3xl border border-zinc-100 shadow-elevation-1">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-zinc-900">{partner.name}</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -619,21 +619,21 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
     : 'N/A';
 
   return (
-    <div className="p-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 shadow-elevation-1 text-center">
+    <div className="p-4 md:p-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-8">
+        <div className="p-4 md:p-6 bg-amber-50 rounded-3xl border border-amber-100 shadow-elevation-1 text-center">
           <Star size={32} className="mx-auto text-amber-500 mb-2" />
-          <p className="text-3xl font-black text-zinc-900">{avgRating}</p>
+          <p className="text-xl md:text-3xl font-black text-zinc-900">{avgRating}</p>
           <p className="text-sm font-bold text-zinc-400">Average Rating</p>
         </div>
-        <div className="p-6 bg-brand/5 rounded-3xl border border-brand/10 shadow-elevation-1 text-center">
+        <div className="p-4 md:p-6 bg-brand/5 rounded-3xl border border-brand/10 shadow-elevation-1 text-center">
           <FileText size={32} className="mx-auto text-brand mb-2" />
-          <p className="text-3xl font-black text-zinc-900">{feedback.length}</p>
+          <p className="text-xl md:text-3xl font-black text-zinc-900">{feedback.length}</p>
           <p className="text-sm font-bold text-zinc-400">Total Feedback</p>
         </div>
-        <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 shadow-elevation-1 text-center">
+        <div className="p-4 md:p-6 bg-emerald-50 rounded-3xl border border-emerald-100 shadow-elevation-1 text-center">
           <TrendingUp size={32} className="mx-auto text-emerald-500 mb-2" />
-          <p className="text-3xl font-black text-zinc-900">
+          <p className="text-xl md:text-3xl font-black text-zinc-900">
             {feedback.filter(f => f.wouldRecommend).length}
           </p>
           <p className="text-sm font-bold text-zinc-400">Would Recommend</p>
@@ -642,7 +642,7 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
 
       <div className="space-y-4">
         {feedback.map(f => (
-          <div key={f.id} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
+          <div key={f.id} className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="font-bold text-zinc-900">{f.resourceName || 'Service Feedback'}</p>
@@ -694,12 +694,12 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-zinc-900">New Client Intake</h2>
+        <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-base md:text-xl font-bold text-zinc-900">New Client Intake</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4 md:space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">First Name *</label>
               <input
@@ -721,7 +721,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Phone *</label>
               <input
@@ -742,7 +742,7 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
               <input
@@ -783,11 +783,11 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
               ))}
             </select>
           </div>
-          <div className="flex justify-end gap-4 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide">
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide min-h-[44px] w-full sm:w-auto">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Create Client'}
             </button>
           </div>
@@ -818,11 +818,11 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-zinc-900">Add Partner Agency</h2>
+        <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between">
+          <h2 className="text-base md:text-xl font-bold text-zinc-900">Add Partner Agency</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
           <div>
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Agency Name *</label>
             <input
@@ -849,7 +849,7 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
               <option>Other</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Name</label>
               <input
@@ -878,11 +878,11 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
               className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
             />
           </div>
-          <div className="flex justify-end gap-4 pt-4 border-t">
-            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide">
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide min-h-[44px] w-full sm:w-auto">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50">
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Add Partner'}
             </button>
           </div>

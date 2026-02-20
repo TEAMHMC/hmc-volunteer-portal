@@ -50,17 +50,17 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
 
       <main className="max-w-[1200px] mx-auto w-full px-6 py-16">
         <div className="text-center max-w-2xl mx-auto">
-          <h1 className="text-5xl font-black tracking-tighter uppercase italic">Community Events</h1>
-          <p className="text-lg font-medium text-zinc-500 mt-2">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Community Events</h1>
+          <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Find and RSVP for upcoming workshops, health fairs, and wellness events near you.</p>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-brand" size={32}/></div>
         ) : (
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
             {opportunities.map(opp => (
-              <div key={opp.id} className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow flex flex-col">
-                <h3 className="text-xl font-bold text-zinc-900">{opp.title}</h3>
+              <div key={opp.id} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow flex flex-col">
+                <h3 className="text-base md:text-xl font-bold text-zinc-900">{opp.title}</h3>
                 <p className="text-sm text-zinc-400 font-bold mt-1">{opp.category}</p>
                 <div className="flex items-center gap-2 text-xs text-zinc-500 my-4">
                   <Calendar size={14}/> {opp.date}
@@ -69,7 +69,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
                   <MapPin size={14}/> {opp.serviceLocation}
                 </div>
                 <div className="mt-auto pt-6">
-                  <button onClick={() => setSelectedOpp(opp)} className="w-full py-3 bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand/90">RSVP Now</button>
+                  <button onClick={() => setSelectedOpp(opp)} className="w-full py-3 min-h-[44px] bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand/90">RSVP Now</button>
                 </div>
               </div>
             ))}
@@ -105,7 +105,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-2 p-8 border border-zinc-100" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-2 p-4 md:p-8 border border-zinc-100" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-xl font-bold text-zinc-900">RSVP for {opportunity.title}</h2>
@@ -128,7 +128,7 @@ const RSVPModal: React.FC<{ opportunity: Opportunity; onClose: () => void }> = (
             <input required type="tel" placeholder="Phone" onChange={e => setFormData(p => ({...p, phone: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/>
             <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label><input required type="date" onChange={e => setFormData(p => ({...p, dob: e.target.value}))} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
             {error && <p className="text-rose-500 text-sm">{error}</p>}
-            <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="w-full py-3 min-h-[44px] bg-brand border border-black text-white font-bold rounded-full uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50">
               {isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : 'Confirm RSVP'}
             </button>
           </form>

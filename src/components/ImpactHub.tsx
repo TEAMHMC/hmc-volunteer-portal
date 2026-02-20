@@ -24,16 +24,16 @@ const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) 
   const userRank = [...allVolunteers].sort((a,b) => b.points - a.points).findIndex(v => v.id === user.id) + 1;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="max-w-xl">
-          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Impact Hub</h2>
-          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Impact Hub</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
         </div>
-        <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0">
-          <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
-          <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'leaderboard' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
-          <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'rewards' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
+        <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto">
+          <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
+          <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
+          <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === 'rewards' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
         </div>
       </div>
       
@@ -78,15 +78,15 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
 
   return (
     <div className={`grid grid-cols-1 ${isComms ? 'lg:grid-cols-2' : ''} gap-10`}>
-      <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-        <h3 className="text-xl font-bold text-zinc-900 uppercase">AI-Powered Fundraising</h3>
+      <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+        <h3 className="text-base md:text-xl font-bold text-zinc-900 uppercase">AI-Powered Fundraising</h3>
         <p className="text-sm text-zinc-600 mt-2">Use our Matching Assistant to draft a personalized fundraising email to send to your network.</p>
         <div className="mt-10 pt-10 border-t border-zinc-100">
           {!draftedEmail && !isDraftingEmail && <button onClick={handleDraftEmail} className="bg-brand border border-black text-white px-6 py-3 rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-all flex items-center justify-center gap-4 group"><Sparkles size={24} /> Draft My Email</button>}
           {isDraftingEmail && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-brand animate-spin" /></div>}
           {draftedEmail && (
             <div className="space-y-6 animate-in fade-in">
-               <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-100 whitespace-pre-wrap font-mono text-xs leading-relaxed max-h-[300px] overflow-y-auto">{draftedEmail}</div>
+               <div className="bg-zinc-50 p-4 md:p-8 rounded-3xl border border-zinc-100 whitespace-pre-wrap font-mono text-xs leading-relaxed max-h-[300px] overflow-y-auto">{draftedEmail}</div>
                <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedEmail)} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Email</>}</button><button onClick={() => setDraftedEmail('')} className="py-4 px-8 border border-black rounded-full font-black text-xs uppercase tracking-wide">Start Over</button></div>
             </div>
           )}
@@ -94,8 +94,8 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
       </div>
       
       {isComms && (
-         <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-            <h3 className="text-xl font-bold text-zinc-900 uppercase">Social Media Generator</h3>
+         <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+            <h3 className="text-base md:text-xl font-bold text-zinc-900 uppercase">Social Media Generator</h3>
             <p className="text-sm text-zinc-600 mt-2">Draft engaging social media posts for HMC's channels.</p>
             <div className="mt-10 pt-10 border-t border-zinc-100">
               {!draftedPost && !isDraftingPost && (
@@ -108,7 +108,7 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
               {isDraftingPost && <div className="flex items-center justify-center h-48"><Loader2 size={48} className="text-brand animate-spin" /></div>}
               {draftedPost && (
                 <div className="space-y-6 animate-in fade-in">
-                   <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-100 whitespace-pre-wrap font-sans text-sm leading-relaxed max-h-[300px] overflow-y-auto">{draftedPost}</div>
+                   <div className="bg-zinc-50 p-4 md:p-8 rounded-3xl border border-zinc-100 whitespace-pre-wrap font-sans text-sm leading-relaxed max-h-[300px] overflow-y-auto">{draftedPost}</div>
                    <div className="flex items-center gap-4"><button onClick={() => handleCopy(draftedPost)} className="flex-1 py-4 bg-brand border border-black text-white rounded-full font-bold text-[11px] uppercase tracking-wide flex items-center justify-center gap-3">{isCopied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Post</>}</button><button onClick={() => setDraftedPost('')} className="py-4 px-8 border border-black rounded-full font-black text-xs uppercase tracking-wide">Start Over</button></div>
                 </div>
               )}
@@ -120,8 +120,8 @@ const ContentStudioPanel: React.FC<{user: Volunteer}> = ({ user }) => {
 };
 
 const LeaderboardPanel: React.FC<{user: Volunteer, userRank: number, leaderboardData: Volunteer[]}> = ({user, userRank, leaderboardData}) => (
-  <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-    <h3 className="text-xl font-bold text-zinc-900 uppercase mb-8">Community Leaderboard</h3>
+  <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+    <h3 className="text-base md:text-xl font-bold text-zinc-900 uppercase mb-8">Community Leaderboard</h3>
     <div className="space-y-4">
       {leaderboardData.map((v, index) => (
         <div key={v.id} className={`p-6 rounded-3xl border flex items-center justify-between transition-all ${user.id === v.id ? 'bg-brand text-white border-brand/20 shadow-sm hover:shadow-2xl transition-shadow' : 'bg-zinc-50 border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow'}`}>
@@ -131,7 +131,7 @@ const LeaderboardPanel: React.FC<{user: Volunteer, userRank: number, leaderboard
             </div>
             <div className={`font-black ${user.id === v.id ? 'text-white' : 'text-zinc-900'}`}>{v.name}</div>
           </div>
-          <div className={`text-xl font-black ${user.id === v.id ? 'text-white' : 'text-zinc-900'}`}>{v.points} <span className="text-xs font-bold opacity-50">XP</span></div>
+          <div className={`text-base md:text-xl font-black ${user.id === v.id ? 'text-white' : 'text-zinc-900'}`}>{v.points} <span className="text-xs font-bold opacity-50">XP</span></div>
         </div>
       ))}
       {userRank > 10 && (
@@ -140,7 +140,7 @@ const LeaderboardPanel: React.FC<{user: Volunteer, userRank: number, leaderboard
              <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-black bg-zinc-200 text-zinc-500">{userRank}</div>
              <div className="font-black text-zinc-900">{user.name} (You)</div>
            </div>
-           <div className="text-xl font-black text-zinc-900">{user.points} <span className="text-xs font-bold opacity-50">XP</span></div>
+           <div className="text-base md:text-xl font-black text-zinc-900">{user.points} <span className="text-xs font-bold opacity-50">XP</span></div>
          </div>
       )}
     </div>
@@ -177,10 +177,10 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
   return (
    <div className="space-y-10">
       {/* Social Media Points Section */}
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-8 rounded-[40px] text-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-        <h3 className="text-xl font-bold uppercase mb-2">Follow Us & Earn XP</h3>
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-4 md:p-8 rounded-2xl md:rounded-[40px] text-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+        <h3 className="text-base md:text-xl font-bold uppercase mb-2">Follow Us & Earn XP</h3>
         <p className="text-zinc-400 mb-8">Support HMC on social media and earn bonus points for each platform you follow!</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {socialLinks.map(social => {
             const isClaimed = claimedSocial.includes(social.id);
             return (
@@ -198,7 +198,7 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
                   <social.icon size={32} className="text-white" />
                 </div>
                 <div className="text-center">
-                  <p className="font-black text-lg">{social.name}</p>
+                  <p className="font-black text-sm md:text-lg">{social.name}</p>
                   <p className="text-sm text-zinc-400 mt-1">
                     {isClaimed ? (
                       <span className="text-emerald-400 flex items-center justify-center gap-1">
@@ -216,14 +216,14 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
       </div>
 
       {/* Rewards Store */}
-      <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-        <h3 className="text-xl font-bold text-zinc-900 uppercase mb-2">Rewards Store</h3>
+      <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+        <h3 className="text-base md:text-xl font-bold text-zinc-900 uppercase mb-2">Rewards Store</h3>
         <p className="text-sm text-zinc-600 mb-8">Redeem your Impact XP for exclusive HMC merchandise.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
           {APP_CONFIG.GAMIFICATION.rewards.map(reward => {
             const canAfford = user.points >= reward.points;
             return (
-              <div key={reward.id} className={`p-8 rounded-3xl border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
+              <div key={reward.id} className={`p-4 md:p-8 rounded-3xl border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
                 <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-2 ${canAfford ? 'bg-brand/5 border-brand/10 text-brand' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
                    <AwardIcon size={48} />
                 </div>

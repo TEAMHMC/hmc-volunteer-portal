@@ -409,7 +409,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     const isLocked = tierLocked;
 
     return (
-      <div key={m.id} className={`p-8 rounded-3xl border-dashed border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-emerald-50/40 border-emerald-200' : isLocked ? 'bg-zinc-50/50 border-zinc-200' : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md'}`}>
+      <div key={m.id} className={`p-4 md:p-8 rounded-3xl border-dashed border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-emerald-50/40 border-emerald-200' : isLocked ? 'bg-zinc-50/50 border-zinc-200' : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md'}`}>
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className={`relative w-11 h-11 rounded-full flex items-center justify-center ${isCompleted ? 'bg-emerald-100 text-emerald-600' : isLocked ? 'bg-zinc-100 text-zinc-300' : 'bg-zinc-100 text-zinc-500 group-hover:bg-brand/10 group-hover:text-brand'}`}>
@@ -424,7 +424,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               {m.dur}M DURATION
             </span>
           </div>
-          <h4 className={`text-xl font-black uppercase tracking-tight leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
+          <h4 className={`text-base md:text-xl font-black uppercase tracking-tight leading-tight ${isLocked ? 'text-zinc-400' : 'text-zinc-900'}`}>{m.title}</h4>
           <p className={`text-sm mt-3 leading-relaxed ${isLocked ? 'text-zinc-400' : 'text-zinc-500'}`}>{m.desc}</p>
         </div>
         <div className="mt-6">
@@ -465,8 +465,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </div>
         </div>
 
-        <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-8 space-y-6 max-h-[500px] overflow-y-auto">
-          <h4 className="text-lg font-black text-zinc-900">{activeSession.title}</h4>
+        <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-4 md:p-8 space-y-6 max-h-[500px] overflow-y-auto">
+          <h4 className="text-sm md:text-lg font-black text-zinc-900">{activeSession.title}</h4>
 
           {loadingContent ? (
             <div className="py-12 flex flex-col items-center gap-4">
@@ -619,7 +619,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   }, [roleSlug, primarySlug, appliedSlug, user.role]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Tier 1 Complete Banner */}
       {tier1Complete && !tier2CoreComplete && (
         <div className="bg-brand/5 border border-brand/20 p-5 rounded-3xl flex items-center gap-4">
@@ -627,7 +627,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <CheckCircle2 size={20} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-brand">Orientation Complete!</h4>
+            <h4 className="text-sm md:text-lg font-black text-brand">Orientation Complete!</h4>
             <p className="text-brand font-bold">Welcome to HMC! Continue with Baseline Training below to unlock My Missions.</p>
           </div>
         </div>
@@ -640,7 +640,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             <Award size={20} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Baseline Training Complete'}</h4>
+            <h4 className="text-sm md:text-lg font-black text-emerald-900">{isGovernanceRole ? 'Orientation Complete' : 'Baseline Training Complete'}</h4>
             <p className="text-emerald-700 font-bold">
               {isGovernanceRole
                 ? 'Complete your role-specific governance training below.'
@@ -651,10 +651,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* Header with progress */}
-      <div className="bg-white border border-zinc-100 p-8 md:p-10 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+      <div className="bg-white border border-zinc-100 p-4 md:p-10 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
-          <h2 className="text-5xl font-black tracking-tighter italic text-zinc-900">Growth Hub.</h2>
-          <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter italic text-zinc-900">Growth Hub.</h2>
+          <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">
             Review completed orientation modules and undertake advanced training to expand your impact.
             {user.role && user.role !== 'HMC Champion' && (
               <span className="block mt-2 text-brand">Your role: <span className="font-bold">{ROLE_LABEL_ALIASES[user.role] || user.role}</span></span>
@@ -677,7 +677,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       </div>
 
       {/* ===== TIER 1: ORIENTATION ===== */}
-      <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+      <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
         <button onClick={() => toggleTier('tier1')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
           <div className="flex-1 text-left">
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Orientation</h3>
@@ -738,7 +738,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
       {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete) ===== */}
       {!isGovernanceRole && tier1Complete && (
-        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+        <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Baseline Training</h3>
@@ -765,7 +765,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 2B: FIELD READINESS (collapsed, shown after Core Baseline) ===== */}
       {!isGovernanceRole && tier2CoreComplete && (
-        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+        <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button
             onClick={() => setShowFieldAccess(!showFieldAccess)}
             className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors"
@@ -799,7 +799,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+        <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier3')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Program Clearance</h3>
@@ -846,7 +846,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== ROLE-SPECIFIC TRAINING ===== */}
       {roleModules.length > 0 && tier1Complete && (
-        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+        <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('role')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Role Training: {roleDisplayName}</h3>
@@ -866,7 +866,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
       {tier2CoreComplete && !isGovernanceRole && (
-        <div className="border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+        <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier4')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
               <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Recommended</h3>
@@ -904,7 +904,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
             Required for all Licensed Medical Professionals. Complete document review with signatures and upload your credentials before accessing clinical stations.
           </p>
           {!tier1Complete ? (
-            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center">
+            <div className="p-4 md:p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 text-center">
               <p className="text-zinc-400 font-bold text-sm">Complete Orientation training above to unlock Clinical Onboarding.</p>
             </div>
           ) : (
@@ -915,8 +915,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* ===== QUIZ/ASSESSMENT MODAL ===== */}
       {quizMode && activeSession && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-           <div className="bg-white p-8 rounded-modal max-w-5xl w-full space-y-10 shadow-elevation-3 border border-zinc-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
+           <div className="bg-white p-4 md:p-8 rounded-modal max-w-5xl w-full space-y-10 shadow-elevation-3 border border-zinc-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-4">
                    <h4 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">{activeSession.title}</h4>
@@ -1015,15 +1015,15 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
       {/* Core Volunteer Training Completion Modal */}
       {showCompletionMessage && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-          <div className="bg-white p-8 rounded-modal max-w-2xl w-full text-center shadow-elevation-3 border border-zinc-100 animate-in zoom-in-95">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
+          <div className="bg-white p-4 md:p-8 rounded-modal max-w-2xl w-full text-center shadow-elevation-3 border border-zinc-100 animate-in zoom-in-95">
             <div className="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-8 shadow-elevation-2">
               <Award size={48} />
             </div>
             <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-4">
               {isGovernanceRole ? 'Orientation Training Complete' : 'Baseline Training Complete'}
             </h3>
-            <p className="text-xl text-zinc-600 font-bold leading-relaxed mb-8">
+            <p className="text-base md:text-xl text-zinc-600 font-bold leading-relaxed mb-8">
               {isGovernanceRole
                 ? `You've completed your orientation as a ${roleDisplayName}. Continue to your role-specific training below.`
                 : "You've completed all baseline training. You're now eligible to sign up for community-based events through My Missions."}

@@ -98,7 +98,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-2 flex flex-col max-h-[80vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
-                <header className="p-6 border-b border-zinc-100 space-y-4">
+                <header className="p-4 md:p-6 border-b border-zinc-100 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-lg font-bold text-zinc-900">Find Volunteer</h2>
@@ -106,7 +106,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                         </div>
                         <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-700"><X size={20}/></button>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
                             <input
@@ -124,7 +124,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                     </div>
                 </header>
 
-                <main className="p-6 overflow-y-auto">
+                <main className="p-4 md:p-6 overflow-y-auto">
                     {displayList.length === 0 ? (
                         <div className="text-center py-10">
                             <p className="text-zinc-400 font-bold text-sm">{filterMode === 'recommended' ? 'No recommended volunteers found.' : 'No volunteers match your search.'}</p>
@@ -147,7 +147,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                                 <p className="text-xs text-zinc-500">{v.role} · {v.hoursContributed || 0} hrs{isRoleMatch && !isRecommended ? ' · Role match' : ''}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center gap-2 shrink-0">
+                                        <button onClick={() => onAssign(v.id)} className="px-4 py-2 min-h-[44px] bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center gap-2 shrink-0">
                                             <UserPlus size={14} /> Assign
                                         </button>
                                     </div>
@@ -163,7 +163,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             <p className="text-sm font-bold text-zinc-900">Don't see who you're looking for?</p>
                         </div>
                         <p className="text-xs text-zinc-400 mb-4">Invite someone who hasn't created a portal account yet. They'll receive an email with a link to register.</p>
-                        <div className="flex items-end gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
                             <div className="flex-1">
                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Name</label>
                                 <input
@@ -187,7 +187,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             <button
                                 onClick={handleSendInvite}
                                 disabled={inviteSending || !inviteName.trim() || !inviteEmail.trim()}
-                                className="px-4 py-2.5 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center gap-2 shrink-0 disabled:opacity-50 hover:bg-brand/90 transition-colors"
+                                className="px-4 py-2.5 min-h-[44px] w-full sm:w-auto bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 hover:bg-brand/90 transition-colors"
                             >
                                 {inviteSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                 Send Invite

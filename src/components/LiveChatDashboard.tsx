@@ -193,10 +193,10 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
   };
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-4 md:space-y-8 pb-20">
       {/* Preview Notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-        <span className="text-amber-500 font-bold text-lg leading-none mt-0.5">!</span>
+        <span className="text-amber-500 font-bold text-sm md:text-lg leading-none mt-0.5">!</span>
         <div>
           <p className="text-sm font-bold text-amber-800">Preview Feature</p>
           <p className="text-xs text-amber-600 mt-0.5">Live Chat is in preview mode using local data. Real-time WebSocket integration is coming soon. Use the <strong>Communication Hub</strong> for messaging in the meantime.</p>
@@ -206,7 +206,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Live Chat Support</h1>
-          <p className="text-zinc-500 mt-2 font-bold text-lg">
+          <p className="text-zinc-500 mt-2 font-bold text-sm md:text-lg">
             Help visitors find resources through real-time chat.
           </p>
         </div>
@@ -214,7 +214,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
         <div className="flex items-center gap-3">
           <button
             onClick={() => setView('queue')}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${
+            className={`px-4 py-2 min-h-[44px] rounded-full text-sm font-bold transition-all border-2 ${
               view === 'queue'
                 ? 'bg-brand text-white border-brand'
                 : 'bg-white text-zinc-600 border-zinc-200 hover:border-brand/40'
@@ -224,7 +224,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
           </button>
           <button
             onClick={() => setView('chat')}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${
+            className={`px-4 py-2 min-h-[44px] rounded-full text-sm font-bold transition-all border-2 ${
               view === 'chat'
                 ? 'bg-brand text-white border-brand'
                 : 'bg-white text-zinc-600 border-zinc-200 hover:border-brand/40'
@@ -237,13 +237,13 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
 
       {/* Offline hours banner */}
       {!chatAvailable && (
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-8 text-center">
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 md:p-8 text-center">
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-amber-800 mb-2">Live Chat is Currently Offline</h3>
+          <h3 className="text-sm md:text-lg font-bold text-amber-800 mb-2">Live Chat is Currently Offline</h3>
           <p className="text-sm text-amber-600 mb-1">
             Live chat support is available <strong>Monday – Friday, 10:00 AM – 6:00 PM Pacific Time</strong>.
           </p>
@@ -266,7 +266,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
             </div>
 
             {pendingSessions.length === 0 ? (
-              <div className="p-8 text-center text-zinc-400">
+              <div className="p-4 md:p-8 text-center text-zinc-400">
                 <svg className="w-12 h-12 mx-auto mb-3 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -296,7 +296,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                       </div>
                       <button
                         onClick={() => handleClaimSession(session)}
-                        className="px-4 py-2 bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
+                        className="px-4 py-2 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
                       >
                         Accept Chat
                       </button>
@@ -427,7 +427,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                   <button
                     type="submit"
                     disabled={!messageInput.trim()}
-                    className="px-6 py-3 bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
+                    className="px-6 py-3 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
                   >
                     Send
                   </button>
@@ -459,11 +459,11 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 <svg className="w-16 h-16 mx-auto mb-4 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <p className="font-bold text-lg">No active chat selected</p>
+                <p className="font-bold text-sm md:text-lg">No active chat selected</p>
                 <p className="text-sm mt-1">Accept a chat from the queue to get started</p>
                 <button
                   onClick={() => setView('queue')}
-                  className="mt-4 px-6 py-2 bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
+                  className="mt-4 px-6 py-2 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
                 >
                   View Queue
                 </button>

@@ -140,6 +140,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       groupSize: selectedVolunteer.groupSize || '',
       groupContactEmail: selectedVolunteer.groupContactEmail || '',
       appliedRole: selectedVolunteer.appliedRole || '',
+      isTeamLead: selectedVolunteer.isTeamLead || false,
     });
     setIsEditingProfile(true);
   };
@@ -176,6 +177,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
         groupSize: editProfileData.groupSize ? Number(editProfileData.groupSize) : undefined,
         groupContactEmail: editProfileData.groupContactEmail,
         appliedRole: editProfileData.appliedRole,
+        isTeamLead: editProfileData.isTeamLead,
       };
       await handleUpdateVolunteer(updatedVolunteer);
       setIsEditingProfile(false);
@@ -308,11 +310,11 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
   return (
     <>
-      <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
+      <div className="space-y-4 md:space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 md:gap-10">
           <div className="max-w-xl">
-            <h2 className="text-5xl font-black tracking-tighter uppercase italic">Volunteer Directory</h2>
-            <p className="text-zinc-500 mt-4 font-medium text-lg leading-relaxed">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Volunteer Directory</h2>
+            <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">
               Authorized personnel management for <span className="text-zinc-900 font-black">{volunteers.filter(v => v.applicationStatus !== 'pendingReview').length}</span> verified community contributors.
             </p>
           </div>
@@ -363,13 +365,13 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
 
         {showCompliance && (
-          <div className="bg-white rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-6 border-b border-zinc-100">
-              <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2"><ClipboardCheck size={20} className="text-brand" /> Compliance Overview</h3>
+          <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-zinc-100">
+              <h3 className="text-base md:text-xl font-bold text-zinc-900 flex items-center gap-2"><ClipboardCheck size={20} className="text-brand" /> Compliance Overview</h3>
               <p className="text-sm text-zinc-600 mt-1">Form completion status across all volunteers</p>
             </div>
             {complianceLoading ? (
-              <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
+              <div className="p-4 md:p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -438,14 +440,14 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
           {filtered.map(v => (
             <div 
               key={v.id} 
               onClick={() => { setSelectedVolunteer(v); setShowFullApplication(false); }}
-              className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+              className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
             >
-               <div className="flex justify-between items-start mb-8 relative z-10">
+               <div className="flex justify-between items-start mb-4 md:mb-8 relative z-10">
                   <div className="flex items-center gap-5">
                      <div className="w-16 h-16 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-xl shadow-elevation-2 overflow-hidden border border-black/10">
                         {v.avatarUrl ? <img src={v.avatarUrl} className="w-full h-full object-cover" /> : v.name.charAt(0)}
@@ -466,7 +468,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   <button className="p-3 bg-zinc-50 rounded-full text-zinc-200 hover:text-zinc-900 transition-colors"><MoreVertical size={20} /></button>
                </div>
 
-               <div className="bg-zinc-50/50 p-6 rounded-3xl border border-zinc-100/50 mb-8 relative z-10">
+               <div className="bg-zinc-50/50 p-4 md:p-6 rounded-3xl border border-zinc-100/50 mb-4 md:mb-8 relative z-10">
                   <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mb-4">Compliance Status</p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
@@ -510,7 +512,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
           
           <button
             onClick={() => setShowAddVolunteerModal(true)}
-            className="bg-white border-2 border-dashed border-zinc-100 rounded-[40px] p-8 flex flex-col items-center justify-center text-zinc-300 gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
+            className="bg-white border-2 border-dashed border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-8 flex flex-col items-center justify-center text-zinc-300 gap-4 md:gap-6 hover:bg-zinc-50/50 hover:border-brand/20 hover:text-brand transition-all group">
              <div className="w-20 h-20 rounded-full bg-zinc-50 flex items-center justify-center group-hover:bg-white group-hover:shadow-elevation-2 transition-all">
                 <UserPlus size={32} strokeWidth={1.5} />
              </div>
@@ -523,15 +525,15 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       </div>
       
       {selectedVolunteer && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setSelectedVolunteer(null)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={() => setSelectedVolunteer(null)}>
            <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              <header className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
+              <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
                  <div className="flex items-center gap-6">
                     <div className="w-20 h-20 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-2xl shadow-elevation-2 overflow-hidden">
                        {selectedVolunteer.avatarUrl ? <img src={selectedVolunteer.avatarUrl} className="w-full h-full object-cover" /> : selectedVolunteer.name.charAt(0)}
                     </div>
                     <div>
-                       <h2 className="text-2xl font-black text-zinc-900 tracking-tight">{selectedVolunteer.name}</h2>
+                       <h2 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight">{selectedVolunteer.name}</h2>
                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs mt-1">{selectedVolunteer.applicationStatus === 'pendingReview' ? `Applied for: ${selectedVolunteer.appliedRole}` : selectedVolunteer.role}</p>
                     </div>
                  </div>
@@ -546,7 +548,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                  </div>
               </header>
               {isEditingProfile ? (
-                <main className="p-8 overflow-y-auto space-y-6">
+                <main className="p-4 md:p-8 overflow-y-auto space-y-4 md:space-y-6">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-black text-zinc-900">Edit Profile</h3>
                     <div className="flex gap-2">
@@ -558,9 +560,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   </div>
 
                   {/* Personal Info */}
-                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                  <div className="p-4 md:p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Personal Information</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Legal First Name</label>
                         <input value={editProfileData.legalFirstName} onChange={e => setEditProfileData(p => ({ ...p, legalFirstName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
@@ -610,9 +612,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   </div>
 
                   {/* Contact Info */}
-                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                  <div className="p-4 md:p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Contact Information</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Phone</label>
                         <input value={editProfileData.phone} onChange={e => setEditProfileData(p => ({ ...p, phone: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
@@ -639,9 +641,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   </div>
 
                   {/* Emergency Contact */}
-                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                  <div className="p-4 md:p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Emergency Contact</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Name</label>
                         <input value={editProfileData.eContactName} onChange={e => setEditProfileData(p => ({ ...p, eContactName: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
@@ -661,8 +663,26 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                     </div>
                   </div>
 
+                  {/* Team Lead Designation */}
+                  <div className="p-4 md:p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                    <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Team Lead Designation</p>
+                    <div className="flex items-center gap-3">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Team Lead</label>
+                      <button
+                        onClick={() => setEditProfileData(p => ({ ...p, isTeamLead: !p.isTeamLead }))}
+                        className={`w-10 h-6 rounded-full transition-colors ${editProfileData.isTeamLead ? 'bg-brand' : 'bg-zinc-200'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${editProfileData.isTeamLead ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                      <span className="text-sm font-bold text-zinc-600">{editProfileData.isTeamLead ? 'Yes' : 'No'}</span>
+                    </div>
+                    {editProfileData.isTeamLead && (
+                      <p className="text-xs text-zinc-500">This volunteer can manage their own team, add existing volunteers, and invite new members.</p>
+                    )}
+                  </div>
+
                   {/* Group Volunteer */}
-                  <div className="p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
+                  <div className="p-4 md:p-6 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-4">
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Group / Organization Affiliation</p>
                     <div className="flex items-center gap-3 mb-2">
                       <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Group Volunteer</label>
@@ -675,7 +695,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                       <span className="text-sm font-bold text-zinc-600">{editProfileData.isGroupVolunteer ? 'Yes' : 'No'}</span>
                     </div>
                     {editProfileData.isGroupVolunteer && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Group Type</label>
                           <select value={editProfileData.groupType} onChange={e => setEditProfileData(p => ({ ...p, groupType: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30">
@@ -704,11 +724,11 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   </div>
                 </main>
               ) : (
-              <main className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto">
-                 <div className="space-y-8">
+              <main className="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 overflow-y-auto">
+                 <div className="space-y-4 md:space-y-8">
                     <div className="space-y-2">
                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Contact Info</h4>
-                       <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                       <div className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
                           <p className="flex items-center gap-3 font-bold text-sm text-zinc-700"><Mail size={16} className="text-zinc-300"/> {selectedVolunteer.email}</p>
                           <p className="flex items-center gap-3 font-bold text-sm text-zinc-700"><Phone size={16} className="text-zinc-300"/> {selectedVolunteer.phone}</p>
                        </div>
@@ -721,7 +741,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                          <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tags</h4>
                          <button onClick={() => setEditingTags(!editingTags)} className="text-xs font-bold">{editingTags ? 'Done' : 'Edit Tags'}</button>
                        </div>
-                       <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
+                       <div className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
                           <div className="flex flex-wrap gap-2">
                             {selectedVolunteer.tags?.map(t => (
                               <span key={t} className="flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">
@@ -751,8 +771,8 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                        </div>
                     </div>
                  </div>
-                 <div className="space-y-6">
-                    <div className="bg-zinc-50/70 p-8 rounded-3xl border border-zinc-100 space-y-6">
+                 <div className="space-y-4 md:space-y-6">
+                    <div className="bg-zinc-50/70 p-4 md:p-8 rounded-3xl border border-zinc-100 space-y-4 md:space-y-6">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Compliance Checklist</h4>
                       {Object.values(selectedVolunteer.compliance).map((c: ComplianceStep) => (
                         <div key={c.id} className="flex items-center gap-4">
@@ -831,7 +851,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {/* Personal Info */}
                           <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><User size={10} /> Personal Information</p>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                               <div>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Legal First Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.legalFirstName || '---'}</p>
@@ -870,7 +890,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {/* Contact Info */}
                           <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Mail size={10} /> Contact Information</p>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                               <div>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Email</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.email || '---'}</p>
@@ -891,7 +911,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {/* Emergency Contact */}
                           <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><AlertCircle size={10} /> Emergency Contact</p>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                               <div>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Name</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.emergencyContact?.name || '---'}</p>
@@ -914,7 +934,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {/* Background */}
                           <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={10} /> Background</p>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                               <div>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Languages Spoken</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.languagesSpoken?.length ? selectedVolunteer.languagesSpoken.join(', ') : '---'}</p>
@@ -997,7 +1017,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {/* Availability */}
                           <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                             <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><Clock size={10} /> Availability</p>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                               <div>
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Time Commitment</p>
                                 <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.timeCommitment || '---'}</p>
@@ -1085,7 +1105,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                           {selectedVolunteer.clinicalOnboarding?.credentials && (
                             <div className="p-4 bg-zinc-50/70 rounded-3xl border border-zinc-100 space-y-3">
                               <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5"><ShieldCheck size={10} /> Clinical Credentials</p>
-                              <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                                 <div>
                                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">NPI Number</p>
                                   <p className="text-sm font-bold text-zinc-800">{selectedVolunteer.clinicalOnboarding.credentials.npi || '---'}</p>
@@ -1146,7 +1166,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                     </div>
 
                     {/* Task Assignment Section */}
-                    <div className="bg-white p-6 rounded-3xl border border-zinc-100 space-y-4">
+                    <div className="bg-white p-4 md:p-6 rounded-3xl border border-zinc-100 space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Assigned Tasks</h4>
                         <button
@@ -1192,8 +1212,8 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
       {/* Task Assignment Modal */}
       {showTaskModal && selectedVolunteer && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setShowTaskModal(false)}>
-          <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={() => setShowTaskModal(false)}>
+          <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-4 md:p-8 space-y-4 md:space-y-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Assign Task</h2>
               <button onClick={() => setShowTaskModal(false)} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
@@ -1247,13 +1267,13 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedVolunteer && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white max-w-md w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-4 md:p-8 space-y-4 md:space-y-6" onClick={e => e.stopPropagation()}>
             <div className="text-center">
               <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 size={28} className="text-rose-500" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-900">Delete Volunteer?</h2>
+              <h2 className="text-base md:text-xl font-bold text-zinc-900">Delete Volunteer?</h2>
               <p className="text-sm text-zinc-600 mt-2">
                 This will permanently delete <span className="font-bold text-zinc-800">{selectedVolunteer.name}</span>'s account, remove them from all assigned shifts, and delete their login credentials. This cannot be undone.
               </p>
@@ -1290,7 +1310,7 @@ const RoleManagementPanel: React.FC<{currentUser: Volunteer, selectedVolunteer: 
     return (
         <div className="space-y-2">
             <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Role Management</h4>
-            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
+            <div className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
                 {currentUser.isAdmin ? (
                     isEditingRole ? (
                         <div className="space-y-4">
@@ -1321,7 +1341,7 @@ const RoleManagementPanel: React.FC<{currentUser: Volunteer, selectedVolunteer: 
 const ApplicationReviewPanel: React.FC<{volunteer: Volunteer, onReview: (action: 'approve' | 'reject', notes: string) => void, isReviewing: boolean}> = ({ volunteer, onReview, isReviewing }) => {
     const [notes, setNotes] = useState('');
     return (
-        <div className="md:col-span-2 bg-amber-50 p-6 rounded-3xl border-2 border-amber-200 space-y-4 animate-in fade-in">
+        <div className="md:col-span-2 bg-amber-50 p-4 md:p-6 rounded-3xl border-2 border-amber-200 space-y-4 animate-in fade-in">
             <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Application Review for: {volunteer.appliedRole}</h3>
             {volunteer.roleAssessment && volunteer.roleAssessment.length > 0 && (
                 <div className="space-y-3">
@@ -1379,18 +1399,18 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
     }
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 space-y-8" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-4 md:p-8 space-y-4 md:space-y-8" onClick={e => e.stopPropagation()}>
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Bulk Import Volunteers</h2>
                 <p className="text-base text-zinc-500 font-medium">Upload a CSV file to migrate existing volunteers. The system will create their accounts and send them a welcome email to set their password and complete their profile.</p>
                 
-                <div className="p-6 bg-zinc-50 border border-zinc-100 rounded-3xl text-xs text-zinc-500">
+                <div className="p-4 md:p-6 bg-zinc-50 border border-zinc-100 rounded-3xl text-xs text-zinc-500">
                     <p className="font-bold mb-2">Required CSV Format:</p>
                     <code className="font-mono">email,legalFirstName,legalLastName,role,joinedDate,hoursContributed</code>
                 </div>
 
                 {successCount !== null ? (
-                    <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-3xl text-center">
+                    <div className="p-4 md:p-8 bg-emerald-50 border border-emerald-200 rounded-3xl text-center">
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} volunteers have been imported and sent a welcome email.</p>
@@ -1501,8 +1521,8 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
 
     if (success) {
         return (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in">
-                <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 text-center">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
+                <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-4 md:p-8 text-center">
                     <CheckCircle className="mx-auto text-emerald-500 mb-4" size={64} />
                     <h3 className="text-2xl font-black text-emerald-800">Volunteer Added!</h3>
                     <p className="text-base text-zinc-500 font-medium mt-2">They will receive a welcome email to set up their account.</p>
@@ -1512,8 +1532,8 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
     }
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-4 md:p-8 space-y-4 md:space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add Volunteer</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
@@ -1522,7 +1542,7 @@ const AddVolunteerModal: React.FC<{onClose: () => void, setVolunteers: Function}
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">First Name *</label>
                             <input

@@ -89,7 +89,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
   return (
     <div className="min-h-screen bg-white flex flex-col font-['Inter'] overflow-x-hidden">
       
-      <nav className="max-w-[1400px] mx-auto w-full px-6 md:px-12 py-10 flex justify-between items-center z-50">
+      <nav className="max-w-[1400px] mx-auto w-full px-4 md:px-12 py-6 md:py-10 flex justify-between items-center z-50">
         <a
           href="https://www.healthmatters.clinic"
           target="_blank"
@@ -116,7 +116,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 md:px-12 pb-16 md:pb-32 relative z-10">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-12 pb-12 md:pb-32 relative z-10">
         
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[1200px] max-h-[1200px] opacity-[0.03] pointer-events-none -z-10">
            <Activity className="w-full h-full text-zinc-900" strokeWidth={0.5} />
@@ -124,7 +124,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         
         {showLogin ? (
           <div className="w-full max-w-[1200px] flex justify-center animate-in fade-in">
-            <div className="max-w-md w-full bg-white p-8 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
+            <div className="max-w-md w-full bg-white p-5 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
               <div className="flex justify-between items-center mb-8">
                   <h2 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin Portal' : 'Welcome Back'}</h2>
                   <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>
@@ -220,7 +220,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
                    <Zap size={14} className="animate-pulse" /> Community Operations
                 </div>
-                <h1 className="text-2xl sm:text-2xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-8 italic uppercase">
+                <h1 className="text-3xl sm:text-4xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-6 md:mb-8 italic uppercase">
                   Join our<br/>
                   <span className="bg-gradient-to-r from-brand to-indigo-400 bg-clip-text text-transparent">Community.</span>
                 </h1>
@@ -229,10 +229,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 </p>
              </div>
 
-             <div className="pt-8 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
+             <div className="pt-6 md:pt-8 flex flex-col md:flex-row items-center justify-center gap-5 md:gap-8">
                 <button
                   onClick={onStartOnboarding}
-                  className="bg-brand border border-black text-white px-8 md:px-10 py-5 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group"
+                  className="w-full md:w-auto bg-brand border border-black text-white px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 group"
                 >
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
@@ -256,7 +256,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
 
       </main>
 
-      <footer className="px-6 md:px-12 py-12 border-t border-zinc-50 flex flex-col md:flex-row justify-between items-center gap-8 mt-auto">
+      <footer className="px-4 md:px-12 py-8 md:py-12 border-t border-zinc-50 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-8 mt-auto">
          <p className="text-[10px] md:text-[11px] font-bold text-zinc-300 uppercase tracking-widest text-center md:text-left">© 2026 Health Matters Clinic All rights reserved.</p>
          <div className="flex items-center gap-6 md:gap-10">
             <a href="https://www.healthmatters.clinic/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Privacy Policy</a>

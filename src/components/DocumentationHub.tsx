@@ -108,16 +108,16 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-            <header className="flex items-start justify-between">
+        <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
+            <header className="flex flex-col sm:flex-row items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">Documentation Hub</h1>
-                    <p className="text-lg font-medium text-zinc-500 mt-2">Your central source for policies, procedures, and organizational knowledge.</p>
+                    <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Documentation Hub</h1>
+                    <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Your central source for policies, procedures, and organizational knowledge.</p>
                 </div>
                 {canEdit && (
                     <button
                         onClick={() => setShowNewArticleModal(true)}
-                        className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
+                        className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
                     >
                         <Plus size={16} /> New Document
                     </button>
@@ -131,7 +131,7 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                     placeholder="Search documents..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-16 pr-6 py-5 bg-zinc-50 border-2 border-zinc-100 rounded-full text-lg font-bold shadow-elevation-1 outline-none focus:border-brand/30"
+                    className="w-full pl-16 pr-6 py-5 bg-zinc-50 border-2 border-zinc-100 rounded-full text-sm md:text-lg font-bold shadow-elevation-1 outline-none focus:border-brand/30"
                 />
             </div>
 
@@ -139,13 +139,13 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
                 {Object.keys(articlesByCategory).map((category) => {
                     const categoryArticles = articlesByCategory[category];
                     return (
-                    <div key={category} className="bg-white border border-zinc-100 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-                        <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-6">
-                            <h2 className="text-xl font-bold text-zinc-900">{category}</h2>
+                    <div key={category} className="bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
+                        <button onClick={() => toggleCategory(category)} className="w-full flex items-center justify-between p-4 md:p-6">
+                            <h2 className="text-base md:text-xl font-bold text-zinc-900">{category}</h2>
                             <ChevronDown className={`transition-transform ${expandedCategories.includes(category) ? 'rotate-180' : ''}`} />
                         </button>
                         {expandedCategories.includes(category) && (
-                            <div className="px-6 pb-6 space-y-2">
+                            <div className="px-4 md:px-6 pb-4 md:pb-6 space-y-2">
                                 {categoryArticles.map(article => (
                                     <button key={article.id} onClick={() => setSelectedArticle(article)} className="w-full text-left p-4 rounded-3xl hover:bg-zinc-50 flex items-center gap-4">
                                         <FileText className="text-zinc-400" size={18} />
@@ -209,10 +209,10 @@ const ArticleModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
             <div className={`bg-white w-full rounded-modal shadow-elevation-2 flex flex-col max-h-[90vh] border border-zinc-100 ${article.documentUrl ? 'max-w-5xl' : 'max-w-3xl'}`} onClick={e => e.stopPropagation()}>
-                <header className="p-6 border-b border-zinc-100 flex items-start justify-between">
+                <header className="p-4 md:p-6 border-b border-zinc-100 flex items-start justify-between">
                     <div>
                         <p className="text-xs font-bold text-brand uppercase">{article.category}</p>
-                        <h2 className="text-2xl font-black tracking-tight text-zinc-900">{article.title}</h2>
+                        <h2 className="text-xl md:text-2xl font-black tracking-tight text-zinc-900">{article.title}</h2>
                     </div>
                     <div className="flex items-center gap-2">
                         {canEdit && (
@@ -230,7 +230,7 @@ const ArticleModal: React.FC<{
                 </header>
                 {article.documentUrl ? (
                     <main className="flex-1 overflow-hidden flex flex-col">
-                        <p className="px-8 pt-6 pb-4 text-sm text-zinc-500 font-bold leading-relaxed">{article.content}</p>
+                        <p className="px-4 md:px-8 pt-4 md:pt-6 pb-4 text-sm text-zinc-500 font-bold leading-relaxed">{article.content}</p>
                         <iframe
                             src={article.documentUrl}
                             className="flex-1 w-full border-t border-zinc-100"
@@ -239,7 +239,7 @@ const ArticleModal: React.FC<{
                         />
                     </main>
                 ) : (
-                    <main className="p-8 prose overflow-y-auto" dangerouslySetInnerHTML={{ __html: renderContent(article.content) }} />
+                    <main className="p-4 md:p-8 prose overflow-y-auto" dangerouslySetInnerHTML={{ __html: renderContent(article.content) }} />
                 )}
             </div>
         </div>
@@ -324,8 +324,8 @@ const ArticleEditorModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white max-w-5xl w-full rounded-modal shadow-elevation-3 flex flex-col max-h-[90vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
-                <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-zinc-900">{article ? 'Edit Document' : 'New Document'}</h2>
+                <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between">
+                    <h2 className="text-xl md:text-2xl font-black text-zinc-900">{article ? 'Edit Document' : 'New Document'}</h2>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowAiPanel(!showAiPanel)}
@@ -338,7 +338,7 @@ const ArticleEditorModal: React.FC<{
                 </header>
 
                 <div className="flex flex-1 overflow-hidden">
-                    <main className={`p-8 space-y-6 overflow-y-auto ${showAiPanel ? 'w-2/3' : 'w-full'}`}>
+                    <main className={`p-4 md:p-8 space-y-4 md:space-y-6 overflow-y-auto ${showAiPanel ? 'w-full md:w-2/3' : 'w-full'}`}>
                         <div>
                             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Title</label>
                             <input
@@ -349,7 +349,7 @@ const ArticleEditorModal: React.FC<{
                                 className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Category</label>
                                 <select
@@ -436,10 +436,10 @@ const ArticleEditorModal: React.FC<{
                     </main>
 
                     {showAiPanel && (
-                        <aside className="w-1/3 border-l border-zinc-100 p-6 bg-gradient-to-b from-purple-50 to-white overflow-y-auto">
-                            <div className="flex items-center gap-2 mb-6">
+                        <aside className="hidden md:block w-1/3 border-l border-zinc-100 p-4 md:p-6 bg-gradient-to-b from-purple-50 to-white overflow-y-auto">
+                            <div className="flex items-center gap-2 mb-4 md:mb-6">
                                 <Sparkles size={20} className="text-purple-600" />
-                                <h3 className="text-xl font-bold text-zinc-900">AI Document Assistant</h3>
+                                <h3 className="text-base md:text-xl font-bold text-zinc-900">AI Document Assistant</h3>
                             </div>
 
                             <div className="space-y-4">
@@ -491,13 +491,13 @@ const ArticleEditorModal: React.FC<{
                     )}
                 </div>
 
-                <footer className="p-8 border-t border-zinc-100 flex justify-end gap-4">
-                    <button onClick={onClose} className="px-6 py-3 border border-black rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50">
+                <footer className="p-4 md:p-8 border-t border-zinc-100 flex flex-col sm:flex-row justify-end gap-4">
+                    <button onClick={onClose} className="w-full sm:w-auto min-h-[44px] px-6 py-3 border border-black rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50">
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-8 py-3 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
+                        className="w-full sm:w-auto min-h-[44px] px-8 py-3 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-elevation-2"
                     >
                         <Save size={16} /> Save Document
                     </button>

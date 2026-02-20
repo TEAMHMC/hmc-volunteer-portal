@@ -184,30 +184,30 @@ const FormBuilder: React.FC = () => {
     if (viewingResponses) {
         return (
             <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-                <header className="flex items-center justify-between">
+                <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <button onClick={() => setViewingResponses(null)} className="text-sm font-bold text-zinc-500 mb-2">← Back to Forms</button>
-                        <h1 className="text-5xl font-black tracking-tighter uppercase italic">Survey Responses</h1>
-                        <p className="text-lg font-medium text-zinc-500 mt-2">{viewingResponses.responses.length} responses collected</p>
+                        <button onClick={() => setViewingResponses(null)} className="text-sm font-bold text-zinc-500 mb-2 min-h-[44px] flex items-center">← Back to Forms</button>
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Survey Responses</h1>
+                        <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">{viewingResponses.responses.length} responses collected</p>
                     </div>
                     <button
                         onClick={() => handleExportResponses(viewingResponses.responses)}
-                        className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2"
+                        className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 min-h-[44px] w-full sm:w-auto"
                     >
                         <Download size={16} /> Export CSV
                     </button>
                 </header>
 
                 {viewingResponses.responses.length === 0 ? (
-                    <div className="bg-zinc-50 rounded-[40px] p-8 text-center border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                    <div className="bg-zinc-50 rounded-2xl md:rounded-[40px] p-4 md:p-8 text-center border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
                         <BarChart3 className="mx-auto text-zinc-300 mb-4" size={48} />
                         <p className="text-zinc-400 font-bold text-sm">No responses collected yet.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {viewingResponses.responses.map((response, idx) => (
-                            <div key={response.id || idx} className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-                                <div className="flex items-center justify-between mb-4">
+                            <div key={response.id || idx} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                                     <span className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em]">
                                         {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'Unknown date'}
                                     </span>
@@ -217,9 +217,9 @@ const FormBuilder: React.FC = () => {
                                 </div>
                                 <div className="space-y-2">
                                     {Object.entries(response.responses || {}).map(([key, value]) => (
-                                        <div key={key} className="flex gap-4">
-                                            <span className="text-sm font-bold text-zinc-500 min-w-[120px]">{key}:</span>
-                                            <span className="text-sm text-zinc-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                                        <div key={key} className="flex flex-col sm:flex-row gap-1 sm:gap-4">
+                                            <span className="text-xs sm:text-sm font-bold text-zinc-500 sm:min-w-[120px]">{key}:</span>
+                                            <span className="text-xs sm:text-sm text-zinc-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -236,23 +236,23 @@ const FormBuilder: React.FC = () => {
     }
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-            <header className="flex items-center justify-between">
+        <div className="space-y-6 md:space-y-12 animate-in fade-in duration-700 pb-20">
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-5xl font-black tracking-tighter uppercase italic">Forms Dashboard</h1>
-                    <p className="text-lg font-medium text-zinc-500 mt-2">Manage data collection forms for surveys, applications, and feedback.</p>
+                    <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Forms Dashboard</h1>
+                    <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Manage data collection forms for surveys, applications, and feedback.</p>
                 </div>
                 <button
                     onClick={handleCreateNewForm}
-                    className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform"
+                    className="flex items-center justify-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 hover:scale-105 transition-transform min-h-[44px] w-full sm:w-auto"
                 >
                     <Plus size={16} /> New Form
                 </button>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                 {forms.map(form => (
-                    <div key={form.id} className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow flex flex-col">
+                    <div key={form.id} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow flex flex-col">
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-6">
                             <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-400 border border-zinc-100"><FileText /></div>
@@ -263,23 +263,23 @@ const FormBuilder: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <h3 className="text-xl font-bold text-zinc-900">{form.title}</h3>
-                          <p className="text-sm text-zinc-500 mt-2">{form.description}</p>
+                          <h3 className="text-base md:text-xl font-bold text-zinc-900">{form.title}</h3>
+                          <p className="text-xs md:text-sm text-zinc-500 mt-2">{form.description}</p>
                           <div className="mt-3">
                             <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] rounded">
                               {form.category || 'custom'}
                             </span>
                           </div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-zinc-100 flex justify-between gap-3">
-                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand hover:bg-brand/5 px-4 py-3 rounded-xl">
+                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-zinc-100 flex flex-wrap justify-between gap-2 md:gap-3">
+                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand hover:bg-brand/5 px-3 py-3 md:px-4 rounded-xl min-h-[44px]">
                                 <BarChart3 size={14} /> Responses
                             </button>
                             <div className="flex gap-2">
-                                <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl">
+                                <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl min-h-[44px]">
                                     <Trash2 size={14} />
                                 </button>
-                                <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl hover:bg-zinc-200">
+                                <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-3 py-3 md:px-4 rounded-xl hover:bg-zinc-200 min-h-[44px]">
                                     Edit Form
                                 </button>
                             </div>
@@ -333,49 +333,51 @@ const FormEditor: React.FC<{form: FormDefinition, onSave: (form: FormDefinition)
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <button onClick={onBack} className="text-sm font-bold text-zinc-500">← Back to Forms</button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button onClick={onBack} className="text-sm font-bold text-zinc-500 min-h-[44px] flex items-center">← Back to Forms</button>
                 <button
                     onClick={() => onSave({ ...form, title: formTitle, fields })}
                     disabled={isSaving}
-                    className="flex items-center gap-3 px-6 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50 min-h-[44px] w-full sm:w-auto"
                 >
                     {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
             </div>
 
-            <div className="grid grid-cols-12 gap-8 items-start">
-                <div className="col-span-8 bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-8">
-                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-3xl font-black text-zinc-900 outline-none p-4 -ml-2 bg-zinc-50 border-2 border-zinc-100 rounded-2xl focus:border-brand/30" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
+                <div className="lg:col-span-8 bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-4 md:space-y-8">
+                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full text-xl md:text-3xl font-black text-zinc-900 outline-none p-3 md:p-4 ml-0 md:-ml-2 bg-zinc-50 border-2 border-zinc-100 rounded-2xl focus:border-brand/30" />
                     {fields.map(field => (
-                        <div key={field.id} className="p-6 bg-zinc-50 border border-zinc-100 rounded-3xl relative group">
-                            <button onClick={() => removeField(field.id)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-zinc-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                            <input value={field.question} onChange={e => updateField(field.id, 'question', e.target.value)} className="font-bold text-zinc-700 w-full bg-transparent outline-none p-1 rounded focus:bg-white" />
+                        <div key={field.id} className="p-4 md:p-6 bg-zinc-50 border border-zinc-100 rounded-2xl md:rounded-3xl relative group">
+                            <button onClick={() => removeField(field.id)} className="absolute top-3 right-3 md:top-4 md:right-4 p-2 bg-white rounded-full text-zinc-300 hover:text-rose-500 hover:bg-rose-50 md:opacity-0 md:group-hover:opacity-100 min-h-[44px] min-w-[44px] flex items-center justify-center"><Trash2 size={16} /></button>
+                            <input value={field.question} onChange={e => updateField(field.id, 'question', e.target.value)} className="font-bold text-sm md:text-base text-zinc-700 w-full bg-transparent outline-none p-1 rounded focus:bg-white pr-10" />
                             
                             {(field.type === 'Multiple Choice' || field.type === 'Checkboxes') && (
                                 <div className="space-y-2 mt-4">
                                     {field.options?.map((opt, i) => (
                                         <div key={i} className="flex items-center gap-2 group/option">
                                             <div className={`w-4 h-4 border-2 border-zinc-300 ${field.type === 'Multiple Choice' ? 'rounded-full' : 'rounded'}`} />
-                                            <input value={opt} onChange={e => updateOption(field.id, i, e.target.value)} className="flex-1 bg-transparent p-1 rounded outline-none focus:bg-white" />
-                                            <button onClick={() => removeOption(field.id, i)} className="text-zinc-300 hover:text-rose-500 opacity-0 group-hover/option:opacity-100"><X size={14}/></button>
+                                            <input value={opt} onChange={e => updateOption(field.id, i, e.target.value)} className="flex-1 min-w-0 bg-transparent p-1 rounded outline-none focus:bg-white text-sm md:text-base" />
+                                            <button onClick={() => removeOption(field.id, i)} className="text-zinc-300 hover:text-rose-500 md:opacity-0 md:group-hover/option:opacity-100 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"><X size={14}/></button>
                                         </div>
                                     ))}
-                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-brand mt-2 p-1 hover:bg-brand/5 rounded"><PlusCircle size={14} /> Add Option</button>
+                                    <button onClick={() => addOption(field.id)} className="flex items-center gap-2 text-xs font-bold text-brand mt-2 p-2 hover:bg-brand/5 rounded min-h-[44px]"><PlusCircle size={14} /> Add Option</button>
                                 </div>
                             )}
                         </div>
                     ))}
                 </div>
-                <div className="col-span-4 bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-4">
-                     <h3 className="text-xl font-bold text-zinc-900 mb-4">Add Field</h3>
-                     {fieldTypes.map(field => (
-                         <button key={field.name} onClick={() => addField(field.name)} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-3xl flex items-center gap-4 hover:border-brand/30 hover:bg-brand/5">
-                            <field.icon className="text-zinc-400" />
-                            <span className="font-bold text-zinc-700">{field.name}</span>
-                         </button>
-                     ))}
+                <div className="lg:col-span-4 bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+                     <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-3 md:mb-4">Add Field</h3>
+                     <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 md:gap-4">
+                         {fieldTypes.map(field => (
+                             <button key={field.name} onClick={() => addField(field.name)} className="w-full p-3 md:p-4 bg-zinc-50 border border-zinc-100 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4 hover:border-brand/30 hover:bg-brand/5 min-h-[44px]">
+                                <field.icon className="text-zinc-400 shrink-0" size={20} />
+                                <span className="font-bold text-sm md:text-base text-zinc-700">{field.name}</span>
+                             </button>
+                         ))}
+                     </div>
                 </div>
             </div>
         </div>

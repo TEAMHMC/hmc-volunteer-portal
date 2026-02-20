@@ -305,8 +305,8 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
         <div>
-          <h2 className="text-5xl font-black tracking-tighter uppercase italic">Volunteer Opportunities</h2>
-          <p className="text-lg font-medium text-zinc-500 mt-2">Find and sign up for upcoming community health events.</p>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Volunteer Opportunities</h2>
+          <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Find and sign up for upcoming community health events.</p>
         </div>
       </div>
 
@@ -324,7 +324,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
       {/* Event card grid */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center bg-zinc-50 rounded-[40px] border border-zinc-100">
+        <div className="py-16 text-center bg-zinc-50 rounded-2xl md:rounded-[40px] border border-zinc-100">
           <Calendar size={32} className="mx-auto text-zinc-300 mb-3" />
           <p className="text-zinc-400 font-bold text-sm">No events found.</p>
           {search && <p className="text-zinc-400 text-xs mt-1">Try a different search term.</p>}
@@ -337,7 +337,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
               <button
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
-                className={`bg-white rounded-[40px] p-8 border shadow-sm hover:shadow-2xl transition-shadow text-left group ${isSignedUp ? 'border-brand/30' : 'border-zinc-100 hover:border-zinc-200'}`}
+                className={`bg-white rounded-2xl md:rounded-[40px] p-4 md:p-8 border shadow-sm hover:shadow-2xl transition-shadow text-left group ${isSignedUp ? 'border-brand/30' : 'border-zinc-100 hover:border-zinc-200'}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span
@@ -370,7 +370,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]" onClick={() => { setSelectedEvent(null); setJustRsvped(false); }} />
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
             <div className="bg-white rounded-modal max-w-lg w-full shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-              <div className="p-6 space-y-5">
+              <div className="p-4 md:p-6 space-y-5">
                 <div className="flex justify-between items-start">
                   <span
                     className="px-3 py-1.5 rounded-full text-[10px] font-bold text-white"
@@ -415,7 +415,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       </div>
                       <button
                         onClick={() => downloadICS(selectedEvent)}
-                        className="w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-black hover:opacity-95 uppercase tracking-wide"
+                        className="w-full py-4 min-h-[44px] rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 bg-brand text-white border border-black hover:opacity-95 uppercase tracking-wide"
                       >
                         <Calendar size={16} /> Save to Calendar (.ics)
                       </button>
@@ -431,7 +431,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
                       <button
                         onClick={() => handleSignUp(selectedEvent.id)}
                         disabled={isSigningUp}
-                        className={`w-full py-4 rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 uppercase tracking-wide ${
+                        className={`w-full py-4 min-h-[44px] rounded-full font-bold text-base transition-all shadow-elevation-2 flex items-center justify-center gap-2 disabled:opacity-60 uppercase tracking-wide ${
                           user.rsvpedEventIds?.includes(selectedEvent.id)
                             ? 'bg-white text-zinc-900 border border-zinc-950'
                             : 'bg-brand text-white border border-black hover:opacity-95'
@@ -470,7 +470,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
 
       {/* My Confirmed Events */}
       {user.rsvpedEventIds && user.rsvpedEventIds.length > 0 && (
-        <div className="bg-indigo-900 rounded-[40px] p-8 text-white shadow-sm hover:shadow-2xl transition-shadow relative overflow-hidden group border border-zinc-100">
+        <div className="bg-indigo-900 rounded-2xl md:rounded-[40px] p-4 md:p-8 text-white shadow-sm hover:shadow-2xl transition-shadow relative overflow-hidden group border border-zinc-100">
           <Calendar className="absolute -bottom-8 -right-8 w-36 h-36 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
           <div className="relative z-10">
             <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">My Confirmed Events</h4>

@@ -168,10 +168,10 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Weekly Availability Reminder Banner */}
       {showReminderBanner && (
-        <div className="bg-amber-50 border border-amber-200 p-6 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex items-center justify-between animate-in slide-in-from-top">
+        <div className="bg-amber-50 border border-amber-200 p-4 md:p-6 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
               <Bell size={24} />
@@ -198,8 +198,8 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div className="flex items-center gap-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:gap-6">
+        <div className="flex items-center gap-4 md:gap-8">
           <div className="relative group">
             <div className="w-32 h-32 rounded-2xl bg-brand border-2 border-white shadow-elevation-3 overflow-hidden flex items-center justify-center text-white text-2xl font-black">
               {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} className="w-full h-full object-cover" /> : currentUser.name.charAt(0)}
@@ -222,16 +222,16 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             <p className="text-zinc-500 mt-2 font-bold flex items-center gap-2"><Shield size={16} className="text-brand" /> {currentUser.role}</p>
           </div>
         </div>
-        <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3 border border-black shadow-elevation-2 ${isEditing ? 'bg-brand text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
+        <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`w-full sm:w-auto min-h-[44px] px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 border border-black shadow-elevation-2 ${isEditing ? 'bg-brand text-white' : 'bg-white text-zinc-900 hover:bg-zinc-50'}`}>
           {isEditing ? <><Save size={16}/> Save Profile</> : <><Edit3 size={16}/> Edit Profile</>}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-10">
-          <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-             <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Profile Details</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10">
+        <div className="lg:col-span-2 space-y-6 md:space-y-10">
+          <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+             <h3 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight mb-4 md:mb-8 uppercase">Profile Details</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                 <div className="space-y-4">
                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Contact</label>
                    {isEditing ? (
@@ -262,10 +262,10 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 </div>
              </div>
           </div>
-          <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight mb-8 uppercase">Availability</h3>
+          <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+            <h3 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight mb-4 md:mb-8 uppercase">Availability</h3>
             {isEditing ? (
-                 <div className="space-y-6">
+                 <div className="space-y-4 md:space-y-6">
                     <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Available Days & Hours</label>
                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
@@ -309,7 +309,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                     </div>
                 </div>
             ) : (
-                 <div className="space-y-6">
+                 <div className="space-y-4 md:space-y-6">
                     <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2 mb-3 block">Weekly Schedule</label>
                         {profileData.availDays.length > 0 ? (
@@ -353,9 +353,9 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
           </div>
         </div>
 
-        <div className="space-y-10">
-          <div className="bg-white p-8 rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-10">
-            <h3 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Legacy Badges</h3>
+        <div className="space-y-6 md:space-y-10">
+          <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow space-y-6 md:space-y-10">
+            <h3 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight uppercase">Legacy Badges</h3>
             <div className="grid grid-cols-1 gap-4 max-h-[480px] overflow-y-auto">
               {currentUser.achievements.length === 0 ? <p className="text-zinc-400 text-sm font-bold italic">No badges earned yet.</p> : currentUser.achievements.map(ach => (
                 <div key={ach.id} className="flex items-center gap-5 p-5 bg-zinc-50 rounded-2xl border border-zinc-100/50">
@@ -373,11 +373,11 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
 
       {/* Signed Clinical Documents */}
       {currentUser.clinicalOnboarding?.documents && Object.values(currentUser.clinicalOnboarding.documents).some((d: any) => d?.signed) && (
-        <div className="bg-white rounded-[40px] p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="bg-white rounded-2xl md:rounded-[40px] p-4 md:p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="flex items-center gap-4 mb-4 md:mb-6">
             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-elevation-1"><ClipboardList size={24} /></div>
             <div>
-              <h3 className="text-xl font-black text-zinc-900 tracking-tight">My Signed Documents</h3>
+              <h3 className="text-base md:text-xl font-black text-zinc-900 tracking-tight">My Signed Documents</h3>
               <p className="text-xs text-zinc-400 font-bold">Clinical onboarding documents you've reviewed and signed</p>
             </div>
           </div>
@@ -397,7 +397,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                 standingOrders: '/documents/HMC-Standing-Orders-v3.0.html',
               };
               return (
-                <div key={docId} className="flex items-center justify-between p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                <div key={docId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 md:p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 size={18} className="text-emerald-500" />
                     <div>
