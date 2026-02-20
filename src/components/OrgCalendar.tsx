@@ -128,12 +128,10 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           return [...fetched, ...optimistic].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
         });
       } else {
-        if (fetched.length > 0) {
-          setEvents(fetched);
-        } else {
-          // API returned empty — use opportunities prop as fallback
-          setEvents(opportunityEvents);
-        }
+        // Merge fetched events with opportunity-derived events (dedup by ID)
+        const fetchedIds = new Set(fetched.map((e: any) => e.id));
+        const missingOpps = opportunityEvents.filter(o => !fetchedIds.has(o.id));
+        setEvents([...fetched, ...missingOpps].sort((a, b) => (a.date || '').localeCompare(b.date || '')));
       }
     } catch (error) {
       console.error('[OrgCalendar] Failed to fetch events:', error);

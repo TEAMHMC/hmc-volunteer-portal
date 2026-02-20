@@ -8990,11 +8990,16 @@ app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Re
 async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean; dateFrom?: string; dateTo?: string } = {}): Promise<any[]> {
   const { callerRole = '', isAdmin = false, dateFrom, dateTo } = filters;
 
+  // Use individual try/catch per collection so one failure doesn't crash everything
+  const safeGet = (collection: string) => db.collection(collection).get().catch((e: any) => {
+    console.warn(`[ORG-CALENDAR] ${collection} query failed:`, e.message);
+    return { docs: [] as any[] };
+  });
   const [orgSnap, boardSnap, oppsSnap, shiftsSnap] = await Promise.all([
-    db.collection('org_calendar_events').get(),
-    db.collection('board_meetings').get(),
-    db.collection('opportunities').get(),
-    db.collection('shifts').get(),
+    safeGet('org_calendar_events'),
+    safeGet('board_meetings'),
+    safeGet('opportunities'),
+    safeGet('shifts'),
   ]);
 
   // 1. Org calendar events (native) — filter by visibleTo
