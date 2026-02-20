@@ -1148,9 +1148,9 @@ const RESOURCE_ITEMS = [
   'Naloxone/Narcan', 'Fentanyl Test Strip', 'Safe Sex Supplies', 'HIV Self-Test Kit',
 ];
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Transgender Male', 'Transgender Female', 'Non-Binary', 'Other', 'Decline to State'];
-const RACE_ETHNICITY_OPTIONS = ['Black/African American', 'Hispanic/Latino(a)', 'White/Caucasian', 'Asian', 'American Indian/Alaska Native', 'Native Hawaiian/Pacific Islander', 'Multi-Racial/Other', 'Decline to State'];
-const AGE_RANGE_OPTIONS = ['Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+const GENDER_OPTIONS = ['Cisgender male', 'Cisgender female', 'Transgender woman', 'Transgender man', 'Non-binary', 'Another gender identity', 'Declined'];
+const RACE_ETHNICITY_OPTIONS = ['Latino/Latina/Latinx/Latine', 'Black/African American', 'White/Caucasian', 'Asian', 'More than one race', 'Another race', 'Declined'];
+const AGE_RANGE_OPTIONS = ['17-19', '20-29', '30-39', '40-49', '50-65', '66 and older', 'Declined'];
 
 const DistributionTrackerView: React.FC<{
     user: Volunteer;
@@ -1184,7 +1184,6 @@ const DistributionTrackerView: React.FC<{
     const [formItem, setFormItem] = useState('');
     const [formCustomItem, setFormCustomItem] = useState('');
     const [formQty, setFormQty] = useState(1);
-    const [formRecipient, setFormRecipient] = useState('');
     const [formNotes, setFormNotes] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -1272,7 +1271,6 @@ const DistributionTrackerView: React.FC<{
         setClientSaving(true);
         try {
             const payload = {
-                clientNumber: clientLogs.length + 1,
                 genderIdentity: clientGender,
                 raceEthnicity: clientRace,
                 ageRange: clientAge,
@@ -1291,10 +1289,10 @@ const DistributionTrackerView: React.FC<{
             const entry = await apiService.post(`/api/ops/tracker/${opportunity.id}/client-log`, payload);
             setClientLogs(prev => [entry, ...prev]);
             setParticipantsServed(prev => prev + 1);
-            onLog({ actionType: 'LOG_CLIENT_SERVICE', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Logged client #${payload.clientNumber} — ${clientGender}, ${clientAge}` });
+            onLog({ actionType: 'LOG_CLIENT_SERVICE', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Logged client — ${clientGender}, ${clientAge}` });
             setShowClientForm(false);
             resetClientForm();
-            toastService.success(`Client #${payload.clientNumber} logged successfully`);
+            toastService.success('Client logged successfully');
         } catch (e) {
             toastService.error('Failed to log client service');
         } finally {
@@ -1326,12 +1324,12 @@ const DistributionTrackerView: React.FC<{
         setSaving(true);
         try {
             const entry = await apiService.post(`/api/ops/tracker/${opportunity.id}/distribution`, {
-                item: itemName, quantity: formQty, recipientName: formRecipient, notes: formNotes, shiftId: shift.id,
+                item: itemName, quantity: formQty, notes: formNotes, shiftId: shift.id,
             });
             setDistributions(prev => [entry, ...prev]);
-            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed ${formQty}x ${itemName}${formRecipient ? ` to ${formRecipient}` : ''}` });
+            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed ${formQty}x ${itemName}` });
             setShowAddForm(false);
-            setFormItem(''); setFormCustomItem(''); setFormQty(1); setFormRecipient(''); setFormNotes('');
+            setFormItem(''); setFormCustomItem(''); setFormQty(1); setFormNotes('');
         } catch (e) {
             toastService.error('Failed to log distribution');
         } finally {
@@ -1485,7 +1483,7 @@ const DistributionTrackerView: React.FC<{
                                 <div key={log.id} className="px-5 py-4 bg-white rounded-2xl border border-zinc-100 hover:border-zinc-200 transition-all">
                                     <div className="flex items-center justify-between mb-1">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0 text-xs font-black">#{log.clientNumber}</div>
+                                            <div className="w-8 h-8 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0"><Users size={14} /></div>
                                             <p className="text-sm font-bold text-zinc-800">{log.genderIdentity} / {log.raceEthnicity} / {log.ageRange}</p>
                                         </div>
                                         <p className="text-[10px] text-zinc-400 font-bold shrink-0">{new Date(log.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
@@ -1593,7 +1591,7 @@ const DistributionTrackerView: React.FC<{
                                             <p className="text-sm font-bold text-zinc-800 truncate">{d.item}</p>
                                             <p className="text-[10px] text-zinc-400 truncate">
                                                 {d.loggedByName} · {new Date(d.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                                {d.recipientName ? ` · to ${d.recipientName}` : ''}
+                                                {d.notes ? ` · ${d.notes}` : ''}
                                             </p>
                                         </div>
                                     </div>
@@ -1738,10 +1736,6 @@ const DistributionTrackerView: React.FC<{
                             <div>
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Quantity *</label>
                                 <input type="number" min={1} value={formQty} onChange={e => setFormQty(parseInt(e.target.value) || 1)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Recipient Name (optional)</label>
-                                <input type="text" value={formRecipient} onChange={e => setFormRecipient(e.target.value)} placeholder="Client name if applicable" className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes (optional)</label>

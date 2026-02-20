@@ -663,7 +663,6 @@ export interface DistributionEntry {
     shiftId: string;
     item: string;
     quantity: number;
-    recipientName?: string;
     notes?: string;
     loggedBy: string;
     loggedByName: string;
@@ -674,7 +673,6 @@ export interface ClientServiceLog {
     id: string;
     eventId: string;
     shiftId: string;
-    clientNumber: number;
     // Demographics
     genderIdentity: string;
     raceEthnicity: string;

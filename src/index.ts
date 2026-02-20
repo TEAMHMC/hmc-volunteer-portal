@@ -4421,7 +4421,7 @@ app.post('/api/ops/tracker/:eventId/distribution', verifyToken, async (req: Requ
     try {
         const user = (req as any).user;
         const { eventId } = req.params;
-        const { item, quantity, recipientName, notes, shiftId } = req.body;
+        const { item, quantity, notes, shiftId } = req.body;
         if (!item || !quantity) return res.status(400).json({ error: 'item and quantity required' });
         const volunteerDoc = await db.collection('volunteers').doc(user.uid).get();
         const volunteerName = volunteerDoc.data()?.name || 'Unknown';
@@ -4430,7 +4430,6 @@ app.post('/api/ops/tracker/:eventId/distribution', verifyToken, async (req: Requ
             shiftId: shiftId || '',
             item,
             quantity: Number(quantity),
-            recipientName: recipientName || null,
             notes: notes || null,
             loggedBy: user.uid,
             loggedByName: volunteerName,
@@ -4476,7 +4475,7 @@ app.post('/api/ops/tracker/:eventId/client-log', verifyToken, async (req: Reques
     try {
         const user = (req as any).user;
         const { eventId } = req.params;
-        const { clientNumber, genderIdentity, raceEthnicity, ageRange, zipCode,
+        const { genderIdentity, raceEthnicity, ageRange, zipCode,
             resourcesOnly, healthScreeningOnly, fullConsult, referralGiven,
             hivSelfTestToGo, hivSelfTestWithTeam, harmReductionSupplies,
             resourcesDistributed, notes, shiftId } = req.body;
@@ -4484,7 +4483,6 @@ app.post('/api/ops/tracker/:eventId/client-log', verifyToken, async (req: Reques
         const volunteerName = volunteerDoc.data()?.name || 'Unknown';
         const entry = {
             eventId, shiftId: shiftId || '',
-            clientNumber: Number(clientNumber) || 0,
             genderIdentity: genderIdentity || '', raceEthnicity: raceEthnicity || '',
             ageRange: ageRange || '', zipCode: zipCode || '',
             resourcesOnly: !!resourcesOnly, healthScreeningOnly: !!healthScreeningOnly, fullConsult: !!fullConsult,
