@@ -418,7 +418,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                 </div>
                 <div className="p-4 md:p-8 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl md:rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <Users size={18} className="mx-auto text-emerald-500 mb-1.5" />
-                    <p className="text-2xl md:text-3xl font-black text-zinc-900">{opportunity.slotsFilled}<span className="text-zinc-300 text-base md:text-lg">/{opportunity.slotsTotal}</span></p>
+                    <p className="text-2xl md:text-3xl font-black text-zinc-900">{eventShifts ? eventShifts.reduce((sum, s) => sum + (s.assignedVolunteerIds?.length || 0), 0) : (opportunity.slotsFilled || 0)}<span className="text-zinc-300 text-base md:text-lg">/{opportunity.slotsTotal}</span></p>
                     <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Volunteers</p>
                 </div>
                 <div className="p-4 md:p-8 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-2xl md:rounded-3xl border border-violet-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
