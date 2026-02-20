@@ -91,7 +91,21 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   }, [opportunity]);
     
   const event = useMemo(() => EVENTS.find(e => `opp-${e.id}` === opportunity.id), [opportunity.id]);
-  const surveyKit = useMemo(() => SURVEY_KITS.find(s => s.id === event?.surveyKitId) || SURVEY_KITS[0], [event]);
+  const surveyKit = useMemo(() => {
+    // 1. Match by explicit surveyKitId on the event
+    if (event?.surveyKitId) {
+      const exact = SURVEY_KITS.find(s => s.id === event.surveyKitId);
+      if (exact) return exact;
+    }
+    // 2. Match by opportunity category against survey kit's eventTypesAllowed
+    const cat = opportunity.category?.toLowerCase() || '';
+    const byCategory = SURVEY_KITS.find(s =>
+      s.eventTypesAllowed.some(t => cat.includes(t.toLowerCase()) || t.toLowerCase().includes(cat))
+    );
+    if (byCategory) return byCategory;
+    // 3. Fallback to default
+    return SURVEY_KITS[0];
+  }, [event, opportunity.category]);
 
   useEffect(() => {
     const fetchOpsData = async () => {
