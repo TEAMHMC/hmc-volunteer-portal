@@ -3153,12 +3153,25 @@ app.post('/api/resources/create', verifyToken, requireAdmin, async (req: Request
 const MAX_CSV_SIZE = 5 * 1024 * 1024; // 5MB max CSV payload
 const MAX_CSV_ROWS = 2000;
 
+// Clean up UTF-8 encoding artifacts from CSV data (curly quotes, em-dashes, BOM, etc.)
+function sanitizeCSVText(text: string): string {
+    return text
+        .replace(/\uFEFF/g, '')              // BOM
+        .replace(/[\u2018\u2019\u201A]/g, "'")  // Curly single quotes → straight
+        .replace(/[\u201C\u201D\u201E]/g, '"')  // Curly double quotes → straight
+        .replace(/[\u2013\u2014]/g, '-')         // En/em dash → hyphen
+        .replace(/\u2026/g, '...')               // Ellipsis → three dots
+        .replace(/[\u00A0]/g, ' ')               // Non-breaking space → space
+        .replace(/\u00AD/g, '')                  // Soft hyphen → remove
+        .replace(/[\u200B-\u200D\uFEFF]/g, '');  // Zero-width chars → remove
+}
+
 // Map variant column names from different CSV formats to canonical field names
 function normalizeResourceRow(row: Record<string, string>): Record<string, string> | null {
     const get = (...keys: string[]) => {
         for (const k of keys) {
             const val = row[k]?.trim();
-            if (val) return val;
+            if (val) return sanitizeCSVText(val);
         }
         return '';
     };
