@@ -12,6 +12,7 @@ import process from 'process';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import Papa from 'papaparse';
 import { STATIC_MODULE_CONTENT } from './staticModuleContent';
 import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS, TIER_1_IDS, TIER_2_CORE_IDS, hasCompletedAllModules } from './constants';
 
@@ -3148,9 +3149,72 @@ app.post('/api/resources/create', verifyToken, requireAdmin, async (req: Request
     }
 });
 
-// Bulk import resources from CSV
+// Bulk import resources from CSV (uses PapaParse for multi-line quoted field support)
 const MAX_CSV_SIZE = 5 * 1024 * 1024; // 5MB max CSV payload
 const MAX_CSV_ROWS = 2000;
+
+// Map variant column names from different CSV formats to canonical field names
+function normalizeResourceRow(row: Record<string, string>): Record<string, string> | null {
+    const get = (...keys: string[]) => {
+        for (const k of keys) {
+            const val = row[k]?.trim();
+            if (val) return val;
+        }
+        return '';
+    };
+
+    // Build Resource Name with fallback to Agency + Program
+    let resourceName = get('Resource Name');
+    if (!resourceName) {
+        const agency = get('Agency', 'Organization', 'Provider');
+        const program = get('Program / Site', 'Program', 'Site Name');
+        if (agency && program) resourceName = `${agency} - ${program}`;
+        else if (agency) resourceName = agency;
+    }
+    if (!resourceName) return null; // Skip rows with no identifiable name
+
+    // Build Address with fallback to City/State/Zip composition
+    let address = get('Address', 'Street Address');
+    if (!address) {
+        const city = get('City');
+        const state = get('State');
+        const zip = get('Zip', 'Zip Code', 'ZIP');
+        const parts = [city, state, zip].filter(Boolean);
+        if (parts.length >= 2) address = parts.join(', ');
+    }
+
+    const normalized: Record<string, string> = {};
+    normalized['Resource Name'] = resourceName;
+    normalized['Service Category'] = get('Service Category', 'Category', 'Service Type');
+    normalized['Contact Phone'] = get('Contact Phone', 'Phone Number', 'Phone');
+    normalized['Contact Email'] = get('Contact Email', 'Email');
+    normalized['Address'] = address;
+    normalized['SPA'] = get('SPA', 'Service Planning Area');
+    normalized['Key Offerings'] = get('Key Offerings', 'Description', 'Services Provided', 'Services');
+    normalized['Operation Hours'] = get('Operation Hours', 'Hours of Operation', 'Operating Hours', 'Coverage Hours');
+    normalized['Website'] = get('Website', 'URL');
+    normalized['Target Population'] = get('Target Population', 'Population Served', 'Population Focus');
+    normalized['Languages Spoken'] = get('Languages Spoken', 'Languages Available', 'Languages');
+    normalized['Eligibility Criteria'] = get('Eligibility Criteria', 'Eligibility Requirements', 'Eligibility');
+
+    // Pass through any other fields that don't need mapping
+    const passThrough = [
+        'Resource Type', 'Data type', 'Contact Person Name', 'Contact Info Notes',
+        'Intake / Referral Process Notes', 'SLA / Typical Response Time', 'Source',
+        'Last Modified By', 'Active / Inactive', 'Date Added', 'Last Updated',
+        'Partner Agency', 'Linked Clients'
+    ];
+    for (const key of passThrough) {
+        if (row[key]?.trim()) normalized[key] = row[key].trim();
+    }
+
+    // Remove empty string values
+    for (const key of Object.keys(normalized)) {
+        if (!normalized[key]) delete normalized[key];
+    }
+
+    return normalized;
+}
 
 app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -3158,50 +3222,118 @@ app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Re
         if (!csvData || typeof csvData !== 'string') return res.status(400).json({ error: 'csvData is required' });
         if (csvData.length > MAX_CSV_SIZE) return res.status(400).json({ error: `CSV too large (max ${MAX_CSV_SIZE / 1024 / 1024}MB)` });
         const csvContent = Buffer.from(csvData, 'base64').toString('utf-8');
-        const lines = csvContent.split('\n').filter(line => line.trim());
-        if (lines.length > MAX_CSV_ROWS) return res.status(400).json({ error: `Too many rows (max ${MAX_CSV_ROWS})` });
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+        // Use PapaParse to correctly handle multi-line quoted fields
+        const parsed = Papa.parse(csvContent, { header: true, skipEmptyLines: true, dynamicTyping: false });
+        if (parsed.errors.length > 0) console.warn('[RESOURCES] CSV parse warnings:', parsed.errors.slice(0, 5));
+        const rows = parsed.data as Record<string, string>[];
+
+        if (rows.length > MAX_CSV_ROWS) return res.status(400).json({ error: `Too many rows (max ${MAX_CSV_ROWS})` });
+
+        // Fetch existing resources for de-duplication (by Resource Name + Address)
+        const existingSnap = await db.collection('referral_resources').get();
+        const existingMap = new Map<string, string>(); // key -> docId
+        existingSnap.docs.forEach(d => {
+            const data = d.data();
+            const name = (data['Resource Name'] || '').toLowerCase().trim();
+            const address = (data['Address'] || '').toLowerCase().trim();
+            if (name) existingMap.set(`${name}|${address}`, d.id);
+        });
 
         const importedResources: any[] = [];
-        const batch = db.batch();
+        const updatedResources: any[] = [];
+        const skippedResources: any[] = [];
+        const seenInBatch = new Set<string>(); // Prevent intra-CSV duplicates
 
-        for (let i = 1; i < lines.length; i++) {
-            // Parse CSV line handling quoted values
-            const values: string[] = [];
-            let current = '';
-            let inQuotes = false;
-            for (const char of lines[i]) {
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    values.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
+        // Firestore batch limit is 500 — use multiple batches
+        const batches: FirebaseFirestore.WriteBatch[] = [db.batch()];
+        let batchOpCount = 0;
+
+        for (const row of rows) {
+            const resource = normalizeResourceRow(row);
+            if (!resource) continue;
+
+            // Normalize Active/Inactive field
+            if (!resource['Active / Inactive']) {
+                resource['Active / Inactive'] = 'checked';
+            } else {
+                const val = resource['Active / Inactive'].toLowerCase().trim();
+                resource['Active / Inactive'] = (val === 'inactive' || val === 'unchecked' || val === 'no') ? 'unchecked' : 'checked';
             }
-            values.push(current.trim());
 
-            const resource: any = { 'Active / Inactive': 'checked' };
-            headers.forEach((header, idx) => {
-                if (values[idx]) {
-                    resource[header] = values[idx];
-                }
-            });
+            // Add timestamps
+            resource.updatedAt = new Date().toISOString();
 
-            if (resource['Resource Name']) {
+            // De-duplicate: check by Resource Name + Address
+            const dedupeKey = `${(resource['Resource Name'] || '').toLowerCase().trim()}|${(resource['Address'] || '').toLowerCase().trim()}`;
+
+            if (seenInBatch.has(dedupeKey)) {
+                skippedResources.push({ name: resource['Resource Name'], reason: 'Duplicate within CSV' });
+                continue;
+            }
+            seenInBatch.add(dedupeKey);
+
+            // Get current batch, create new one if at limit
+            if (batchOpCount >= 499) {
+                batches.push(db.batch());
+                batchOpCount = 0;
+            }
+            const currentBatch = batches[batches.length - 1];
+
+            const existingDocId = existingMap.get(dedupeKey);
+            if (existingDocId) {
+                const docRef = db.collection('referral_resources').doc(existingDocId);
+                currentBatch.set(docRef, resource, { merge: true });
+                updatedResources.push({ id: existingDocId, name: resource['Resource Name'] });
+            } else {
+                resource.createdAt = resource['Date Added'] || new Date().toISOString();
                 const docRef = db.collection('referral_resources').doc();
-                batch.set(docRef, resource);
+                currentBatch.set(docRef, resource);
                 importedResources.push({ id: docRef.id, ...resource });
             }
+            batchOpCount++;
         }
 
-        await batch.commit();
-        console.log(`[RESOURCES] Bulk imported ${importedResources.length} resources`);
-        res.json({ success: true, importedCount: importedResources.length });
+        // Commit all batches
+        for (const b of batches) {
+            await b.commit();
+        }
+        console.log(`[RESOURCES] Bulk import: ${importedResources.length} new, ${updatedResources.length} updated, ${skippedResources.length} skipped`);
+        res.json({
+            success: true,
+            importedCount: importedResources.length,
+            updatedCount: updatedResources.length,
+            skippedCount: skippedResources.length,
+            skipped: skippedResources,
+        });
     } catch (error: any) {
         console.error('[RESOURCES] Bulk import failed:', error);
         res.status(500).json({ error: 'Failed to import resources' });
+    }
+});
+
+// Admin endpoint to clear all resources (for wiping bad import data)
+app.delete('/api/resources/clear-all', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('referral_resources').get();
+        if (snap.empty) return res.json({ success: true, deletedCount: 0 });
+
+        // Firestore batch limit is 500 — delete in batches
+        let deletedCount = 0;
+        const docs = snap.docs;
+        for (let i = 0; i < docs.length; i += 499) {
+            const batch = db.batch();
+            const chunk = docs.slice(i, i + 499);
+            chunk.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            deletedCount += chunk.length;
+        }
+
+        console.log(`[RESOURCES] Cleared all resources: ${deletedCount} deleted`);
+        res.json({ success: true, deletedCount });
+    } catch (error: any) {
+        console.error('[RESOURCES] Clear all failed:', error);
+        res.status(500).json({ error: 'Failed to clear resources' });
     }
 });
 
@@ -4323,6 +4455,78 @@ Only return valid JSON array.`;
     }
 });
 
+// --- AI RESOURCE SEARCH ---
+// When a resource isn't in our database, use Gemini to suggest external community resources
+app.post('/api/resources/ai-search', verifyToken, rateLimit(10, 60000), async (req: Request, res: Response) => {
+    try {
+        const { query } = req.body;
+        if (!query || typeof query !== 'string' || query.trim().length < 2) {
+            return res.status(400).json({ error: 'Please provide a search query.' });
+        }
+
+        if (!ai || !GEMINI_API_KEY) {
+            return res.status(503).json({ error: 'AI search is not configured. Set a Gemini API key.' });
+        }
+
+        // First check local DB for matches
+        const resourcesSnap = await db.collection('referral_resources').get();
+        const allResources = resourcesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const localMatches = allResources.filter((r: any) => {
+            const searchText = `${r['Resource Name'] || ''} ${r['Service Category'] || ''} ${r['Key Offerings'] || ''} ${r['Target Population'] || ''}`.toLowerCase();
+            return query.toLowerCase().split(' ').every((word: string) => searchText.includes(word));
+        }).slice(0, 5);
+
+        const prompt = `You are a community health resource navigator for Health Matters Clinic in Los Angeles, CA (Skid Row / Downtown LA area). A volunteer or staff member is searching for: "${query}"
+
+${localMatches.length > 0 ? `We found ${localMatches.length} matches in our database already. The user wants ADDITIONAL suggestions beyond what we have.` : 'We have NO matches in our database for this search.'}
+
+Provide 5-8 real, verified community resources in the Los Angeles area that match this search. Focus on resources near Downtown LA / Skid Row when relevant. For each resource, provide:
+
+Return a JSON array with this exact format:
+[
+  {
+    "name": "Resource Name",
+    "category": "Service Category (e.g., Housing, Food, Medical, Mental Health, Substance Use, Legal Aid, Employment)",
+    "description": "Brief 1-2 sentence description of services offered",
+    "address": "Full address if known, or general area",
+    "phone": "Phone number if known",
+    "website": "Website URL if known",
+    "hours": "Operating hours if known",
+    "notes": "Any important notes (eligibility, wait times, walk-in vs appointment, etc.)"
+  }
+]
+
+IMPORTANT: Only suggest real organizations that actually exist. If you're not confident a resource exists, omit it. Return ONLY the JSON array, nothing else.`;
+
+        const text = await generateAIContent(GEMINI_MODEL, prompt, true);
+        let suggestions: any[] = [];
+        try {
+            const parsed = JSON.parse(text);
+            suggestions = Array.isArray(parsed) ? parsed : [];
+        } catch {
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (jsonMatch) suggestions = JSON.parse(jsonMatch[0]);
+        }
+
+        res.json({
+            query,
+            localMatches: localMatches.slice(0, 5).map((r: any) => ({
+                id: r.id,
+                name: r['Resource Name'],
+                category: r['Service Category'],
+                phone: r['Contact Phone'],
+                address: r['Address'],
+                source: 'database'
+            })),
+            aiSuggestions: suggestions.map((s: any) => ({ ...s, source: 'ai' })),
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('[AI RESOURCE SEARCH] Failed:', error);
+        res.status(500).json({ error: 'AI resource search failed. Please try again.' });
+    }
+});
+
 app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: Response) => {
     const { shiftId, userId } = req.params;
     // Shared checklist: stored per-shift (not per-user) so all registered users see the same state
@@ -4548,6 +4752,491 @@ app.put('/api/ops/itinerary/:eventId', verifyToken, async (req: Request, res: Re
     }
 });
 
+// ============================================================
+// STATION ROTATION PLANNER ROUTES
+// ============================================================
+
+// GET /api/ops/station-rotation/:eventId — Load station rotation config
+app.get('/api/ops/station-rotation/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const doc = await db.collection('station_rotation_configs').doc(req.params.eventId).get();
+        if (!doc.exists) return res.json({ config: null });
+        res.json({ config: { eventId: doc.id, ...doc.data() } });
+    } catch (e: any) {
+        console.error('[STATION-ROTATION] GET failed:', e.message);
+        res.json({ config: null });
+    }
+});
+
+// PUT /api/ops/station-rotation/:eventId — Save/update station rotation config
+app.put('/api/ops/station-rotation/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const config = req.body;
+        await db.collection('station_rotation_configs').doc(req.params.eventId).set(
+            { ...config, updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid },
+            { merge: true }
+        );
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[STATION-ROTATION] PUT failed:', e.message);
+        res.status(500).json({ error: 'Failed to save station rotation config' });
+    }
+});
+
+// POST /api/ops/station-rotation/:eventId/reallocate — Log a reallocation entry
+app.post('/api/ops/station-rotation/:eventId/reallocate', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const entry = req.body;
+        const docRef = db.collection('station_rotation_configs').doc(req.params.eventId);
+        const doc = await docRef.get();
+        if (!doc.exists) return res.status(404).json({ error: 'Config not found' });
+
+        const data = doc.data() || {};
+        const log = data.reallocationLog || [];
+        log.push({ ...entry, timestamp: new Date().toISOString() });
+
+        await docRef.set({ reallocationLog: log, updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid }, { merge: true });
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[STATION-ROTATION] Reallocate failed:', e.message);
+        res.status(500).json({ error: 'Failed to log reallocation' });
+    }
+});
+
+// ============================================================
+// VOLUNTEER SELF CHECK-IN / CHECK-OUT
+// ============================================================
+
+// POST /api/ops/volunteer-checkin/:eventId — Volunteer checks themselves in
+app.post('/api/ops/volunteer-checkin/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { eventId } = req.params;
+        const { shiftId } = req.body;
+        const now = new Date().toISOString();
+
+        // Store check-in record
+        const checkinRef = db.collection('volunteer_checkins').doc(`${eventId}_${user.uid}`);
+        const existing = await checkinRef.get();
+        if (existing.exists && existing.data()?.checkedIn) {
+            return res.json({ success: true, alreadyCheckedIn: true, ...existing.data() });
+        }
+
+        const checkinData = {
+            volunteerId: user.uid,
+            volunteerName: user.profile?.name || `${user.profile?.legalFirstName || ''} ${user.profile?.legalLastName || ''}`.trim(),
+            volunteerRole: user.profile?.volunteerRole || user.profile?.role || 'Volunteer',
+            eventId,
+            shiftId: shiftId || '',
+            checkedIn: true,
+            checkedInAt: now,
+            checkedOut: false,
+            checkedOutAt: null,
+            hoursServed: 0,
+        };
+
+        await checkinRef.set(checkinData, { merge: true });
+
+        // Auto-assign buddy pair: find another checked-in volunteer without a pair
+        const rotationDoc = await db.collection('station_rotation_configs').doc(eventId).get();
+        let buddyAssignment: any = null;
+
+        if (rotationDoc.exists) {
+            const config = rotationDoc.data() || {};
+            const buddyPairs: any[] = config.buddyPairs || [];
+            const pairedIds = new Set<string>();
+            buddyPairs.forEach((p: any) => { pairedIds.add(p.volunteerId1); pairedIds.add(p.volunteerId2); });
+
+            if (!pairedIds.has(user.uid)) {
+                // Find unpaired checked-in volunteers
+                const checkinsSnap = await db.collection('volunteer_checkins')
+                    .where('eventId', '==', eventId)
+                    .where('checkedIn', '==', true)
+                    .get();
+
+                const unpairedCheckedIn = checkinsSnap.docs
+                    .filter(d => d.data().volunteerId !== user.uid && !pairedIds.has(d.data().volunteerId))
+                    .map(d => d.data());
+
+                if (unpairedCheckedIn.length > 0) {
+                    const partner = unpairedCheckedIn[0];
+                    const newPair = {
+                        id: `pair-auto-${Date.now()}`,
+                        volunteerId1: user.uid,
+                        volunteerId2: partner.volunteerId,
+                        currentRoles: { [user.uid]: 'hands_on', [partner.volunteerId]: 'observer' },
+                        pairType: 'core',
+                        label: `Pair ${String.fromCharCode(65 + buddyPairs.filter((p: any) => p.pairType === 'core').length)}`,
+                    };
+                    buddyPairs.push(newPair);
+                    await db.collection('station_rotation_configs').doc(eventId).set(
+                        { buddyPairs, updatedAt: now, updatedBy: 'auto-checkin' },
+                        { merge: true }
+                    );
+                    buddyAssignment = {
+                        pairId: newPair.id,
+                        pairLabel: newPair.label,
+                        buddyName: partner.volunteerName,
+                        buddyRole: partner.volunteerRole,
+                    };
+                }
+            }
+        }
+
+        console.log(`[VOLUNTEER-CHECKIN] ${checkinData.volunteerName} checked in to event ${eventId}`);
+        res.json({ success: true, checkinData, buddyAssignment });
+    } catch (e: any) {
+        console.error('[VOLUNTEER-CHECKIN] Failed:', e.message);
+        res.status(500).json({ error: 'Failed to check in' });
+    }
+});
+
+// POST /api/ops/volunteer-checkout/:eventId — Volunteer checks themselves out
+app.post('/api/ops/volunteer-checkout/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { eventId } = req.params;
+        const now = new Date();
+
+        const checkinRef = db.collection('volunteer_checkins').doc(`${eventId}_${user.uid}`);
+        const doc = await checkinRef.get();
+        if (!doc.exists || !doc.data()?.checkedIn) {
+            return res.status(400).json({ error: 'Not checked in' });
+        }
+
+        const checkinData = doc.data()!;
+        const checkedInAt = new Date(checkinData.checkedInAt);
+        const hoursServed = Math.round(((now.getTime() - checkedInAt.getTime()) / (1000 * 60 * 60)) * 100) / 100;
+
+        await checkinRef.update({
+            checkedOut: true,
+            checkedOutAt: now.toISOString(),
+            hoursServed,
+        });
+
+        // Credit hours to volunteer profile
+        try {
+            const volRef = db.collection('volunteers').doc(user.uid);
+            await volRef.update({
+                hoursContributed: admin.firestore.FieldValue.increment(hoursServed),
+                points: admin.firestore.FieldValue.increment(Math.round(hoursServed * 10)),
+                lastActiveAt: now.toISOString(),
+            });
+        } catch { /* Non-critical */ }
+
+        console.log(`[VOLUNTEER-CHECKOUT] ${checkinData.volunteerName} checked out after ${hoursServed}h`);
+        res.json({ success: true, hoursServed, pointsEarned: Math.round(hoursServed * 10) });
+    } catch (e: any) {
+        console.error('[VOLUNTEER-CHECKOUT] Failed:', e.message);
+        res.status(500).json({ error: 'Failed to check out' });
+    }
+});
+
+// GET /api/ops/volunteer-checkin/:eventId/status — Get current volunteer's check-in status
+app.get('/api/ops/volunteer-checkin/:eventId/status', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const doc = await db.collection('volunteer_checkins').doc(`${req.params.eventId}_${user.uid}`).get();
+        if (!doc.exists) return res.json({ checkedIn: false });
+        res.json(doc.data());
+    } catch (e: any) {
+        res.json({ checkedIn: false });
+    }
+});
+
+// GET /api/ops/volunteer-checkin/:eventId/all — Get all check-ins for an event (for leads)
+app.get('/api/ops/volunteer-checkin/:eventId/all', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('volunteer_checkins')
+            .where('eventId', '==', req.params.eventId)
+            .get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) {
+        res.json([]);
+    }
+});
+
+// POST /api/ops/rotation-notify/:eventId — Send rotation notification to volunteers
+app.post('/api/ops/rotation-notify/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        const { slotIndex, message } = req.body;
+        const now = new Date().toISOString();
+
+        // Store notification
+        await db.collection('rotation_notifications').add({
+            eventId,
+            slotIndex,
+            message,
+            createdAt: now,
+            createdBy: (req as any).user.uid,
+        });
+
+        // Create in-app notifications for all checked-in volunteers
+        const checkinsSnap = await db.collection('volunteer_checkins')
+            .where('eventId', '==', eventId)
+            .where('checkedIn', '==', true)
+            .where('checkedOut', '==', false)
+            .get();
+
+        const batch = db.batch();
+        checkinsSnap.docs.forEach(doc => {
+            const notifRef = db.collection('notifications').doc();
+            batch.set(notifRef, {
+                userId: doc.data().volunteerId,
+                type: 'rotation_change',
+                title: 'Station Rotation',
+                message,
+                eventId,
+                read: false,
+                createdAt: now,
+            });
+        });
+        await batch.commit();
+
+        res.json({ success: true, notifiedCount: checkinsSnap.size });
+    } catch (e: any) {
+        console.error('[ROTATION-NOTIFY] Failed:', e.message);
+        res.status(500).json({ error: 'Failed to send notifications' });
+    }
+});
+
+// ============================================================
+// TEST SMS ENDPOINT
+// ============================================================
+app.post('/api/admin/test-sms', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { phoneNumber, message } = req.body;
+        if (!phoneNumber) return res.status(400).json({ error: 'phoneNumber is required' });
+        const to = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`;
+        const body = message || 'HMC Street Medicine Outreach Reminder: Join us this Saturday for our community health event! Reply STOP to opt out.';
+        const result = await sendSMS(null, to, body);
+        console.log(`[TEST-SMS] Sent to ${to}: ${JSON.stringify(result)}`);
+        res.json({ success: result.sent, ...result, to });
+    } catch (e: any) {
+        console.error('[TEST-SMS] Failed:', e.message);
+        res.status(500).json({ error: 'Failed to send test SMS', details: e.message });
+    }
+});
+
+// ============================================================
+// REFERRAL SUBMISSION — EMAIL / FORM / CALL HANDLING
+// ============================================================
+
+// POST /api/referrals/submit-to-agency — Auto-send referral to partner agency
+app.post('/api/referrals/submit-to-agency', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { referralId, method, clientData, resourceData, volunteerName } = req.body;
+        if (!referralId || !method) return res.status(400).json({ error: 'referralId and method required' });
+
+        const now = new Date().toISOString();
+        const referralRef = db.collection('referrals').doc(referralId);
+
+        if (method === 'email') {
+            // Auto-send referral email to agency
+            const agencyEmail = resourceData?.['Contact Email'];
+            if (!agencyEmail) return res.status(400).json({ error: 'Agency has no contact email' });
+
+            const clientName = `${clientData?.firstName || ''} ${clientData?.lastName || ''}`.trim();
+            const subject = `Referral from Health Matters Clinic — ${clientName}`;
+            const html = `${emailHeader('Client Referral')}
+                <p>Hello,</p>
+                <p>Health Matters Clinic is referring a client to your organization for services. The client has provided verbal consent for information sharing.</p>
+                <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                    <p style="margin: 0 0 8px;"><strong>Client Name:</strong> ${clientName}</p>
+                    ${clientData?.dob ? `<p style="margin: 0 0 8px;"><strong>Date of Birth:</strong> ${clientData.dob}</p>` : ''}
+                    ${clientData?.phone ? `<p style="margin: 0 0 8px;"><strong>Phone:</strong> ${clientData.phone}</p>` : ''}
+                    ${clientData?.email ? `<p style="margin: 0 0 8px;"><strong>Email:</strong> ${clientData.email}</p>` : ''}
+                    ${clientData?.primaryLanguage ? `<p style="margin: 0 0 8px;"><strong>Primary Language:</strong> ${clientData.primaryLanguage}</p>` : ''}
+                    <p style="margin: 0 0 8px;"><strong>Service Needed:</strong> ${resourceData?.['Service Category'] || 'General assistance'}</p>
+                    ${clientData?.needs ? `<p style="margin: 0;"><strong>Identified Needs:</strong> ${Object.entries(clientData.needs).filter(([, v]) => v).map(([k]) => k).join(', ')}</p>` : ''}
+                </div>
+                <p><strong>Referring Organization:</strong> Health Matters Clinic</p>
+                <p><strong>Referred By:</strong> ${volunteerName || 'HMC Volunteer'}</p>
+                <p><strong>Contact:</strong> ${EMAIL_CONFIG.SUPPORT_EMAIL}</p>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">This referral was sent with the client's informed verbal consent for information sharing for referral and coordination purposes.</p>
+            ${emailFooter()}`;
+
+            if (EMAIL_SERVICE_URL) {
+                await fetch(EMAIL_SERVICE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'prerendered', toEmail: agencyEmail, subject, html, text: `Referral from HMC for ${clientName}` }),
+                });
+            }
+
+            await referralRef.update({
+                status: 'In Progress',
+                firstContactDate: now,
+                firstContactBy: (req as any).user.uid,
+                slaComplianceStatus: 'Compliant',
+                submissionMethod: 'email',
+                submittedAt: now,
+                updatedAt: now,
+            });
+
+            console.log(`[REFERRAL] Email sent to ${agencyEmail} for referral ${referralId}`);
+            res.json({ success: true, method: 'email', sentTo: agencyEmail });
+
+        } else if (method === 'call') {
+            // Log that a call is needed — schedule Monday follow-up
+            const nextMonday = new Date();
+            const dayOfWeek = nextMonday.getDay();
+            const daysUntilMonday = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 7 : 8 - dayOfWeek;
+            nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
+            nextMonday.setHours(9, 0, 0, 0);
+
+            await referralRef.update({
+                submissionMethod: 'call',
+                followUpDate: nextMonday.toISOString(),
+                followUpNotes: `Call ${resourceData?.['Resource Name'] || 'agency'} at ${resourceData?.['Contact Phone'] || 'N/A'}. Intake notes: ${resourceData?.['Intake / Referral Process Notes'] || 'Standard intake process.'}`,
+                updatedAt: now,
+            });
+
+            // Create a follow-up notification for the assigned volunteer
+            await db.collection('notifications').add({
+                userId: (req as any).user.uid,
+                type: 'referral_followup',
+                title: 'Referral Follow-Up Required',
+                message: `Call ${resourceData?.['Resource Name']} at ${resourceData?.['Contact Phone']} for client referral. ${resourceData?.['Intake / Referral Process Notes'] || ''}`,
+                referralId,
+                scheduledFor: nextMonday.toISOString(),
+                read: false,
+                createdAt: now,
+            });
+
+            console.log(`[REFERRAL] Call follow-up scheduled for ${nextMonday.toISOString()}`);
+            res.json({ success: true, method: 'call', followUpDate: nextMonday.toISOString(), phoneNumber: resourceData?.['Contact Phone'] });
+
+        } else if (method === 'form') {
+            // Mark as pending form submission — volunteer will fill out agency's form
+            await referralRef.update({
+                submissionMethod: 'form',
+                formSubmitted: false,
+                updatedAt: now,
+            });
+
+            res.json({
+                success: true,
+                method: 'form',
+                intakeNotes: resourceData?.['Intake / Referral Process Notes'] || 'Contact agency for intake form.',
+                website: resourceData?.['Website'] || '',
+                phone: resourceData?.['Contact Phone'] || '',
+                email: resourceData?.['Contact Email'] || '',
+            });
+        } else {
+            res.status(400).json({ error: 'Invalid method. Use: email, call, or form' });
+        }
+    } catch (e: any) {
+        console.error('[REFERRAL] Submit to agency failed:', e.message);
+        res.status(500).json({ error: 'Failed to submit referral' });
+    }
+});
+
+// ============================================================
+// WARM HANDOFF AUTOMATION — Cron checks for aging referrals
+// ============================================================
+async function checkReferralSLA(): Promise<void> {
+    try {
+        const snap = await db.collection('referrals')
+            .where('status', 'in', ['Pending', 'In Progress'])
+            .get();
+
+        const now = new Date();
+        const batch = db.batch();
+        let notifications = 0;
+
+        for (const doc of snap.docs) {
+            const referral = doc.data();
+            const created = new Date(referral.createdAt);
+            const hoursElapsed = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+            const assignedTo = referral.referredBy || referral.assignedTo;
+
+            // Skip if already has first contact
+            if (referral.firstContactDate) continue;
+
+            // 24-hour nudge
+            if (hoursElapsed >= 24 && hoursElapsed < 25 && !referral._nudge24h) {
+                const notifRef = db.collection('notifications').doc();
+                batch.set(notifRef, {
+                    userId: assignedTo,
+                    type: 'referral_sla_warning',
+                    title: 'Referral Follow-Up Needed',
+                    message: `24h since referral for ${referral.clientName} to ${referral.referredTo}. Please make first contact.`,
+                    referralId: doc.id,
+                    read: false,
+                    createdAt: now.toISOString(),
+                });
+                batch.update(doc.ref, { _nudge24h: true });
+                notifications++;
+            }
+
+            // 48-hour escalation to coordinators
+            if (hoursElapsed >= 48 && hoursElapsed < 49 && !referral._nudge48h) {
+                // Notify coordinators
+                const coordSnap = await db.collection('volunteers')
+                    .where('status', '==', 'active')
+                    .get();
+                const coordinators = coordSnap.docs.filter(d => {
+                    const role = d.data().volunteerRole || d.data().role || '';
+                    return role.includes('Coordinator') || role.includes('Lead') || d.data().isAdmin;
+                });
+                for (const coord of coordinators.slice(0, 5)) {
+                    const notifRef = db.collection('notifications').doc();
+                    batch.set(notifRef, {
+                        userId: coord.id,
+                        type: 'referral_sla_escalation',
+                        title: 'Referral SLA Escalation — 48h',
+                        message: `No contact logged for ${referral.clientName} referral to ${referral.referredTo}. ${Math.round(hoursElapsed)}h elapsed. Please follow up.`,
+                        referralId: doc.id,
+                        read: false,
+                        createdAt: now.toISOString(),
+                    });
+                }
+                batch.update(doc.ref, { _nudge48h: true });
+                notifications++;
+            }
+
+            // 72-hour non-compliant alert to admins
+            if (hoursElapsed >= 72 && !referral._nudge72h) {
+                batch.update(doc.ref, {
+                    slaComplianceStatus: 'Non-Compliant',
+                    _nudge72h: true,
+                });
+                // Alert admins
+                const adminSnap = await db.collection('volunteers')
+                    .where('isAdmin', '==', true)
+                    .get();
+                for (const admin of adminSnap.docs) {
+                    const notifRef = db.collection('notifications').doc();
+                    batch.set(notifRef, {
+                        userId: admin.id,
+                        type: 'referral_sla_breach',
+                        title: 'SLA BREACH — 72h No Contact',
+                        message: `Referral for ${referral.clientName} to ${referral.referredTo} has breached the 72-hour SLA. No first contact logged.`,
+                        referralId: doc.id,
+                        read: false,
+                        createdAt: now.toISOString(),
+                    });
+                }
+                notifications++;
+            }
+        }
+
+        if (notifications > 0) {
+            await batch.commit();
+            console.log(`[SLA-CHECK] Sent ${notifications} referral SLA notifications`);
+        }
+    } catch (e: any) {
+        console.error('[SLA-CHECK] Failed:', e.message);
+    }
+}
+
+// Run SLA check every hour
+cron.schedule('0 * * * *', () => {
+    checkReferralSLA().catch(e => console.error('[CRON] SLA check failed:', e));
+});
+
 app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;
@@ -4576,7 +5265,7 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
             // NOTE: coreVolunteerStatus and eventEligibility are allowed through
             // because TrainingAcademy sets them when a volunteer completes training.
             // The backend registration endpoint independently validates training gates.
-            const { isAdmin, compliance, points, hoursContributed, status,
+            const { isAdmin, isTeamLead, compliance, points, hoursContributed, status,
                     applicationStatus,
                     volunteerRole, role, appliedRole, appliedRoleStatus,
                     ...safeUpdates } = updates;
@@ -5847,9 +6536,11 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
     }
 
     // Notify Event Coordinators about the new registration
+    // Only alert coordinators/leads and admins — not governance roles like Board Members
     try {
+      const REGISTRATION_ALERT_ROLES = ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Volunteer Lead'];
       const coordinatorsSnap = await db.collection('volunteers')
-        .where('role', 'in', EVENT_MANAGEMENT_ROLES)
+        .where('role', 'in', REGISTRATION_ALERT_ROLES)
         .where('status', '==', 'active')
         .get();
 
@@ -7369,8 +8060,29 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
           slotsTotal: 20,
           slotsFilled: 0,
           status: 'published',
+          approvalStatus: 'approved',
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          isPublic: true,
+          isPublicFacing: false,
+          tenantId: 'hmc-health',
           createdAt: new Date().toISOString(),
           smoManaged: true,
+          requiredSkills: [],
+          staffingQuotas: [],
+          urgency: 'medium',
+        });
+
+        // Create a default shift for the Saturday SMO event so it appears in My Missions
+        await db.collection('shifts').add({
+          tenantId: 'hmc-health',
+          opportunityId: satEventRef.id,
+          roleType: 'Core Volunteer',
+          slotsTotal: 20,
+          slotsFilled: 0,
+          assignedVolunteerIds: [],
+          startTime: `${satStr}T09:00:00`,
+          endTime: `${satStr}T14:00:00`,
         });
 
         // Create the Thursday training event
@@ -7384,9 +8096,30 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
           slotsTotal: 30,
           slotsFilled: 0,
           status: 'published',
+          approvalStatus: 'approved',
+          approvedBy: 'system',
+          approvedAt: new Date().toISOString(),
+          isPublic: true,
+          isPublicFacing: false,
+          tenantId: 'hmc-health',
           createdAt: new Date().toISOString(),
           smoManaged: true,
           isTrainingSession: true,
+          requiredSkills: [],
+          staffingQuotas: [],
+          urgency: 'low',
+        });
+
+        // Create a default shift for the Thursday training event
+        await db.collection('shifts').add({
+          tenantId: 'hmc-health',
+          opportunityId: thuEventRef.id,
+          roleType: 'Core Volunteer',
+          slotsTotal: 30,
+          slotsFilled: 0,
+          assignedVolunteerIds: [],
+          startTime: `${thuStr}T18:00:00`,
+          endTime: `${thuStr}T20:00:00`,
         });
 
         await cycleRef.set({
@@ -9057,10 +9790,64 @@ app.delete('/api/announcements/:id', verifyToken, requireAdmin, async (req: Requ
 // --- HEALTH SCREENINGS ---
 app.post('/api/screenings/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const { clientId, systolic, diastolic, glucose, temperature, pulse, weight, notes, followUpNeeded, screenedBy } = req.body;
+        const screeningData = req.body;
+        const user = (req as any).user;
         const createdAt = new Date().toISOString();
-        const screening = { clientId, systolic, diastolic, glucose, temperature, pulse, weight, notes, followUpNeeded, screenedBy, createdAt };
+        const screening = { ...screeningData, performedBy: user.uid, performedByName: user.profile?.name || 'Unknown', createdAt };
+
+        // Look up client name for display
+        if (screening.clientId) {
+            try {
+                const clientDoc = await db.collection('clients').doc(screening.clientId).get();
+                if (clientDoc.exists) {
+                    const cd = clientDoc.data();
+                    screening.clientName = `${cd?.firstName || ''} ${cd?.lastName || ''}`.trim();
+                }
+            } catch { /* ignore */ }
+        }
+
         const ref = await db.collection('screenings').add(screening);
+
+        // Send alert notifications for flagged screenings
+        if (screening.followUpNeeded || screening.flags?.bloodPressure?.level === 'critical' || screening.flags?.glucose?.level === 'critical') {
+            try {
+                const flagParts: string[] = [];
+                if (screening.flags?.bloodPressure) flagParts.push(`BP: ${screening.flags.bloodPressure.label}`);
+                if (screening.flags?.glucose) flagParts.push(`Glucose: ${screening.flags.glucose.label}`);
+                const flagSummary = flagParts.length > 0 ? flagParts.join(', ') : 'Follow-up needed';
+
+                // Find medical professionals and leads at this event
+                const alertRoles = ['Licensed Medical Professional', 'Medical Admin', 'Outreach & Engagement Lead'];
+                if (screening.eventId) {
+                    const volSnap = await db.collection('volunteers')
+                        .where('status', '==', 'active')
+                        .get();
+                    const notifyVols = volSnap.docs.filter(d => {
+                        const data = d.data();
+                        return alertRoles.includes(data.role) || data.isAdmin;
+                    });
+                    const notifBatch = db.batch();
+                    for (const vol of notifyVols) {
+                        if (vol.id === user.uid) continue; // Don't notify self
+                        const notifRef = db.collection('notifications').doc();
+                        notifBatch.set(notifRef, {
+                            userId: vol.id,
+                            type: 'screening_alert',
+                            title: 'Screening Alert',
+                            body: `⚠️ Alert: ${screening.clientName || 'Client'} — ${flagSummary}. Review needed.`,
+                            screeningId: ref.id,
+                            eventId: screening.eventId || null,
+                            read: false,
+                            createdAt,
+                        });
+                    }
+                    await notifBatch.commit();
+                }
+            } catch (notifErr) {
+                console.warn('[SCREENING] Alert notifications failed:', notifErr);
+            }
+        }
+
         res.json({ id: ref.id, ...screening });
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
@@ -9073,6 +9860,142 @@ app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
         if (shiftId) query = query.where('shiftId', '==', shiftId);
         const snap = await query.get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+// Get all screenings for an event (for live feed)
+app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        const snap = await db.collection('screenings')
+            .where('eventId', '==', eventId)
+            .orderBy('createdAt', 'desc')
+            .get();
+        const screenings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json(screenings);
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+// Mark a screening as clinically reviewed
+app.put('/api/ops/screenings/:screeningId/review', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        const allowedRoles = ['Licensed Medical Professional', 'Medical Admin', 'Outreach & Engagement Lead'];
+        if (!callerData?.isAdmin && !allowedRoles.includes(callerData?.role)) {
+            return res.status(403).json({ error: 'Only medical professionals and admins can review screenings' });
+        }
+        const { screeningId } = req.params;
+        const { reviewNotes, clinicalAction } = req.body;
+        const reviewData = {
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: user.uid,
+            reviewedByName: callerData?.name || 'Unknown',
+            reviewNotes: reviewNotes || '',
+            clinicalAction: clinicalAction || 'Cleared',
+        };
+        await db.collection('screenings').doc(screeningId).update(reviewData);
+        res.json({ success: true, ...reviewData });
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+// --- TEAM MANAGEMENT ---
+app.get('/api/team/members', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        if (!callerData?.isAdmin && !callerData?.isTeamLead) {
+            return res.status(403).json({ error: 'Only admins and team leads can view team members' });
+        }
+        const snap = await db.collection('volunteers')
+            .where('managedBy', '==', user.uid)
+            .get();
+        const members = snap.docs.map(d => {
+            const data = d.data();
+            return { id: d.id, name: data.name, email: data.email, role: data.role, status: data.status, groupName: data.groupName, assignedShiftIds: data.assignedShiftIds || [] };
+        });
+        res.json(members);
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+app.post('/api/team/add-member', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        if (!callerData?.isAdmin && !callerData?.isTeamLead) {
+            return res.status(403).json({ error: 'Only admins and team leads can add team members' });
+        }
+        const { volunteerId } = req.body;
+        if (!volunteerId) return res.status(400).json({ error: 'volunteerId is required' });
+        const volDoc = await db.collection('volunteers').doc(volunteerId).get();
+        if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+        const volData = volDoc.data();
+        if (volData?.managedBy && volData.managedBy !== user.uid) {
+            return res.status(409).json({ error: 'Volunteer is already managed by another team lead' });
+        }
+        await db.collection('volunteers').doc(volunteerId).update({ managedBy: user.uid });
+        res.json({ success: true, volunteer: { id: volunteerId, name: volData?.name, email: volData?.email, role: volData?.role, status: volData?.status } });
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+app.delete('/api/team/remove-member/:memberId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        const { memberId } = req.params;
+        const volDoc = await db.collection('volunteers').doc(memberId).get();
+        if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+        const volData = volDoc.data();
+        if (!callerData?.isAdmin && (!callerData?.isTeamLead || volData?.managedBy !== user.uid)) {
+            return res.status(403).json({ error: 'You can only remove members from your own team' });
+        }
+        await db.collection('volunteers').doc(memberId).update({ managedBy: admin.firestore.FieldValue.delete() });
+        res.json({ success: true });
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+app.post('/api/team/invite', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        if (!callerData?.isAdmin && !callerData?.isTeamLead) {
+            return res.status(403).json({ error: 'Only admins and team leads can invite members' });
+        }
+        const { email, name, groupName } = req.body;
+        if (!email || !name) return res.status(400).json({ error: 'Name and email are required' });
+
+        // Check if already registered
+        const existingSnap = await db.collection('volunteers')
+            .where('email', '==', email.toLowerCase())
+            .limit(1)
+            .get();
+        if (!existingSnap.empty) {
+            const existing = existingSnap.docs[0];
+            return res.json({ alreadyRegistered: true, volunteerId: existing.id, volunteerName: existing.data().name });
+        }
+
+        // Create invite record
+        const inviteData = {
+            email: email.toLowerCase(),
+            name,
+            groupName: groupName || null,
+            invitedBy: user.uid,
+            invitedAt: new Date().toISOString(),
+            status: 'pending',
+            invitedAsTeamMember: true,
+            teamLeadId: user.uid,
+        };
+        const inviteRef = await db.collection('event_invites').add(inviteData);
+
+        // Send invite email
+        const emailResult = await EmailService.send('event_volunteer_invite', {
+            toEmail: email.toLowerCase(),
+            volunteerName: name,
+            eventTitle: 'the HMC Volunteer Team',
+            eventDate: 'ongoing',
+        });
+
+        res.json({ sent: true, inviteId: inviteRef.id, emailFailed: !emailResult.sent, emailReason: emailResult.sent ? undefined : (emailResult.reason || 'Email service not configured') });
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 

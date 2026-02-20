@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
-import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2 } from 'lucide-react';
+import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2, Sparkles, ExternalLink, AlertCircle } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
 const ResourceDashboard: React.FC = () => {
@@ -15,6 +15,9 @@ const ResourceDashboard: React.FC = () => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [categoryFilter, setCategoryFilter] = useState('');
     const [isClearing, setIsClearing] = useState(false);
+    const [aiSearching, setAiSearching] = useState(false);
+    const [aiResults, setAiResults] = useState<any[] | null>(null);
+    const [aiError, setAiError] = useState('');
 
     const fetchResources = async () => {
         try {
@@ -43,6 +46,21 @@ const ResourceDashboard: React.FC = () => {
             toastService.error('Failed to clear resources.');
         } finally {
             setIsClearing(false);
+        }
+    };
+
+    const handleAiSearch = async () => {
+        if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
+        setAiSearching(true);
+        setAiError('');
+        setAiResults(null);
+        try {
+            const data = await apiService.post('/api/resources/ai-search', { query: searchQuery.trim() });
+            setAiResults(data.aiSuggestions || []);
+        } catch (err) {
+            setAiError((err as Error).message || 'AI search failed.');
+        } finally {
+            setAiSearching(false);
         }
     };
 
@@ -107,11 +125,20 @@ const ResourceDashboard: React.FC = () => {
                     <input
                         type="text"
                         value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        placeholder="Search resources by name, category, offerings..."
+                        onChange={e => { setSearchQuery(e.target.value); setAiResults(null); }}
+                        onKeyDown={e => { if (e.key === 'Enter' && filtered.length === 0 && searchQuery.trim()) handleAiSearch(); }}
+                        placeholder="Search resources or ask AI (e.g., 'urgent care near skid row')..."
                         className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-2xl text-sm font-medium outline-none focus:border-brand/30 focus:ring-2 focus:ring-brand/10"
                     />
                 </div>
+                <button
+                    onClick={handleAiSearch}
+                    disabled={aiSearching || !searchQuery.trim()}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wide hover:from-violet-600 hover:to-indigo-600 transition-all disabled:opacity-40 min-h-[44px] shrink-0"
+                >
+                    {aiSearching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    AI Search
+                </button>
                 {categories.length > 1 && (
                     <select
                         value={categoryFilter}
@@ -128,8 +155,16 @@ const ResourceDashboard: React.FC = () => {
             <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm overflow-hidden">
                 <div className="max-h-[60vh] overflow-y-auto">
                     {filtered.length === 0 ? (
-                        <div className="text-center py-16 text-zinc-400 font-bold text-sm">
-                            {resources.length === 0 ? 'No resources yet. Upload a CSV or add one manually.' : 'No resources match your search.'}
+                        <div className="text-center py-12 px-4 space-y-4">
+                            <p className="text-zinc-400 font-bold text-sm">
+                                {resources.length === 0 ? 'No resources yet. Upload a CSV or add one manually.' : 'No resources match your search.'}
+                            </p>
+                            {searchQuery.trim() && !aiResults && (
+                                <button onClick={handleAiSearch} disabled={aiSearching} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-full text-xs font-bold uppercase tracking-wide hover:from-violet-600 hover:to-indigo-600 transition-all">
+                                    {aiSearching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                    Search with AI for "{searchQuery}"
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="divide-y divide-zinc-100">
@@ -164,6 +199,62 @@ const ResourceDashboard: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* AI Search Results */}
+            {aiError && (
+                <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-600 text-sm font-bold">
+                    <AlertCircle size={16} className="shrink-0" /> {aiError}
+                </div>
+            )}
+
+            {aiSearching && (
+                <div className="flex items-center justify-center gap-3 p-8 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl md:rounded-[40px]">
+                    <Loader2 size={20} className="animate-spin text-violet-500" />
+                    <span className="text-sm font-bold text-violet-700">Searching LA community resources with AI...</span>
+                </div>
+            )}
+
+            {aiResults && aiResults.length > 0 && (
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                        <Sparkles size={16} className="text-violet-500" />
+                        <h3 className="text-sm font-black text-zinc-900 uppercase tracking-wider">AI-Suggested Resources</h3>
+                        <span className="text-[10px] font-bold text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">{aiResults.length} found</span>
+                    </div>
+                    <div className="bg-white rounded-2xl md:rounded-[40px] border border-violet-100 shadow-sm overflow-hidden">
+                        <div className="max-h-[50vh] overflow-y-auto divide-y divide-violet-50">
+                            {aiResults.map((s, i) => (
+                                <div key={i} className="p-4 md:p-5 hover:bg-violet-50/30 transition-colors">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-zinc-900">{s.name}</p>
+                                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                {s.category && <span className="px-2.5 py-0.5 bg-violet-50 text-violet-600 text-[10px] font-bold rounded-full border border-violet-100">{s.category}</span>}
+                                                <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-black rounded-full border border-amber-100 uppercase tracking-wider">AI Suggested</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {s.description && <p className="text-xs text-zinc-600 mt-2 leading-relaxed">{s.description}</p>}
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs">
+                                        {s.phone && <a href={`tel:${s.phone}`} className="flex items-center gap-1.5 text-brand font-bold hover:underline"><Phone size={12} />{s.phone}</a>}
+                                        {s.address && <span className="flex items-center gap-1.5 text-zinc-500"><MapPin size={12} />{s.address}</span>}
+                                        {s.website && <a href={s.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-brand font-bold hover:underline"><ExternalLink size={12} />Website</a>}
+                                        {s.hours && <span className="flex items-center gap-1.5 text-zinc-500"><Clock size={12} />{s.hours}</span>}
+                                    </div>
+                                    {s.notes && <p className="text-[10px] text-zinc-400 mt-2 italic">{s.notes}</p>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-bold text-center">AI suggestions may not be 100% accurate. Always verify contact info before referring clients.</p>
+                </div>
+            )}
+
+            {aiResults && aiResults.length === 0 && (
+                <div className="text-center p-8 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 text-zinc-400 text-sm font-bold">
+                    No AI suggestions found for "{searchQuery}". Try a different search term.
+                </div>
+            )}
 
             {showAddModal && <NewResourceModal onClose={() => setShowAddModal(false)} onComplete={fetchResources} />}
             {showBulkUploadModal && <BulkUploadResourceModal onClose={() => setShowBulkUploadModal(false)} onComplete={fetchResources} />}
