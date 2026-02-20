@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -562,6 +562,104 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                 )}
             </div>
         </div>
+
+        {/* Share Logistics Brief */}
+        {(opportunity.supplyList || (opportunity.equipment && opportunity.equipment.length > 0) || opportunity.checklist) && (() => {
+            const buildLogisticsBrief = () => {
+                const lines: string[] = [];
+                lines.push(`📋 LOGISTICS BRIEF`);
+                lines.push(`━━━━━━━━━━━━━━━━━━`);
+                lines.push(`Event: ${opportunity.title}`);
+                lines.push(`Date: ${opportunity.date}`);
+                lines.push(`Time: ${opportunity.time || `${formatTime(shift.startTime)} – ${formatTime(shift.endTime)}`}`);
+                if (opportunity.serviceLocation) lines.push(`Location: ${opportunity.serviceLocation}`);
+                if (fullAddress) lines.push(`Address: ${fullAddress}`);
+                if (fullAddress) lines.push(`Directions: https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`);
+                lines.push('');
+
+                if (opportunity.equipment && opportunity.equipment.length > 0) {
+                    lines.push(`🔧 EQUIPMENT CHECKLIST`);
+                    lines.push(`━━━━━━━━━━━━━━━━━━`);
+                    opportunity.equipment.forEach(eq => {
+                        lines.push(`☐ ${eq.name} × ${eq.quantity}`);
+                    });
+                    lines.push('');
+                }
+
+                if (opportunity.supplyList) {
+                    lines.push(`📦 SUPPLIES`);
+                    lines.push(`━━━━━━━━━━━━━━━━━━`);
+                    opportunity.supplyList.split('\n').forEach(line => {
+                        const trimmed = line.trim();
+                        if (trimmed) lines.push(trimmed.startsWith('-') ? `☐ ${trimmed.slice(1).trim()}` : `☐ ${trimmed}`);
+                    });
+                    lines.push('');
+                }
+
+                if (opportunity.checklist && opportunity.checklist.length > 0) {
+                    lines.push(`✅ PRE-EVENT CHECKLIST`);
+                    lines.push(`━━━━━━━━━━━━━━━━━━`);
+                    opportunity.checklist.forEach(item => {
+                        if (item.text.trim()) lines.push(`${item.done ? '☑' : '☐'} ${item.text}`);
+                    });
+                    lines.push('');
+                }
+
+                lines.push(`Sent from HMC Volunteer Portal`);
+                return lines.join('\n');
+            };
+
+            const [briefCopied, setBriefCopied] = React.useState(false);
+
+            const handleCopyBrief = () => {
+                navigator.clipboard.writeText(buildLogisticsBrief());
+                setBriefCopied(true);
+                setTimeout(() => setBriefCopied(false), 2000);
+            };
+
+            const handleShareBrief = async () => {
+                const text = buildLogisticsBrief();
+                if (navigator.share) {
+                    try {
+                        await navigator.share({ title: `Logistics Brief: ${opportunity.title}`, text });
+                    } catch { /* user cancelled */ }
+                } else {
+                    handleCopyBrief();
+                }
+            };
+
+            const handleTextBrief = () => {
+                const text = encodeURIComponent(buildLogisticsBrief());
+                window.open(`sms:?body=${text}`, '_blank');
+            };
+
+            return (
+                <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 space-y-3">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Share with Logistics Team</p>
+                    <p className="text-xs text-zinc-500">Send the supply list, equipment checklist, and event details to your logistics person (truck driver, supply runner, etc.)</p>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={handleShareBrief}
+                            className="flex items-center gap-2 px-5 py-3 bg-brand text-white border border-black rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:opacity-95 active:scale-95 transition-all"
+                        >
+                            <Share2 size={14} /> Share Brief
+                        </button>
+                        <button
+                            onClick={handleCopyBrief}
+                            className="flex items-center gap-2 px-5 py-3 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50 active:scale-95 transition-all"
+                        >
+                            {briefCopied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
+                        </button>
+                        <button
+                            onClick={handleTextBrief}
+                            className="flex items-center gap-2 px-5 py-3 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50 active:scale-95 transition-all"
+                        >
+                            <Send size={14} /> Text
+                        </button>
+                    </div>
+                </div>
+            );
+        })()}
 
         {/* Get Directions */}
         {fullAddress && (
