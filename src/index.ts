@@ -2584,7 +2584,9 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
 const aiRateLimit = rateLimit(10, 60000);
 app.use('/api/gemini', aiRateLimit);
 
-app.post('/api/gemini/analyze-resume', verifyToken, async (req: Request, res: Response) => {
+// No verifyToken — this endpoint is used during onboarding before the user has an account.
+// Rate-limited by aiRateLimit (10 req/min per IP) applied via app.use('/api/gemini', aiRateLimit).
+app.post('/api/gemini/analyze-resume', async (req: Request, res: Response) => {
     // Define available volunteer roles (excluding admin roles)
     const VOLUNTEER_ROLES = [
         'Core Volunteer',

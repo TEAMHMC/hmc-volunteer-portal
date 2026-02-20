@@ -1858,6 +1858,7 @@ const ItineraryView: React.FC<{
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [isEditingItinerary, setIsEditingItinerary] = useState(false);
     const diagramTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Derive registered volunteers using ALL available data sources:
@@ -2196,18 +2197,33 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
             {itinerary && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Generated Itinerary</p>
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{isEditingItinerary ? 'Edit Itinerary' : 'Generated Itinerary'}</p>
                         <div className="flex items-center gap-2">
                             {itinerary !== savedItinerary && (
                                 <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Unsaved changes</span>
                             )}
+                            <button
+                                onClick={() => setIsEditingItinerary(!isEditingItinerary)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all"
+                            >
+                                {isEditingItinerary ? <><Eye size={12} /> Preview</> : <><Edit3 size={12} /> Edit</>}
+                            </button>
                         </div>
                     </div>
-                    <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner">
-                        <div className="prose prose-sm max-w-none">
-                            {renderMarkdown(itinerary)}
+                    {isEditingItinerary ? (
+                        <textarea
+                            value={itinerary}
+                            onChange={e => setItinerary(e.target.value)}
+                            rows={25}
+                            className="w-full p-4 md:p-8 bg-white border-2 border-brand/20 rounded-2xl md:rounded-3xl font-mono text-sm outline-none focus:border-brand/40 resize-y min-h-[300px]"
+                        />
+                    ) : (
+                        <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner cursor-pointer" onClick={() => setIsEditingItinerary(true)}>
+                            <div className="prose prose-sm max-w-none">
+                                {renderMarkdown(itinerary)}
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="flex flex-wrap gap-3">
                         <button
                             onClick={handleSave}
