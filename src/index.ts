@@ -4522,25 +4522,10 @@ Return a JSON array where each object uses these EXACT field names (matching our
 
 CRITICAL: Only include organizations you are confident actually exist and are currently operating. Verify names and addresses are real. Return ONLY the valid JSON array.`;
 
-        // Try Google Search grounding first, fallback to standard Gemini if it fails/times out
-        let text = '';
-        try {
-            const groundedModel = ai.getGenerativeModel({
-                model: GEMINI_MODEL,
-                tools: [{ googleSearch: {} } as any],
-            });
-            const groundedResult = await Promise.race([
-                groundedModel.generateContent(prompt),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Grounding timeout')), 45000))
-            ]) as any;
-            text = groundedResult.response.text();
-        } catch (groundingErr) {
-            console.warn('[AI RESOURCE SEARCH] Grounding failed, falling back to standard model:', (groundingErr as Error).message);
-            // Fallback: standard Gemini without grounding (faster, uses training data)
-            const fallbackModel = ai.getGenerativeModel({ model: GEMINI_MODEL });
-            const fallbackResult = await fallbackModel.generateContent(prompt);
-            text = fallbackResult.response.text();
-        }
+        // Use standard Gemini (faster + more reliable than Google Search grounding)
+        const model = ai.getGenerativeModel({ model: GEMINI_MODEL });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
 
         let suggestions: any[] = [];
         try {
