@@ -63,7 +63,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         if (data.user) {
           setAppData(data);
           apiService.startSessionHeartbeat();
-          const needsOnboarding = data.user.isNewUser && !data.user.applicationStatus && data.user.onboardingProgress !== 100;
+          // User needs onboarding if: isNewUser flag is set, OR they have no core application data (legalFirstName)
+          const needsOnboarding = data.user.isNewUser === true && (!data.user.legalFirstName || data.user.onboardingProgress !== 100);
           if (needsOnboarding) {
             setView('onboarding');
           } else {
@@ -103,7 +104,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       const fullData = await apiService.get('/auth/me'); // Fetch all data after login
       setAppData(fullData);
       apiService.startSessionHeartbeat();
-      const needsOnboarding = fullData.user.isNewUser && !fullData.user.applicationStatus && fullData.user.onboardingProgress !== 100;
+      const needsOnboarding = fullData.user.isNewUser === true && (!fullData.user.legalFirstName || fullData.user.onboardingProgress !== 100);
       if (needsOnboarding) {
         setView('onboarding');
       } else {
@@ -121,7 +122,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         const fullData = await apiService.get('/auth/me');
         setAppData(fullData);
         apiService.startSessionHeartbeat();
-        const needsOnboarding = fullData.user.isNewUser && !fullData.user.applicationStatus && fullData.user.onboardingProgress !== 100;
+        const needsOnboarding = fullData.user.isNewUser === true && (!fullData.user.legalFirstName || fullData.user.onboardingProgress !== 100);
         if (needsOnboarding) {
             setView('onboarding');
         } else {

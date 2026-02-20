@@ -2345,7 +2345,10 @@ app.post('/auth/login/google', rateLimit(10, 60000), async (req: Request, res: R
                  authProvider: 'google',
                  role: 'HMC Champion',
                  status: 'applicant',
-                 applicationStatus: 'pendingReview',
+                 // NOTE: applicationStatus is intentionally NOT set here.
+                 // It gets set to 'pendingReview' when the user completes the
+                 // onboarding form. Setting it prematurely causes needsOnboarding
+                 // check in App.tsx to skip onboarding → blank applications.
                  isNewUser: true,
                  joinedDate: new Date().toISOString(),
                  onboardingProgress: 0,
@@ -2513,10 +2516,21 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             console.warn('[AUTH/ME] Gamification profile fetch failed:', gpErr);
         }
 
-        // Auto-fix stale isNewUser flag for users who already completed onboarding
-        if (userProfile.isNewUser && (userProfile.applicationStatus || userProfile.onboardingProgress === 100)) {
+        // Auto-fix stale isNewUser flag for users who actually completed onboarding
+        // (must have real application data like legalFirstName, not just applicationStatus
+        //  which was previously set prematurely in the Google login skeleton doc)
+        if (userProfile.isNewUser && userProfile.legalFirstName && userProfile.onboardingProgress === 100) {
             userProfile.isNewUser = false;
             db.collection('volunteers').doc(userId).update({ isNewUser: false }).catch(() => {});
+        }
+
+        // Auto-fix: skeleton docs created with premature applicationStatus but no real data
+        // Clear applicationStatus so the needsOnboarding check routes them to onboarding
+        if (userProfile.isNewUser && userProfile.applicationStatus && !userProfile.legalFirstName) {
+            delete userProfile.applicationStatus;
+            db.collection('volunteers').doc(userId).update({
+                applicationStatus: admin.firestore.FieldValue.delete()
+            }).catch(() => {});
         }
 
         // Auto-fix missing status field for volunteers who completed onboarding
