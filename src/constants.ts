@@ -53,8 +53,32 @@ export const SURVEY_KITS: SurveyKit[] = [
     name: 'Street Medicine Outreach Survey Kit',
     eventTypesAllowed: ['Street Medicine'],
     formStructure: [
-      { id: 'sm1', type: 'Checkboxes', question: 'What services are you most interested in today? (Select all that apply)', options: ['Medical Check-up', 'Wound Care', 'Food/Water', 'Housing Information', 'Mental Health Support'], required: true },
-      { id: 'sm2', type: 'Short Text', question: 'Is there anything else we can help you with today?', required: false },
+      // Demographics
+      { id: 'sm_zip', type: 'Short Text', question: 'What is your zip code?', required: true },
+      { id: 'sm_age', type: 'Multiple Choice', question: 'What is your age?', options: ['Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'], required: true },
+      { id: 'sm_gender', type: 'Multiple Choice', question: 'What is your gender identity?', options: ['Male', 'Female', 'Transgender Male', 'Transgender Female', 'Gender Non-Conforming/Non-Binary', 'Other'], required: true },
+      { id: 'sm_race', type: 'Checkboxes', question: 'What is your race/ethnicity?', options: ['Black/African American', 'Hispanic/Latino(a)', 'White/Caucasian', 'Asian', 'American Indian/Alaska Native', 'Native Hawaiian/Pacific Islander', 'Multi-Racial/Other'], required: true },
+      { id: 'sm_education', type: 'Multiple Choice', question: 'What is your highest level of education?', options: ['Less than High School', 'High School Diploma/GED', 'Some College', 'Associate Degree', 'Bachelor\'s Degree', 'Graduate Degree'], required: false },
+      { id: 'sm_homeless', type: 'Multiple Choice', question: 'Are you currently experiencing homelessness?', options: ['Yes', 'No'], required: true },
+      { id: 'sm_homeless_duration', type: 'Multiple Choice', question: 'If yes, how long have you been experiencing homelessness?', options: ['Less than 1 month', '1-6 months', '6-12 months', '1-3 years', 'More than 3 years'], required: false },
+      { id: 'sm_employment', type: 'Multiple Choice', question: 'What is your current employment status?', options: ['Employed Full-Time', 'Employed Part-Time', 'Unemployed', 'Retired', 'Disabled/Unable to Work'], required: false },
+      { id: 'sm_military', type: 'Multiple Choice', question: 'Have you ever served in the U.S. military?', options: ['Yes', 'No'], required: false },
+      { id: 'sm_insurance', type: 'Multiple Choice', question: 'Do you currently have health insurance?', options: ['Yes - Private', 'Yes - Medi-Cal/Medicaid', 'Yes - Medicare', 'Yes - Other Government', 'No Insurance'], required: true },
+      // Healthcare Access
+      { id: 'sm_primary_care', type: 'Multiple Choice', question: 'Do you have a primary care doctor?', options: ['Yes', 'No'], required: true },
+      { id: 'sm_er_visits', type: 'Multiple Choice', question: 'How many times have you visited the Emergency Room in the past 12 months?', options: ['0', '1-2', '3-5', '6-10', 'More than 10'], required: true },
+      { id: 'sm_mobile_health', type: 'Multiple Choice', question: 'Have you received services from a mobile health/street medicine team before?', options: ['Yes', 'No', 'First time today'], required: true },
+      { id: 'sm_mobile_again', type: 'Multiple Choice', question: 'Would you use mobile health/street medicine services again?', options: ['Definitely', 'Probably', 'Unsure', 'Probably Not'], required: false },
+      // Services of Interest
+      { id: 'sm_services', type: 'Checkboxes', question: 'Which services are you most interested in? (Select all that apply)', options: ['Primary Care', 'Mental Health', 'Food Assistance', 'COVID-19 Testing/Vaccination', 'HIV Testing', 'STD Testing', 'Flu Vaccination', 'TB Testing', 'Narcan/Naloxone', 'Wound Care', 'Education', 'Housing', 'Substance Use Rehabilitation', 'Child Services'], required: true },
+      // Open-Ended Questions
+      { id: 'sm_feelings', type: 'Short Text', question: 'How do you feel about visiting the doctor\'s office?', required: false },
+      { id: 'sm_access', type: 'Short Text', question: 'How easy or difficult is it for you to see a doctor when you need to?', required: false },
+      { id: 'sm_understand', type: 'Short Text', question: 'Do you feel your doctor understands you? Why or why not?', required: false },
+      { id: 'sm_trust', type: 'Short Text', question: 'Do you trust your doctor? Why or why not?', required: false },
+      { id: 'sm_street_services', type: 'Short Text', question: 'What medical services have you received from mobile health or street medicine teams?', required: false },
+      { id: 'sm_helpful', type: 'Short Text', question: 'Are mobile health/street medicine services helpful? How could they improve?', required: false },
+      { id: 'sm_gov_assist', type: 'Short Text', question: 'Do you receive government assistance? What services do you receive or would find helpful?', required: false },
     ],
     volunteerScript: {
       en: `"Hey there! We're here with Health Matters Clinic offering free health screenings, resources, and support. We have meals, hygiene kits, and even housing referrals if you need them. If you're here for a health screening, including HIV testing, we'll have you join this line. If you just need food, hygiene kits, or other resources, you can hop in this line—totally up to you! How can we support you today?"`,

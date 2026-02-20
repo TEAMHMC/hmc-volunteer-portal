@@ -4524,6 +4524,32 @@ app.delete('/api/ops/tracker/:eventId/client-log/:logId', verifyToken, async (re
     }
 });
 
+// GET /api/ops/itinerary/:eventId — Load saved itinerary
+app.get('/api/ops/itinerary/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const doc = await db.collection('event_itineraries').doc(req.params.eventId).get();
+        res.json(doc.exists ? doc.data() : { itinerary: null, setupDiagram: '' });
+    } catch (e: any) {
+        console.error('[ITINERARY] GET failed:', e.message);
+        res.json({ itinerary: null, setupDiagram: '' });
+    }
+});
+
+// PUT /api/ops/itinerary/:eventId — Save itinerary and diagram
+app.put('/api/ops/itinerary/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { itinerary, setupDiagram } = req.body;
+        await db.collection('event_itineraries').doc(req.params.eventId).set(
+            { itinerary, setupDiagram, updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid },
+            { merge: true }
+        );
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[ITINERARY] PUT failed:', e.message);
+        res.status(500).json({ error: 'Failed to save itinerary' });
+    }
+});
+
 app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;

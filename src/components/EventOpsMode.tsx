@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -37,7 +37,7 @@ interface EventOpsModeProps {
   canEdit?: boolean;
 }
 
-type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'tracker' | 'incidents' | 'signoff' | 'audit';
+type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'tracker' | 'incidents' | 'signoff' | 'audit' | 'itinerary';
 
 const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts, setOpportunities, onEditEvent, canEdit }) => {
   const [activeTab, setActiveTab] = useState<OpsTab>('overview');
@@ -179,6 +179,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     { id: 'intake', label: 'Intake', icon: ClipboardPaste },
     { id: 'screenings', label: 'Health', icon: HeartPulse },
     { id: 'tracker', label: 'Tracker', icon: Package },
+    { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
     { id: 'signoff', label: 'Finish', icon: UserCheck },
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
@@ -235,6 +236,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => { toastService.error('Failed to save incident report to server. Report recorded locally only.'); }); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
                 try {
@@ -1752,6 +1754,415 @@ const DistributionTrackerView: React.FC<{
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
+
+const ItineraryView: React.FC<{
+    user: Volunteer;
+    opportunity: Opportunity;
+    shift: Shift;
+    allVolunteers: Volunteer[];
+}> = ({ user, opportunity, shift, allVolunteers }) => {
+    const [itinerary, setItinerary] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [setupDiagram, setSetupDiagram] = useState('');
+    const [customNotes, setCustomNotes] = useState('');
+    const [savedItinerary, setSavedItinerary] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
+    const diagramTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Derive registered volunteers for this shift
+    const registeredVolunteers = useMemo(() => {
+        return allVolunteers.filter(v => (v.assignedShiftIds || []).includes(shift.id));
+    }, [allVolunteers, shift.id]);
+
+    const volunteerCount = registeredVolunteers.length || opportunity.slotsFilled || 0;
+
+    const roleBreakdown = useMemo(() => {
+        const roles: Record<string, number> = {};
+        registeredVolunteers.forEach(v => {
+            const role = v.role || 'Volunteer';
+            roles[role] = (roles[role] || 0) + 1;
+        });
+        return Object.entries(roles).map(([role, count]) => `${role}: ${count}`).join(', ') || 'Not assigned';
+    }, [registeredVolunteers]);
+
+    const formatTime = (iso: string) => {
+        if (!iso) return '';
+        try {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        } catch { return iso; }
+    };
+
+    // Load saved itinerary on mount
+    useEffect(() => {
+        const loadItinerary = async () => {
+            try {
+                const data = await apiService.get(`/api/ops/itinerary/${opportunity.id}`);
+                if (data?.itinerary) {
+                    setItinerary(data.itinerary);
+                    setSavedItinerary(data.itinerary);
+                }
+                if (data?.setupDiagram) {
+                    setSetupDiagram(data.setupDiagram);
+                }
+            } catch {
+                // No saved itinerary — that's fine
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadItinerary();
+    }, [opportunity.id]);
+
+    // Debounced auto-save for setup diagram
+    useEffect(() => {
+        if (isLoading) return; // Don't auto-save on initial load
+        if (diagramTimerRef.current) clearTimeout(diagramTimerRef.current);
+        diagramTimerRef.current = setTimeout(async () => {
+            try {
+                await apiService.put(`/api/ops/itinerary/${opportunity.id}`, {
+                    itinerary: savedItinerary,
+                    setupDiagram
+                });
+            } catch {
+                // Silent fail for auto-save
+            }
+        }, 1500);
+        return () => { if (diagramTimerRef.current) clearTimeout(diagramTimerRef.current); };
+    }, [setupDiagram]);
+
+    const handleGenerate = async () => {
+        setIsGenerating(true);
+        try {
+            const prompt = `Generate a detailed event day itinerary for a Health Matters Clinic (HMC) street medicine outreach event.
+
+Event: ${opportunity.title}
+Date: ${opportunity.date}
+Time: ${opportunity.time || `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`}
+Location: ${opportunity.serviceLocation}
+Type: ${opportunity.category}
+Description: ${opportunity.description}
+Number of Volunteers: ${volunteerCount}
+Volunteer Roles: ${roleBreakdown}
+${customNotes ? 'Additional Notes: ' + customNotes : ''}
+
+Follow this general template structure:
+1. Team Meeting & Role Assignments (30 min before event start)
+2. Equipment Loading & Transport
+3. Site Setup - include stations: Check-in, Health Screening (glucose, BMI/BP/O2), Mental Health, Wound Care, Examination, Resource Distribution, Check-out
+4. Staff Check-in & Brief
+5. Outreach Team Deployment
+6. Event Start - Active Operations
+7. Event End - Breakdown & Pack-up
+8. Debrief Session
+9. Travel Back & Unloading
+10. End
+
+Format as a timeline with specific times based on the event schedule.
+Include a "Contact List" section with role assignments.
+Include a "Station Setup" section describing the layout of stations.
+Keep it professional and actionable.
+Use markdown formatting with ## for main headings and ### for subheadings. Use bullet points and bold for emphasis.`;
+
+            const response = await apiService.post('/api/gemini/generate-document', { prompt, title: `${opportunity.title} - Event Day Itinerary` });
+            if (response?.content) {
+                setItinerary(response.content);
+            }
+        } catch (err) {
+            toastService.error('Failed to generate itinerary. Please try again.');
+            console.error('[ITINERARY] Generation failed:', err);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!itinerary) return;
+        setIsSaving(true);
+        try {
+            await apiService.put(`/api/ops/itinerary/${opportunity.id}`, {
+                itinerary,
+                setupDiagram
+            });
+            setSavedItinerary(itinerary);
+            toastService.success('Itinerary saved successfully.');
+        } catch {
+            toastService.error('Failed to save itinerary.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCopy = async () => {
+        if (!itinerary) return;
+        try {
+            await navigator.clipboard.writeText(itinerary);
+            setCopied(true);
+            toastService.success('Itinerary copied to clipboard.');
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            toastService.error('Failed to copy to clipboard.');
+        }
+    };
+
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+        printWindow.document.write(`
+            <html><head><title>${opportunity.title} - Itinerary</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.6; }
+                h1 { font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+                h2 { font-size: 20px; margin-top: 24px; }
+                h3 { font-size: 16px; margin-top: 16px; }
+                ul, ol { padding-left: 24px; }
+                pre { background: #f5f5f5; padding: 16px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
+                .diagram { margin-top: 32px; border-top: 2px solid #333; padding-top: 16px; }
+                @media print { body { margin: 20px; } }
+            </style></head><body>
+            <h1>${opportunity.title} - Event Day Itinerary</h1>
+            <p><strong>Date:</strong> ${opportunity.date} | <strong>Location:</strong> ${opportunity.serviceLocation}</p>
+            ${renderMarkdownToHtml(itinerary || '')}
+            ${setupDiagram ? `<div class="diagram"><h2>Station Setup Diagram</h2><pre>${setupDiagram}</pre></div>` : ''}
+            </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    };
+
+    // Simple markdown to HTML renderer
+    const renderMarkdownToHtml = (md: string): string => {
+        return md
+            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/^- (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+            .replace(/\n{2,}/g, '<br/><br/>')
+            .replace(/\n/g, '<br/>');
+    };
+
+    // Render markdown inline for the display
+    const renderMarkdown = (md: string) => {
+        const lines = md.split('\n');
+        const elements: React.ReactNode[] = [];
+        let listItems: React.ReactNode[] = [];
+        let inList = false;
+
+        const flushList = () => {
+            if (listItems.length > 0) {
+                elements.push(<ul key={`list-${elements.length}`} className="list-disc pl-6 space-y-1 text-sm text-zinc-700">{listItems}</ul>);
+                listItems = [];
+            }
+            inList = false;
+        };
+
+        lines.forEach((line, i) => {
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('### ')) {
+                flushList();
+                elements.push(<h3 key={i} className="text-base font-black text-zinc-800 mt-6 mb-2 tracking-tight">{renderInline(trimmed.slice(4))}</h3>);
+            } else if (trimmed.startsWith('## ')) {
+                flushList();
+                elements.push(<h2 key={i} className="text-lg font-black text-zinc-900 mt-8 mb-3 tracking-tight uppercase">{renderInline(trimmed.slice(3))}</h2>);
+            } else if (trimmed.startsWith('# ')) {
+                flushList();
+                elements.push(<h1 key={i} className="text-xl font-black text-zinc-900 mt-8 mb-3 tracking-tight uppercase">{renderInline(trimmed.slice(2))}</h1>);
+            } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                inList = true;
+                listItems.push(<li key={i} className="text-sm text-zinc-700 font-medium leading-relaxed">{renderInline(trimmed.slice(2))}</li>);
+            } else if (/^\d+\.\s/.test(trimmed)) {
+                flushList();
+                elements.push(<p key={i} className="text-sm text-zinc-700 font-bold leading-relaxed mt-2">{renderInline(trimmed)}</p>);
+            } else if (trimmed === '') {
+                flushList();
+                elements.push(<div key={i} className="h-2" />);
+            } else {
+                flushList();
+                elements.push(<p key={i} className="text-sm text-zinc-700 font-medium leading-relaxed">{renderInline(trimmed)}</p>);
+            }
+        });
+        flushList();
+        return <>{elements}</>;
+    };
+
+    const renderInline = (text: string): React.ReactNode => {
+        // Bold + italic parsing
+        const parts: React.ReactNode[] = [];
+        const regex = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+        let lastIndex = 0;
+        let match;
+        let keyIdx = 0;
+
+        while ((match = regex.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                parts.push(text.slice(lastIndex, match.index));
+            }
+            if (match[1]) {
+                parts.push(<strong key={keyIdx++} className="font-black text-zinc-900">{match[1]}</strong>);
+            } else if (match[2]) {
+                parts.push(<em key={keyIdx++} className="italic">{match[2]}</em>);
+            }
+            lastIndex = match.index + match[0].length;
+        }
+        if (lastIndex < text.length) {
+            parts.push(text.slice(lastIndex));
+        }
+        return parts.length > 0 ? <>{parts}</> : text;
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="animate-spin text-brand" size={32} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-10 animate-in fade-in">
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Itinerary</h2>
+
+            {/* Section 1: Event Summary */}
+            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-4">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Event Summary</p>
+                <div className="space-y-3">
+                    <h3 className="text-lg font-black text-zinc-900">{opportunity.title}</h3>
+                    <div className="flex flex-wrap gap-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+                        <span className="flex items-center gap-1.5"><Clock size={12} /> {opportunity.date}</span>
+                        <span className="flex items-center gap-1.5"><Clock size={12} /> {opportunity.time || `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`}</span>
+                        {opportunity.serviceLocation && <span className="flex items-center gap-1.5"><Navigation size={12} /> {opportunity.serviceLocation}</span>}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                        <Users size={14} className="text-zinc-400" />
+                        <span className="text-sm font-bold text-zinc-600">{volunteerCount} Volunteer{volunteerCount !== 1 ? 's' : ''} Registered</span>
+                    </div>
+                    {registeredVolunteers.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {registeredVolunteers.map(v => (
+                                <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                    {v.preferredFirstName || v.legalFirstName} {v.legalLastName}
+                                    <span className="text-zinc-300 ml-0.5">({v.role || 'Volunteer'})</span>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Section 2: Generate Itinerary */}
+            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-5">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">AI Itinerary Generator</p>
+                <p className="text-sm font-medium text-zinc-500 leading-relaxed">
+                    Generate a customized event day itinerary based on the event details, volunteer roster, and HMC standard operating procedures.
+                </p>
+                <textarea
+                    value={customNotes}
+                    onChange={e => setCustomNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Additional instructions or notes for the itinerary..."
+                    className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 resize-none"
+                />
+                <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    className="flex items-center gap-2 px-6 py-3 bg-brand text-white border border-black rounded-full font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 transition-all text-sm"
+                >
+                    {isGenerating ? (
+                        <><Loader2 size={16} className="animate-spin" /> Generating...</>
+                    ) : itinerary ? (
+                        <><RefreshCw size={16} /> Regenerate Itinerary</>
+                    ) : (
+                        <><Sparkles size={16} /> Generate Itinerary</>
+                    )}
+                </button>
+            </div>
+
+            {/* Section 3: Itinerary Display */}
+            {itinerary && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Generated Itinerary</p>
+                        <div className="flex items-center gap-2">
+                            {itinerary !== savedItinerary && (
+                                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Unsaved changes</span>
+                            )}
+                        </div>
+                    </div>
+                    <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner">
+                        <div className="prose prose-sm max-w-none">
+                            {renderMarkdown(itinerary)}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || itinerary === savedItinerary}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white border border-black rounded-full font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 transition-all text-xs"
+                        >
+                            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                            Save Itinerary
+                        </button>
+                        <button
+                            onClick={handleCopy}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 transition-all text-xs"
+                        >
+                            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                            {copied ? 'Copied' : 'Copy'}
+                        </button>
+                        <button
+                            onClick={handlePrint}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 transition-all text-xs"
+                        >
+                            <Printer size={14} /> Print
+                        </button>
+                        <button
+                            onClick={handleGenerate}
+                            disabled={isGenerating}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 disabled:opacity-50 transition-all text-xs"
+                        >
+                            <RefreshCw size={14} /> Regenerate
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Section 4: Setup Diagram */}
+            <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner space-y-4">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Station Setup Diagram</p>
+                <p className="text-sm font-medium text-zinc-500 leading-relaxed">
+                    Sketch out your station layout below. Changes are auto-saved.
+                </p>
+                <textarea
+                    value={setupDiagram}
+                    onChange={e => setSetupDiagram(e.target.value)}
+                    rows={16}
+                    placeholder={`Enter your station layout here. Example:
+
+┌─────────────────────────────────────────┐
+│                ENTRANCE                  │
+├──────┬──────┬──────┬──────┬─────────────┤
+│CHECK │SCREEN│MENTAL│WOUND │ RESOURCE    │
+│ IN   │ ING  │HEALTH│ CARE │ DISTRIB.    │
+├──────┴──────┴──────┴──────┴─────────────┤
+│            EXAMINATION AREA              │
+├─────────────────────────────────────────┤
+│         CHECK-OUT / REFERRALS            │
+└─────────────────────────────────────────┘`}
+                    className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-mono text-sm outline-none focus:border-brand/30 resize-y leading-relaxed"
+                    style={{ minHeight: '200px' }}
+                />
+            </div>
         </div>
     );
 };
