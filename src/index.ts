@@ -6850,10 +6850,18 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
         .where('rsvpedEventIds', 'array-contains', event.id)
         .get();
 
+      // Also include admin emails so event coordinators/admins get reminders too
+      const adminSnap = await db.collection('volunteers').where('isAdmin', '==', true).get();
+      const registeredIds = new Set(volsSnap.docs.map(d => d.id));
+      const allVolDocs = [...volsSnap.docs];
+      for (const adminDoc of adminSnap.docs) {
+        if (!registeredIds.has(adminDoc.id)) allVolDocs.push(adminDoc);
+      }
+
       const location = opp.serviceLocation || opp.location || 'the event location';
       const time = opp.time || opp.startTime || 'your scheduled time';
 
-      for (const volDoc of volsSnap.docs) {
+      for (const volDoc of allVolDocs) {
         const vol = volDoc.data();
 
         // Find the highest applicable stage not yet sent to this volunteer
@@ -9259,6 +9267,38 @@ const server = app.listen(PORT, () => {
     });
 
     console.log('[CRON] Workflow scheduler started: daily 6pm UTC (shift/thank-you/cadence/SMO) + every 3h (SMS) + daily 8am UTC (birthday/compliance)');
+
+    // Run pending reminders at startup — Cloud Run may scale to zero and miss cron times
+    setTimeout(async () => {
+      console.log('[STARTUP] Running pending workflows on container start...');
+      try { await runScheduledWorkflows(); } catch (e) { console.error('[STARTUP] Scheduled workflows error:', e); }
+      try { await runDailyWorkflows(); } catch (e) { console.error('[STARTUP] Daily workflows error:', e); }
+      console.log('[STARTUP] Pending workflows complete.');
+    }, 10000); // 10s delay to let the server fully initialize
+});
+
+// --- CLOUD SCHEDULER CRON ENDPOINT ---
+// Cloud Run scales to zero, so in-process cron may not fire reliably.
+// Set up a Google Cloud Scheduler job to POST to this endpoint every 3 hours.
+app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
+  // Verify this is from Cloud Scheduler or has the correct secret
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (cronSecret && providedSecret !== cronSecret) {
+    return res.status(403).json({ error: 'Invalid cron secret' });
+  }
+
+  console.log('[CRON-ENDPOINT] Running workflows via Cloud Scheduler trigger');
+  try {
+    const results: any = {};
+    results.scheduled = await runScheduledWorkflows();
+    results.daily = await runDailyWorkflows();
+    console.log('[CRON-ENDPOINT] Workflows complete');
+    res.json({ success: true, results });
+  } catch (e: any) {
+    console.error('[CRON-ENDPOINT] Workflow error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---
