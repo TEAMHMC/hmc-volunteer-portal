@@ -221,6 +221,7 @@ const BriefingView: React.FC<{
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
@@ -454,18 +455,23 @@ const BriefingView: React.FC<{
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
       {/* Sidebar - Channels & DMs */}
-      <div className="hidden md:flex w-80 border-r border-zinc-100 flex-col bg-zinc-50/50 shrink-0">
-        <div className="p-6 border-b border-zinc-100">
+      {/* Mobile: full-screen overlay when showMobileSidebar is true */}
+      {/* Desktop: always visible as side panel */}
+      <div className={`${showMobileSidebar ? 'flex' : 'hidden'} md:flex w-full md:w-80 border-r border-zinc-100 flex-col bg-zinc-50/50 shrink-0 absolute md:relative inset-0 z-20 md:z-auto bg-white md:bg-zinc-50/50`}>
+        <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="font-bold text-zinc-900 uppercase text-xs tracking-wider">Briefing Room</h3>
+          <button onClick={() => setShowMobileSidebar(false)} className="md:hidden w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
+            <X size={16} />
+          </button>
         </div>
 
         {/* Channels Section */}
         <div className="px-4 py-3">
           <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2 mb-2">Channels</p>
           <button
-            onClick={() => setActiveChannel('general')}
+            onClick={() => { setActiveChannel('general'); setShowMobileSidebar(false); }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
               activeChannel === 'general' ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-white'
             }`}
@@ -500,7 +506,7 @@ const BriefingView: React.FC<{
                 {filteredVolunteers.map(v => (
                   <button
                     key={v.id}
-                    onClick={() => { setActiveChannel(v.id); setShowNewConversation(false); setSearchQuery(''); }}
+                    onClick={() => { setActiveChannel(v.id); setShowNewConversation(false); setSearchQuery(''); setShowMobileSidebar(false); }}
                     className="w-full p-2 rounded-2xl hover:bg-zinc-50 flex items-center gap-2 text-left"
                   >
                     <div className="relative">
@@ -529,7 +535,7 @@ const BriefingView: React.FC<{
               return (
                 <button
                   key={conv.recipientId}
-                  onClick={() => setActiveChannel(conv.recipientId)}
+                  onClick={() => { setActiveChannel(conv.recipientId); setShowMobileSidebar(false); }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
                     activeChannel === conv.recipientId ? 'bg-brand text-white' : 'text-zinc-600 hover:bg-white'
                   }`}
@@ -564,9 +570,12 @@ const BriefingView: React.FC<{
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 w-full">
+      <div className={`flex-1 flex flex-col min-w-0 w-full ${showMobileSidebar ? 'hidden md:flex' : 'flex'}`}>
         {/* Channel Header */}
         <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center gap-3 md:gap-4 bg-white">
+          <button onClick={() => setShowMobileSidebar(true)} className="md:hidden w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-600 shrink-0">
+            <MessageSquare size={18} />
+          </button>
           {activeChannel === 'general' ? (
             <>
               <div className="w-10 h-10 rounded-2xl bg-brand/10 flex items-center justify-center">

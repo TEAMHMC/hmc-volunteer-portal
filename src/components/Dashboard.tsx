@@ -1355,7 +1355,6 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
   }, [user.assignedShiftIds, user.rsvpedEventIds, shifts, opportunities]);
 
   const heroItem = timelineItems[0];
-  const restItems = timelineItems.slice(1, 8);
 
   return (
     <div className="space-y-6">
@@ -1417,60 +1416,6 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
         </div>
       )}
 
-      {/* Vertical Timeline */}
-      {restItems.length > 0 && (
-        <div className="relative pl-8">
-          {/* Vertical line */}
-          <div className="absolute left-[11px] top-2 bottom-2 w-px bg-zinc-200" />
-
-          <div className="space-y-4">
-            {restItems.map((item, i) => (
-              <div key={item.id} className="relative flex items-start gap-4">
-                {/* Timeline dot */}
-                <div className="absolute left-[-21px] top-3 w-[7px] h-[7px] rounded-full bg-brand ring-4 ring-white" />
-
-                {/* Date pill */}
-                <div className="shrink-0 w-16 pt-1">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
-                    {item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </p>
-                </div>
-
-                {/* Event card */}
-                <div className={`flex-1 rounded-3xl p-4 shadow-sm hover:shadow-2xl transition-shadow ${item.isPersonal ? 'bg-brand/5 border-2 border-brand/20' : 'bg-white border border-zinc-100'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h5 className="text-sm font-bold text-zinc-900 truncate">{item.title}</h5>
-                      <div className="flex items-center gap-4 mt-1.5 text-xs text-zinc-500">
-                        {item.time && (
-                          <span className="flex items-center gap-1">
-                            <i className="fa-solid fa-clock text-[10px] text-zinc-400" />
-                            {item.time}
-                          </span>
-                        )}
-                        {item.location && (
-                          <span className="flex items-center gap-1 truncate">
-                            <i className="fa-solid fa-location-dot text-[10px] text-zinc-400" />
-                            {item.location}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {item.isPersonal && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-brand bg-brand/10"><i className="fa-solid fa-check text-[7px] mr-1" />Signed Up</span>
-                      )}
-                      {item.category && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-white bg-brand">{item.category}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
