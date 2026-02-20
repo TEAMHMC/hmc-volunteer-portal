@@ -6438,7 +6438,7 @@ app.post('/api/events/unregister', verifyToken, async (req: Request, res: Respon
 // Event registration endpoint - registers volunteer for event and sends confirmation email
 app.post('/api/events/register', verifyToken, async (req: Request, res: Response) => {
   try {
-    const { volunteerId, eventId, shiftId, eventTitle, eventDate, eventLocation, volunteerEmail, volunteerName, eventType } = req.body;
+    const { volunteerId, eventId, shiftId, eventTitle, eventDate, eventLocation, volunteerEmail, volunteerName, eventType, status: registrationStatus } = req.body;
 
     // Auth: caller must be the volunteer themselves or an admin/coordinator
     const callerUid = (req as any).user?.uid;
@@ -6545,9 +6545,23 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       });
 
       if (shiftRef && shiftSnap?.exists) {
+        const isAdminRegistration = callerUid !== volunteerId && (callerProfile?.isAdmin || REGISTRATION_MANAGEMENT_ROLES.includes(callerProfile?.role));
         transaction.update(shiftRef, {
           slotsFilled: admin.firestore.FieldValue.increment(1),
           assignedVolunteerIds: admin.firestore.FieldValue.arrayUnion(volunteerId),
+        });
+        // Store registration metadata for audit trail
+        const regLogRef = db.collection('registration_log').doc(`${shiftId}_${volunteerId}`);
+        transaction.set(regLogRef, {
+          volunteerId,
+          shiftId,
+          eventId,
+          registeredBy: callerUid,
+          registeredByName: callerProfile?.name || callerProfile?.legalFirstName || 'Unknown',
+          isAdminRegistration,
+          trainingBypassed: isAdminRegistration && !volData.coreVolunteerStatus,
+          status: registrationStatus || 'confirmed',
+          registeredAt: new Date().toISOString(),
         });
       }
 

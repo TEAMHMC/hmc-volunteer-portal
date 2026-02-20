@@ -2153,13 +2153,18 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
                     </div>
                     {registeredVolunteers.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
-                            {registeredVolunteers.map(v => (
-                                <span key={v.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                    {v.preferredFirstName || v.legalFirstName} {v.legalLastName}
-                                    <span className="text-zinc-300 ml-0.5">({v.role || 'Volunteer'})</span>
-                                </span>
-                            ))}
+                            {registeredVolunteers.map(v => {
+                                const hasCoreTraining = v.coreVolunteerStatus;
+                                const hasBasicTraining = hasCoreTraining && v.completedHIPAATraining;
+                                return (
+                                    <span key={v.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border rounded-full text-xs font-bold text-zinc-600 ${!hasBasicTraining ? 'border-amber-300' : 'border-zinc-200'}`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${hasBasicTraining ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                        {v.preferredFirstName || v.legalFirstName} {v.legalLastName}
+                                        <span className="text-zinc-300 ml-0.5">({v.role || 'Volunteer'})</span>
+                                        {!hasBasicTraining && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">Admin Added</span>}
+                                    </span>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
