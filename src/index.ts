@@ -2519,6 +2519,13 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             db.collection('volunteers').doc(userId).update({ isNewUser: false }).catch(() => {});
         }
 
+        // Auto-fix missing status field for volunteers who completed onboarding
+        // (affected by a prior bug where the PUT whitelist stripped the status field)
+        if (!userProfile.status && userProfile.applicationStatus) {
+            userProfile.status = 'active';
+            db.collection('volunteers').doc(userId).update({ status: 'active' }).catch(() => {});
+        }
+
         res.json({
             user: userProfile,
             gamification,
@@ -4449,6 +4456,56 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('[VOLUNTEER] Failed to update profile:', error);
         res.status(500).json({ error: 'Failed to update profile' });
+    }
+});
+
+// Admin: identify volunteers with incomplete application data
+// Returns volunteers who have accounts but are missing key onboarding fields
+app.get('/api/admin/incomplete-profiles', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const allVols = await db.collection('volunteers').get();
+        const incomplete: any[] = [];
+        const requiredFields = ['legalFirstName', 'legalLastName', 'phone', 'dob', 'email'];
+
+        for (const doc of allVols.docs) {
+            const data = doc.data();
+            // Skip admins and truly new users who haven't started onboarding
+            if (data.isAdmin && !data.applicationStatus) continue;
+            if (data.isNewUser && !data.applicationStatus) continue;
+
+            const missingFields = requiredFields.filter(f => !data[f]);
+            const hasNoStatus = !data.status;
+            const isBlankApp = missingFields.length >= 3; // Missing 3+ required fields = blank application
+
+            if (isBlankApp || hasNoStatus) {
+                incomplete.push({
+                    id: doc.id,
+                    name: data.name || data.email || doc.id,
+                    email: data.email || 'unknown',
+                    status: data.status || 'not set',
+                    applicationStatus: data.applicationStatus || 'not set',
+                    missingFields,
+                    hasOnboardingData: !!data.legalFirstName,
+                    isNewUser: data.isNewUser || false,
+                    createdAt: data.joinedDate || data.createdAt || 'unknown',
+                });
+            }
+        }
+
+        // Also auto-heal status field for all affected volunteers
+        let healed = 0;
+        for (const doc of allVols.docs) {
+            const data = doc.data();
+            if (!data.status && data.applicationStatus) {
+                await db.collection('volunteers').doc(doc.id).update({ status: 'active' });
+                healed++;
+            }
+        }
+
+        res.json({ incomplete, totalVolunteers: allVols.size, healedStatusCount: healed });
+    } catch (error) {
+        console.error('[ADMIN] Failed to check incomplete profiles:', error);
+        res.status(500).json({ error: 'Failed to check profiles' });
     }
 });
 
