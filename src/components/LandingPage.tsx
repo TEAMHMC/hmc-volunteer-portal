@@ -89,34 +89,36 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
   return (
     <div className="min-h-screen bg-white flex flex-col font-['Inter'] overflow-x-hidden">
       
-      <nav className="max-w-[1400px] mx-auto w-full px-4 md:px-12 py-6 md:py-10 flex justify-between items-center z-50">
+      <nav className="max-w-[1400px] mx-auto w-full px-4 md:px-12 py-4 md:py-10 flex justify-between items-center z-50">
         <a
           href="https://www.healthmatters.clinic"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-4 cursor-pointer group"
+          className="flex items-center gap-2 md:gap-4 cursor-pointer group shrink-0"
         >
           <img
             src={APP_CONFIG.BRAND.logoUrl}
             alt="HMC"
-            className="w-10 h-10 md:w-12 md:h-12 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:drop-shadow-lg"
+            className="w-9 h-9 md:w-12 md:h-12 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:drop-shadow-lg"
           />
-          <span className="text-xs font-bold text-zinc-900 uppercase tracking-wider md:hidden">HMC VMS</span>
+          <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-wider md:hidden">HMC</span>
           <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider group-hover:text-brand transition-colors">HMC VOLUNTEER PLATFORM</span>
         </a>
-        <div className="flex items-center gap-2">
-          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-[10px] md:text-[11px] uppercase tracking-wide flex items-center gap-2 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
-            Admin Portal
+            Admin
+            <span className="hidden sm:inline">Portal</span>
           </button>
-          <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-4 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-[10px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 md:gap-3">
+          <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-3 md:px-8 py-2 md:py-3.5 rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
-            Volunteer Login
+            Login
+            <span className="hidden sm:inline">/ Sign Up</span>
           </button>
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-12 pb-12 md:pb-32 relative z-10">
+      <main className="flex-1 flex flex-col items-center justify-start pt-8 md:justify-center md:pt-0 px-4 md:px-12 pb-12 md:pb-32 relative z-10">
         
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[1200px] max-h-[1200px] opacity-[0.03] pointer-events-none -z-10">
            <Activity className="w-full h-full text-zinc-900" strokeWidth={0.5} />
@@ -124,12 +126,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         
         {showLogin ? (
           <div className="w-full max-w-[1200px] flex justify-center animate-in fade-in">
-            <div className="max-w-md w-full bg-white p-5 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
-              <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin Portal' : 'Welcome Back'}</h2>
+            <div className="max-w-md w-full bg-white p-4 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
+              <div className="flex justify-between items-center mb-5 md:mb-8">
+                  <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin Portal' : 'Welcome Back'}</h2>
                   <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 
                 {googleClientId && (
                   <div className="pb-6 border-b border-zinc-100 space-y-4">
@@ -147,27 +149,27 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                   </div>
                 )}
                 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 px-2 flex items-center gap-2"><Mail size={12}/> Email Address</label>
-                      <input 
-                        type="email" 
-                        required 
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5 md:mb-2 px-2 flex items-center gap-2"><Mail size={12}/> Email Address</label>
+                      <input
+                        type="email"
+                        required
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                        className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-brand/30 transition-all" 
+                        className="w-full px-4 md:px-6 py-3 md:py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-brand/30 transition-all"
                         placeholder="name@healthmatters.clinic"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 px-2 flex items-center gap-2"><Shield size={12}/> Password</label>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5 md:mb-2 px-2 flex items-center gap-2"><Shield size={12}/> Password</label>
                       <div className="relative">
-                          <input 
-                            type={showPassword ? 'text' : 'password'} 
-                            required 
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
                             value={password}
                             onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                            className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-brand/30 transition-all pr-14" 
+                            className="w-full px-4 md:px-6 py-3 md:py-4 bg-zinc-50 border border-zinc-100 rounded-2xl outline-none font-bold text-sm focus:bg-white focus:border-brand/30 transition-all pr-14"
                             placeholder="••••••••"
                           />
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
@@ -198,7 +200,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                           )}
                         </div>
                     )}
-                    <button type="submit" disabled={isLoading} className="w-full py-5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
+                    <button type="submit" disabled={isLoading} className="w-full py-4 md:py-5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
                       {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Secure Login <ArrowRight size={16} /></>}
                     </button>
                 </form>
@@ -215,38 +217,38 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
             </div>
           </div>
         ) : (
-          <div className="max-w-[1200px] text-center space-y-12 md:space-y-16 animate-in fade-in duration-1000">
-             <div className="space-y-6 md:space-y-8">
-                <div className="inline-flex items-center gap-3 px-4 md:px-6 py-2 bg-brand/5 text-brand border border-brand/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-4">
-                   <Zap size={14} className="animate-pulse" /> Community Operations
+          <div className="max-w-[1200px] text-center space-y-8 md:space-y-16 animate-in fade-in duration-1000">
+             <div className="space-y-4 md:space-y-8">
+                <div className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-1.5 md:py-2 bg-brand/5 text-brand border border-brand/10 rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-2 md:mb-4">
+                   <Zap size={12} className="animate-pulse md:w-[14px] md:h-[14px]" /> Community Operations
                 </div>
-                <h1 className="text-3xl sm:text-4xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.85] mb-6 md:mb-8 italic uppercase">
+                <h1 className="text-4xl sm:text-5xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.9] md:leading-[0.85] mb-4 md:mb-8 italic uppercase">
                   Join our<br/>
                   <span className="bg-gradient-to-r from-brand to-indigo-400 bg-clip-text text-transparent">Community.</span>
                 </h1>
-                <p className="text-base md:text-lg lg:text-xl text-zinc-400 font-bold max-w-4xl mx-auto leading-relaxed italic">
+                <p className="text-sm md:text-lg lg:text-xl text-zinc-400 font-bold max-w-4xl mx-auto leading-relaxed italic px-2">
                   A central platform for Health Matters Clinic volunteers to find missions, complete training, and track their impact.
                 </p>
              </div>
 
-             <div className="pt-6 md:pt-8 flex flex-col md:flex-row items-center justify-center gap-5 md:gap-8">
+             <div className="pt-4 md:pt-8 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
                 <button
                   onClick={onStartOnboarding}
-                  className="w-full md:w-auto bg-brand border border-black text-white px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 group"
+                  className="w-full md:w-auto bg-brand border border-black text-white px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4 group"
                 >
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
-                  Get Started <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
+                  Get Started <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
                 </button>
-                <div className="flex items-center gap-4 p-3 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1">
-                   <div className="flex -space-x-3">
+                <div className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1">
+                   <div className="flex -space-x-2.5 md:-space-x-3">
                       {[1,2,3,4].map(i => (
-                        <div key={i} className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-elevation-1 ${i === 1 ? 'bg-brand/10' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                          <Users size={14} className="text-zinc-600" />
+                        <div key={i} className={`w-7 h-7 md:w-10 md:h-10 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold shadow-elevation-1 ${i === 1 ? 'bg-brand/10' : i === 2 ? 'bg-indigo-100' : i === 3 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                          <Users size={12} className="md:w-[14px] md:h-[14px] text-zinc-600" />
                         </div>
                       ))}
                    </div>
-                   <div className="text-left pr-2">
-                      <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-zinc-900">1,000+ Volunteers</p>
+                   <div className="text-left pr-1 md:pr-2">
+                      <p className="text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-zinc-900">1,000+ Volunteers</p>
                       <p className="text-[8px] md:text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Join our Community</p>
                    </div>
                 </div>
@@ -256,7 +258,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
 
       </main>
 
-      <footer className="px-4 md:px-12 py-8 md:py-12 border-t border-zinc-50 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-8 mt-auto">
+      <footer className="px-4 md:px-12 py-6 md:py-12 border-t border-zinc-50 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8 mt-auto">
          <p className="text-[10px] md:text-[11px] font-bold text-zinc-300 uppercase tracking-widest text-center md:text-left">© 2026 Health Matters Clinic All rights reserved.</p>
          <div className="flex items-center gap-6 md:gap-10">
             <a href="https://www.healthmatters.clinic/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Privacy Policy</a>
