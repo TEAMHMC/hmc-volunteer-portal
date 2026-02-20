@@ -1359,12 +1359,12 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
-          <i className="fa-solid fa-radar text-brand text-sm" />
-          Coming Up
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-lg md:text-2xl font-black text-zinc-900 tracking-tight flex items-center gap-2 min-w-0">
+          <i className="fa-solid fa-radar text-brand text-sm shrink-0" />
+          <span className="truncate">Coming Up</span>
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide hover:opacity-95 transition-all">
+        <button onClick={() => onNavigate('calendar')} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide hover:opacity-95 transition-all shrink-0">
           <span className="w-2 h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
