@@ -329,14 +329,14 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
       )}
 
       <div className="flex flex-col lg:flex-row gap-4 md:gap-8 items-start">
-        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-1.5 md:p-2 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
+        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-1.5 md:p-2 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0 gap-1">
             {TABS.filter(tab => !tab.adminOnly || user.isAdmin).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 min-w-0 lg:w-full flex flex-col lg:flex-row items-center gap-1 md:gap-3 px-3 md:px-6 py-2.5 md:py-4 rounded-xl md:rounded-full text-[10px] md:text-[13px] font-bold transition-all ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
+                className={`shrink-0 lg:w-full flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-3 lg:px-6 py-2.5 lg:py-4 rounded-xl lg:rounded-full text-[11px] lg:text-[13px] font-bold transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
               >
-                <tab.icon size={14} className="md:w-4 md:h-4 shrink-0" /> <span className="whitespace-nowrap truncate">{tab.label}</span>
+                <tab.icon size={14} className="shrink-0" /> {tab.label}
               </button>
             ))}
         </div>
