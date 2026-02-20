@@ -372,6 +372,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
 
 const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: Shift; onNavigateToAcademy?: () => void; allVolunteers?: Volunteer[]; eventShifts?: Shift[] }> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
     const fullAddress = opportunity.serviceLocation || '';
+    const [briefCopied, setBriefCopied] = useState(false);
     const services = (opportunity.serviceOfferingIds || [])
         .map(id => SERVICE_OFFERINGS.find(s => s.id === id))
         .filter(Boolean) as typeof SERVICE_OFFERINGS;
@@ -567,40 +568,40 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         {(opportunity.supplyList || (opportunity.equipment && opportunity.equipment.length > 0) || opportunity.checklist) && (() => {
             const buildLogisticsBrief = () => {
                 const lines: string[] = [];
-                lines.push(`📋 LOGISTICS BRIEF`);
-                lines.push(`━━━━━━━━━━━━━━━━━━`);
+                lines.push(`LOGISTICS BRIEF`);
+                lines.push(`------------------`);
                 lines.push(`Event: ${opportunity.title}`);
                 lines.push(`Date: ${opportunity.date}`);
-                lines.push(`Time: ${opportunity.time || `${formatTime(shift.startTime)} – ${formatTime(shift.endTime)}`}`);
+                lines.push(`Time: ${opportunity.time || `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`}`);
                 if (opportunity.serviceLocation) lines.push(`Location: ${opportunity.serviceLocation}`);
                 if (fullAddress) lines.push(`Address: ${fullAddress}`);
                 if (fullAddress) lines.push(`Directions: https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`);
                 lines.push('');
 
                 if (opportunity.equipment && opportunity.equipment.length > 0) {
-                    lines.push(`🔧 EQUIPMENT CHECKLIST`);
-                    lines.push(`━━━━━━━━━━━━━━━━━━`);
+                    lines.push(`EQUIPMENT CHECKLIST`);
+                    lines.push(`------------------`);
                     opportunity.equipment.forEach(eq => {
-                        lines.push(`☐ ${eq.name} × ${eq.quantity}`);
+                        lines.push(`[ ] ${eq.name} x ${eq.quantity}`);
                     });
                     lines.push('');
                 }
 
                 if (opportunity.supplyList) {
-                    lines.push(`📦 SUPPLIES`);
-                    lines.push(`━━━━━━━━━━━━━━━━━━`);
+                    lines.push(`SUPPLIES`);
+                    lines.push(`------------------`);
                     opportunity.supplyList.split('\n').forEach(line => {
                         const trimmed = line.trim();
-                        if (trimmed) lines.push(trimmed.startsWith('-') ? `☐ ${trimmed.slice(1).trim()}` : `☐ ${trimmed}`);
+                        if (trimmed) lines.push(trimmed.startsWith('-') ? `[ ] ${trimmed.slice(1).trim()}` : `[ ] ${trimmed}`);
                     });
                     lines.push('');
                 }
 
                 if (opportunity.checklist && opportunity.checklist.length > 0) {
-                    lines.push(`✅ PRE-EVENT CHECKLIST`);
-                    lines.push(`━━━━━━━━━━━━━━━━━━`);
+                    lines.push(`PRE-EVENT CHECKLIST`);
+                    lines.push(`------------------`);
                     opportunity.checklist.forEach(item => {
-                        if (item.text.trim()) lines.push(`${item.done ? '☑' : '☐'} ${item.text}`);
+                        if (item.text.trim()) lines.push(`${item.done ? '[x]' : '[ ]'} ${item.text}`);
                     });
                     lines.push('');
                 }
@@ -608,8 +609,6 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                 lines.push(`Sent from HMC Volunteer Portal`);
                 return lines.join('\n');
             };
-
-            const [briefCopied, setBriefCopied] = React.useState(false);
 
             const handleCopyBrief = () => {
                 navigator.clipboard.writeText(buildLogisticsBrief());
