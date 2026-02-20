@@ -161,6 +161,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [commHubTab, setCommHubTab] = useState<'broadcasts' | 'briefing' | 'support' | undefined>(undefined);
+  const [mentionNotifications, setMentionNotifications] = useState<Array<{id: string; type: string; title: string; body: string; link?: string; read: boolean; createdAt: string; mentionedBy?: string; mentionedByName?: string}>>([]);
 
   const handleDismissBetaBanner = () => {
     setShowBetaBanner(false);
@@ -283,13 +284,34 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return allVolunteers.filter(v => v.applicationStatus === 'pendingReview').length;
   }, [allVolunteers, displayUser.isAdmin]);
 
-  const totalNotifications = unreadDMs + openTicketsCount + newApplicantsCount;
+  const unreadMentions = mentionNotifications.filter(n => !n.read).length;
+
+  const totalNotifications = unreadDMs + openTicketsCount + newApplicantsCount + unreadMentions;
 
   const handleDismissNotifications = () => {
     const now = new Date().toISOString();
     setDismissedNotifTs(now);
     localStorage.setItem('hmcNotifDismissedAt', now);
+    // Mark all @mention notifications as read
+    if (unreadMentions > 0) {
+      apiService.put('/api/notifications/read-all', {}).catch(e => console.error('Failed to mark notifications read:', e));
+      setMentionNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
   };
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+        try {
+            const data = await apiService.get('/api/notifications');
+            if (Array.isArray(data)) setMentionNotifications(data);
+        } catch (e) {
+            console.error('Failed to fetch notifications:', e);
+        }
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   // Complete daily quests when user navigates to corresponding tabs
   useEffect(() => {
@@ -695,6 +717,36 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                       </div>
                       <span className="min-w-[22px] h-[22px] px-1.5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{newApplicantsCount}</span>
                     </button>
+                  )}
+                  {unreadMentions > 0 && (
+                    <div>
+                      <div className="px-5 pt-4 pb-2">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Mentions</p>
+                      </div>
+                      {mentionNotifications.filter(n => !n.read).slice(0, 5).map(n => (
+                        <button
+                          key={n.id}
+                          onClick={async () => {
+                            try { await apiService.put(`/api/notifications/${n.id}/read`, {}); } catch {}
+                            setMentionNotifications(prev => prev.map(mn => mn.id === n.id ? { ...mn, read: true } : mn));
+                            if (n.link?.includes('ticket')) { setCommHubTab('support'); setActiveTab('briefing'); }
+                            else if (n.link?.includes('message')) { setCommHubTab('briefing'); setActiveTab('briefing'); }
+                            setShowNotifications(false);
+                          }}
+                          className="w-full p-5 hover:bg-zinc-50 flex items-center gap-4 text-left transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                            <span className="text-violet-600 font-black text-sm">@</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-zinc-900 truncate">{n.title}</p>
+                            <p className="text-xs text-zinc-400 mt-0.5 truncate">{n.body}</p>
+                            <p className="text-[10px] text-zinc-300 mt-1">{new Date(n.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                          </div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shrink-0" />
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

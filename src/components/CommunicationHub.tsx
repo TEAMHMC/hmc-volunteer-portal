@@ -222,6 +222,7 @@ const BriefingView: React.FC<{
   const [searchQuery, setSearchQuery] = useState('');
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   // SSE: real-time message stream (uses short-lived ticket instead of session token in URL)
   useEffect(() => {
@@ -391,6 +392,7 @@ const BriefingView: React.FC<{
     };
 
     setMessages(prev => [...prev, msg]);
+    const messageContent = newMessage;
     setNewMessage('');
 
     try {
@@ -399,11 +401,46 @@ const BriefingView: React.FC<{
       if (saved?.id) {
         setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: saved.id } : m));
       }
+
+      // Process @mentions
+      const mentionRegex = /@(\w[\w\s]*?)(?=\s@|\s*$|[.,!?])/g;
+      const mentions: string[] = [];
+      let match;
+      while ((match = mentionRegex.exec(messageContent)) !== null) {
+        const mentionedName = match[1].trim();
+        const mentionedVol = allVolunteers.find(v => v.name?.toLowerCase() === mentionedName.toLowerCase());
+        if (mentionedVol) mentions.push(mentionedVol.id);
+      }
+      if (mentions.length > 0) {
+        apiService.post('/api/mentions', {
+          mentionedUserIds: mentions,
+          mentionedBy: user.id,
+          mentionedByName: user.name,
+          context: `chat message in ${activeChannel === 'general' ? '#general' : 'DM'}`,
+          contextType: 'message',
+          contextId: saved?.id || tempId,
+          message: messageContent,
+        }).catch(e => console.error('Failed to process mentions:', e));
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
       // Rollback optimistic update on failure
       setMessages(prev => prev.filter(m => m.id !== tempId));
     }
+  };
+
+  const handleMentionSelect = (volunteer: { id: string; name: string }) => {
+    // Find the last @ and replace it with @VolunteerName
+    const atMatches = Array.from(newMessage.matchAll(/(^|[\s])@(\w*)$/g));
+    if (atMatches.length === 0) return;
+
+    const lastMatch = atMatches[atMatches.length - 1];
+    const startPos = lastMatch.index! + lastMatch[1].length;
+    const beforeMention = newMessage.substring(0, startPos);
+    const afterMention = newMessage.substring(newMessage.length);
+
+    setNewMessage(`${beforeMention}@${volunteer.name} ${afterMention}`);
+    messageInputRef.current?.focus();
   };
 
   const filteredVolunteers = allVolunteers.filter(v =>
@@ -638,8 +675,15 @@ const BriefingView: React.FC<{
 
         {/* Message Input */}
         <div className="p-4 border-t border-zinc-100 bg-white">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative">
+            <MentionAutocomplete
+              text={newMessage}
+              onSelect={handleMentionSelect}
+              allVolunteers={allVolunteers.map(v => ({ id: v.id, name: v.name }))}
+              inputRef={messageInputRef}
+            />
             <input
+              ref={messageInputRef}
               type="text"
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
@@ -697,6 +741,7 @@ const TicketDetailModal: React.FC<{
   const [editDescription, setEditDescription] = useState(ticket.description);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canModify = userMode === 'admin' || ticket.submittedBy === user.id || ticket.assignedTo === user.id;
   const canEditContent = userMode === 'admin' || ticket.submittedBy === user.id;
@@ -741,9 +786,45 @@ const TicketDetailModal: React.FC<{
       updatedAt: new Date().toISOString(),
     });
 
+    const noteContent = newNote;
     setNewNote('');
     setIsInternalNote(false);
     setIsSubmittingNote(false);
+
+    // Process @mentions
+    const mentionRegex = /@(\w[\w\s]*?)(?=\s@|\s*$|[.,!?])/g;
+    const mentions: string[] = [];
+    let match;
+    while ((match = mentionRegex.exec(noteContent)) !== null) {
+      const mentionedName = match[1].trim();
+      const mentionedVol = allVolunteers.find(v => v.name?.toLowerCase() === mentionedName.toLowerCase());
+      if (mentionedVol) mentions.push(mentionedVol.id);
+    }
+    if (mentions.length > 0) {
+      apiService.post('/api/mentions', {
+        mentionedUserIds: mentions,
+        mentionedBy: user.id,
+        mentionedByName: user.name,
+        context: `ticket "${ticket.subject}"`,
+        contextType: 'ticket',
+        contextId: ticket.id,
+        message: noteContent,
+      }).catch(e => console.error('Failed to process mentions:', e));
+    }
+  };
+
+  const handleNoteMentionSelect = (volunteer: { id: string; name: string }) => {
+    // Find the last @ and replace it with @VolunteerName
+    const atMatches = Array.from(newNote.matchAll(/(^|[\s])@(\w*)$/g));
+    if (atMatches.length === 0) return;
+
+    const lastMatch = atMatches[atMatches.length - 1];
+    const startPos = lastMatch.index! + lastMatch[1].length;
+    const beforeMention = newNote.substring(0, startPos);
+    const afterMention = newNote.substring(newNote.length);
+
+    setNewNote(`${beforeMention}@${volunteer.name} ${afterMention}`);
+    noteTextareaRef.current?.focus();
   };
 
   const handleStatusChange = (newStatus: 'open' | 'in_progress' | 'closed') => {
@@ -1167,8 +1248,15 @@ const TicketDetailModal: React.FC<{
             <div className="space-y-6">
               {/* Add Note Form */}
               {canModify && ticket.status !== 'closed' && (
-                <div className="bg-zinc-50 p-4 rounded-3xl border border-zinc-100">
+                <div className="bg-zinc-50 p-4 rounded-3xl border border-zinc-100 relative">
+                  <MentionAutocomplete
+                    text={newNote}
+                    onSelect={handleNoteMentionSelect}
+                    allVolunteers={allVolunteers.map(v => ({ id: v.id, name: v.name }))}
+                    inputRef={noteTextareaRef}
+                  />
                   <textarea
+                    ref={noteTextareaRef}
                     value={newNote}
                     onChange={e => setNewNote(e.target.value)}
                     placeholder="Add a note or update..."
@@ -1807,6 +1895,71 @@ const OpsSupportView: React.FC<{
           onUpdate={(updates) => handleTicketUpdate(selectedTicket.id, updates)}
         />
       )}
+    </div>
+  );
+};
+
+// --- MENTION AUTOCOMPLETE COMPONENT ---
+const MentionAutocomplete: React.FC<{
+  text: string;
+  onSelect: (volunteer: { id: string; name: string }) => void;
+  allVolunteers: { id: string; name: string }[];
+  inputRef: React.RefObject<HTMLElement>;
+}> = ({ text, onSelect, allVolunteers, inputRef }) => {
+  const [matches, setMatches] = useState<{ id: string; name: string }[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string>('');
+  const [replacementStart, setReplacementStart] = useState<number>(-1);
+
+  useEffect(() => {
+    // Find the last @ that's either at the start or preceded by a space
+    const atMatches = Array.from(text.matchAll(/(^|[\s])@(\w*)$/g));
+    if (atMatches.length === 0) {
+      setMatches([]);
+      setMentionQuery('');
+      setReplacementStart(-1);
+      return;
+    }
+
+    const lastMatch = atMatches[atMatches.length - 1];
+    const query = lastMatch[2] || '';
+    const startPos = lastMatch.index! + lastMatch[1].length; // Position of @
+
+    setMentionQuery(query);
+    setReplacementStart(startPos);
+
+    if (query.length === 0) {
+      // Show all volunteers when just @ is typed
+      setMatches(allVolunteers.slice(0, 5));
+    } else {
+      // Filter volunteers by name
+      const filtered = allVolunteers.filter(v =>
+        v.name?.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5);
+      setMatches(filtered);
+    }
+  }, [text, allVolunteers]);
+
+  const handleSelect = (volunteer: { id: string; name: string }) => {
+    onSelect(volunteer);
+  };
+
+  if (matches.length === 0 || replacementStart === -1) return null;
+
+  return (
+    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl border border-zinc-100 shadow-elevation-3 max-h-[200px] overflow-y-auto z-50">
+      {matches.map(v => (
+        <button
+          key={v.id}
+          onClick={() => handleSelect(v)}
+          type="button"
+          className="w-full px-4 py-3 hover:bg-zinc-50 text-left flex items-center gap-3 transition-colors"
+        >
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand to-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+            {v.name?.charAt(0)?.toUpperCase()}
+          </div>
+          <span className="text-sm font-bold text-zinc-700">{v.name}</span>
+        </button>
+      ))}
     </div>
   );
 };
