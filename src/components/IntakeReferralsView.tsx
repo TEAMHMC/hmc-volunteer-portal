@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ReferralRecord, AuditLog, ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
-import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot } from 'lucide-react';
+import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot, Phone, Mail, UserSearch, Footprints } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
 interface IntakeReferralsViewProps {
@@ -18,8 +18,11 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [searchResult, setSearchResult] = useState<ClientRecord | 'not_found' | null>(null);
+    const [multipleResults, setMultipleResults] = useState<ClientRecord[] | null>(null);
     const [activeClient, setActiveClient] = useState<ClientRecord | null>(null);
     const [resources, setResources] = useState<ReferralResource[]>([]);
+    const [searchMode, setSearchMode] = useState<'phone' | 'email' | 'name' | 'walk-in'>('phone');
+    const [walkInMode, setWalkInMode] = useState(false);
 
     useEffect(() => {
         const fetchResources = async () => {
@@ -37,7 +40,9 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         setView('search');
         setSearchQuery('');
         setSearchResult(null);
+        setMultipleResults(null);
         setActiveClient(null);
+        setWalkInMode(false);
     };
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -45,18 +50,46 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         if (!searchQuery) return;
         setIsSearching(true);
         setSearchResult(null);
+        setMultipleResults(null);
         try {
-            // In a real app, you might search by phone OR email in one endpoint
-            const result = await apiService.post('/api/clients/search', { phone: searchQuery.replace(/\D/g, '') });
-            setSearchResult(result);
-            onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: result.id, summary: `Searched for client. Found: ${result.firstName} ${result.lastName}` });
+            const searchPayload = searchMode === 'phone'
+                ? { phone: searchQuery.replace(/\D/g, '') }
+                : searchMode === 'email'
+                ? { email: searchQuery }
+                : { name: searchQuery };
+            const result = await apiService.post('/api/clients/search', searchPayload);
+            if (result.multiple && Array.isArray(result.results)) {
+                setMultipleResults(result.results);
+                onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: 'MULTIPLE', summary: `Searched for client by ${searchMode}. Found ${result.results.length} matches.` });
+            } else {
+                setSearchResult(result);
+                onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: result.id, summary: `Searched for client by ${searchMode}. Found: ${result.firstName} ${result.lastName}` });
+            }
         } catch (err) {
             setSearchResult('not_found');
-            onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: 'N/A', summary: `Searched for client. Result: Not Found.` });
+            onLog({ actionType: 'CLIENT_SEARCH', targetSystem: 'FIRESTORE', targetId: 'N/A', summary: `Searched for client by ${searchMode}. Result: Not Found.` });
         } finally {
             setIsSearching(false);
         }
     };
+
+    const handleSearchModeChange = (mode: 'phone' | 'email' | 'name' | 'walk-in') => {
+        if (mode === 'walk-in') {
+            setWalkInMode(true);
+            setView('new_client');
+            return;
+        }
+        setSearchMode(mode);
+        setSearchQuery('');
+        setSearchResult(null);
+        setMultipleResults(null);
+    };
+
+    const searchPlaceholder = searchMode === 'phone'
+        ? 'Enter phone number...'
+        : searchMode === 'email'
+        ? 'Enter email address...'
+        : 'Enter client name...';
     
     const handleStartReferral = (client: ClientRecord) => {
         setActiveClient(client);
@@ -83,43 +116,123 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
 
             {view === 'search' && (
                 <div className="max-w-xl mx-auto space-y-6">
+                    {/* Search Mode Selector */}
+                    <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => handleSearchModeChange('phone')} className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-colors ${searchMode === 'phone' ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-500'}`}><Phone size={14} /> By Phone</button>
+                        <button type="button" onClick={() => handleSearchModeChange('email')} className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-colors ${searchMode === 'email' ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-500'}`}><Mail size={14} /> By Email</button>
+                        <button type="button" onClick={() => handleSearchModeChange('name')} className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-colors ${searchMode === 'name' ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-500'}`}><UserSearch size={14} /> By Name</button>
+                        <button type="button" onClick={() => handleSearchModeChange('walk-in')} className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-colors bg-zinc-100 text-zinc-500"><Footprints size={14} /> Walk-in</button>
+                    </div>
+
                     <form onSubmit={handleSearch}>
                          <div className="relative">
-                            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search client by phone number..." className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                            <input type={searchMode === 'email' ? 'email' : 'text'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={searchPlaceholder} className="w-full p-4 pr-28 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
                             <button type="submit" disabled={isSearching} className="absolute right-2 top-2 h-12 px-6 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50">
                                 {isSearching ? <Loader2 className="animate-spin" size={16} /> : <><Search size={16} /> Search</>}
                             </button>
                         </div>
                     </form>
+
+                    {/* Not Found */}
                     {searchResult === 'not_found' && (
                         <div className="text-center p-8 bg-amber-50 rounded-3xl border border-amber-200 shadow-elevation-1"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto"><UserPlus size={14} /> Register New Client</button></div>
                     )}
+
+                    {/* Single Result */}
                     {searchResult && searchResult !== 'not_found' && (
                         <div className="p-8 bg-emerald-50 rounded-3xl border border-emerald-200 shadow-elevation-1"><p className="text-xs font-bold text-emerald-800">Client Found</p><p className="text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p><button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2"><Send size={14}/> Create Referral</button></div>
+                    )}
+
+                    {/* Multiple Results */}
+                    {multipleResults && multipleResults.length > 0 && (
+                        <div className="space-y-4">
+                            <p className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] text-center">{multipleResults.length} Clients Found</p>
+                            {multipleResults.map((client) => (
+                                <div key={client.id} className="p-6 bg-white border border-zinc-100 rounded-3xl shadow-elevation-1 flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-lg font-bold text-zinc-900">{client.firstName} {client.lastName}</p>
+                                        <div className="flex gap-3 mt-1">
+                                            {client.phone && <span className="text-xs text-zinc-400 flex items-center gap-1"><Phone size={10} /> {client.phone}</span>}
+                                            {client.email && <span className="text-xs text-zinc-400 flex items-center gap-1"><Mail size={10} /> {client.email}</span>}
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleStartReferral(client)} className="px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 shrink-0"><Send size={14} /> Select</button>
+                                </div>
+                            ))}
+                            <div className="text-center pt-2">
+                                <button onClick={() => setView('new_client')} className="px-4 py-2 bg-zinc-100 text-zinc-500 rounded-full text-xs font-bold uppercase tracking-wide inline-flex items-center gap-2"><UserPlus size={14} /> None of these — Register New Client</button>
+                            </div>
+                        </div>
                     )}
                 </div>
             )}
             
-            {view === 'new_client' && <NewClientForm setView={setView} setActiveClient={setActiveClient} onLog={onLog} />}
+            {view === 'new_client' && <NewClientForm setView={setView} setActiveClient={setActiveClient} onLog={onLog} contactMethod={walkInMode ? 'walk-in' : undefined} />}
             {view === 'referral' && activeClient && <ReferralAssistant client={activeClient} user={user} shift={shift} event={event} onLog={onLog} onComplete={resetState} resources={resources} />}
         </div>
     );
 };
 
-const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onLog: Function}> = ({ setView, setActiveClient, onLog }) => {
-    const [client, setClient] = useState<Partial<ClientRecord>>({});
+const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onLog: Function, contactMethod?: string}> = ({ setView, setActiveClient, onLog, contactMethod }) => {
+    const [client, setClient] = useState<Partial<ClientRecord & { contactMethod?: string; identifyingInfo?: string }>>({});
     const [isSaving, setIsSaving] = useState(false);
+    const isWalkIn = contactMethod === 'walk-in';
+
     const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();setIsSaving(true);
+        e.preventDefault();
+        setIsSaving(true);
+        const clientData = { ...client };
+        if (isWalkIn) {
+            (clientData as any).contactMethod = 'walk-in';
+        }
         try {
-            const newClient = await apiService.post('/api/clients/create', { client });
+            const newClient = await apiService.post('/api/clients/create', { client: clientData });
             setActiveClient(newClient);
             setView('referral');
-            onLog({ actionType: 'CREATE_CLIENT', targetSystem: 'FIRESTORE', targetId: newClient.id, summary: `Created new client: ${newClient.firstName} ${newClient.lastName}` });
+            onLog({ actionType: 'CREATE_CLIENT', targetSystem: 'FIRESTORE', targetId: newClient.id, summary: `Created new client: ${newClient.firstName} ${newClient.lastName}${isWalkIn ? ' (walk-in)' : ''}` });
         } catch(err) { toastService.error('Failed to save new client.'); } finally { setIsSaving(false); }
     };
+
     return (
-        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in"><h3 className="text-lg font-black text-zinc-900">Register New Client</h3><form onSubmit={handleSave} className="space-y-4"><input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label><input required type="date" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /></div><input required type="tel" placeholder="Phone Number" onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" /><div className="flex gap-4"><button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button><button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button></div></form></div>
+        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
+            <h3 className="text-lg font-black text-zinc-900">Register New Client</h3>
+
+            {isWalkIn && (
+                <>
+                    <div className="flex items-center gap-2 text-xs font-black text-amber-700 uppercase tracking-[0.2em]">
+                        <Footprints size={14} /> Contact Method: Walk-in / No Contact Info
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <p className="text-sm font-bold text-amber-800">Walk-in Client — contact info optional</p>
+                        <p className="text-xs text-amber-600 mt-1">Phone, email, and date of birth are not required for walk-in clients. First and last name are still required.</p>
+                    </div>
+                </>
+            )}
+
+            <form onSubmit={handleSave} className="space-y-4">
+                <input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <div>
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
+                    <input {...(isWalkIn ? {} : { required: true })} type="date" onChange={e => setClient({...client, dob: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                </div>
+                <input {...(isWalkIn ? {} : { required: true })} type="tel" placeholder={isWalkIn ? 'Phone Number (Optional)' : 'Phone Number'} onChange={e => setClient({...client, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+
+                {isWalkIn && (
+                    <div>
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Identifying Information</label>
+                        <textarea placeholder="Identifying information (description, nickname, etc.)" onChange={e => setClient({...client, identifyingInfo: e.target.value})} className="w-full h-24 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                        <p className="text-[10px] text-zinc-400 mt-1">Helps re-identify walk-in clients at future events.</p>
+                    </div>
+                )}
+
+                <div className="flex gap-4">
+                    <button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
+                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                </div>
+            </form>
+        </div>
     );
 };
 

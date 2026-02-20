@@ -1151,6 +1151,20 @@ const EmailTemplates = {
     text: `New support ticket from ${data.submitterName}: ${data.subject}. Description: ${data.description}. Ticket ID: ${data.ticketId}`
   }),
 
+  // @Mention Notification
+  mention_notification: (data: EmailTemplateData) => ({
+    subject: `${data.mentionedByName} mentioned you${data.context ? ` in ${data.context}` : ''}`,
+    html: `${emailHeader('You Were Mentioned')}
+      <p>Hi ${data.volunteerName},</p>
+      <p><strong>${data.mentionedByName}</strong> mentioned you${data.context ? ` in <strong>${data.context}</strong>` : ''}:</p>
+      <div style="background: #eef2ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+        <p style="margin: 0; color: #374151; white-space: pre-wrap;">${data.messagePreview}</p>
+      </div>
+      ${actionButton('View in Portal', EMAIL_CONFIG.WEBSITE_URL)}
+    ${emailFooter()}`,
+    text: `${data.mentionedByName} mentioned you${data.context ? ` in ${data.context}` : ''}: "${data.messagePreview}"`
+  }),
+
   // ── Event Reminder Cadence Templates ──
 
   // Stage 2: 7-Day Reminder
@@ -3262,7 +3276,7 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
 });
 app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo']);
+        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode']);
         if (!clientData.name && !clientData.firstName) return res.status(400).json({ error: 'Client name required' });
         const client = {
             ...clientData,
@@ -4392,11 +4406,13 @@ app.get('/api/ops/tracker/:eventId', verifyToken, async (req: Request, res: Resp
         const trackerDoc = await db.collection('event_trackers').doc(eventId).get();
         const distSnap = await db.collection('distribution_entries').where('eventId', '==', eventId).orderBy('timestamp', 'desc').get();
         const distributions = distSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const clientLogSnap = await db.collection('client_service_logs').where('eventId', '==', eventId).orderBy('timestamp', 'desc').get();
+        const clientLogs = clientLogSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const trackerData = trackerDoc.exists ? trackerDoc.data() : { participantsServed: 0 };
-        res.json({ ...trackerData, eventId, distributions });
+        res.json({ ...trackerData, eventId, distributions, clientLogs });
     } catch (e: any) {
         console.error('[TRACKER] GET failed:', e.message);
-        res.json({ eventId: req.params.eventId, participantsServed: 0, distributions: [] });
+        res.json({ eventId: req.params.eventId, participantsServed: 0, distributions: [], clientLogs: [] });
     }
 });
 
@@ -4452,6 +4468,59 @@ app.delete('/api/ops/tracker/:eventId/distribution/:entryId', verifyToken, async
     } catch (e: any) {
         console.error('[TRACKER] DELETE distribution failed:', e.message);
         res.status(500).json({ error: 'Failed to delete entry' });
+    }
+});
+
+// POST /api/ops/tracker/:eventId/client-log — Log a client service entry (demographics + services)
+app.post('/api/ops/tracker/:eventId/client-log', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { eventId } = req.params;
+        const { clientNumber, genderIdentity, raceEthnicity, ageRange, zipCode,
+            resourcesOnly, healthScreeningOnly, fullConsult, referralGiven,
+            hivSelfTestToGo, hivSelfTestWithTeam, harmReductionSupplies,
+            resourcesDistributed, notes, shiftId } = req.body;
+        const volunteerDoc = await db.collection('volunteers').doc(user.uid).get();
+        const volunteerName = volunteerDoc.data()?.name || 'Unknown';
+        const entry = {
+            eventId, shiftId: shiftId || '',
+            clientNumber: Number(clientNumber) || 0,
+            genderIdentity: genderIdentity || '', raceEthnicity: raceEthnicity || '',
+            ageRange: ageRange || '', zipCode: zipCode || '',
+            resourcesOnly: !!resourcesOnly, healthScreeningOnly: !!healthScreeningOnly, fullConsult: !!fullConsult,
+            referralGiven: !!referralGiven, hivSelfTestToGo: !!hivSelfTestToGo,
+            hivSelfTestWithTeam: !!hivSelfTestWithTeam, harmReductionSupplies: !!harmReductionSupplies,
+            resourcesDistributed: resourcesDistributed || [],
+            notes: notes || null,
+            loggedBy: user.uid, loggedByName: volunteerName,
+            timestamp: new Date().toISOString(),
+        };
+        const ref = await db.collection('client_service_logs').add(entry);
+        // Auto-increment participants served count
+        await db.collection('event_trackers').doc(eventId).set(
+            { participantsServed: admin.firestore.FieldValue.increment(1), updatedAt: new Date().toISOString() },
+            { merge: true }
+        );
+        res.json({ id: ref.id, ...entry });
+    } catch (e: any) {
+        console.error('[TRACKER] POST client-log failed:', e.message);
+        res.status(500).json({ error: 'Failed to log client service entry' });
+    }
+});
+
+// DELETE /api/ops/tracker/:eventId/client-log/:logId — Delete a client service log entry
+app.delete('/api/ops/tracker/:eventId/client-log/:logId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        await db.collection('client_service_logs').doc(req.params.logId).delete();
+        // Decrement participants served count
+        await db.collection('event_trackers').doc(req.params.eventId).set(
+            { participantsServed: admin.firestore.FieldValue.increment(-1), updatedAt: new Date().toISOString() },
+            { merge: true }
+        );
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[TRACKER] DELETE client-log failed:', e.message);
+        res.status(500).json({ error: 'Failed to delete client log entry' });
     }
 });
 
@@ -6068,6 +6137,113 @@ app.get('/api/support_tickets/:ticketId/attachments/:attachmentId/download', ver
     }
 });
 
+// ========================================
+// IN-APP NOTIFICATIONS & @MENTIONS
+// ========================================
+
+// GET /api/notifications — Get current user's notifications
+app.get('/api/notifications', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const snap = await db.collection('notifications')
+            .where('recipientId', '==', user.uid)
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e: any) {
+        console.error('[NOTIFICATIONS] GET failed:', e.message);
+        res.json([]);
+    }
+});
+
+// PUT /api/notifications/:id/read — Mark a notification as read
+app.put('/api/notifications/:id/read', verifyToken, async (req: Request, res: Response) => {
+    try {
+        await db.collection('notifications').doc(req.params.id).update({ read: true });
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to mark notification as read' });
+    }
+});
+
+// PUT /api/notifications/read-all — Mark all notifications as read
+app.put('/api/notifications/read-all', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const snap = await db.collection('notifications')
+            .where('recipientId', '==', user.uid)
+            .where('read', '==', false)
+            .get();
+        const batch = db.batch();
+        snap.docs.forEach(d => batch.update(d.ref, { read: true }));
+        await batch.commit();
+        res.json({ success: true, count: snap.size });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to mark notifications as read' });
+    }
+});
+
+// POST /api/mentions — Process @mentions and create notifications
+app.post('/api/mentions', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const senderDoc = await db.collection('volunteers').doc(user.uid).get();
+        const senderName = senderDoc.data()?.name || 'Someone';
+        const { mentionedUserIds, message, context, contextId } = req.body;
+        // context examples: "ticket: Bug Report", "chat: General", "event ops: Street Medicine"
+        if (!mentionedUserIds || !Array.isArray(mentionedUserIds) || mentionedUserIds.length === 0) {
+            return res.json({ success: true, notified: 0 });
+        }
+
+        const preview = (message || '').substring(0, 200);
+        let notified = 0;
+
+        for (const recipientId of mentionedUserIds) {
+            if (recipientId === user.uid) continue; // Don't notify yourself
+            try {
+                // Create in-app notification
+                await db.collection('notifications').add({
+                    recipientId,
+                    type: 'mention',
+                    senderId: user.uid,
+                    senderName,
+                    context: context || '',
+                    contextId: contextId || '',
+                    messagePreview: preview,
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                });
+
+                // Send email notification
+                const recipientDoc = await db.collection('volunteers').doc(recipientId).get();
+                const recipient = recipientDoc.data();
+                if (recipient?.email) {
+                    try {
+                        await EmailService.send('mention_notification', {
+                            toEmail: recipient.email,
+                            volunteerName: recipient.name || recipient.legalFirstName || 'Team Member',
+                            mentionedByName: senderName,
+                            context: context || '',
+                            messagePreview: preview,
+                        });
+                    } catch (emailErr) {
+                        console.error(`[MENTIONS] Email to ${recipientId} failed:`, emailErr);
+                    }
+                }
+                notified++;
+            } catch (e) {
+                console.error(`[MENTIONS] Failed to notify ${recipientId}:`, e);
+            }
+        }
+
+        res.json({ success: true, notified });
+    } catch (e: any) {
+        console.error('[MENTIONS] POST failed:', e.message);
+        res.status(500).json({ error: 'Failed to process mentions' });
+    }
+});
+
 app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         console.log(`[ADMIN] Bulk import initiated by ${(req as any).user?.profile?.email}`);
@@ -7006,15 +7182,46 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
 
       if (applicableStages.length === 0) continue;
 
-      // Find all volunteers registered for this event (by this event's ID)
+      // Find all volunteers registered for this event from ALL sources:
+      // 1. rsvpedEventIds on volunteer doc (public RSVP / Event Explorer signup)
       const volsSnap = await db.collection('volunteers')
         .where('rsvpedEventIds', 'array-contains', event.id)
         .get();
-
-      // Also include admin emails so event coordinators/admins get reminders too
-      const adminSnap = await db.collection('volunteers').where('isAdmin', '==', true).get();
       const registeredIds = new Set(volsSnap.docs.map(d => d.id));
-      const allVolDocs = [...volsSnap.docs];
+      const allVolDocs: admin.firestore.DocumentSnapshot[] = [...volsSnap.docs];
+
+      // 2. Org calendar RSVPs stored on the event doc itself
+      const eventRsvps = opp.rsvps || [];
+      for (const rsvp of eventRsvps) {
+        const odId = rsvp.odId || rsvp.userId;
+        if (odId && rsvp.status === 'attending' && !registeredIds.has(odId)) {
+          try {
+            const vDoc = await db.collection('volunteers').doc(odId).get();
+            if (vDoc.exists) { allVolDocs.push(vDoc); registeredIds.add(odId); }
+          } catch {}
+        }
+      }
+
+      // 3. Shift assignments — volunteers assigned to shifts for this event
+      try {
+        const shiftsSnap = await db.collection('shifts')
+          .where('opportunityId', '==', event.id)
+          .get();
+        for (const shiftDoc of shiftsSnap.docs) {
+          const assignedIds = shiftDoc.data().assignedVolunteerIds || [];
+          for (const vid of assignedIds) {
+            if (!registeredIds.has(vid)) {
+              try {
+                const vDoc = await db.collection('volunteers').doc(vid).get();
+                if (vDoc.exists) { allVolDocs.push(vDoc); registeredIds.add(vid); }
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+
+      // 4. Also include admin emails so event coordinators/admins get reminders too
+      const adminSnap = await db.collection('volunteers').where('isAdmin', '==', true).get();
       for (const adminDoc of adminSnap.docs) {
         if (!registeredIds.has(adminDoc.id)) allVolDocs.push(adminDoc);
       }
@@ -7024,6 +7231,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
 
       for (const volDoc of allVolDocs) {
         const vol = volDoc.data();
+        if (!vol) continue;
 
         // Find the highest applicable stage not yet sent to this volunteer
         let stageToSend: { stage: number; template: string } | null = null;

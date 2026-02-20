@@ -1788,7 +1788,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               </button>
                                             );
                                           })()}
-                                          {canManageEvents && !user.assignedShiftIds?.includes(shift.id) && (
+                                          {canManageEvents && (
                                             (() => {
                                               const isRegistered = user.assignedShiftIds?.includes(shift.id);
                                               return (

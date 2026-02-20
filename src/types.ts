@@ -567,9 +567,10 @@ export interface ClientRecord {
     // Basic Info
     firstName: string;
     lastName: string;
-    dob: string;
-    phone: string;
+    dob?: string;
+    phone?: string;
     email?: string;
+    contactMethod?: 'phone' | 'email' | 'name' | 'walk-in';
 
     // Demographics (for matching & grant reporting)
     gender?: string;
@@ -669,11 +670,39 @@ export interface DistributionEntry {
     timestamp: string;
 }
 
+export interface ClientServiceLog {
+    id: string;
+    eventId: string;
+    shiftId: string;
+    clientNumber: number;
+    // Demographics
+    genderIdentity: string;
+    raceEthnicity: string;
+    ageRange: string;
+    zipCode: string;
+    // Service Type
+    resourcesOnly: boolean;
+    healthScreeningOnly: boolean;
+    fullConsult: boolean;
+    // Services & Items Given
+    referralGiven: boolean;
+    hivSelfTestToGo: boolean;
+    hivSelfTestWithTeam: boolean;
+    harmReductionSupplies: boolean;
+    // Resources distributed (array of item names)
+    resourcesDistributed: string[];
+    notes?: string;
+    loggedBy: string;
+    loggedByName: string;
+    timestamp: string;
+}
+
 export interface EventTracker {
     eventId: string;
     shiftId: string;
     participantsServed: number;
     distributions: DistributionEntry[];
+    clientLogs: ClientServiceLog[];
     updatedAt: string;
 }
 

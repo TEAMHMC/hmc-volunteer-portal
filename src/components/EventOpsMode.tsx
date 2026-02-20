@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry } from '../types';
+import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry, ClientServiceLog } from '../types';
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
@@ -1141,11 +1141,14 @@ const AuditTrailView: React.FC<{auditLogs: AuditLog[]}> = ({ auditLogs }) => (
 // Distribution Tracker — Event Supply Logging
 // ========================================
 
-const DEFAULT_SUPPLY_ITEMS = [
-  'Naloxone Kit', 'HIV Self-Test Kit (OraQuick)', 'Hygiene Kit', 'Free Meal',
-  'Fresh Produce', 'Fentanyl Test Strip', 'Safe Sex Supply Kit', 'Goodie Bag',
-  'Water Bottle', 'Blanket', 'First Aid Kit',
+const RESOURCE_ITEMS = [
+  'Basic Needs Kit', 'Free Meal', 'Fresh Produce', 'HMC Resource Guide',
+  'Naloxone/Narcan', 'Fentanyl Test Strip', 'Safe Sex Supplies', 'HIV Self-Test Kit',
 ];
+
+const GENDER_OPTIONS = ['Male', 'Female', 'Transgender Male', 'Transgender Female', 'Non-Binary', 'Other', 'Decline to State'];
+const RACE_ETHNICITY_OPTIONS = ['Black/African American', 'Hispanic/Latino(a)', 'White/Caucasian', 'Asian', 'American Indian/Alaska Native', 'Native Hawaiian/Pacific Islander', 'Multi-Racial/Other', 'Decline to State'];
+const AGE_RANGE_OPTIONS = ['Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
 const DistributionTrackerView: React.FC<{
     user: Volunteer;
@@ -1153,6 +1156,25 @@ const DistributionTrackerView: React.FC<{
     opportunity: Opportunity;
     onLog: (log: Omit<AuditLog, 'id' | 'timestamp' | 'actorUserId' | 'actorRole' | 'shiftId' | 'eventId'>) => void;
 }> = ({ user, shift, opportunity, onLog }) => {
+    // Section A: Client Service Log state
+    const [clientLogs, setClientLogs] = useState<ClientServiceLog[]>([]);
+    const [showClientForm, setShowClientForm] = useState(false);
+    const [clientGender, setClientGender] = useState('');
+    const [clientRace, setClientRace] = useState('');
+    const [clientAge, setClientAge] = useState('');
+    const [clientZip, setClientZip] = useState('');
+    const [clientResourcesOnly, setClientResourcesOnly] = useState(false);
+    const [clientHealthScreening, setClientHealthScreening] = useState(false);
+    const [clientFullConsult, setClientFullConsult] = useState(false);
+    const [clientReferralGiven, setClientReferralGiven] = useState(false);
+    const [clientHivToGo, setClientHivToGo] = useState(false);
+    const [clientHivWithTeam, setClientHivWithTeam] = useState(false);
+    const [clientHarmReduction, setClientHarmReduction] = useState(false);
+    const [clientResources, setClientResources] = useState<string[]>([]);
+    const [clientNotes, setClientNotes] = useState('');
+    const [clientSaving, setClientSaving] = useState(false);
+
+    // Section B: Quick Resource Distribution state
     const [distributions, setDistributions] = useState<DistributionEntry[]>([]);
     const [participantsServed, setParticipantsServed] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -1163,7 +1185,6 @@ const DistributionTrackerView: React.FC<{
     const [formRecipient, setFormRecipient] = useState('');
     const [formNotes, setFormNotes] = useState('');
     const [saving, setSaving] = useState(false);
-    const [participantSaving, setParticipantSaving] = useState(false);
 
     useEffect(() => {
         const fetchTracker = async () => {
@@ -1171,6 +1192,7 @@ const DistributionTrackerView: React.FC<{
                 const data = await apiService.get(`/api/ops/tracker/${opportunity.id}`);
                 setDistributions(data.distributions || []);
                 setParticipantsServed(data.participantsServed || 0);
+                setClientLogs(data.clientLogs || []);
             } catch (e) {
                 console.error('[Tracker] Failed to load:', e);
             } finally {
@@ -1180,7 +1202,7 @@ const DistributionTrackerView: React.FC<{
         fetchTracker();
     }, [opportunity.id]);
 
-    // Compute totals by item
+    // Compute distribution totals by item
     const totals = useMemo(() => {
         const map: Record<string, number> = {};
         distributions.forEach(d => {
@@ -1189,6 +1211,96 @@ const DistributionTrackerView: React.FC<{
         return Object.entries(map).sort((a, b) => b[1] - a[1]);
     }, [distributions]);
 
+    // Client log running totals
+    const clientTotals = useMemo(() => {
+        const genderMap: Record<string, number> = {};
+        const raceMap: Record<string, number> = {};
+        const ageMap: Record<string, number> = {};
+        let resourcesOnly = 0, healthScreening = 0, fullConsult = 0;
+        let referrals = 0, hivToGo = 0, hivTeam = 0, harmReduction = 0;
+        const resourceMap: Record<string, number> = {};
+
+        clientLogs.forEach(log => {
+            genderMap[log.genderIdentity] = (genderMap[log.genderIdentity] || 0) + 1;
+            raceMap[log.raceEthnicity] = (raceMap[log.raceEthnicity] || 0) + 1;
+            ageMap[log.ageRange] = (ageMap[log.ageRange] || 0) + 1;
+            if (log.resourcesOnly) resourcesOnly++;
+            if (log.healthScreeningOnly) healthScreening++;
+            if (log.fullConsult) fullConsult++;
+            if (log.referralGiven) referrals++;
+            if (log.hivSelfTestToGo) hivToGo++;
+            if (log.hivSelfTestWithTeam) hivTeam++;
+            if (log.harmReductionSupplies) harmReduction++;
+            (log.resourcesDistributed || []).forEach(r => {
+                resourceMap[r] = (resourceMap[r] || 0) + 1;
+            });
+        });
+
+        return {
+            total: clientLogs.length,
+            gender: Object.entries(genderMap).sort((a, b) => b[1] - a[1]),
+            race: Object.entries(raceMap).sort((a, b) => b[1] - a[1]),
+            age: Object.entries(ageMap).sort((a, b) => b[1] - a[1]),
+            serviceTypes: { resourcesOnly, healthScreening, fullConsult },
+            services: { referrals, hivToGo, hivTeam, harmReduction },
+            resources: Object.entries(resourceMap).sort((a, b) => b[1] - a[1]),
+        };
+    }, [clientLogs]);
+
+    // Toggle resource in client form
+    const toggleClientResource = (item: string) => {
+        setClientResources(prev => prev.includes(item) ? prev.filter(r => r !== item) : [...prev, item]);
+    };
+
+    // Reset client form
+    const resetClientForm = () => {
+        setClientGender(''); setClientRace(''); setClientAge(''); setClientZip('');
+        setClientResourcesOnly(false); setClientHealthScreening(false); setClientFullConsult(false);
+        setClientReferralGiven(false); setClientHivToGo(false); setClientHivWithTeam(false);
+        setClientHarmReduction(false); setClientResources([]); setClientNotes('');
+    };
+
+    // Submit client log
+    const handleSubmitClientLog = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!clientGender || !clientRace || !clientAge) {
+            toastService.error('Please fill in all required demographics fields');
+            return;
+        }
+        setClientSaving(true);
+        try {
+            const payload = {
+                clientNumber: clientLogs.length + 1,
+                genderIdentity: clientGender,
+                raceEthnicity: clientRace,
+                ageRange: clientAge,
+                zipCode: clientZip,
+                resourcesOnly: clientResourcesOnly,
+                healthScreeningOnly: clientHealthScreening,
+                fullConsult: clientFullConsult,
+                referralGiven: clientReferralGiven,
+                hivSelfTestToGo: clientHivToGo,
+                hivSelfTestWithTeam: clientHivWithTeam,
+                harmReductionSupplies: clientHarmReduction,
+                resourcesDistributed: clientResources,
+                notes: clientNotes || undefined,
+                shiftId: shift.id,
+            };
+            const entry = await apiService.post(`/api/ops/tracker/${opportunity.id}/client-log`, payload);
+            setClientLogs(prev => [entry, ...prev]);
+            setParticipantsServed(prev => prev + 1);
+            onLog({ actionType: 'LOG_CLIENT_SERVICE', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Logged client #${payload.clientNumber} — ${clientGender}, ${clientAge}` });
+            setShowClientForm(false);
+            resetClientForm();
+            toastService.success(`Client #${payload.clientNumber} logged successfully`);
+        } catch (e) {
+            toastService.error('Failed to log client service');
+        } finally {
+            setClientSaving(false);
+        }
+    };
+
+    // Quick resource distribution
     const handleQuickLog = async (item: string) => {
         setSaving(true);
         try {
@@ -1196,7 +1308,7 @@ const DistributionTrackerView: React.FC<{
                 item, quantity: 1, shiftId: shift.id,
             });
             setDistributions(prev => [entry, ...prev]);
-            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed 1× ${item}` });
+            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed 1x ${item}` });
         } catch (e) {
             toastService.error('Failed to log distribution');
         } finally {
@@ -1204,6 +1316,7 @@ const DistributionTrackerView: React.FC<{
         }
     };
 
+    // Detailed distribution log
     const handleDetailedLog = async (e: React.FormEvent) => {
         e.preventDefault();
         const itemName = formItem === '_custom' ? formCustomItem : formItem;
@@ -1214,7 +1327,7 @@ const DistributionTrackerView: React.FC<{
                 item: itemName, quantity: formQty, recipientName: formRecipient, notes: formNotes, shiftId: shift.id,
             });
             setDistributions(prev => [entry, ...prev]);
-            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed ${formQty}× ${itemName}${formRecipient ? ` to ${formRecipient}` : ''}` });
+            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed ${formQty}x ${itemName}${formRecipient ? ` to ${formRecipient}` : ''}` });
             setShowAddForm(false);
             setFormItem(''); setFormCustomItem(''); setFormQty(1); setFormRecipient(''); setFormNotes('');
         } catch (e) {
@@ -1224,6 +1337,7 @@ const DistributionTrackerView: React.FC<{
         }
     };
 
+    // Delete distribution entry
     const handleDeleteEntry = async (entryId: string) => {
         try {
             await apiService.delete(`/api/ops/tracker/${opportunity.id}/distribution/${entryId}`);
@@ -1233,122 +1347,373 @@ const DistributionTrackerView: React.FC<{
         }
     };
 
-    const handleUpdateParticipants = async (delta: number) => {
-        const newVal = Math.max(0, participantsServed + delta);
-        setParticipantsServed(newVal);
-        setParticipantSaving(true);
-        try {
-            await apiService.put(`/api/ops/tracker/${opportunity.id}/participants`, { participantsServed: newVal });
-        } catch (e) {
-            console.error('[Tracker] Failed to update participants:', e);
-        } finally {
-            setParticipantSaving(false);
-        }
-    };
-
     if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-brand" size={32} /></div>;
 
     return (
-        <div className="space-y-10 animate-in fade-in">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Tracker</h2>
-                <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:opacity-90 transition-opacity">
-                    <span className="w-2 h-2 rounded-full bg-white" /> <Plus size={14} /> Log Distribution
-                </button>
-            </div>
+        <div className="space-y-12 animate-in fade-in">
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Street Medicine Event Tracker</h2>
 
-            {/* Participants Counter */}
-            <div className="p-8 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 shadow-sm">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-4">Participants Served</p>
-                <div className="flex items-center justify-center gap-6">
-                    <button onClick={() => handleUpdateParticipants(-1)} disabled={participantsServed === 0 || participantSaving} className="w-12 h-12 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition-colors disabled:opacity-30">
-                        <Minus size={20} className="text-zinc-600" />
-                    </button>
-                    <span className="text-5xl font-black text-zinc-900 tabular-nums min-w-[80px] text-center">{participantsServed}</span>
-                    <button onClick={() => handleUpdateParticipants(1)} disabled={participantSaving} className="w-12 h-12 rounded-2xl bg-brand border border-black text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-elevation-2">
-                        <Plus size={20} />
+            {/* ================================================================ */}
+            {/* SECTION A: Client Service Log                                    */}
+            {/* ================================================================ */}
+            <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Section A</p>
+                        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase mt-1">Client Service Log</h3>
+                    </div>
+                    <button onClick={() => { resetClientForm(); setShowClientForm(true); }} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:opacity-90 transition-opacity">
+                        <span className="w-2 h-2 rounded-full bg-white" /> <UserPlus size={14} /> Log New Client
                     </button>
                 </div>
-            </div>
 
-            {/* Quick-Tap Supply Buttons */}
-            <div className="space-y-4">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Quick Log (tap to log 1 unit)</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {DEFAULT_SUPPLY_ITEMS.map(item => {
-                        const count = distributions.filter(d => d.item === item).reduce((sum, d) => sum + d.quantity, 0);
-                        return (
-                            <button
-                                key={item}
-                                onClick={() => handleQuickLog(item)}
-                                disabled={saving}
-                                className="p-4 bg-white rounded-2xl border border-zinc-100 hover:border-brand/30 hover:shadow-sm transition-all text-left group disabled:opacity-50"
-                            >
+                {/* Participants / Clients Counter */}
+                <div className="p-8 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 shadow-sm">
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-4">Total Clients Served</p>
+                    <div className="flex items-center justify-center">
+                        <span className="text-5xl font-black text-zinc-900 tabular-nums min-w-[80px] text-center">{participantsServed}</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-bold text-center mt-2">Auto-increments when a client is logged</p>
+                </div>
+
+                {/* Running Totals / Demographics Breakdown */}
+                {clientLogs.length > 0 && (
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Running Totals</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Service Types */}
+                            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Service Types</p>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-zinc-700 leading-tight">{item}</span>
-                                    {count > 0 && (
-                                        <span className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-black">{count}</span>
-                                    )}
+                                    <span className="text-sm font-bold text-zinc-700">Resources Only</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.serviceTypes.resourcesOnly}</span>
                                 </div>
-                                <p className="text-[9px] text-zinc-300 font-bold mt-1 group-hover:text-brand transition-colors">Tap to log +1</p>
-                            </button>
-                        );
-                    })}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">Health Screening</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.serviceTypes.healthScreening}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">Full Consult</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.serviceTypes.fullConsult}</span>
+                                </div>
+                            </div>
+
+                            {/* Services Given */}
+                            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Services Given</p>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">Referral Given</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.referrals}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">HIV Self-Test To-Go</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.hivToGo}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">HIV Self-Test w/ Team</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.hivTeam}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">Harm Reduction Supplies</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.harmReduction}</span>
+                                </div>
+                            </div>
+
+                            {/* Gender Breakdown */}
+                            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Gender Identity</p>
+                                {clientTotals.gender.map(([label, count]) => (
+                                    <div key={label} className="flex items-center justify-between">
+                                        <span className="text-sm font-bold text-zinc-700">{label}</span>
+                                        <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Race/Ethnicity Breakdown */}
+                            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Race / Ethnicity</p>
+                                {clientTotals.race.map(([label, count]) => (
+                                    <div key={label} className="flex items-center justify-between">
+                                        <span className="text-sm font-bold text-zinc-700">{label}</span>
+                                        <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Age Range Breakdown */}
+                            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Age Range</p>
+                                {clientTotals.age.map(([label, count]) => (
+                                    <div key={label} className="flex items-center justify-between">
+                                        <span className="text-sm font-bold text-zinc-700">{label}</span>
+                                        <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Resources Breakdown */}
+                            {clientTotals.resources.length > 0 && (
+                                <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Resources Distributed</p>
+                                    {clientTotals.resources.map(([label, count]) => (
+                                        <div key={label} className="flex items-center justify-between">
+                                            <span className="text-sm font-bold text-zinc-700">{label}</span>
+                                            <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Client Log Entries */}
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Logged Clients ({clientLogs.length})</p>
+                    {clientLogs.length === 0 ? (
+                        <div className="py-16 text-center bg-zinc-50/50 rounded-3xl border border-dashed border-zinc-100">
+                            <Users size={32} className="mx-auto text-zinc-200 mb-4" />
+                            <p className="text-zinc-400 font-bold text-sm">No clients logged yet</p>
+                            <p className="text-zinc-300 text-xs mt-1">Tap "Log New Client" to record a client interaction</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                            {clientLogs.map(log => (
+                                <div key={log.id} className="px-5 py-4 bg-white rounded-2xl border border-zinc-100 hover:border-zinc-200 transition-all">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0 text-xs font-black">#{log.clientNumber}</div>
+                                            <p className="text-sm font-bold text-zinc-800">{log.genderIdentity} / {log.raceEthnicity} / {log.ageRange}</p>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-400 font-bold shrink-0">{new Date(log.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {log.resourcesOnly && <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase">Resources Only</span>}
+                                        {log.healthScreeningOnly && <span className="px-2 py-0.5 bg-violet-50 text-violet-600 rounded-full text-[9px] font-black uppercase">Health Screening</span>}
+                                        {log.fullConsult && <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase">Full Consult</span>}
+                                        {log.referralGiven && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase">Referral</span>}
+                                        {log.hivSelfTestToGo && <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase">HIV Test To-Go</span>}
+                                        {log.hivSelfTestWithTeam && <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase">HIV Test w/ Team</span>}
+                                        {log.harmReductionSupplies && <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full text-[9px] font-black uppercase">Harm Reduction</span>}
+                                        {(log.resourcesDistributed || []).map(r => (
+                                            <span key={r} className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-full text-[9px] font-bold">{r}</span>
+                                        ))}
+                                    </div>
+                                    {log.zipCode && <p className="text-[10px] text-zinc-400 font-bold mt-2">ZIP: {log.zipCode}</p>}
+                                    {log.notes && <p className="text-[10px] text-zinc-400 mt-1 italic">{log.notes}</p>}
+                                    <p className="text-[10px] text-zinc-300 mt-1">Logged by {log.loggedByName}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Totals Summary */}
-            {totals.length > 0 && (
+            {/* Divider between sections */}
+            <div className="border-t-2 border-dashed border-zinc-200" />
+
+            {/* ================================================================ */}
+            {/* SECTION B: Quick Resource Distribution                           */}
+            {/* ================================================================ */}
+            <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Section B</p>
+                        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase mt-1">Quick Resource Distribution</h3>
+                    </div>
+                    <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:opacity-90 transition-opacity">
+                        <span className="w-2 h-2 rounded-full bg-white" /> <Plus size={14} /> Log Distribution
+                    </button>
+                </div>
+
+                {/* Quick-Tap Supply Buttons */}
                 <div className="space-y-4">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Distribution Summary</p>
-                    <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
-                        {totals.map(([item, count]) => (
-                            <div key={item} className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-zinc-700">{item}</span>
-                                <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Quick Log (tap to log 1 unit)</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {RESOURCE_ITEMS.map(item => {
+                            const count = distributions.filter(d => d.item === item).reduce((sum, d) => sum + d.quantity, 0);
+                            return (
+                                <button
+                                    key={item}
+                                    onClick={() => handleQuickLog(item)}
+                                    disabled={saving}
+                                    className="p-4 bg-white rounded-2xl border border-zinc-100 hover:border-brand/30 hover:shadow-sm transition-all text-left group disabled:opacity-50"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-zinc-700 leading-tight">{item}</span>
+                                        {count > 0 && (
+                                            <span className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-black">{count}</span>
+                                        )}
+                                    </div>
+                                    <p className="text-[9px] text-zinc-300 font-bold mt-1 group-hover:text-brand transition-colors">Tap to log +1</p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Totals Summary */}
+                {totals.length > 0 && (
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Distribution Summary</p>
+                        <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                            {totals.map(([item, count]) => (
+                                <div key={item} className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-zinc-700">{item}</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                                </div>
+                            ))}
+                            <div className="pt-3 border-t border-zinc-200 flex items-center justify-between">
+                                <span className="text-sm font-black text-zinc-900 uppercase">Total Items</span>
+                                <span className="text-lg font-black text-brand tabular-nums">{totals.reduce((s, [, c]) => s + c, 0)}</span>
                             </div>
-                        ))}
-                        <div className="pt-3 border-t border-zinc-200 flex items-center justify-between">
-                            <span className="text-sm font-black text-zinc-900 uppercase">Total Items</span>
-                            <span className="text-lg font-black text-brand tabular-nums">{totals.reduce((s, [, c]) => s + c, 0)}</span>
                         </div>
+                    </div>
+                )}
+
+                {/* Recent Log Entries */}
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Recent Entries ({distributions.length})</p>
+                    {distributions.length === 0 ? (
+                        <div className="py-16 text-center bg-zinc-50/50 rounded-3xl border border-dashed border-zinc-100">
+                            <Package size={32} className="mx-auto text-zinc-200 mb-4" />
+                            <p className="text-zinc-400 font-bold text-sm">No distributions logged yet</p>
+                            <p className="text-zinc-300 text-xs mt-1">Use quick-tap buttons above or log a detailed entry</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                            {distributions.slice(0, 50).map(d => (
+                                <div key={d.id} className="flex items-center justify-between px-5 py-3 bg-white rounded-2xl border border-zinc-100 hover:border-zinc-200 transition-all group">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-xs font-black">{d.quantity}</div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-zinc-800 truncate">{d.item}</p>
+                                            <p className="text-[10px] text-zinc-400 truncate">
+                                                {d.loggedByName} · {new Date(d.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                                {d.recipientName ? ` · to ${d.recipientName}` : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleDeleteEntry(d.id)} className="text-zinc-200 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ================================================================ */}
+            {/* CLIENT SERVICE LOG MODAL                                         */}
+            {/* ================================================================ */}
+            {showClientForm && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-start justify-center p-4 overflow-y-auto" onClick={() => setShowClientForm(false)}>
+                    <div className="bg-white rounded-modal w-full max-w-lg shadow-elevation-3 border border-zinc-100 my-8" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-zinc-100">
+                            <div>
+                                <h3 className="text-lg font-bold text-zinc-900">Log New Client</h3>
+                                <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em] mt-1">Client #{clientLogs.length + 1}</p>
+                            </div>
+                            <button onClick={() => setShowClientForm(false)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors"><X size={18} className="text-zinc-400" /></button>
+                        </div>
+                        <form onSubmit={handleSubmitClientLog} className="p-6 space-y-6">
+                            {/* Demographics */}
+                            <div className="space-y-4">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Demographics</p>
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Gender Identity *</label>
+                                    <select value={clientGender} onChange={e => setClientGender(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
+                                        <option value="">Select...</option>
+                                        {GENDER_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Race / Ethnicity *</label>
+                                    <select value={clientRace} onChange={e => setClientRace(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
+                                        <option value="">Select...</option>
+                                        {RACE_ETHNICITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Age Range *</label>
+                                    <select value={clientAge} onChange={e => setClientAge(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
+                                        <option value="">Select...</option>
+                                        {AGE_RANGE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Zip Code</label>
+                                    <input type="text" value={clientZip} onChange={e => setClientZip(e.target.value)} placeholder="e.g. 90012" maxLength={10} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+                                </div>
+                            </div>
+
+                            {/* Service Type */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Service Type</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <button type="button" onClick={() => setClientResourcesOnly(!clientResourcesOnly)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientResourcesOnly ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Resources Only
+                                    </button>
+                                    <button type="button" onClick={() => setClientHealthScreening(!clientHealthScreening)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHealthScreening ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Health Screening Only
+                                    </button>
+                                    <button type="button" onClick={() => setClientFullConsult(!clientFullConsult)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientFullConsult ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Full Consult
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Services Given */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Services Given</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <button type="button" onClick={() => setClientReferralGiven(!clientReferralGiven)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientReferralGiven ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Referral Given
+                                    </button>
+                                    <button type="button" onClick={() => setClientHivToGo(!clientHivToGo)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHivToGo ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        HIV Self-Test To-Go
+                                    </button>
+                                    <button type="button" onClick={() => setClientHivWithTeam(!clientHivWithTeam)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHivWithTeam ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        HIV Self-Test w/ Team
+                                    </button>
+                                    <button type="button" onClick={() => setClientHarmReduction(!clientHarmReduction)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHarmReduction ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Harm Reduction Supplies
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Resources Distributed */}
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Resources Distributed</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {RESOURCE_ITEMS.map(item => (
+                                        <button key={item} type="button" onClick={() => toggleClientResource(item)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientResources.includes(item) ? 'bg-blue-500 text-white border-blue-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                            {item}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes (optional)</label>
+                                <textarea value={clientNotes} onChange={e => setClientNotes(e.target.value)} rows={2} placeholder="Additional notes..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 resize-none" />
+                            </div>
+
+                            {/* Submit */}
+                            <button type="submit" disabled={clientSaving} className="w-full py-4 bg-brand text-white border border-black rounded-full font-bold text-base hover:bg-brand-hover disabled:opacity-50 transition-colors flex items-center justify-center gap-2 uppercase tracking-wide">
+                                {clientSaving ? <Loader2 size={16} className="animate-spin" /> : <><span className="w-2 h-2 rounded-full bg-white" /> Log Client #{clientLogs.length + 1}</>}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}
 
-            {/* Recent Log Entries */}
-            <div className="space-y-4">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Recent Entries ({distributions.length})</p>
-                {distributions.length === 0 ? (
-                    <div className="py-16 text-center bg-zinc-50/50 rounded-3xl border border-dashed border-zinc-100">
-                        <Package size={32} className="mx-auto text-zinc-200 mb-4" />
-                        <p className="text-zinc-400 font-bold text-sm">No distributions logged yet</p>
-                        <p className="text-zinc-300 text-xs mt-1">Use quick-tap buttons above or log a detailed entry</p>
-                    </div>
-                ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {distributions.slice(0, 50).map(d => (
-                            <div key={d.id} className="flex items-center justify-between px-5 py-3 bg-white rounded-2xl border border-zinc-100 hover:border-zinc-200 transition-all group">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-xs font-black">{d.quantity}</div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold text-zinc-800 truncate">{d.item}</p>
-                                        <p className="text-[10px] text-zinc-400 truncate">
-                                            {d.loggedByName} · {new Date(d.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                            {d.recipientName ? ` · to ${d.recipientName}` : ''}
-                                        </p>
-                                    </div>
-                                </div>
-                                <button onClick={() => handleDeleteEntry(d.id)} className="text-zinc-200 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Detailed Log Modal */}
+            {/* ================================================================ */}
+            {/* DETAILED DISTRIBUTION LOG MODAL                                  */}
+            {/* ================================================================ */}
             {showAddForm && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowAddForm(false)}>
                     <div className="bg-white rounded-modal w-full max-w-md shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
@@ -1361,7 +1726,7 @@ const DistributionTrackerView: React.FC<{
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Item *</label>
                                 <select value={formItem} onChange={e => setFormItem(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
                                     <option value="">Select item...</option>
-                                    {DEFAULT_SUPPLY_ITEMS.map(item => <option key={item} value={item}>{item}</option>)}
+                                    {RESOURCE_ITEMS.map(item => <option key={item} value={item}>{item}</option>)}
                                     <option value="_custom">Other (custom)</option>
                                 </select>
                                 {formItem === '_custom' && (
