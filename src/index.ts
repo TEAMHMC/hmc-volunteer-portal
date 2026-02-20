@@ -4505,9 +4505,10 @@ Return a JSON array where each object uses these EXACT field names (matching our
 CRITICAL: Only include organizations you are confident actually exist and are currently operating. Verify names and addresses are real. Return ONLY the valid JSON array.`;
 
         // Use Gemini with Google Search grounding for real-time data
+        // Note: responseMimeType:'application/json' is incompatible with googleSearch grounding,
+        // so we parse JSON from the text response instead
         const model = ai.getGenerativeModel({
             model: GEMINI_MODEL,
-            generationConfig: { responseMimeType: 'application/json' },
             tools: [{ googleSearch: {} } as any],
         });
         const result = await model.generateContent(prompt);
@@ -4515,11 +4516,17 @@ CRITICAL: Only include organizations you are confident actually exist and are cu
 
         let suggestions: any[] = [];
         try {
-            const parsed = JSON.parse(text);
-            suggestions = Array.isArray(parsed) ? parsed : [];
-        } catch {
+            // Try extracting JSON array from the response
             const jsonMatch = text.match(/\[[\s\S]*\]/);
-            if (jsonMatch) suggestions = JSON.parse(jsonMatch[0]);
+            if (jsonMatch) {
+                suggestions = JSON.parse(jsonMatch[0]);
+            } else {
+                const parsed = JSON.parse(text);
+                suggestions = Array.isArray(parsed) ? parsed : [];
+            }
+        } catch (parseErr) {
+            console.warn('[AI RESOURCE SEARCH] Failed to parse AI response:', text.slice(0, 200));
+            suggestions = [];
         }
 
         // Normalize AI results to match ReferralResource schema
