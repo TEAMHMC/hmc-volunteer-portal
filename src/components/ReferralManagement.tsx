@@ -122,13 +122,13 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
           />
         )}
         {activeTab === 'clients' && (
-          <ClientsView clients={clients} onRefresh={fetchAllData} />
+          <ClientsView clients={clients} referrals={referrals} resources={resources} onRefresh={fetchAllData} />
         )}
         {activeTab === 'referrals' && (
           <ReferralsView referrals={referrals} clients={clients} resources={resources} onRefresh={fetchAllData} />
         )}
         {activeTab === 'resources' && (
-          <ResourcesView resources={resources} onRefresh={fetchAllData} />
+          <ResourcesView resources={resources} clients={clients} onRefresh={fetchAllData} onSwitchToClients={() => setActiveTab('clients')} />
         )}
         {activeTab === 'partners' && (
           <PartnersView partners={partners} onRefresh={fetchAllData} />
@@ -268,9 +268,16 @@ const DashboardView: React.FC<{
 };
 
 // Clients View
-const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> = ({ clients, onRefresh }) => {
+const ClientsView: React.FC<{ clients: ClientRecord[]; referrals: ReferralRecord[]; resources: ReferralResource[]; onRefresh: () => void }> = ({ clients, referrals, resources, onRefresh }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewClient, setShowNewClient] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
+  const [showNewReferral, setShowNewReferral] = useState(false);
+  const [newReferralData, setNewReferralData] = useState({ serviceNeeded: '', referredTo: '', urgency: 'Standard', notes: '' });
+  const [isSavingReferral, setIsSavingReferral] = useState(false);
+  const [editingReferralId, setEditingReferralId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Partial<ReferralRecord>>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const filteredClients = clients.filter(c =>
     `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -278,75 +285,307 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; onRefresh: () => void }> 
     c.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const clientReferrals = selectedClient ? referrals.filter(r => r.clientId === selectedClient.id || r.clientName === `${selectedClient.firstName} ${selectedClient.lastName}`) : [];
+
+  const handleCreateReferral = async () => {
+    if (!selectedClient || !newReferralData.serviceNeeded) return;
+    setIsSavingReferral(true);
+    try {
+      await apiService.post('/api/referrals/create', {
+        referral: {
+          clientId: selectedClient.id,
+          clientName: `${selectedClient.firstName} ${selectedClient.lastName}`,
+          serviceNeeded: newReferralData.serviceNeeded,
+          referredTo: newReferralData.referredTo,
+          urgency: newReferralData.urgency,
+          notes: newReferralData.notes,
+          status: 'Pending',
+          referralDate: new Date().toISOString(),
+        }
+      });
+      toastService.success('Referral created!');
+      setShowNewReferral(false);
+      setNewReferralData({ serviceNeeded: '', referredTo: '', urgency: 'Standard', notes: '' });
+      onRefresh();
+    } catch (err) {
+      toastService.error('Failed to create referral.');
+    } finally {
+      setIsSavingReferral(false);
+    }
+  };
+
+  const handleUpdateReferral = async (referralId: string) => {
+    setIsSavingEdit(true);
+    try {
+      await apiService.put(`/api/referrals/${referralId}`, { referral: editData });
+      toastService.success('Referral updated!');
+      setEditingReferralId(null);
+      setEditData({});
+      onRefresh();
+    } catch (err) {
+      toastService.error('Failed to update referral.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search clients..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
-          />
-        </div>
-        <button
-          onClick={() => setShowNewClient(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto justify-center"
-        >
-          <Plus size={18} /> New Client
-        </button>
-      </div>
+      {selectedClient ? (
+        // Client Detail View
+        <div className="space-y-6 animate-in fade-in">
+          <button onClick={() => { setSelectedClient(null); setShowNewReferral(false); setEditingReferralId(null); }} className="flex items-center gap-2 text-sm font-bold text-zinc-500 hover:text-zinc-800 transition-colors">
+            <ArrowRight size={14} className="rotate-180" /> Back to Clients
+          </button>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-zinc-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Contact</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Language</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">SPA</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Intake Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {filteredClients.map(client => (
-              <tr key={client.id} className="hover:bg-zinc-50 cursor-pointer">
-                <td className="px-4 py-4">
-                  <p className="font-bold text-zinc-900">{client.firstName} {client.lastName}</p>
-                </td>
-                <td className="px-4 py-4">
-                  <p className="text-sm text-zinc-600">{client.phone}</p>
-                  <p className="text-xs text-zinc-400">{client.email}</p>
-                </td>
-                <td className="px-4 py-4 text-sm text-zinc-600">{client.primaryLanguage || 'English'}</td>
-                <td className="px-4 py-4 text-sm text-zinc-600">{client.spa || '-'}</td>
-                <td className="px-4 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                    client.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-600'
-                  }`}>
-                    {client.status || 'Active'}
-                  </span>
-                </td>
-                <td className="px-4 py-4 text-sm text-zinc-500">
-                  {client.intakeDate ? new Date(client.intakeDate).toLocaleDateString() : '-'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredClients.length === 0 && (
-          <div className="text-center py-12 text-zinc-400">
-            <Users size={48} className="mx-auto mb-4 opacity-50" />
-            <p className="text-zinc-400 font-bold text-sm">No clients found</p>
+          <div className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-zinc-900">{selectedClient.firstName} {selectedClient.lastName}</h2>
+                <div className="flex flex-wrap gap-3 mt-2 text-sm text-zinc-500">
+                  {selectedClient.phone && <span className="flex items-center gap-1"><Phone size={14} /> {selectedClient.phone}</span>}
+                  {selectedClient.email && <span className="flex items-center gap-1"><Mail size={14} /> {selectedClient.email}</span>}
+                  {selectedClient.primaryLanguage && <span className="flex items-center gap-1"><Globe size={14} /> {selectedClient.primaryLanguage}</span>}
+                  {selectedClient.spa && <span className="flex items-center gap-1"><MapPin size={14} /> SPA {selectedClient.spa}</span>}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowNewReferral(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto justify-center"
+              >
+                <Plus size={16} /> New Referral
+              </button>
+            </div>
           </div>
-        )}
-      </div>
 
-      {showNewClient && (
-        <NewClientModal onClose={() => setShowNewClient(false)} onComplete={() => { setShowNewClient(false); onRefresh(); }} />
+          {/* New Referral Form */}
+          {showNewReferral && (
+            <div className="p-4 md:p-6 bg-brand/5 rounded-3xl border border-brand/10 space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-zinc-900 uppercase tracking-wider">Create Referral</h3>
+                <button onClick={() => setShowNewReferral(false)} className="p-1 hover:bg-zinc-100 rounded-full"><X size={16} /></button>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Service Needed *</label>
+                <input
+                  type="text"
+                  value={newReferralData.serviceNeeded}
+                  onChange={e => setNewReferralData({ ...newReferralData, serviceNeeded: e.target.value })}
+                  placeholder="e.g., Housing assistance, Mental health counseling..."
+                  className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Refer To (Resource)</label>
+                  <select
+                    value={newReferralData.referredTo}
+                    onChange={e => setNewReferralData({ ...newReferralData, referredTo: e.target.value })}
+                    className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-bold text-sm"
+                  >
+                    <option value="">Select a resource...</option>
+                    {resources.map((r, i) => <option key={i} value={r['Resource Name']}>{r['Resource Name']} — {r['Service Category']}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Urgency</label>
+                  <select
+                    value={newReferralData.urgency}
+                    onChange={e => setNewReferralData({ ...newReferralData, urgency: e.target.value })}
+                    className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-bold text-sm"
+                  >
+                    <option>Standard</option>
+                    <option>Urgent</option>
+                    <option>Emergency</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes</label>
+                <textarea
+                  value={newReferralData.notes}
+                  onChange={e => setNewReferralData({ ...newReferralData, notes: e.target.value })}
+                  placeholder="Additional context..."
+                  className="w-full h-20 p-4 bg-white border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowNewReferral(false)} className="px-5 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px]">Cancel</button>
+                <button onClick={handleCreateReferral} disabled={!newReferralData.serviceNeeded || isSavingReferral} className="px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 min-h-[44px]">
+                  {isSavingReferral ? <Loader2 size={16} className="animate-spin" /> : 'Create Referral'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Referral History */}
+          <div>
+            <h3 className="text-sm font-black text-zinc-900 uppercase tracking-wider mb-4">Referral History ({clientReferrals.length})</h3>
+            {clientReferrals.length === 0 ? (
+              <div className="text-center py-8 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
+                <FileText size={32} className="mx-auto mb-2 text-zinc-300" />
+                <p className="text-sm font-bold text-zinc-400">No referrals yet for this client.</p>
+                {!showNewReferral && <button onClick={() => setShowNewReferral(true)} className="mt-3 text-sm font-bold text-brand hover:underline">Create first referral</button>}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {clientReferrals.map(ref => (
+                  <div key={ref.id} className="p-4 bg-white rounded-3xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow">
+                    {editingReferralId === ref.id ? (
+                      // Edit mode
+                      <div className="space-y-3 animate-in fade-in">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Service Needed</label>
+                            <input value={editData.serviceNeeded || ''} onChange={e => setEditData({ ...editData, serviceNeeded: e.target.value })} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-brand/30" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Status</label>
+                            <select value={editData.status || ''} onChange={e => setEditData({ ...editData, status: e.target.value as any })} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold">
+                              <option>Pending</option>
+                              <option>In Progress</option>
+                              <option>Completed</option>
+                              <option>Cancelled</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Referred To</label>
+                            <select value={editData.referredTo || ''} onChange={e => setEditData({ ...editData, referredTo: e.target.value })} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold">
+                              <option value="">Select resource...</option>
+                              {resources.map((r, i) => <option key={i} value={r['Resource Name']}>{r['Resource Name']}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Urgency</label>
+                            <select value={editData.urgency || ''} onChange={e => setEditData({ ...editData, urgency: e.target.value as any })} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold">
+                              <option>Standard</option>
+                              <option>Urgent</option>
+                              <option>Emergency</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Notes</label>
+                          <textarea value={editData.notes || ''} onChange={e => setEditData({ ...editData, notes: e.target.value })} className="w-full h-16 p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-brand/30" />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => { setEditingReferralId(null); setEditData({}); }} className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide min-h-[36px]">Cancel</button>
+                          <button onClick={() => handleUpdateReferral(ref.id!)} disabled={isSavingEdit} className="px-4 py-2 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide disabled:opacity-50 min-h-[36px]">
+                            {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : 'Save'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View mode
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              ref.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
+                              ref.status === 'In Progress' ? 'bg-brand/10 text-brand' :
+                              ref.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-600'
+                            }`}>{ref.status}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              ref.urgency === 'Emergency' ? 'bg-rose-100 text-rose-700' :
+                              ref.urgency === 'Urgent' ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-500'
+                            }`}>{ref.urgency}</span>
+                          </div>
+                          <p className="text-sm font-bold text-zinc-900">{ref.serviceNeeded}</p>
+                          {ref.referredTo && <p className="text-xs text-zinc-500 mt-1">Referred to: <span className="font-bold text-zinc-700">{ref.referredTo}</span></p>}
+                          {ref.notes && <p className="text-xs text-zinc-400 mt-1 italic">{ref.notes}</p>}
+                          <p className="text-[10px] text-zinc-300 mt-2">{new Date(ref.createdAt).toLocaleDateString()} {ref.referredByName ? `by ${ref.referredByName}` : ''}</p>
+                        </div>
+                        <button
+                          onClick={() => { setEditingReferralId(ref.id!); setEditData({ serviceNeeded: ref.serviceNeeded, status: ref.status, referredTo: ref.referredTo, urgency: ref.urgency, notes: ref.notes }); }}
+                          className="px-4 py-2 bg-zinc-100 text-zinc-700 rounded-full text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 min-h-[36px] shrink-0"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        // Client List View
+        <>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+              />
+            </div>
+            <button
+              onClick={() => setShowNewClient(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto justify-center"
+            >
+              <Plus size={18} /> New Client
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Contact</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Language</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">SPA</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase">Referrals</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {filteredClients.map(client => {
+                  const clientRefCount = referrals.filter(r => r.clientId === client.id || r.clientName === `${client.firstName} ${client.lastName}`).length;
+                  return (
+                    <tr key={client.id} className="hover:bg-brand/5 cursor-pointer transition-colors" onClick={() => setSelectedClient(client)}>
+                      <td className="px-4 py-4">
+                        <p className="font-bold text-zinc-900">{client.firstName} {client.lastName}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm text-zinc-600">{client.phone}</p>
+                        <p className="text-xs text-zinc-400">{client.email}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-zinc-600">{client.primaryLanguage || 'English'}</td>
+                      <td className="px-4 py-4 text-sm text-zinc-600">{client.spa || '-'}</td>
+                      <td className="px-4 py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          client.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-600'
+                        }`}>
+                          {client.status || 'Active'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-brand/10 text-brand">{clientRefCount}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filteredClients.length === 0 && (
+              <div className="text-center py-12 text-zinc-400">
+                <Users size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-zinc-400 font-bold text-sm">No clients found</p>
+              </div>
+            )}
+          </div>
+
+          {showNewClient && (
+            <NewClientModal onClose={() => setShowNewClient(false)} onComplete={() => { setShowNewClient(false); onRefresh(); }} />
+          )}
+        </>
       )}
     </div>
   );
@@ -487,13 +726,48 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
 };
 
 // Resources View
-const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => void }> = ({ resources, onRefresh }) => {
+const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRecord[]; onRefresh: () => void; onSwitchToClients: (resourceName: string) => void }> = ({ resources, clients, onRefresh, onSwitchToClients }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedResource, setSelectedResource] = useState<ReferralResource | null>(null);
+  const [showMatchClient, setShowMatchClient] = useState(false);
+  const [matchClientId, setMatchClientId] = useState('');
+  const [matchServiceNeeded, setMatchServiceNeeded] = useState('');
+  const [isSavingMatch, setIsSavingMatch] = useState(false);
 
   const filteredResources = resources.filter(r =>
     r['Resource Name'].toLowerCase().includes(searchQuery.toLowerCase()) ||
     r['Service Category']?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleMatchToClient = async () => {
+    if (!selectedResource || !matchClientId) return;
+    const client = clients.find(c => c.id === matchClientId);
+    if (!client) return;
+    setIsSavingMatch(true);
+    try {
+      await apiService.post('/api/referrals/create', {
+        referral: {
+          clientId: client.id,
+          clientName: `${client.firstName} ${client.lastName}`,
+          serviceNeeded: matchServiceNeeded || selectedResource['Service Category'] || 'Service referral',
+          referredTo: selectedResource['Resource Name'],
+          urgency: 'Standard',
+          status: 'Pending',
+          referralDate: new Date().toISOString(),
+        }
+      });
+      toastService.success(`Referral created for ${client.firstName} ${client.lastName} → ${selectedResource['Resource Name']}`);
+      setShowMatchClient(false);
+      setSelectedResource(null);
+      setMatchClientId('');
+      setMatchServiceNeeded('');
+      onRefresh();
+    } catch (err) {
+      toastService.error('Failed to create referral.');
+    } finally {
+      setIsSavingMatch(false);
+    }
+  };
 
   return (
     <div className="p-4 md:p-8">
@@ -512,7 +786,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredResources.map((resource, i) => (
-          <div key={i} className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 hover:border-brand/20 transition-colors">
+          <div key={i} className="p-4 md:p-6 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-elevation-1 hover:border-brand/20 transition-colors cursor-pointer" onClick={() => { setSelectedResource(resource); setShowMatchClient(true); }}>
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-bold text-zinc-900">{resource['Resource Name']}</h3>
               {resource.averageRating && (
@@ -539,6 +813,52 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; onRefresh: () => 
         <div className="text-center py-12 text-zinc-400">
           <Globe size={48} className="mx-auto mb-4 opacity-50" />
           <p className="text-zinc-400 font-bold text-sm">No resources found</p>
+        </div>
+      )}
+
+      {/* Match Resource to Client Modal */}
+      {showMatchClient && selectedResource && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => { setShowMatchClient(false); setSelectedResource(null); }}>
+          <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
+              <h2 className="text-base md:text-xl font-bold text-zinc-900">Refer Client to Resource</h2>
+              <button onClick={() => { setShowMatchClient(false); setSelectedResource(null); }} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
+            </div>
+            <div className="p-4 md:p-6 space-y-4">
+              <div className="p-4 bg-brand/5 rounded-2xl border border-brand/10">
+                <p className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] mb-1">Resource</p>
+                <p className="text-sm font-bold text-zinc-900">{selectedResource['Resource Name']}</p>
+                <p className="text-xs text-brand font-bold">{selectedResource['Service Category']}</p>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Select Client *</label>
+                <select
+                  value={matchClientId}
+                  onChange={e => setMatchClientId(e.target.value)}
+                  className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
+                >
+                  <option value="">Choose a client...</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}{c.phone ? ` — ${c.phone}` : ''}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Service Needed</label>
+                <input
+                  type="text"
+                  value={matchServiceNeeded}
+                  onChange={e => setMatchServiceNeeded(e.target.value)}
+                  placeholder={selectedResource['Service Category'] || 'Describe the service need...'}
+                  className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
+                <button onClick={() => { setShowMatchClient(false); setSelectedResource(null); }} className="px-5 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto">Cancel</button>
+                <button onClick={handleMatchToClient} disabled={!matchClientId || isSavingMatch} className="px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto">
+                  {isSavingMatch ? <Loader2 size={16} className="animate-spin" /> : 'Create Referral'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
