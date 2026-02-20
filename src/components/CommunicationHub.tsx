@@ -1576,7 +1576,7 @@ const OpsSupportView: React.FC<{
 
       {/* Kanban Board */}
       <div className="flex-1 p-6 overflow-x-auto">
-        <div className="grid grid-cols-3 gap-6 min-w-[900px] h-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
           {/* Open Column */}
           <div
             onDragOver={handleDragOver}
