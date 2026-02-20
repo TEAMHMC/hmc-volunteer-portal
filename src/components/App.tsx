@@ -40,6 +40,19 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       if (data.gamification) setGamification(data.gamification);
   }
 
+  // Listen for session-expired events from apiService (replaces the old window.location.reload approach)
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      console.warn('[App] Session expired event received — redirecting to landing.');
+      apiService.stopSessionHeartbeat();
+      setCurrentUser(null);
+      setAllVolunteers([]);
+      setView('landing');
+    };
+    window.addEventListener('session-expired', handleSessionExpired);
+    return () => window.removeEventListener('session-expired', handleSessionExpired);
+  }, []);
+
   useEffect(() => {
     const checkAuth = async () => {
       if (typeof window === 'undefined') { setLoading(false); return; }

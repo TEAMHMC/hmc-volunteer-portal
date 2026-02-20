@@ -4360,7 +4360,15 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
 
         // Check if this is an onboarding completion (new user finishing their application)
         const existingDoc = await db.collection('volunteers').doc(docId).get();
-        const isOnboardingCompletion = existingDoc.exists && existingDoc.data()?.isNewUser === true;
+        const existingData = existingDoc.exists ? existingDoc.data() : null;
+        // Detect onboarding completion by EITHER:
+        // 1. Existing doc still has isNewUser=true (first submission), OR
+        // 2. The update payload sets isNewUser=false AND includes onboarding fields
+        //    (retry/re-submission after a prior partial save or kick-out)
+        const isOnboardingCompletion = existingData && (
+            existingData.isNewUser === true ||
+            (updates.isNewUser === false && updates.legalFirstName && !existingData.applicationStatus)
+        );
 
         let finalUpdates: any;
         if (isOnboardingCompletion) {

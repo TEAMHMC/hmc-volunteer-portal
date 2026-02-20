@@ -50,9 +50,9 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
         if (isSessionError) {
           console.error(`[Session] 403 on ${endpoint} — session expired or invalid.`);
           localStorage.removeItem('authToken');
-          if (endpoint !== '/auth/me') {
-            window.location.reload();
-          }
+          // Dispatch event so App.tsx can handle navigation cleanly
+          // (don't use window.location.reload — it prevents callers' try/catch from working)
+          window.dispatchEvent(new CustomEvent('session-expired'));
           throw new Error('Your session has expired. Please log in again.');
         }
 
@@ -94,10 +94,6 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
       throw new Error("The request took too long and was aborted. Please check your network connection and try again.");
     }
     console.error(`API Error on ${method} ${endpoint}:`, error);
-
-    if ((error as Error).message.includes('token') || (error as Error).message.includes('Unauthorized')) {
-        localStorage.removeItem('authToken');
-    }
     throw error;
   }
 };
