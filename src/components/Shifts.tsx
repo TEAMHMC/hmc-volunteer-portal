@@ -1581,23 +1581,21 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       );
                                     })()}
                                     {canManageEvents && (() => {
-                                      const eventDate = new Date(opp.date + 'T00:00:00');
-                                      const today = new Date();
-                                      const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                                      const isWithinWeek = daysUntilEvent >= 0 && daysUntilEvent <= 7;
                                       const isReg = user.assignedShiftIds?.includes(shift.id);
-                                      return isWithinWeek ? (
-                                        <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
-                                          <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => handleToggleRegistration(shift.id)}
-                                          disabled={slotsLeft === 0 && !isReg}
-                                          className={`px-6 py-3 rounded-full font-bold text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isReg ? 'bg-white text-zinc-900 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
-                                        >
-                                          {isReg ? <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
-                                        </button>
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                            <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
+                                          </button>
+                                          {isReg && (
+                                            <button
+                                              onClick={() => handleToggleRegistration(shift.id)}
+                                              className="px-4 py-3 rounded-full font-bold text-xs bg-white text-zinc-500 border border-zinc-200 flex items-center gap-2 hover:bg-zinc-50 transition-all"
+                                            >
+                                              Cancel
+                                            </button>
+                                          )}
+                                        </div>
                                       );
                                     })()}
                                   </div>
@@ -1788,20 +1786,24 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               </button>
                                             );
                                           })()}
-                                          {canManageEvents && (
-                                            (() => {
-                                              const isRegistered = user.assignedShiftIds?.includes(shift.id);
-                                              return (
-                                                <button
-                                                  onClick={() => handleToggleRegistration(shift.id)}
-                                                  disabled={slotsLeft === 0 && !isRegistered}
-                                                  className={`px-6 py-3 rounded-full font-bold text-sm transition-all shadow-elevation-2 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 ${isRegistered ? 'bg-white text-zinc-900 border border-zinc-950' : 'bg-brand text-white border border-brand hover:opacity-95'}`}
-                                                >
-                                                  {isRegistered ? <><span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel</> : <><span className="w-2 h-2 rounded-full bg-white" /> Register</>}
+                                          {canManageEvents && (() => {
+                                            const isReg = user.assignedShiftIds?.includes(shift.id);
+                                            return (
+                                              <div className="flex items-center gap-2">
+                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                                  <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                                 </button>
-                                              );
-                                            })()
-                                          )}
+                                                {isReg && (
+                                                  <button
+                                                    onClick={() => handleToggleRegistration(shift.id)}
+                                                    className="px-4 py-3 rounded-full font-bold text-xs bg-white text-zinc-500 border border-zinc-200 flex items-center gap-2 hover:bg-zinc-50 transition-all"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
                                        </div>
                                     </div>
                                 </div>
