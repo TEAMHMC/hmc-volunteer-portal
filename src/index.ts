@@ -3179,10 +3179,11 @@ function normalizeResourceRow(row: Record<string, string>): Record<string, strin
     // Build Resource Name with fallback to Agency + Program
     let resourceName = get('Resource Name');
     if (!resourceName) {
-        const agency = get('Agency', 'Organization', 'Provider');
-        const program = get('Program / Site', 'Program', 'Site Name');
+        const agency = get('Agency', 'Agency / Lead Organization', 'Organization', 'Provider');
+        const program = get('Program / Site', 'Team / Program Name', 'Program', 'Site Name');
         if (agency && program) resourceName = `${agency} - ${program}`;
         else if (agency) resourceName = agency;
+        else if (program) resourceName = program;
     }
     if (!resourceName) return null; // Skip rows with no identifiable name
 
@@ -3199,23 +3200,25 @@ function normalizeResourceRow(row: Record<string, string>): Record<string, strin
     const normalized: Record<string, string> = {};
     normalized['Resource Name'] = resourceName;
     normalized['Service Category'] = get('Service Category', 'Category', 'Service Type');
-    normalized['Contact Phone'] = get('Contact Phone', 'Phone Number', 'Phone');
+    normalized['Contact Phone'] = get('Contact Phone', 'Phone Number', 'Phone', 'Contact Phone');
     normalized['Contact Email'] = get('Contact Email', 'Email');
     normalized['Address'] = address;
-    normalized['SPA'] = get('SPA', 'Service Planning Area');
+    normalized['SPA'] = get('SPA', 'Service Planning Area', 'Coverage Area');
     normalized['Key Offerings'] = get('Key Offerings', 'Description', 'Services Provided', 'Services');
     normalized['Operation Hours'] = get('Operation Hours', 'Hours of Operation', 'Operating Hours', 'Coverage Hours');
     normalized['Website'] = get('Website', 'URL');
-    normalized['Target Population'] = get('Target Population', 'Population Served', 'Population Focus');
+    normalized['Target Population'] = get('Target Population', 'Population Served', 'Population Focus', 'Subcategory');
     normalized['Languages Spoken'] = get('Languages Spoken', 'Languages Available', 'Languages');
     normalized['Eligibility Criteria'] = get('Eligibility Criteria', 'Eligibility Requirements', 'Eligibility');
+    normalized['Contact Person Name'] = get('Contact Person Name', 'Primary Contact Name');
+    normalized['Intake / Referral Process Notes'] = get('Intake / Referral Process Notes', 'Intake / Referral Channel', 'Referral Process');
 
     // Pass through any other fields that don't need mapping
     const passThrough = [
-        'Resource Type', 'Data type', 'Contact Person Name', 'Contact Info Notes',
-        'Intake / Referral Process Notes', 'SLA / Typical Response Time', 'Source',
-        'Last Modified By', 'Active / Inactive', 'Date Added', 'Last Updated',
-        'Partner Agency', 'Linked Clients'
+        'Resource Type', 'Data type', 'Contact Info Notes',
+        'SLA / Typical Response Time', 'Source',
+        'Last Modified By', 'Active / Inactive', 'Active?', 'Date Added', 'Last Updated',
+        'Partner Agency', 'Linked Clients', 'Notes'
     ];
     for (const key of passThrough) {
         if (row[key]?.trim()) normalized[key] = row[key].trim();
@@ -3266,11 +3269,13 @@ app.post('/api/resources/bulk-import', verifyToken, requireAdmin, async (req: Re
             const resource = normalizeResourceRow(row);
             if (!resource) continue;
 
-            // Normalize Active/Inactive field
-            if (!resource['Active / Inactive']) {
+            // Normalize Active/Inactive field (also check 'Active?' column from Community CSV)
+            const activeVal = resource['Active / Inactive'] || resource['Active?'] || '';
+            delete resource['Active?'];
+            if (!activeVal || activeVal.toLowerCase() === 'yes') {
                 resource['Active / Inactive'] = 'checked';
             } else {
-                const val = resource['Active / Inactive'].toLowerCase().trim();
+                const val = activeVal.toLowerCase().trim();
                 resource['Active / Inactive'] = (val === 'inactive' || val === 'unchecked' || val === 'no') ? 'unchecked' : 'checked';
             }
 
