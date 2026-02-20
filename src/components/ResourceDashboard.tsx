@@ -2,8 +2,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
-import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2, Sparkles, ExternalLink, AlertCircle } from 'lucide-react';
+import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2, Sparkles, ExternalLink, AlertCircle, ShieldAlert } from 'lucide-react';
 import { toastService } from '../services/toastService';
+
+const EMERGENCY_RESOURCES = [
+    { name: '911 Emergency', phone: '911', description: 'Police, Fire, Ambulance — life-threatening emergencies', category: 'Emergency' },
+    { name: 'LAPD Non-Emergency', phone: '(877) 275-5273', description: 'Non-emergency police reports and inquiries', category: 'Law Enforcement' },
+    { name: '988 Suicide & Crisis Lifeline', phone: '988', description: '24/7 suicide prevention and mental health crisis support. Call or text.', category: 'Mental Health Crisis' },
+    { name: 'LA County Crisis Line (DMH)', phone: '(800) 854-7771', description: '24/7 mental health crisis counseling and referrals. Multilingual.', category: 'Mental Health Crisis' },
+    { name: 'Didi Hirsch Crisis Line', phone: '(800) 854-7771', description: '24/7 crisis counseling, suicide prevention, disaster support', category: 'Mental Health Crisis' },
+    { name: '211 LA County', phone: '211', description: 'Social services, housing, food, health — information and referral 24/7', category: 'General Services' },
+    { name: 'Poison Control', phone: '(800) 222-1222', description: '24/7 poison emergency guidance', category: 'Emergency' },
+    { name: 'National Domestic Violence Hotline', phone: '(800) 799-7233', description: '24/7 support for domestic violence survivors. Text START to 88788.', category: 'Domestic Violence' },
+    { name: 'LA Homeless Services Authority (LAHSA)', phone: '(213) 225-6581', description: 'Homeless outreach, shelter access, coordinated entry system', category: 'Housing' },
+    { name: 'LA County Warm Line', phone: '(855) 952-9276', description: 'Peer support for emotional distress — not a crisis, but need to talk', category: 'Mental Health Support' },
+];
 
 const ResourceDashboard: React.FC = () => {
     const [resources, setResources] = useState<ReferralResource[]>([]);
@@ -58,7 +71,7 @@ const ResourceDashboard: React.FC = () => {
         setAiError('');
         setAiResults(null);
         try {
-            const data = await apiService.post('/api/resources/ai-search', { query: searchQuery.trim() });
+            const data = await apiService.post('/api/resources/ai-search', { query: searchQuery.trim() }, 90000);
             setAiResults(data.aiSuggestions || []);
         } catch (err) {
             setAiError((err as Error).message || 'AI search failed.');
@@ -157,17 +170,41 @@ const ResourceDashboard: React.FC = () => {
                 )}
             </div>
 
+            {/* Emergency Resources — always visible */}
+            <details className="bg-white rounded-2xl md:rounded-[40px] border border-rose-100 shadow-sm overflow-hidden group">
+                <summary className="flex items-center gap-3 px-4 md:px-6 py-3 md:py-4 cursor-pointer hover:bg-rose-50/50 transition-colors list-none min-h-[56px]">
+                    <ShieldAlert size={18} className="text-rose-500 shrink-0" />
+                    <span className="text-sm font-black text-zinc-900 uppercase tracking-wider">Emergency & Crisis Lines</span>
+                    <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">{EMERGENCY_RESOURCES.length}</span>
+                    <ChevronDown size={16} className="ml-auto text-zinc-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="divide-y divide-rose-50 border-t border-rose-100">
+                    {EMERGENCY_RESOURCES.map((er, i) => (
+                        <div key={i} className="px-4 md:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-rose-50/30 transition-colors">
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-zinc-900">{er.name}</p>
+                                <p className="text-xs text-zinc-500 mt-0.5">{er.description}</p>
+                                <span className="inline-block px-2 py-0.5 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full border border-rose-100 mt-1">{er.category}</span>
+                            </div>
+                            <a href={`tel:${er.phone}`} className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-full text-sm font-bold hover:bg-rose-600 transition-colors min-h-[40px] shrink-0 w-full sm:w-auto justify-center">
+                                <Phone size={14} /> {er.phone}
+                            </a>
+                        </div>
+                    ))}
+                </div>
+            </details>
+
             {/* Resource List — scrollable */}
             <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm overflow-hidden">
                 <div className="max-h-[60vh] overflow-y-auto">
-                    {filtered.length === 0 ? (
+                    {filtered.length === 0 && !aiSearching ? (
                         <div className="text-center py-12 px-4 space-y-4">
                             <p className="text-zinc-400 font-bold text-sm">
                                 {resources.length === 0 ? 'No resources yet. Upload a CSV or add one manually.' : 'No resources match your search.'}
                             </p>
-                            {searchQuery.trim() && !aiResults && (
-                                <button onClick={handleAiSearch} disabled={aiSearching} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-full text-xs font-bold uppercase tracking-wide hover:from-violet-600 hover:to-indigo-600 transition-all">
-                                    {aiSearching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                            {searchQuery.trim() && !aiResults && !aiSearching && (
+                                <button onClick={handleAiSearch} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-full text-xs font-bold uppercase tracking-wide hover:from-violet-600 hover:to-indigo-600 transition-all">
+                                    <Sparkles size={14} />
                                     Search with AI for "{searchQuery}"
                                 </button>
                             )}
