@@ -45,8 +45,10 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
           errorMessage = errJson.error || errorMessage;
         } catch { /* not JSON */ }
 
-        // Only treat as session expiration if the error mentions auth/session/token keywords
-        const isSessionError = /unauthorized|session|token|no.*provided/i.test(errorMessage);
+        // Only treat as session expiration if the error is from the verifyToken middleware
+        // (all verifyToken errors start with "Unauthorized:"). Other 403s (permission checks,
+        // role gates, ticket auth) should NOT trigger logout.
+        const isSessionError = /^Unauthorized:/i.test(errorMessage);
         if (isSessionError) {
           console.error(`[Session] 403 on ${endpoint} — session expired or invalid.`);
           localStorage.removeItem('authToken');
