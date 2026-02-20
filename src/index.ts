@@ -2632,6 +2632,17 @@ app.post('/api/gemini/analyze-resume', verifyToken, async (req: Request, res: Re
 
         console.log(`[GEMINI] Analyzing resume (mimeType: ${mimeType}, size: ${base64Data.length} chars)`);
 
+        // Validate supported MIME types for Gemini inline data
+        const supportedMimeTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'text/plain'];
+        if (!supportedMimeTypes.includes(mimeType)) {
+            console.warn(`[GEMINI] Unsupported MIME type for resume analysis: ${mimeType}`);
+            return res.json({
+                recommendations: [],
+                extractedSkills: [],
+                error: `Unsupported file format (${mimeType}). Please upload a PDF file instead.`
+            });
+        }
+
         const rolesList = VOLUNTEER_ROLES.join(', ');
         const prompt = `You are an expert volunteer coordinator for Health Matters Clinic, a community health nonprofit.
 

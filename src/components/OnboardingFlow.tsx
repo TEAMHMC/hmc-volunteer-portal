@@ -1199,9 +1199,9 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
             <p className="text-sm text-zinc-500">Our AI will analyze your skills and recommend the best roles</p>
           </div>
         </div>
-        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleFileUpload} />
+        <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} />
         <button onClick={() => fileInputRef.current?.click()} disabled={isStepLoading} className="w-full py-4 border-2 border-dashed border-zinc-300 rounded-xl hover:border-brand transition-colors flex items-center justify-center gap-3 text-zinc-600 font-bold">
-          {isStepLoading ? <Loader2 className="animate-spin" /> : data.resumeFile ? <><CheckCircle className="text-emerald-500" /> {data.resumeFile.name}</> : 'Click to upload PDF or DOC'}
+          {isStepLoading ? <Loader2 className="animate-spin" /> : data.resumeFile ? <><CheckCircle className="text-emerald-500" /> {data.resumeFile.name}</> : 'Click to upload resume (PDF)'}
         </button>
       </div>
       {errors.resume && <p className="text-rose-500 text-sm font-bold">{errors.resume}</p>}

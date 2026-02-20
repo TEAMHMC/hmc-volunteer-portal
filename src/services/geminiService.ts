@@ -11,15 +11,12 @@ export const geminiService = {
           throw new Error("AI analysis returned an empty response.");
       }
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gemini service error during resume analysis:", error);
-      // Return a graceful fallback instead of crashing the UI
       return {
-        summary: 'Resume analysis is temporarily unavailable. Please try again later or contact an administrator.',
-        skills: [],
-        experience: [],
-        suggestedRoles: ['HMC Champion'],
-        confidence: 0,
+        recommendations: [],
+        extractedSkills: [],
+        error: error?.message || 'Resume analysis is temporarily unavailable. Please select a role manually.',
       };
     }
   },

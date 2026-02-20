@@ -1355,7 +1355,7 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
   }, [user.assignedShiftIds, user.rsvpedEventIds, shifts, opportunities]);
 
   const heroItem = timelineItems[0];
-  const restItems = timelineItems.slice(1, 5);
+  const restItems = timelineItems.slice(1, 8);
 
   return (
     <div className="space-y-6">
@@ -1364,8 +1364,8 @@ const ComingUp: React.FC<{ user: Volunteer; shifts: Shift[]; opportunities: Oppo
           <i className="fa-solid fa-radar text-brand text-sm shrink-0" />
           <span className="truncate">Coming Up</span>
         </h3>
-        <button onClick={() => onNavigate('calendar')} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-sm uppercase tracking-wide hover:opacity-95 transition-all shrink-0">
-          <span className="w-2 h-2 rounded-full bg-white" />View All
+        <button onClick={() => onNavigate('calendar')} className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white border border-zinc-950 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wide hover:opacity-95 transition-all shrink-0">
+          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white" />View All
           <ArrowRight size={14} />
         </button>
       </div>
