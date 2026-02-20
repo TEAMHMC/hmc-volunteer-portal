@@ -32,7 +32,8 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
     const { recommended, others } = useMemo(() => {
         const eligible = allVolunteers.filter(v => {
             if (assignedVolunteerIds.includes(v.id)) return false;
-            if (v.status !== 'active') return false;
+            // Only exclude explicitly deactivated/suspended — allow active, pending, and unset statuses
+            if (v.status === 'inactive' || v.status === 'suspended' || v.status === 'deactivated') return false;
             if (v.availability?.unavailableDates?.includes(eventDate)) return false;
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
