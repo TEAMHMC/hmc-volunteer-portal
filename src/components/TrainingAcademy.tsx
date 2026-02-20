@@ -25,6 +25,9 @@ const ROLE_LABEL_ALIASES: Record<string, string> = {
   'Events Coordinator': 'Events Lead',
   'Operations Coordinator': 'General Operations Coordinator',
   'Content Writer': 'Newsletter & Content Writer',
+  'Clinical Lead': 'Licensed Medical Professional',
+  'Clinical Volunteer': 'Licensed Medical Professional',
+  'Medical Volunteer': 'Licensed Medical Professional',
 };
 
 const getRoleSlug = (roleLabel: string): string => {
@@ -592,7 +595,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
 
     // Clinical Services — only for roles with clinic gate access (Licensed Medical, Medical Admin)
     const clinicalRoles = ['licensed_medical', 'medical_admin'];
-    const showClinical = clinicalRoles.includes(roleSlug) || clinicalRoles.includes(primarySlug);
+    const showClinical = clinicalRoles.includes(roleSlug) || clinicalRoles.includes(primarySlug) || clinicalRoles.includes(appliedSlug);
 
     // Community Wellness, Health Outreach — available to all operational (non-governance) roles
     if (PROGRAM_COMMUNITY_WELLNESS.length > 0) {
@@ -613,7 +616,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     }
 
     return sections;
-  }, [roleSlug, primarySlug, user.role]);
+  }, [roleSlug, primarySlug, appliedSlug, user.role]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">

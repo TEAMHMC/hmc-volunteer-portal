@@ -2540,6 +2540,14 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             db.collection('volunteers').doc(userId).update({ status: 'active' }).catch(() => {});
         }
 
+        // Auto-fix completedHIPAATraining flag if user completed the HIPAA module
+        // but the flag wasn't set (e.g. completed before flag existed, or field was stripped)
+        const completedIds: string[] = userProfile.completedTrainingIds || [];
+        if (!userProfile.completedHIPAATraining && (completedIds.includes('hipaa_nonclinical') || completedIds.includes('hipaa_staff_2025'))) {
+            userProfile.completedHIPAATraining = true;
+            db.collection('volunteers').doc(userId).update({ completedHIPAATraining: true }).catch(() => {});
+        }
+
         res.json({
             user: userProfile,
             gamification,

@@ -1110,7 +1110,10 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   if (!hasCompletedCoreTraining) {
     actionItems.push({ icon: 'fa-solid fa-graduation-cap', title: 'Complete orientation', description: 'Finish orientation videos to unlock missions', color: 'amber', onClick: () => onNavigate('academy') });
   }
-  if (!user.completedHIPAATraining && hasCompletedCoreTraining) {
+  // Check both the dedicated flag AND completedTrainingIds for HIPAA modules
+  const hipaaCompleted = user.completedHIPAATraining ||
+    hasCompletedModule(user.completedTrainingIds || [], 'hipaa_nonclinical');
+  if (!hipaaCompleted && hasCompletedCoreTraining) {
     actionItems.push({ icon: 'fa-solid fa-shield-halved', title: 'Complete HIPAA training', description: 'Required before signing up for missions', color: 'rose', onClick: () => onNavigate('academy') });
   }
   if (!user.availability?.days?.length) {
