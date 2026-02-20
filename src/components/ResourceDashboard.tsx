@@ -64,8 +64,10 @@ const ResourceDashboard: React.FC = () => {
         }
     };
 
-    // Derive unique categories
-    const categories = [...new Set(resources.map(r => r['Service Category']).filter(Boolean))].sort();
+    // Derive unique individual categories (split comma-separated values)
+    const categories = [...new Set(
+        resources.flatMap(r => (r['Service Category'] || '').split(',').map(c => c.trim()).filter(Boolean))
+    )].sort();
 
     // Filter resources
     const filtered = resources.filter(r => {
@@ -75,7 +77,8 @@ const ResourceDashboard: React.FC = () => {
             (r['Service Category'] || '').toLowerCase().includes(q) ||
             (r['Key Offerings'] || '').toLowerCase().includes(q) ||
             (r['Address'] || '').toLowerCase().includes(q);
-        const matchesCategory = !categoryFilter || r['Service Category'] === categoryFilter;
+        const matchesCategory = !categoryFilter ||
+            (r['Service Category'] || '').split(',').map(c => c.trim()).includes(categoryFilter);
         return matchesSearch && matchesCategory;
     });
 
