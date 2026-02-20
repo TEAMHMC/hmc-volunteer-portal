@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField } from '../types';
+import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry } from '../types';
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -37,7 +37,7 @@ interface EventOpsModeProps {
   canEdit?: boolean;
 }
 
-type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'incidents' | 'signoff' | 'audit';
+type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'tracker' | 'incidents' | 'signoff' | 'audit';
 
 const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts, setOpportunities, onEditEvent, canEdit }) => {
   const [activeTab, setActiveTab] = useState<OpsTab>('overview');
@@ -178,6 +178,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     { id: 'survey', label: 'Survey', icon: FileText },
     { id: 'intake', label: 'Intake', icon: ClipboardPaste },
     { id: 'screenings', label: 'Health', icon: HeartPulse },
+    { id: 'tracker', label: 'Tracker', icon: Package },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
     { id: 'signoff', label: 'Finish', icon: UserCheck },
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
@@ -233,6 +234,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => { toastService.error('Failed to save incident report to server. Report recorded locally only.'); }); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
                 try {
@@ -1134,6 +1136,260 @@ const AuditTrailView: React.FC<{auditLogs: AuditLog[]}> = ({ auditLogs }) => (
         </div>
     </div>
 );
+
+// ========================================
+// Distribution Tracker — Event Supply Logging
+// ========================================
+
+const DEFAULT_SUPPLY_ITEMS = [
+  'Naloxone Kit', 'HIV Self-Test Kit (OraQuick)', 'Hygiene Kit', 'Free Meal',
+  'Fresh Produce', 'Fentanyl Test Strip', 'Safe Sex Supply Kit', 'Goodie Bag',
+  'Water Bottle', 'Blanket', 'First Aid Kit',
+];
+
+const DistributionTrackerView: React.FC<{
+    user: Volunteer;
+    shift: Shift;
+    opportunity: Opportunity;
+    onLog: (log: Omit<AuditLog, 'id' | 'timestamp' | 'actorUserId' | 'actorRole' | 'shiftId' | 'eventId'>) => void;
+}> = ({ user, shift, opportunity, onLog }) => {
+    const [distributions, setDistributions] = useState<DistributionEntry[]>([]);
+    const [participantsServed, setParticipantsServed] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [formItem, setFormItem] = useState('');
+    const [formCustomItem, setFormCustomItem] = useState('');
+    const [formQty, setFormQty] = useState(1);
+    const [formRecipient, setFormRecipient] = useState('');
+    const [formNotes, setFormNotes] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [participantSaving, setParticipantSaving] = useState(false);
+
+    useEffect(() => {
+        const fetchTracker = async () => {
+            try {
+                const data = await apiService.get(`/api/ops/tracker/${opportunity.id}`);
+                setDistributions(data.distributions || []);
+                setParticipantsServed(data.participantsServed || 0);
+            } catch (e) {
+                console.error('[Tracker] Failed to load:', e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTracker();
+    }, [opportunity.id]);
+
+    // Compute totals by item
+    const totals = useMemo(() => {
+        const map: Record<string, number> = {};
+        distributions.forEach(d => {
+            map[d.item] = (map[d.item] || 0) + d.quantity;
+        });
+        return Object.entries(map).sort((a, b) => b[1] - a[1]);
+    }, [distributions]);
+
+    const handleQuickLog = async (item: string) => {
+        setSaving(true);
+        try {
+            const entry = await apiService.post(`/api/ops/tracker/${opportunity.id}/distribution`, {
+                item, quantity: 1, shiftId: shift.id,
+            });
+            setDistributions(prev => [entry, ...prev]);
+            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed 1× ${item}` });
+        } catch (e) {
+            toastService.error('Failed to log distribution');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDetailedLog = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const itemName = formItem === '_custom' ? formCustomItem : formItem;
+        if (!itemName || formQty < 1) return;
+        setSaving(true);
+        try {
+            const entry = await apiService.post(`/api/ops/tracker/${opportunity.id}/distribution`, {
+                item: itemName, quantity: formQty, recipientName: formRecipient, notes: formNotes, shiftId: shift.id,
+            });
+            setDistributions(prev => [entry, ...prev]);
+            onLog({ actionType: 'DISTRIBUTE_SUPPLY', targetSystem: 'FIRESTORE', targetId: entry.id, summary: `Distributed ${formQty}× ${itemName}${formRecipient ? ` to ${formRecipient}` : ''}` });
+            setShowAddForm(false);
+            setFormItem(''); setFormCustomItem(''); setFormQty(1); setFormRecipient(''); setFormNotes('');
+        } catch (e) {
+            toastService.error('Failed to log distribution');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteEntry = async (entryId: string) => {
+        try {
+            await apiService.delete(`/api/ops/tracker/${opportunity.id}/distribution/${entryId}`);
+            setDistributions(prev => prev.filter(d => d.id !== entryId));
+        } catch (e) {
+            toastService.error('Failed to delete entry');
+        }
+    };
+
+    const handleUpdateParticipants = async (delta: number) => {
+        const newVal = Math.max(0, participantsServed + delta);
+        setParticipantsServed(newVal);
+        setParticipantSaving(true);
+        try {
+            await apiService.put(`/api/ops/tracker/${opportunity.id}/participants`, { participantsServed: newVal });
+        } catch (e) {
+            console.error('[Tracker] Failed to update participants:', e);
+        } finally {
+            setParticipantSaving(false);
+        }
+    };
+
+    if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-brand" size={32} /></div>;
+
+    return (
+        <div className="space-y-10 animate-in fade-in">
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Tracker</h2>
+                <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:opacity-90 transition-opacity">
+                    <span className="w-2 h-2 rounded-full bg-white" /> <Plus size={14} /> Log Distribution
+                </button>
+            </div>
+
+            {/* Participants Counter */}
+            <div className="p-8 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 shadow-sm">
+                <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-4">Participants Served</p>
+                <div className="flex items-center justify-center gap-6">
+                    <button onClick={() => handleUpdateParticipants(-1)} disabled={participantsServed === 0 || participantSaving} className="w-12 h-12 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition-colors disabled:opacity-30">
+                        <Minus size={20} className="text-zinc-600" />
+                    </button>
+                    <span className="text-5xl font-black text-zinc-900 tabular-nums min-w-[80px] text-center">{participantsServed}</span>
+                    <button onClick={() => handleUpdateParticipants(1)} disabled={participantSaving} className="w-12 h-12 rounded-2xl bg-brand border border-black text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-elevation-2">
+                        <Plus size={20} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Quick-Tap Supply Buttons */}
+            <div className="space-y-4">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Quick Log (tap to log 1 unit)</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {DEFAULT_SUPPLY_ITEMS.map(item => {
+                        const count = distributions.filter(d => d.item === item).reduce((sum, d) => sum + d.quantity, 0);
+                        return (
+                            <button
+                                key={item}
+                                onClick={() => handleQuickLog(item)}
+                                disabled={saving}
+                                className="p-4 bg-white rounded-2xl border border-zinc-100 hover:border-brand/30 hover:shadow-sm transition-all text-left group disabled:opacity-50"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-zinc-700 leading-tight">{item}</span>
+                                    {count > 0 && (
+                                        <span className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-black">{count}</span>
+                                    )}
+                                </div>
+                                <p className="text-[9px] text-zinc-300 font-bold mt-1 group-hover:text-brand transition-colors">Tap to log +1</p>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Totals Summary */}
+            {totals.length > 0 && (
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Distribution Summary</p>
+                    <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
+                        {totals.map(([item, count]) => (
+                            <div key={item} className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-zinc-700">{item}</span>
+                                <span className="text-sm font-black text-zinc-900 tabular-nums">{count}</span>
+                            </div>
+                        ))}
+                        <div className="pt-3 border-t border-zinc-200 flex items-center justify-between">
+                            <span className="text-sm font-black text-zinc-900 uppercase">Total Items</span>
+                            <span className="text-lg font-black text-brand tabular-nums">{totals.reduce((s, [, c]) => s + c, 0)}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Recent Log Entries */}
+            <div className="space-y-4">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Recent Entries ({distributions.length})</p>
+                {distributions.length === 0 ? (
+                    <div className="py-16 text-center bg-zinc-50/50 rounded-3xl border border-dashed border-zinc-100">
+                        <Package size={32} className="mx-auto text-zinc-200 mb-4" />
+                        <p className="text-zinc-400 font-bold text-sm">No distributions logged yet</p>
+                        <p className="text-zinc-300 text-xs mt-1">Use quick-tap buttons above or log a detailed entry</p>
+                    </div>
+                ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {distributions.slice(0, 50).map(d => (
+                            <div key={d.id} className="flex items-center justify-between px-5 py-3 bg-white rounded-2xl border border-zinc-100 hover:border-zinc-200 transition-all group">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-xs font-black">{d.quantity}</div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-zinc-800 truncate">{d.item}</p>
+                                        <p className="text-[10px] text-zinc-400 truncate">
+                                            {d.loggedByName} · {new Date(d.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                            {d.recipientName ? ` · to ${d.recipientName}` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onClick={() => handleDeleteEntry(d.id)} className="text-zinc-200 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Detailed Log Modal */}
+            {showAddForm && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowAddForm(false)}>
+                    <div className="bg-white rounded-modal w-full max-w-md shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-zinc-100">
+                            <h3 className="text-lg font-bold text-zinc-900">Log Distribution</h3>
+                            <button onClick={() => setShowAddForm(false)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors"><X size={18} className="text-zinc-400" /></button>
+                        </div>
+                        <form onSubmit={handleDetailedLog} className="p-6 space-y-5">
+                            <div>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Item *</label>
+                                <select value={formItem} onChange={e => setFormItem(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
+                                    <option value="">Select item...</option>
+                                    {DEFAULT_SUPPLY_ITEMS.map(item => <option key={item} value={item}>{item}</option>)}
+                                    <option value="_custom">Other (custom)</option>
+                                </select>
+                                {formItem === '_custom' && (
+                                    <input type="text" value={formCustomItem} onChange={e => setFormCustomItem(e.target.value)} placeholder="Custom item name" required className="w-full p-4 mt-3 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+                                )}
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Quantity *</label>
+                                <input type="number" min={1} value={formQty} onChange={e => setFormQty(parseInt(e.target.value) || 1)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Recipient Name (optional)</label>
+                                <input type="text" value={formRecipient} onChange={e => setFormRecipient(e.target.value)} placeholder="Client name if applicable" className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes (optional)</label>
+                                <textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={2} placeholder="Any notes..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 resize-none" />
+                            </div>
+                            <button type="submit" disabled={saving} className="w-full py-4 bg-brand text-white border border-black rounded-full font-bold text-base hover:bg-brand-hover disabled:opacity-50 transition-colors flex items-center justify-center gap-2 uppercase tracking-wide">
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : <><span className="w-2 h-2 rounded-full bg-white" /> Log Entry</>}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }) => (
     <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[400px] animate-in zoom-in-95">

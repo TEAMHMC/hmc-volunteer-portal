@@ -656,6 +656,27 @@ export interface MissionOpsRun {
     signoffTimestamp?: string;
 }
 
+export interface DistributionEntry {
+    id: string;
+    eventId: string;
+    shiftId: string;
+    item: string;
+    quantity: number;
+    recipientName?: string;
+    notes?: string;
+    loggedBy: string;
+    loggedByName: string;
+    timestamp: string;
+}
+
+export interface EventTracker {
+    eventId: string;
+    shiftId: string;
+    participantsServed: number;
+    distributions: DistributionEntry[];
+    updatedAt: string;
+}
+
 export interface IncidentReport {
   id: string;
   shiftId: string;

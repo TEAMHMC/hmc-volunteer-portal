@@ -4381,6 +4381,80 @@ app.post('/api/ops/signoff', verifyToken, async (req: Request, res: Response) =>
     }
 });
 
+// ========================================
+// EVENT DISTRIBUTION TRACKER
+// ========================================
+
+// GET /api/ops/tracker/:eventId — Load distribution tracker for an event
+app.get('/api/ops/tracker/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        const trackerDoc = await db.collection('event_trackers').doc(eventId).get();
+        const distSnap = await db.collection('distribution_entries').where('eventId', '==', eventId).orderBy('timestamp', 'desc').get();
+        const distributions = distSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const trackerData = trackerDoc.exists ? trackerDoc.data() : { participantsServed: 0 };
+        res.json({ ...trackerData, eventId, distributions });
+    } catch (e: any) {
+        console.error('[TRACKER] GET failed:', e.message);
+        res.json({ eventId: req.params.eventId, participantsServed: 0, distributions: [] });
+    }
+});
+
+// POST /api/ops/tracker/:eventId/distribution — Log a distribution entry
+app.post('/api/ops/tracker/:eventId/distribution', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { eventId } = req.params;
+        const { item, quantity, recipientName, notes, shiftId } = req.body;
+        if (!item || !quantity) return res.status(400).json({ error: 'item and quantity required' });
+        const volunteerDoc = await db.collection('volunteers').doc(user.uid).get();
+        const volunteerName = volunteerDoc.data()?.name || 'Unknown';
+        const entry = {
+            eventId,
+            shiftId: shiftId || '',
+            item,
+            quantity: Number(quantity),
+            recipientName: recipientName || null,
+            notes: notes || null,
+            loggedBy: user.uid,
+            loggedByName: volunteerName,
+            timestamp: new Date().toISOString(),
+        };
+        const ref = await db.collection('distribution_entries').add(entry);
+        res.json({ id: ref.id, ...entry });
+    } catch (e: any) {
+        console.error('[TRACKER] POST distribution failed:', e.message);
+        res.status(500).json({ error: 'Failed to log distribution' });
+    }
+});
+
+// PUT /api/ops/tracker/:eventId/participants — Update participants served count
+app.put('/api/ops/tracker/:eventId/participants', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        const { participantsServed } = req.body;
+        await db.collection('event_trackers').doc(eventId).set(
+            { participantsServed: Number(participantsServed), updatedAt: new Date().toISOString() },
+            { merge: true }
+        );
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[TRACKER] PUT participants failed:', e.message);
+        res.status(500).json({ error: 'Failed to update participants count' });
+    }
+});
+
+// DELETE /api/ops/tracker/:eventId/distribution/:entryId — Delete a distribution entry
+app.delete('/api/ops/tracker/:eventId/distribution/:entryId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        await db.collection('distribution_entries').doc(req.params.entryId).delete();
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[TRACKER] DELETE distribution failed:', e.message);
+        res.status(500).json({ error: 'Failed to delete entry' });
+    }
+});
+
 app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;

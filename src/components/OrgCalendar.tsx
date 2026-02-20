@@ -273,29 +273,46 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
           {/* Day cells */}
           <div className="grid grid-cols-7 gap-px">
             {calendarDays.map((day, i) => {
-              if (day === null) return <div key={i} className="aspect-square" />;
+              if (day === null) return <div key={i} className="min-h-[72px] md:min-h-[90px]" />;
               const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const dayEvents = eventsByDay[day] || [];
               const isToday = isCurrentMonth && day === todayDate.getDate();
               const isSelected = selectedDay === dateStr;
-              const uniqueTypes = [...new Set(dayEvents.map(e => e.type))];
+              const maxVisible = 2;
+              const overflowCount = dayEvents.length - maxVisible;
 
               return (
                 <button
                   key={i}
                   onClick={() => handleDayClick(day)}
-                  className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all relative
+                  className={`min-h-[72px] md:min-h-[90px] rounded-xl flex flex-col items-start p-1.5 md:p-2 transition-all relative text-left
                     ${isSelected ? 'bg-brand text-white shadow-elevation-2' : isToday ? 'bg-zinc-100 font-black' : 'hover:bg-zinc-50'}
                   `}
                 >
-                  <span className={`text-sm font-bold ${isSelected ? 'text-white' : isToday ? 'text-zinc-900' : 'text-zinc-700'}`}>
+                  <span className={`text-xs md:text-sm font-bold mb-0.5 ${isSelected ? 'text-white' : isToday ? 'text-zinc-900' : 'text-zinc-700'}`}>
                     {day}
                   </span>
-                  {uniqueTypes.length > 0 && (
-                    <div className="flex gap-0.5">
-                      {uniqueTypes.slice(0, 3).map((type, j) => (
-                        <div key={j} className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white/80' : getColor(type).dot}`} />
-                      ))}
+                  {dayEvents.length > 0 && (
+                    <div className="w-full space-y-0.5 overflow-hidden flex-1 min-w-0">
+                      {dayEvents.slice(0, maxVisible).map((ev, j) => {
+                        const color = getColor(ev.type);
+                        return (
+                          <div
+                            key={j}
+                            className={`w-full rounded px-1 py-px truncate text-[8px] md:text-[10px] font-bold leading-tight ${
+                              isSelected ? 'bg-white/20 text-white' : `${color.bg} ${color.text}`
+                            }`}
+                            title={`${ev.startTime ? formatTimeDisplay(ev.startTime) + ' ' : ''}${ev.title}`}
+                          >
+                            <span className="hidden md:inline">{ev.startTime ? formatTimeDisplay(ev.startTime).replace(/ [AP]M/, '') + ' ' : ''}</span>{ev.title}
+                          </div>
+                        );
+                      })}
+                      {overflowCount > 0 && (
+                        <div className={`text-[8px] md:text-[10px] font-bold px-1 ${isSelected ? 'text-white/70' : 'text-zinc-400'}`}>
+                          +{overflowCount} more
+                        </div>
+                      )}
                     </div>
                   )}
                 </button>
