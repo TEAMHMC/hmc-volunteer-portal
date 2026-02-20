@@ -223,30 +223,47 @@ const ResourceDashboard: React.FC = () => {
                     </div>
                     <div className="bg-white rounded-2xl md:rounded-[40px] border border-violet-100 shadow-sm overflow-hidden">
                         <div className="max-h-[50vh] overflow-y-auto divide-y divide-violet-50">
-                            {aiResults.map((s, i) => (
+                            {aiResults.map((s: any, i: number) => (
                                 <div key={i} className="p-4 md:p-5 hover:bg-violet-50/30 transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-zinc-900">{s.name}</p>
+                                            <p className="text-sm font-bold text-zinc-900">{s['Resource Name']}</p>
                                             <div className="flex flex-wrap items-center gap-2 mt-1">
-                                                {s.category && <span className="px-2.5 py-0.5 bg-violet-50 text-violet-600 text-[10px] font-bold rounded-full border border-violet-100">{s.category}</span>}
+                                                {s['Service Category'] && <span className="px-2.5 py-0.5 bg-violet-50 text-violet-600 text-[10px] font-bold rounded-full border border-violet-100">{s['Service Category']}</span>}
                                                 <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-black rounded-full border border-amber-100 uppercase tracking-wider">AI Suggested</span>
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const { source, ...resourceData } = s;
+                                                    await apiService.post('/api/resources/create', { resource: resourceData });
+                                                    toastService.success(`Saved "${s['Resource Name']}" to database!`);
+                                                    setAiResults(prev => prev ? prev.filter((_, idx) => idx !== i) : null);
+                                                    fetchResources();
+                                                } catch (err) {
+                                                    toastService.error('Failed to save resource.');
+                                                }
+                                            }}
+                                            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-brand text-white text-[10px] font-bold rounded-full hover:bg-brand/90 transition-colors min-h-[36px]"
+                                        >
+                                            <Plus size={12} /> Save
+                                        </button>
                                     </div>
-                                    {s.description && <p className="text-xs text-zinc-600 mt-2 leading-relaxed">{s.description}</p>}
+                                    {s['Key Offerings'] && <p className="text-xs text-zinc-600 mt-2 leading-relaxed">{s['Key Offerings']}</p>}
                                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs">
-                                        {s.phone && <a href={`tel:${s.phone}`} className="flex items-center gap-1.5 text-brand font-bold hover:underline"><Phone size={12} />{s.phone}</a>}
-                                        {s.address && <span className="flex items-center gap-1.5 text-zinc-500"><MapPin size={12} />{s.address}</span>}
-                                        {s.website && <a href={s.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-brand font-bold hover:underline"><ExternalLink size={12} />Website</a>}
-                                        {s.hours && <span className="flex items-center gap-1.5 text-zinc-500"><Clock size={12} />{s.hours}</span>}
+                                        {s['Contact Phone'] && <a href={`tel:${s['Contact Phone']}`} className="flex items-center gap-1.5 text-brand font-bold hover:underline"><Phone size={12} />{s['Contact Phone']}</a>}
+                                        {s['Address'] && <span className="flex items-center gap-1.5 text-zinc-500"><MapPin size={12} />{s['Address']}</span>}
+                                        {s['Website'] && <a href={s['Website']} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-brand font-bold hover:underline"><ExternalLink size={12} />Website</a>}
+                                        {s['Operation Hours'] && <span className="flex items-center gap-1.5 text-zinc-500"><Clock size={12} />{s['Operation Hours']}</span>}
                                     </div>
-                                    {s.notes && <p className="text-[10px] text-zinc-400 mt-2 italic">{s.notes}</p>}
+                                    {s['Eligibility Criteria'] && <p className="text-[10px] text-zinc-500 mt-2"><span className="font-bold">Eligibility:</span> {s['Eligibility Criteria']}</p>}
+                                    {s['Intake / Referral Process Notes'] && <p className="text-[10px] text-zinc-400 mt-1 italic">{s['Intake / Referral Process Notes']}</p>}
                                 </div>
                             ))}
                         </div>
                     </div>
-                    <p className="text-[10px] text-zinc-400 font-bold text-center">AI suggestions may not be 100% accurate. Always verify contact info before referring clients.</p>
+                    <p className="text-[10px] text-zinc-400 font-bold text-center">AI suggestions are sourced from the internet and may not be 100% accurate. Verify contact info before referring clients. Click "Save" to add verified resources to your database.</p>
                 </div>
             )}
 

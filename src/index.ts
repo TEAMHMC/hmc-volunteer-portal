@@ -4476,29 +4476,43 @@ app.post('/api/resources/ai-search', verifyToken, rateLimit(10, 60000), async (r
             return query.toLowerCase().split(' ').every((word: string) => searchText.includes(word));
         }).slice(0, 5);
 
-        const prompt = `You are a community health resource navigator for Health Matters Clinic in Los Angeles, CA (Skid Row / Downtown LA area). A volunteer or staff member is searching for: "${query}"
+        const prompt = `You are a community health resource navigator for Health Matters Clinic in Los Angeles, CA (Skid Row / Downtown LA area). Search the internet for real, currently operating community resources matching: "${query}"
 
-${localMatches.length > 0 ? `We found ${localMatches.length} matches in our database already. The user wants ADDITIONAL suggestions beyond what we have.` : 'We have NO matches in our database for this search.'}
+${localMatches.length > 0 ? `We already have ${localMatches.length} matches in our database. Find ADDITIONAL resources beyond: ${localMatches.map((r: any) => r['Resource Name']).join(', ')}` : 'We have NO matches in our database for this search.'}
 
-Provide 5-8 real, verified community resources in the Los Angeles area that match this search. Focus on resources near Downtown LA / Skid Row when relevant. For each resource, provide:
+Search for 5-8 real, verified community resources in the Los Angeles area. Focus on resources near Downtown LA / Skid Row when relevant. Look up their actual current contact information.
 
-Return a JSON array with this exact format:
+Return a JSON array where each object uses these EXACT field names (matching our database schema):
 [
   {
-    "name": "Resource Name",
-    "category": "Service Category (e.g., Housing, Food, Medical, Mental Health, Substance Use, Legal Aid, Employment)",
-    "description": "Brief 1-2 sentence description of services offered",
-    "address": "Full address if known, or general area",
-    "phone": "Phone number if known",
-    "website": "Website URL if known",
-    "hours": "Operating hours if known",
-    "notes": "Any important notes (eligibility, wait times, walk-in vs appointment, etc.)"
+    "Resource Name": "Full official name of organization",
+    "Service Category": "One of: Housing, Food Assistance, Medical, Mental Health, Substance Use Treatment, Legal Aid, Employment, Clothing, Hygiene, Transportation, Benefits Enrollment, Domestic Violence, Veteran Services, Youth Services, Senior Services, Disability Services, Education, Financial Assistance",
+    "Key Offerings": "Detailed description of specific services offered (2-3 sentences)",
+    "Eligibility Criteria": "Who qualifies — age, income, residency requirements, documentation needed",
+    "Target Population": "Who this resource primarily serves (e.g., Adults experiencing homelessness, Families, Veterans)",
+    "Languages Spoken": "Languages available (e.g., English, Spanish, Korean)",
+    "Operation Hours": "Days and hours of operation (e.g., Mon-Fri 8am-5pm)",
+    "Contact Phone": "Main phone number",
+    "Contact Email": "Email address if available",
+    "Address": "Full street address including city, state, zip",
+    "Website": "Full URL",
+    "SPA": "Service Planning Area number (1-8) based on LA County location, or empty string if unsure",
+    "Intake / Referral Process Notes": "How to access services — walk-in, appointment, referral needed, etc.",
+    "notes": "Any important additional info — wait times, capacity, special instructions"
   }
 ]
 
-IMPORTANT: Only suggest real organizations that actually exist. If you're not confident a resource exists, omit it. Return ONLY the JSON array, nothing else.`;
+CRITICAL: Only include organizations you are confident actually exist and are currently operating. Verify names and addresses are real. Return ONLY the valid JSON array.`;
 
-        const text = await generateAIContent(GEMINI_MODEL, prompt, true);
+        // Use Gemini with Google Search grounding for real-time data
+        const model = ai.getGenerativeModel({
+            model: GEMINI_MODEL,
+            generationConfig: { responseMimeType: 'application/json' },
+            tools: [{ googleSearch: {} } as any],
+        });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+
         let suggestions: any[] = [];
         try {
             const parsed = JSON.parse(text);
@@ -4508,17 +4522,37 @@ IMPORTANT: Only suggest real organizations that actually exist. If you're not co
             if (jsonMatch) suggestions = JSON.parse(jsonMatch[0]);
         }
 
+        // Normalize AI results to match ReferralResource schema
+        const normalizedSuggestions = suggestions.map((s: any) => ({
+            'Resource Name': s['Resource Name'] || s.name || '',
+            'Service Category': s['Service Category'] || s.category || '',
+            'Key Offerings': s['Key Offerings'] || s.description || '',
+            'Eligibility Criteria': s['Eligibility Criteria'] || '',
+            'Target Population': s['Target Population'] || '',
+            'Languages Spoken': s['Languages Spoken'] || '',
+            'Operation Hours': s['Operation Hours'] || s.hours || '',
+            'Contact Phone': s['Contact Phone'] || s.phone || '',
+            'Contact Email': s['Contact Email'] || '',
+            'Address': s['Address'] || s.address || '',
+            'Website': s['Website'] || s.website || '',
+            'SPA': s['SPA'] || '',
+            'Intake / Referral Process Notes': s['Intake / Referral Process Notes'] || s.notes || '',
+            'Active / Inactive': 'checked',
+            'Source': 'AI Search',
+            source: 'ai'
+        }));
+
         res.json({
             query,
             localMatches: localMatches.slice(0, 5).map((r: any) => ({
                 id: r.id,
-                name: r['Resource Name'],
-                category: r['Service Category'],
-                phone: r['Contact Phone'],
-                address: r['Address'],
+                'Resource Name': r['Resource Name'],
+                'Service Category': r['Service Category'],
+                'Contact Phone': r['Contact Phone'],
+                'Address': r['Address'],
                 source: 'database'
             })),
-            aiSuggestions: suggestions.map((s: any) => ({ ...s, source: 'ai' })),
+            aiSuggestions: normalizedSuggestions,
             timestamp: new Date().toISOString()
         });
     } catch (error) {
