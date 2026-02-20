@@ -809,7 +809,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     const opp = shift ? getOpp(shift.opportunityId) : null;
 
     // Check training eligibility before allowing registration
-    if (!isRegistered && opp) {
+    // Admins/coordinators bypass training checks — they make deliberate staffing decisions
+    // (e.g. logistics drivers, supply runners who don't need clinical training)
+    if (!isRegistered && opp && !canManageEvents) {
       const status = getRegistrationStatus(opp);
       if (!status.canRegister) {
         setToastMsg(status.message);
@@ -857,7 +859,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           volunteerEmail: user.email || '',
           volunteerName: user.name || '',
           eventType: opp?.type || '',
-          status: regStatus.isPending ? 'pending_training' : 'confirmed',
+          status: canManageEvents ? 'confirmed' : (regStatus.isPending ? 'pending_training' : 'confirmed'),
         });
         // Update local state
         onUpdate({
@@ -1587,14 +1589,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                             <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                           </button>
-                                          {isReg && (
-                                            <button
-                                              onClick={() => handleToggleRegistration(shift.id)}
-                                              className="px-4 py-3 rounded-full font-bold text-xs bg-white text-zinc-500 border border-zinc-200 flex items-center gap-2 hover:bg-zinc-50 transition-all"
-                                            >
-                                              Cancel
-                                            </button>
-                                          )}
+                                          <button
+                                            onClick={() => handleToggleRegistration(shift.id)}
+                                            disabled={registeringShiftIds.has(shift.id) || (!isReg && slotsLeft === 0)}
+                                            className={`px-4 py-3 rounded-full font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 ${isReg ? 'bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50' : 'bg-zinc-900 text-white border border-zinc-900 hover:bg-zinc-800'}`}
+                                          >
+                                            {registeringShiftIds.has(shift.id) ? <Loader2 size={12} className="animate-spin" /> : null}
+                                            {isReg ? 'Cancel' : 'Register'}
+                                          </button>
                                         </div>
                                       );
                                     })()}
@@ -1793,14 +1795,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                                 <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
                                                   <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
                                                 </button>
-                                                {isReg && (
-                                                  <button
-                                                    onClick={() => handleToggleRegistration(shift.id)}
-                                                    className="px-4 py-3 rounded-full font-bold text-xs bg-white text-zinc-500 border border-zinc-200 flex items-center gap-2 hover:bg-zinc-50 transition-all"
-                                                  >
-                                                    Cancel
-                                                  </button>
-                                                )}
+                                                <button
+                                                  onClick={() => handleToggleRegistration(shift.id)}
+                                                  disabled={registeringShiftIds.has(shift.id) || (!isReg && slotsLeft === 0)}
+                                                  className={`px-4 py-3 rounded-full font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 ${isReg ? 'bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50' : 'bg-zinc-900 text-white border border-zinc-900 hover:bg-zinc-800'}`}
+                                                >
+                                                  {registeringShiftIds.has(shift.id) ? <Loader2 size={12} className="animate-spin" /> : null}
+                                                  {isReg ? 'Cancel' : 'Register'}
+                                                </button>
                                               </div>
                                             );
                                           })()}
