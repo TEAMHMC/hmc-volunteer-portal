@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ReferralRecord, Volunteer, ClientRecord, ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
-import { REFERRAL_RESOURCES } from '../referralResources';
+
 import { Send, Plus, X, Search, ChevronDown, Clock, AlertTriangle, CheckCircle, Sparkles, Loader2, Save, User } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
@@ -194,12 +194,12 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
         setIsLoading(true);
         setRecommendations([]);
         try {
-            const result = await apiService.post('/api/gemini/find-referral-match', { clientNeed: serviceNeed });
-            setRecommendations(result.recommendations);
+            const result = await apiService.post('/api/ai/match-resources', { serviceNeeded: serviceNeed });
+            setRecommendations(result.matches || []);
         } catch(e) { toastService.error("AI Match failed."); }
         finally { setIsLoading(false); }
     };
-    
+
     return (
         <div className="p-4 bg-brand/5 rounded-3xl border border-brand/10 space-y-4">
             <div className="flex items-center justify-between">
@@ -210,17 +210,16 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
             </div>
             {recommendations.length > 0 && (
                 <div className="space-y-2">
-                    {recommendations.map((rec, i) => {
-                         const resource = REFERRAL_RESOURCES.find(r => r["Resource Name"] === rec["Resource Name"]);
-                         if (!resource) return null;
-                         return (
-                             <div key={i} className="p-3 bg-white/50 rounded-2xl border border-brand/10">
-                                 <h5 className="font-bold text-sm text-zinc-800">{rec["Resource Name"]}</h5>
-                                 <p className="text-xs italic text-zinc-500 my-1">"{rec.reasoning}"</p>
-                                 <button onClick={() => onSelect(resource)} className="text-xs font-bold text-brand hover:underline">Select</button>
-                             </div>
-                         )
-                    })}
+                    {recommendations.map((rec: any, i: number) => (
+                        <div key={i} className="p-3 bg-white/50 rounded-2xl border border-brand/10">
+                            <div className="flex items-center justify-between gap-2">
+                                <h5 className="font-bold text-sm text-zinc-800">{rec.resourceName}</h5>
+                                {rec.matchScore && <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{rec.matchScore}%</span>}
+                            </div>
+                            <p className="text-xs italic text-zinc-500 my-1">"{rec.matchReason}"</p>
+                            <button onClick={() => onSelect({ 'Resource Name': rec.resourceName, id: rec.resourceId } as any)} className="text-xs font-bold text-brand hover:underline">Select</button>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

@@ -36,7 +36,10 @@ const ResourceDashboard: React.FC = () => {
     }, []);
 
     const handleClearAll = async () => {
-        if (!window.confirm(`Delete all ${resources.length} resources? This cannot be undone.`)) return;
+        const confirmed = window.confirm(`Are you sure you want to permanently delete ALL ${resources.length} resources? This cannot be undone.`);
+        if (confirmed !== true) return;
+        const doubleConfirm = window.confirm('This will remove every resource from the database. Type OK to proceed.');
+        if (doubleConfirm !== true) return;
         setIsClearing(true);
         try {
             await apiService.delete('/api/resources/clear-all');
@@ -223,6 +226,7 @@ const ResourceDashboard: React.FC = () => {
                         <Sparkles size={16} className="text-violet-500" />
                         <h3 className="text-sm font-black text-zinc-900 uppercase tracking-wider">AI-Suggested Resources</h3>
                         <span className="text-[10px] font-bold text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">{aiResults.length} found</span>
+                        <button onClick={() => { setAiResults(null); setAiError(''); }} className="ml-auto text-zinc-400 hover:text-zinc-600 transition-colors"><X size={16} /></button>
                     </div>
                     <div className="bg-white rounded-2xl md:rounded-[40px] border border-violet-100 shadow-sm overflow-hidden">
                         <div className="max-h-[50vh] overflow-y-auto divide-y divide-violet-50">

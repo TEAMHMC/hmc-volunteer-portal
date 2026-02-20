@@ -249,8 +249,8 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
         setIsLoading(true);
         setRecommendations([]);
         try {
-            const result = await apiService.post('/api/gemini/find-referral-match', { clientNeed });
-            setRecommendations(result.recommendations);
+            const result = await apiService.post('/api/ai/match-resources', { serviceNeeded: clientNeed });
+            setRecommendations(result.matches || []);
             onLog({ actionType: 'AI_REFERRAL_MATCH', targetSystem: 'FIRESTORE', targetId: client.id, summary: `AI referral match requested for need: "${clientNeed}"` });
         } catch(e) {
             toastService.error("AI Match failed. Please try again.");
@@ -381,16 +381,18 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
 
             {recommendations.length > 0 && (
                 <div className="space-y-4 pt-8 border-t">
-                    <h3 className="text-base md:text-xl font-bold text-zinc-900 text-center">Top 3 AI Recommendations:</h3>
-                    {recommendations.map((rec, i) => {
-                         // Fallback to checking loaded resources if AI gives a name
-                         const resource = resources.find(r => r["Resource Name"] === rec["Resource Name"]);
+                    <h3 className="text-base md:text-xl font-bold text-zinc-900 text-center">Top AI Recommendations:</h3>
+                    {recommendations.map((rec: any, i: number) => {
+                         const resource = resources.find(r => r.id === rec.resourceId);
                          if (!resource) return null;
                          return (
                              <div key={i} className="p-4 md:p-8 bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
-                                 <h4 className="font-black text-sm md:text-lg text-zinc-900">{rec["Resource Name"]}</h4>
+                                 <div className="flex items-center justify-between gap-2">
+                                     <h4 className="font-black text-sm md:text-lg text-zinc-900">{rec.resourceName}</h4>
+                                     {rec.matchScore && <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">{rec.matchScore}% match</span>}
+                                 </div>
                                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{resource["Service Category"]}</p>
-                                 <p className="text-sm italic text-zinc-600 my-4">"{rec.reasoning}"</p>
+                                 <p className="text-sm italic text-zinc-600 my-4">"{rec.matchReason}"</p>
                                  <div className="flex justify-end">
                                      <button onClick={() => setSelectedResource(resource)} className="px-4 py-2 bg-zinc-800 border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide min-h-[44px] w-full sm:w-auto">Select & Create</button>
                                  </div>
