@@ -1468,8 +1468,7 @@ const DistributionTrackerView: React.FC<{
             <div className="space-y-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Section A</p>
-                        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase mt-1">Client Service Log</h3>
+                        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Client Service Log</h3>
                     </div>
                     <button onClick={() => { resetClientForm(); setShowClientForm(true); }} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:opacity-90 transition-opacity">
                         <span className="w-2 h-2 rounded-full bg-white" /> <UserPlus size={14} /> Log New Client
@@ -1618,8 +1617,7 @@ const DistributionTrackerView: React.FC<{
             <div className="space-y-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Section B</p>
-                        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase mt-1">Quick Resource Distribution</h3>
+                        <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Resource Distribution</h3>
                     </div>
                     <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:opacity-90 transition-opacity">
                         <span className="w-2 h-2 rounded-full bg-white" /> <Plus size={14} /> Log Distribution
