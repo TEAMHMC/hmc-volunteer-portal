@@ -9065,12 +9065,13 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
       const hoursUntil = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       const daysUntil = hoursUntil / 24;
 
-      // Determine applicable stages based on time until event
+      // Determine the single most relevant stage for this event's time window
+      // Stages are mutually exclusive — only the closest matching window sends
       const applicableStages: { stage: number; template: string }[] = [];
       if (!smsOnly) {
-        if (daysUntil <= 7.5 && daysUntil > 1.5) { applicableStages.push({ stage: 2, template: 'event_reminder_7day' }); }
-        if (daysUntil <= 3.5 && daysUntil > 1.5) { applicableStages.push({ stage: 3, template: 'event_reminder_72h' }); }
-        if (daysUntil <= 1.5 && daysUntil > 0) { applicableStages.push({ stage: 4, template: 'event_reminder_24h' }); }
+        if (daysUntil <= 7.5 && daysUntil > 3.5) { applicableStages.push({ stage: 2, template: 'event_reminder_7day' }); }
+        else if (daysUntil <= 3.5 && daysUntil > 1.5) { applicableStages.push({ stage: 3, template: 'event_reminder_72h' }); }
+        else if (daysUntil <= 1.5 && daysUntil > 0) { applicableStages.push({ stage: 4, template: 'event_reminder_24h' }); }
       }
       if (hoursUntil >= 1 && hoursUntil <= 4) { applicableStages.push({ stage: 5, template: 'sms_3h' }); }
 
