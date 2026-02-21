@@ -10733,6 +10733,22 @@ app.get('/api/ops/screenings-today', verifyToken, async (req: Request, res: Resp
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
+// Dismiss/delete a duplicate or erroneous screening (medical leads + admins only)
+app.delete('/api/ops/screenings/:screeningId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        const allowedRoles = ['Licensed Medical Professional', 'Medical Admin', 'Outreach & Engagement Lead'];
+        if (!callerData?.isAdmin && !allowedRoles.includes(callerData?.role)) {
+            return res.status(403).json({ error: 'Only medical professionals and admins can dismiss screenings' });
+        }
+        const { screeningId } = req.params;
+        await db.collection('screenings').doc(screeningId).delete();
+        console.log(`[SCREENING] Deleted screening ${screeningId} by ${callerData?.name || user.uid}`);
+        res.json({ success: true });
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
 // Mark a screening as clinically reviewed
 app.put('/api/ops/screenings/:screeningId/review', verifyToken, async (req: Request, res: Response) => {
     try {

@@ -488,6 +488,7 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
     const [reviewNotes, setReviewNotes] = useState('');
     const [clinicalAction, setClinicalAction] = useState<string>('Cleared');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [dismissingId, setDismissingId] = useState<string | null>(null);
 
     const fetchScreenings = useCallback(async () => {
         try {
@@ -496,14 +497,29 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
                 : '/api/ops/screenings-today';
             const data = await apiService.get(url);
             // Filter: only flagged/followUpNeeded + unreviewed, sorted oldest first (FIFO)
+            // Deduplicate by clientId — keep only the most recent screening per client
             const queue = data
                 .filter((s: any) => s.followUpNeeded && !s.reviewedAt)
                 .sort((a: any, b: any) => {
                     const aTime = a.createdAt || a.timestamp || '';
                     const bTime = b.createdAt || b.timestamp || '';
-                    return aTime.localeCompare(bTime);
+                    return bTime.localeCompare(aTime); // newest first for dedup
                 });
-            setScreenings(queue);
+            const seen = new Set<string>();
+            const deduped: any[] = [];
+            for (const s of queue) {
+                const key = s.clientId || s.id;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                deduped.push(s);
+            }
+            // Re-sort oldest first (FIFO) for review order
+            deduped.sort((a: any, b: any) => {
+                const aTime = a.createdAt || a.timestamp || '';
+                const bTime = b.createdAt || b.timestamp || '';
+                return aTime.localeCompare(bTime);
+            });
+            setScreenings(deduped);
         } catch { /* ignore */ }
         setIsLoading(false);
     }, [eventId]);
@@ -531,6 +547,19 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
             toastService.error(err?.message || 'Failed to submit review.');
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleDismiss = async (screeningId: string) => {
+        setDismissingId(screeningId);
+        try {
+            await apiService.delete(`/api/ops/screenings/${screeningId}`);
+            setScreenings(prev => prev.filter(s => s.id !== screeningId));
+            toastService.success('Duplicate screening dismissed.');
+        } catch (err: any) {
+            toastService.error(err?.message || 'Failed to dismiss screening.');
+        } finally {
+            setDismissingId(null);
         }
     };
 
@@ -568,12 +597,21 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
                                         </p>
                                     </div>
                                     {reviewingId !== s.id && (
-                                        <button
-                                            onClick={() => setReviewingId(s.id)}
-                                            className="px-5 py-2.5 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:bg-brand/90"
-                                        >
-                                            <Eye size={14} /> Review
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleDismiss(s.id)}
+                                                disabled={dismissingId === s.id}
+                                                className="px-3 py-2.5 bg-zinc-100 text-zinc-500 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 hover:bg-zinc-200 disabled:opacity-50"
+                                            >
+                                                {dismissingId === s.id ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />} Dismiss
+                                            </button>
+                                            <button
+                                                onClick={() => setReviewingId(s.id)}
+                                                className="px-5 py-2.5 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:bg-brand/90"
+                                            >
+                                                <Eye size={14} /> Review
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
