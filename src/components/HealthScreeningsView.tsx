@@ -446,11 +446,15 @@ const LiveFeedView: React.FC<{ eventId: string; user: Volunteer }> = ({ eventId 
                                 {s.vitals?.bloodPressure && (
                                     <VitalBadge label="BP" value={`${s.vitals.bloodPressure.systolic}/${s.vitals.bloodPressure.diastolic}`} flag={s.flags?.bloodPressure} />
                                 )}
+                                {s.vitals?.bloodPressure2 && (
+                                    <VitalBadge label="BP 2nd" value={`${s.vitals.bloodPressure2.systolic}/${s.vitals.bloodPressure2.diastolic}`} flag={s.flags?.bloodPressure2} />
+                                )}
                                 {(s.systolic || s.diastolic) && !s.vitals?.bloodPressure && (
                                     <VitalBadge label="BP" value={`${s.systolic || '?'}/${s.diastolic || '?'}`} />
                                 )}
                                 {s.vitals?.heartRate && <VitalBadge label="HR" value={`${s.vitals.heartRate} bpm`} />}
                                 {s.vitals?.glucose && <VitalBadge label="Glucose" value={`${s.vitals.glucose} mg/dL`} flag={s.flags?.glucose} />}
+                                {s.vitals?.glucose2 && <VitalBadge label="Glucose 2nd" value={`${s.vitals.glucose2} mg/dL`} flag={s.flags?.glucoseFlag2} />}
                                 {s.vitals?.oxygenSat && <VitalBadge label="SpO2" value={`${s.vitals.oxygenSat}%`} />}
                                 {s.vitals?.temperature && <VitalBadge label="Temp" value={`${s.vitals.temperature}°F`} />}
                             </div>
@@ -620,8 +624,12 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
                                     {s.vitals?.bloodPressure && (
                                         <VitalBadge label="BP" value={`${s.vitals.bloodPressure.systolic}/${s.vitals.bloodPressure.diastolic}`} flag={s.flags?.bloodPressure} />
                                     )}
+                                    {s.vitals?.bloodPressure2 && (
+                                        <VitalBadge label="BP 2nd" value={`${s.vitals.bloodPressure2.systolic}/${s.vitals.bloodPressure2.diastolic}`} flag={s.flags?.bloodPressure2} />
+                                    )}
                                     {s.vitals?.heartRate && <VitalBadge label="HR" value={`${s.vitals.heartRate} bpm`} />}
                                     {s.vitals?.glucose && <VitalBadge label="Glucose" value={`${s.vitals.glucose} mg/dL`} flag={s.flags?.glucose} />}
+                                    {s.vitals?.glucose2 && <VitalBadge label="Glucose 2nd" value={`${s.vitals.glucose2} mg/dL`} flag={s.flags?.glucoseFlag2} />}
                                     {s.vitals?.oxygenSat && <VitalBadge label="SpO2" value={`${s.vitals.oxygenSat}%`} />}
                                     {s.vitals?.temperature && <VitalBadge label="Temp" value={`${s.vitals.temperature}°F`} />}
                                 </div>
@@ -1156,15 +1164,25 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
         allergies: '',
         resultsSummary: '',
         refusalOfCare: false,
+        // Second readings for flagged vitals
+        systolic2: '',
+        diastolic2: '',
+        glucose2: '',
     });
 
     const bpFlag = vitals.systolic && vitals.diastolic
         ? getBloodPressureFlag(Number(vitals.systolic), Number(vitals.diastolic))
         : null;
     const glucoseFlag = vitals.glucose ? getGlucoseFlag(Number(vitals.glucose)) : null;
+    const bpFlag2 = vitals.systolic2 && vitals.diastolic2
+        ? getBloodPressureFlag(Number(vitals.systolic2), Number(vitals.diastolic2))
+        : null;
+    const glucoseFlag2 = vitals.glucose2 ? getGlucoseFlag(Number(vitals.glucose2)) : null;
 
-    const hasFlags = bpFlag?.level === 'critical' || bpFlag?.level === 'high' ||
-                     glucoseFlag?.level === 'critical' || glucoseFlag?.level === 'high';
+    const bpNeedsRecheck = bpFlag?.level === 'critical' || bpFlag?.level === 'high';
+    const glucoseNeedsRecheck = glucoseFlag?.level === 'critical' || glucoseFlag?.level === 'high';
+
+    const hasFlags = bpNeedsRecheck || glucoseNeedsRecheck;
 
     const downloadPdf = async (screeningId?: string) => {
         try {
@@ -1204,11 +1222,16 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     temperature: Number(vitals.temperature) || null,
                     weight: Number(vitals.weight) || null,
                     height: Number(vitals.height) || null,
-                    oxygenSat: Number(vitals.oxygenSat) || null
+                    oxygenSat: Number(vitals.oxygenSat) || null,
+                    // Second readings (recheck)
+                    ...(vitals.systolic2 && vitals.diastolic2 ? { bloodPressure2: { systolic: Number(vitals.systolic2), diastolic: Number(vitals.diastolic2) } } : {}),
+                    ...(vitals.glucose2 ? { glucose2: Number(vitals.glucose2) } : {}),
                 },
                 flags: {
                     bloodPressure: bpFlag?.level !== 'normal' ? bpFlag : null,
-                    glucose: glucoseFlag?.level !== 'normal' ? glucoseFlag : null
+                    glucose: glucoseFlag?.level !== 'normal' ? glucoseFlag : null,
+                    ...(bpFlag2 && bpFlag2.level !== 'normal' ? { bloodPressure2: bpFlag2 } : {}),
+                    ...(glucoseFlag2 && glucoseFlag2.level !== 'normal' ? { glucoseFlag2: glucoseFlag2 } : {}),
                 },
                 notes: vitals.notes,
                 followUpNeeded: vitals.followUpNeeded || hasFlags,
@@ -1338,6 +1361,27 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                             <strong>Hypertensive Crisis Detected.</strong> Client should seek immediate medical attention. Do not discharge without clinical review.
                         </div>
                     )}
+                    {bpNeedsRecheck && (
+                        <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-3">
+                            <p className="text-xs font-black text-amber-700 uppercase tracking-wider">Second Reading (Recheck after 5 min)</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelClass}>Systolic (top)</label>
+                                    <input type="number" placeholder="120" value={vitals.systolic2} onChange={e => setVitals({...vitals, systolic2: e.target.value})} className={inputClass} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Diastolic (bottom)</label>
+                                    <input type="number" placeholder="80" value={vitals.diastolic2} onChange={e => setVitals({...vitals, diastolic2: e.target.value})} className={inputClass} />
+                                </div>
+                            </div>
+                            {bpFlag2 && (
+                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold bg-${bpFlag2.color}-100 text-${bpFlag2.color}-700 items-center gap-1`}>
+                                    {bpFlag2.level !== 'normal' && <AlertTriangle size={12} />}
+                                    2nd: {bpFlag2.label}
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Glucose */}
@@ -1358,6 +1402,21 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     {glucoseFlag && glucoseFlag.level === 'critical' && (
                         <div className="p-4 bg-rose-50 border border-rose-200 rounded-3xl text-rose-800 text-sm font-bold">
                             <strong>Critical Glucose Level.</strong> Client needs immediate evaluation. Check for diabetic emergency symptoms.
+                        </div>
+                    )}
+                    {glucoseNeedsRecheck && (
+                        <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-3">
+                            <p className="text-xs font-black text-amber-700 uppercase tracking-wider">Second Reading (Recheck after 15 min)</p>
+                            <div>
+                                <label className={labelClass}>Glucose (mg/dL)</label>
+                                <input type="number" placeholder="100" value={vitals.glucose2} onChange={e => setVitals({...vitals, glucose2: e.target.value})} className={inputClass} />
+                            </div>
+                            {glucoseFlag2 && (
+                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold bg-${glucoseFlag2.color}-100 text-${glucoseFlag2.color}-700 items-center gap-1`}>
+                                    {glucoseFlag2.level !== 'normal' && <AlertTriangle size={12} />}
+                                    2nd: {glucoseFlag2.label}
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
