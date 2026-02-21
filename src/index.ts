@@ -3498,13 +3498,28 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
             return res.json({ multiple: true, results: matches.slice(0, 10) });
         }
 
-        let query: admin.firestore.Query = db.collection('clients');
-        if (phone) query = query.where('phone', '==', phone);
-        else if (email) query = query.where('email', '==', email);
+        // Normalize phone/email search for flexible matching
+        if (phone) {
+            const phoneDigits = (phone as string).replace(/\D/g, '');
+            const snap = await db.collection('clients').get();
+            const match = snap.docs.find(d => {
+                const stored = (d.data().phone || '').replace(/\D/g, '');
+                return stored && stored === phoneDigits;
+            });
+            if (!match) return res.status(404).json({ error: "Not found" });
+            return res.json({ id: match.id, ...match.data() });
+        } else if (email) {
+            const emailLower = (email as string).toLowerCase().trim();
+            const snap = await db.collection('clients').get();
+            const match = snap.docs.find(d => {
+                const stored = (d.data().email || '').toLowerCase().trim();
+                return stored && stored === emailLower;
+            });
+            if (!match) return res.status(404).json({ error: "Not found" });
+            return res.json({ id: match.id, ...match.data() });
+        }
 
-        const snap = await query.get();
-        if (snap.empty) return res.status(404).json({ error: "Not found" });
-        res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        return res.status(400).json({ error: "Phone or email required" });
     } catch (error: any) {
         console.error('[CLIENTS] Search failed:', error);
         res.status(500).json({ error: 'Client search failed' });
@@ -3512,7 +3527,7 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
 });
 app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode']);
+        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceMemberId', 'insuranceGroupNumber', 'consentToShare', 'consentDate', 'consentSignature', 'primaryLanguage', 'pronouns', 'needs', 'lgbtqiaIdentity', 'insuranceStatus']);
         if (!clientData.name && !clientData.firstName) return res.status(400).json({ error: 'Client name required' });
         const client = {
             ...clientData,
@@ -3552,7 +3567,7 @@ app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => 
 // Update client
 app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
     try {
-        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
+        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod', 'gender', 'pronouns', 'race', 'ethnicity', 'veteranStatus', 'lgbtqiaIdentity', 'needs', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceMemberId', 'insuranceGroupNumber', 'insuranceStatus', 'consentToShare', 'consentDate', 'consentSignature']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
         await db.collection('clients').doc(req.params.id).update(updates);
         res.json({ id: req.params.id, ...updates });
     } catch (error) {
@@ -3567,6 +3582,254 @@ app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Res
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch client referrals' });
+    }
+});
+
+// --- INTAKE PDF GENERATION ---
+app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { clientId } = req.params;
+        const screeningId = req.query.screeningId as string | undefined;
+        const clientDoc = await db.collection('clients').doc(clientId).get();
+        if (!clientDoc.exists) return res.status(404).json({ error: 'Client not found' });
+        const client = clientDoc.data() as any;
+
+        let screening: any = null;
+        if (screeningId) {
+            const screenDoc = await db.collection('screenings').doc(screeningId).get();
+            if (screenDoc.exists) screening = screenDoc.data();
+        }
+
+        const pdfDoc = await PDFDocument.create();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+        const margin = 50;
+        const pageW = 612;
+        const pageH = 792;
+        const contentW = pageW - margin * 2;
+
+        // Helper functions
+        const drawField = (page: any, label: string, value: string, x: number, y: number, labelW = 120) => {
+            page.drawText(label, { x, y, font: fontBold, size: 8, color: rgb(0.4, 0.4, 0.4) });
+            page.drawText(value || '—', { x: x + labelW, y, font, size: 9, color: rgb(0.1, 0.1, 0.1) });
+        };
+        const drawCheckbox = (page: any, label: string, checked: boolean, x: number, y: number) => {
+            page.drawRectangle({ x, y: y - 2, width: 10, height: 10, borderColor: rgb(0.5, 0.5, 0.5), borderWidth: 0.5 });
+            if (checked) page.drawText('✓', { x: x + 1.5, y: y - 1, font: fontBold, size: 9, color: rgb(0.1, 0.6, 0.3) });
+            page.drawText(label, { x: x + 15, y, font, size: 8, color: rgb(0.2, 0.2, 0.2) });
+        };
+        const drawSectionHeader = (page: any, title: string, y: number) => {
+            page.drawRectangle({ x: margin, y: y - 4, width: contentW, height: 16, color: rgb(0.96, 0.96, 0.96) });
+            page.drawText(title.toUpperCase(), { x: margin + 8, y, font: fontBold, size: 8, color: rgb(0.2, 0.5, 0.35) });
+            return y - 24;
+        };
+        const drawFooter = (page: any) => {
+            page.drawText('HMC provides screening & education only — NO diagnosis or treatment.', {
+                x: margin, y: 30, font: fontItalic, size: 7, color: rgb(0.5, 0.5, 0.5)
+            });
+        };
+
+        // === PAGE 1: Client Intake Form ===
+        const page1 = pdfDoc.addPage([pageW, pageH]);
+        let y = pageH - margin;
+
+        // Header
+        page1.drawRectangle({ x: 0, y: pageH - 6, width: pageW, height: 6, color: rgb(0.2, 0.5, 0.35) });
+        page1.drawText('HMC CLIENT INTAKE FORM', { x: margin, y: y - 10, font: fontBold, size: 16, color: rgb(0.1, 0.1, 0.1) });
+        page1.drawText(`Generated: ${new Date().toLocaleDateString()}`, { x: pageW - margin - 120, y: y - 10, font, size: 8, color: rgb(0.5, 0.5, 0.5) });
+        y -= 40;
+
+        // Client Info
+        y = drawSectionHeader(page1, 'Client Information', y);
+        const fullName = client.firstName && client.lastName ? `${client.firstName} ${client.lastName}` : (client.name || '—');
+        drawField(page1, 'Name:', fullName, margin + 8, y);
+        drawField(page1, 'DOB:', client.dob || client.dateOfBirth || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Gender:', client.gender || '—', margin + 8, y);
+        drawField(page1, 'Pronouns:', client.pronouns || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Phone:', client.phone || '—', margin + 8, y);
+        drawField(page1, 'Email:', client.email || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Address:', client.address || '—', margin + 8, y);
+        drawField(page1, 'Zip Code:', client.zipCode || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Language:', client.primaryLanguage || '—', margin + 8, y);
+        drawField(page1, 'Contact Method:', client.contactMethod || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Housing Status:', client.homelessnessStatus || '—', margin + 8, y);
+        y -= 26;
+
+        // Emergency Contact
+        y = drawSectionHeader(page1, 'Emergency Contact', y);
+        drawField(page1, 'Name:', client.emergencyContactName || '—', margin + 8, y);
+        drawField(page1, 'Relationship:', client.emergencyContactRelationship || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Phone:', client.emergencyContactPhone || '—', margin + 8, y);
+        y -= 26;
+
+        // Demographics
+        y = drawSectionHeader(page1, 'Demographics', y);
+        const raceOptions = ['Asian American/Pacific Islander', 'Black/African American', 'American Indian/Alaska Native', 'Asian', 'White', 'Hispanic/Latino', 'Other'];
+        let rx = margin + 8;
+        raceOptions.forEach(race => {
+            const checked = Array.isArray(client.race) && client.race.includes(race);
+            const labelW = font.widthOfTextAtSize(race, 8) + 26;
+            if (rx + labelW > pageW - margin) { rx = margin + 8; y -= 16; }
+            drawCheckbox(page1, race, checked, rx, y);
+            rx += labelW;
+        });
+        y -= 20;
+        drawCheckbox(page1, 'Veteran', !!client.veteranStatus, margin + 8, y);
+        drawCheckbox(page1, 'LGBTQIA+', !!client.lgbtqiaIdentity, margin + 140, y);
+        y -= 26;
+
+        // Social Determinant Needs
+        y = drawSectionHeader(page1, 'Social Determinant Needs', y);
+        const needOptions = [
+            { key: 'housing', label: 'Housing' }, { key: 'food', label: 'Food' },
+            { key: 'healthcare', label: 'Healthcare' }, { key: 'mentalHealth', label: 'Mental Health' },
+            { key: 'employment', label: 'Employment' }, { key: 'transportation', label: 'Transportation' },
+            { key: 'childcare', label: 'Childcare' }, { key: 'substanceUse', label: 'Substance Use' },
+            { key: 'legal', label: 'Legal' },
+        ];
+        rx = margin + 8;
+        needOptions.forEach(need => {
+            const checked = client.needs?.[need.key] === true;
+            const labelW = font.widthOfTextAtSize(need.label, 8) + 26;
+            if (rx + labelW > pageW - margin) { rx = margin + 8; y -= 16; }
+            drawCheckbox(page1, need.label, checked, rx, y);
+            rx += labelW;
+        });
+        y -= 26;
+
+        // Insurance
+        y = drawSectionHeader(page1, 'Insurance', y);
+        drawField(page1, 'Provider:', client.insuranceStatus || client.insuranceProvider || '—', margin + 8, y);
+        drawField(page1, 'Member ID:', client.insuranceMemberId || '—', margin + 280, y);
+        y -= 18;
+        drawField(page1, 'Group Number:', client.insuranceGroupNumber || '—', margin + 8, y);
+        y -= 26;
+
+        // Consent
+        if (y > margin + 180) {
+            y = drawSectionHeader(page1, 'Consent to Share Information / Consentimiento', y);
+            const consentEn = 'I understand that my personal information, including my contact details, basic demographic information, and relevant service needs, may be shared with partner agencies and service providers for the purpose of connecting me to appropriate resources and support. I consent to the release of this information solely for referral and coordination purposes.';
+            const consentEs = 'Entiendo que mi información personal, incluyendo mis datos de contacto, información demográfica básica y necesidades de servicios relevantes, puede ser compartida con agencias asociadas y proveedores de servicios con el propósito de conectarme con recursos y apoyos adecuados. Doy mi consentimiento para la divulgación de esta información únicamente con fines de referencia y coordinación.';
+
+            const enLines = wrapText(consentEn, contentW - 16, font, 7);
+            enLines.forEach(line => {
+                if (y > margin + 40) { page1.drawText(line, { x: margin + 8, y, font, size: 7, color: rgb(0.3, 0.3, 0.3) }); y -= 10; }
+            });
+            y -= 6;
+            const esLines = wrapText(consentEs, contentW - 16, fontItalic, 7);
+            esLines.forEach(line => {
+                if (y > margin + 40) { page1.drawText(line, { x: margin + 8, y, font: fontItalic, size: 7, color: rgb(0.4, 0.4, 0.4) }); y -= 10; }
+            });
+            y -= 10;
+            drawCheckbox(page1, `Verbal consent obtained${client.consentDate ? ` on ${new Date(client.consentDate).toLocaleDateString()}` : ''}`, !!client.consentToShare, margin + 8, y);
+            if (client.consentSignature) {
+                y -= 16;
+                drawField(page1, 'Consent obtained by:', client.consentSignature, margin + 8, y);
+            }
+        }
+        drawFooter(page1);
+
+        // === PAGE 2: Health Screening (if screeningId provided) ===
+        if (screening) {
+            const page2 = pdfDoc.addPage([pageW, pageH]);
+            let sy = pageH - margin;
+            page2.drawRectangle({ x: 0, y: pageH - 6, width: pageW, height: 6, color: rgb(0.2, 0.5, 0.35) });
+            page2.drawText('HMC HEALTH SCREENING REPORT', { x: margin, y: sy - 10, font: fontBold, size: 16, color: rgb(0.1, 0.1, 0.1) });
+            page2.drawText(`Screening Date: ${screening.timestamp ? new Date(screening.timestamp).toLocaleDateString() : '—'}`, { x: pageW - margin - 180, y: sy - 10, font, size: 8, color: rgb(0.5, 0.5, 0.5) });
+            sy -= 40;
+
+            // Past Medical History
+            sy = drawSectionHeader(page2, 'Past Medical History', sy);
+            drawField(page2, 'Current Medications:', screening.currentMedications || 'None', margin + 8, sy);
+            sy -= 18;
+            drawField(page2, 'Allergies:', screening.allergies || 'None', margin + 8, sy);
+            sy -= 26;
+
+            // Vital Signs
+            sy = drawSectionHeader(page2, 'Vital Signs', sy);
+            const vitals = screening.vitals || {};
+            const bp = vitals.bloodPressure || {};
+            drawField(page2, 'Blood Pressure:', bp.systolic && bp.diastolic ? `${bp.systolic}/${bp.diastolic} mmHg` : `${screening.systolic || '—'}/${screening.diastolic || '—'} mmHg`, margin + 8, sy);
+            drawField(page2, 'Heart Rate:', `${vitals.heartRate ?? screening.heartRate ?? '—'} bpm`, margin + 280, sy);
+            sy -= 18;
+            drawField(page2, 'O2 Saturation:', `${vitals.oxygenSat ?? screening.oxygenSaturation ?? '—'}%`, margin + 8, sy);
+            drawField(page2, 'Temperature:', vitals.temperature ? `${vitals.temperature}°F` : '—', margin + 280, sy);
+            sy -= 18;
+            drawField(page2, 'Weight:', `${vitals.weight ?? screening.weight ?? '—'} lbs`, margin + 8, sy);
+            drawField(page2, 'Height:', screening.height ? `${screening.height} in` : '—', margin + 280, sy);
+            sy -= 18;
+            drawField(page2, 'Glucose:', `${vitals.glucose ?? screening.glucose ?? '—'} mg/dL`, margin + 8, sy);
+            if (screening.bmi) drawField(page2, 'BMI:', `${screening.bmi}`, margin + 280, sy);
+            sy -= 26;
+
+            // Flags
+            if (screening.flags) {
+                sy = drawSectionHeader(page2, 'Screening Flags', sy);
+                if (screening.flags.bloodPressure) {
+                    drawField(page2, 'Blood Pressure:', `${screening.flags.bloodPressure.label} (${screening.flags.bloodPressure.level})`, margin + 8, sy);
+                    sy -= 18;
+                }
+                if (screening.flags.glucose) {
+                    drawField(page2, 'Glucose:', `${screening.flags.glucose.label} (${screening.flags.glucose.level})`, margin + 8, sy);
+                    sy -= 18;
+                }
+                sy -= 8;
+            }
+
+            // Notes & Results
+            if (screening.notes || screening.resultsSummary) {
+                sy = drawSectionHeader(page2, 'Notes & Results', sy);
+                if (screening.notes) {
+                    const noteLines = wrapText(screening.notes, contentW - 16, font, 8);
+                    noteLines.forEach(line => {
+                        if (sy > margin + 60) { page2.drawText(line, { x: margin + 8, y: sy, font, size: 8, color: rgb(0.2, 0.2, 0.2) }); sy -= 12; }
+                    });
+                    sy -= 4;
+                }
+                if (screening.resultsSummary) {
+                    page2.drawText('Results Summary:', { x: margin + 8, y: sy, font: fontBold, size: 8, color: rgb(0.4, 0.4, 0.4) });
+                    sy -= 14;
+                    const summaryLines = wrapText(screening.resultsSummary, contentW - 16, font, 8);
+                    summaryLines.forEach(line => {
+                        if (sy > margin + 60) { page2.drawText(line, { x: margin + 8, y: sy, font, size: 8, color: rgb(0.2, 0.2, 0.2) }); sy -= 12; }
+                    });
+                    sy -= 4;
+                }
+            }
+
+            // Completion
+            sy = drawSectionHeader(page2, 'Completion & Attestation', sy);
+            drawField(page2, 'Performed by:', screening.performedByName || '—', margin + 8, sy);
+            sy -= 18;
+            if (screening.refusalOfCare) {
+                drawCheckbox(page2, 'Refusal of Care form completed and submitted', true, margin + 8, sy);
+                sy -= 18;
+            }
+            if (screening.abnormalFlag) {
+                drawField(page2, 'Abnormal Flag:', screening.abnormalReason || 'Yes', margin + 8, sy);
+                sy -= 18;
+            }
+            if (screening.followUpNeeded) {
+                drawField(page2, 'Follow-up:', screening.followUpReason || 'Required', margin + 8, sy);
+            }
+            drawFooter(page2);
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const clientName = (client.firstName && client.lastName) ? `${client.firstName}_${client.lastName}` : (client.name || 'client');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="HMC_Intake_${clientName.replace(/\s+/g, '_')}.pdf"`);
+        res.send(Buffer.from(pdfBytes));
+    } catch (error: any) {
+        console.error('[INTAKE PDF] Generation failed:', error);
+        res.status(500).json({ error: 'Failed to generate PDF' });
     }
 });
 

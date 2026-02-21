@@ -611,9 +611,19 @@ export interface ClientRecord {
     insuranceStatus?: string;
     documentationStatus?: string;
 
+    // Emergency Contact
+    emergencyContactName?: string;
+    emergencyContactRelationship?: string;
+    emergencyContactPhone?: string;
+
+    // Insurance (expanded)
+    insuranceMemberId?: string;
+    insuranceGroupNumber?: string;
+
     // Consent & Privacy
     consentToShare?: boolean;
     consentDate?: string;
+    consentSignature?: string; // Name of person who obtained verbal consent
 
     // AI-generated fields
     aiEligibilitySummary?: string;
@@ -667,6 +677,11 @@ export interface ScreeningRecord {
   followUpNeeded?: boolean;
   followUpReason?: string;
   clientName?: string;
+  // Extended screening fields
+  allergies?: string;
+  currentMedications?: string;
+  refusalOfCare?: boolean;
+  resultsSummary?: string;
   // Clinical review
   reviewedAt?: string;
   reviewedBy?: string;
