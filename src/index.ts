@@ -5008,6 +5008,42 @@ app.post('/api/ops/volunteer-checkout/:eventId', verifyToken, async (req: Reques
     }
 });
 
+// POST /api/volunteer/award-points — Award XP points to current user (daily quests, training, etc.)
+app.post('/api/volunteer/award-points', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { points, source, date } = req.body;
+        if (!points || typeof points !== 'number' || points <= 0 || points > 200) {
+            return res.status(400).json({ error: 'Invalid points value (1-200)' });
+        }
+        if (!source) return res.status(400).json({ error: 'source is required' });
+        // Deduplicate: check if already awarded for this source+date
+        const dedupeId = `${user.uid}_${source}_${date || new Date().toISOString().slice(0, 10)}`;
+        const existing = await db.collection('points_awards').doc(dedupeId).get();
+        if (existing.exists) {
+            return res.json({ success: true, alreadyAwarded: true, points: 0 });
+        }
+        // Award points atomically
+        const volRef = db.collection('volunteers').doc(user.uid);
+        await volRef.update({
+            points: admin.firestore.FieldValue.increment(points),
+        });
+        // Record award for deduplication
+        await db.collection('points_awards').doc(dedupeId).set({
+            userId: user.uid,
+            points,
+            source,
+            date: date || new Date().toISOString().slice(0, 10),
+            awardedAt: new Date().toISOString(),
+        });
+        console.log(`[POINTS] Awarded ${points} XP to ${user.uid} for ${source}`);
+        res.json({ success: true, alreadyAwarded: false, points });
+    } catch (e: any) {
+        console.error('[POINTS] Award failed:', e.message);
+        res.status(500).json({ error: 'Failed to award points' });
+    }
+});
+
 // GET /api/ops/volunteer-checkin/:eventId/status — Get current volunteer's check-in status
 app.get('/api/ops/volunteer-checkin/:eventId/status', verifyToken, async (req: Request, res: Response) => {
     try {

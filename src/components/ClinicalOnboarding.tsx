@@ -200,10 +200,23 @@ const ClinicalOnboarding: React.FC<ClinicalOnboardingProps> = ({ user, onUpdate 
 
   const handleViewCredentialFile = async (field: string) => {
     try {
-      const result = await apiService.get(`/api/volunteer/${user.id}/credential-file/${field}`);
-      if (result.url) window.open(result.url, '_blank');
+      // If credential is stored as a data URL (local fallback), open directly
+      const localValue = credentials[field];
+      if (localValue && typeof localValue === 'string' && localValue.startsWith('data:')) {
+        window.open(localValue, '_blank');
+        return;
+      }
+      // Otherwise fetch from cloud storage via backend
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/volunteer/${user.id}/credential-file/${field}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
     } catch {
-      toastService.error('Unable to open file. It may not be stored in cloud storage.');
+      toastService.error('Unable to open credential file.');
     }
   };
 

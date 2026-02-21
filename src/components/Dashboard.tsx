@@ -1158,6 +1158,24 @@ const ActiveVolunteerView: React.FC<{ user: Volunteer, shifts: Shift[], opportun
   const completedQuestsCount = quests.filter(q => q.completed).length;
   const allComplete = getAllQuestsComplete(quests);
 
+  // Award XP when all daily quests are complete
+  const [questXpAwarded, setQuestXpAwarded] = React.useState(false);
+  React.useEffect(() => {
+    if (allComplete && !questXpAwarded) {
+      setQuestXpAwarded(true);
+      const totalXp = quests.reduce((sum, q) => sum + q.xpReward, 0) + DAILY_QUEST_BONUS_XP;
+      apiService.post('/api/volunteer/award-points', {
+        points: totalXp,
+        source: 'daily_quests',
+        date: new Date().toISOString().slice(0, 10),
+      }).then(res => {
+        if (res?.success && !res.alreadyAwarded) {
+          onUpdate({ ...user, points: user.points + totalXp });
+        }
+      }).catch(() => { /* non-critical */ });
+    }
+  }, [allComplete]);
+
   // Action items
   const actionItems: { icon: string; title: string; description: string; color: string; onClick: () => void }[] = [];
   if (!hasCompletedCoreTraining) {
