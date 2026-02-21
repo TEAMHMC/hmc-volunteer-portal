@@ -10645,11 +10645,48 @@ app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
 });
 
 // Get all screenings for an event (for live feed)
+// Also fetches today's screenings that have no eventId so nothing gets lost
 app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: Response) => {
     try {
         const { eventId } = req.params;
-        const snap = await db.collection('screenings')
+        // Query 1: screenings matching this eventId
+        const eventSnap = await db.collection('screenings')
             .where('eventId', '==', eventId)
+            .get();
+        const seenIds = new Set<string>();
+        const screenings: any[] = [];
+        for (const doc of eventSnap.docs) {
+            seenIds.add(doc.id);
+            screenings.push({ id: doc.id, ...doc.data() });
+        }
+        // Query 2: today's screenings that may be missing an eventId
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayISO = todayStart.toISOString();
+        const todaySnap = await db.collection('screenings')
+            .where('createdAt', '>=', todayISO)
+            .get();
+        for (const doc of todaySnap.docs) {
+            if (seenIds.has(doc.id)) continue;
+            const data = doc.data();
+            // Include screenings with no eventId or null eventId (orphaned)
+            if (!data.eventId) {
+                screenings.push({ id: doc.id, ...data });
+            }
+        }
+        screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        res.json(screenings);
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+// Get all screenings from today (fallback when no event is selected)
+app.get('/api/ops/screenings-today', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayISO = todayStart.toISOString();
+        const snap = await db.collection('screenings')
+            .where('createdAt', '>=', todayISO)
             .get();
         const screenings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));

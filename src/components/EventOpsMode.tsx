@@ -1918,7 +1918,7 @@ const DISTRIBUTION_ITEMS = [
 
 // Per-client resources (logged with demographics in Client Service Log — clinical/harm reduction)
 const CLIENT_RESOURCE_ITEMS = [
-  'Naloxone/Narcan', 'Fentanyl Test Strip', 'Safe Sex Supplies', 'HIV Self-Test Kit',
+  'Naloxone/Narcan', 'HIV Self-Test Kit',
 ];
 
 const GENDER_OPTIONS = ['Cisgender male', 'Cisgender female', 'Transgender woman', 'Transgender man', 'Non-binary', 'Another gender identity', 'Declined'];

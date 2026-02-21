@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ScreeningRecord, AuditLog } from '../types';
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
-import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, AlertTriangle, Activity, ClipboardList, Eye, Clock, Edit3, Save, Flag, BadgeCheck, FileDown } from 'lucide-react';
+import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, AlertTriangle, Activity, ClipboardList, Eye, Clock, Edit3, Save, Flag, BadgeCheck, FileDown, Footprints } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
 // --- CLIENT HISTORY BADGES ---
@@ -111,7 +111,7 @@ interface HealthScreeningsViewProps {
 }
 
 const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift, event, onLog }) => {
-    const [view, setView] = useState<'search' | 'new_client' | 'screening'>('search');
+    const [view, setView] = useState<'search' | 'new_client' | 'complete_profile' | 'screening'>('search');
     const [searchBy, setSearchBy] = useState<'phone' | 'email' | 'name'>('phone');
     const [query, setQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -123,6 +123,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
     const [activeSubTab, setActiveSubTab] = useState<'entry' | 'live-feed' | 'review-queue'>('entry');
     const [editingClientId, setEditingClientId] = useState<string | null>(null);
     const [eventClients, setEventClients] = useState<any[]>([]);
+    const [walkInMode, setWalkInMode] = useState(false);
 
     // Poll for event clients (cross-tab visibility)
     useEffect(() => {
@@ -145,6 +146,7 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
         setMultipleResults([]);
         setActiveClient(null);
         setError('');
+        setWalkInMode(false);
     };
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -173,7 +175,12 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
 
     const handleStartScreening = (client: ClientRecord) => {
         setActiveClient(client);
-        setView('screening');
+        const hasConsent = client.consentToShare === true;
+        if (!hasConsent) {
+            setView('complete_profile');
+        } else {
+            setView('screening');
+        }
     };
 
     // Medical roles need clinical onboarding completed, others need core volunteer training
@@ -254,8 +261,8 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
 
                             {/* Walk-in / No Contact Info */}
                             <div className="text-center">
-                                <button onClick={() => setView('new_client')} className="px-5 py-2.5 bg-white border-2 border-dashed border-zinc-200 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto hover:border-brand/30 hover:text-brand transition-colors">
-                                    <UserPlus size={14} /> Walk-In / No Contact Info
+                                <button onClick={() => { setWalkInMode(true); setView('new_client'); }} className="px-5 py-2.5 bg-white border-2 border-dashed border-zinc-200 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto hover:border-brand/30 hover:text-brand transition-colors">
+                                    <Footprints size={14} /> Walk-In / No Contact Info
                                 </button>
                                 <p className="text-[10px] text-zinc-400 mt-2">For clients without phone or email (e.g., unhoused individuals)</p>
                             </div>
@@ -303,7 +310,9 @@ const HealthScreeningsView: React.FC<HealthScreeningsViewProps> = ({ user, shift
                         </div>
                     )}
 
-                    {view === 'new_client' && <NewClientForm setView={setView} setActiveClient={setActiveClient} onLog={onLog} />}
+                    {view === 'new_client' && <NewClientForm setView={setView} setActiveClient={setActiveClient} onLog={onLog} contactMethod={walkInMode ? 'walk-in' : undefined} user={user} />}
+
+                    {view === 'complete_profile' && activeClient && <ClientProfileCompletion client={activeClient} user={user} setActiveClient={setActiveClient} setView={setView} onLog={onLog} />}
 
                     {view === 'screening' && activeClient && <ScreeningForm client={activeClient} user={user} shift={shift} event={event} onLog={onLog} onComplete={resetState} />}
                 </>
@@ -330,9 +339,12 @@ const LiveFeedView: React.FC<{ eventId: string; user: Volunteer }> = ({ eventId 
     const prevCountRef = useRef(0);
 
     const fetchScreenings = useCallback(async () => {
-        if (!eventId) { setIsLoading(false); return; }
         try {
-            const data = await apiService.get(`/api/ops/screenings/${eventId}`);
+            // Use event-specific endpoint if available, otherwise fetch all of today's screenings
+            const url = eventId
+                ? `/api/ops/screenings/${eventId}`
+                : '/api/ops/screenings-today';
+            const data = await apiService.get(url);
             // Check for new critical screenings
             if (prevCountRef.current > 0 && data.length > prevCountRef.current) {
                 const newScreenings = data.slice(0, data.length - prevCountRef.current);
@@ -364,8 +376,6 @@ const LiveFeedView: React.FC<{ eventId: string; user: Volunteer }> = ({ eventId 
         if (s.flags?.bloodPressure || s.flags?.glucose) return 'border-l-amber-400 bg-amber-50/30';
         return 'border-l-emerald-400 bg-emerald-50/30';
     };
-
-    if (!eventId) return <p className="text-zinc-400 font-bold text-sm text-center py-12">No event selected. Live feed requires an active event.</p>;
 
     return (
         <div className="space-y-6 animate-in fade-in">
@@ -404,7 +414,7 @@ const LiveFeedView: React.FC<{ eventId: string; user: Volunteer }> = ({ eventId 
             ) : screenings.length === 0 ? (
                 <div className="text-center py-16">
                     <Activity size={48} className="mx-auto text-zinc-200 mb-4" />
-                    <p className="text-zinc-400 font-bold">No screenings yet for this event.</p>
+                    <p className="text-zinc-400 font-bold">No screenings yet{eventId ? ' for this event' : ' today'}.</p>
                     <p className="text-xs text-zinc-300 mt-1">Screenings will appear here in real-time as they are entered.</p>
                 </div>
             ) : (
@@ -480,9 +490,11 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchScreenings = useCallback(async () => {
-        if (!eventId) { setIsLoading(false); return; }
         try {
-            const data = await apiService.get(`/api/ops/screenings/${eventId}`);
+            const url = eventId
+                ? `/api/ops/screenings/${eventId}`
+                : '/api/ops/screenings-today';
+            const data = await apiService.get(url);
             // Filter: only flagged/followUpNeeded + unreviewed, sorted oldest first (FIFO)
             const queue = data
                 .filter((s: any) => s.followUpNeeded && !s.reviewedAt)
@@ -521,8 +533,6 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
             setIsSubmitting(false);
         }
     };
-
-    if (!eventId) return <p className="text-zinc-400 font-bold text-sm text-center py-12">No event selected.</p>;
 
     const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
     const labelClass = "text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2";
@@ -630,18 +640,48 @@ const ReviewQueueView: React.FC<{ eventId: string; user: Volunteer }> = ({ event
     );
 };
 
-const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onLog: Function}> = ({ setView, setActiveClient, onLog }) => {
-    const [client, setClient] = useState<Partial<ClientRecord>>({});
+const RACE_OPTIONS = ['Asian American/Pacific Islander', 'Black/African American', 'American Indian/Alaska Native', 'Asian', 'White', 'Hispanic/Latino', 'Other'];
+const NEED_OPTIONS: { key: string; label: string }[] = [
+    { key: 'housing', label: 'Housing' }, { key: 'food', label: 'Food' },
+    { key: 'healthcare', label: 'Healthcare' }, { key: 'mentalHealth', label: 'Mental Health' },
+    { key: 'employment', label: 'Employment' }, { key: 'transportation', label: 'Transportation' },
+    { key: 'childcare', label: 'Childcare' }, { key: 'substanceUse', label: 'Substance Use' },
+    { key: 'legal', label: 'Legal' },
+];
+
+const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onLog: Function, contactMethod?: string, user: Volunteer}> = ({ setView, setActiveClient, onLog, contactMethod, user }) => {
+    const [client, setClient] = useState<Partial<ClientRecord & { contactMethod?: string; identifyingInfo?: string }>>({});
     const [isSaving, setIsSaving] = useState(false);
+    const [consentChecked, setConsentChecked] = useState(false);
+    const isWalkIn = contactMethod === 'walk-in';
+
+    const toggleRace = (race: string) => {
+        const current = client.race || [];
+        setClient({ ...client, race: current.includes(race) ? current.filter(r => r !== race) : [...current, race] });
+    };
+    const toggleNeed = (key: string) => {
+        const needs = client.needs || {};
+        setClient({ ...client, needs: { ...needs, [key]: !(needs as any)[key] } });
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!consentChecked) { toastService.error('Client consent is required before submitting.'); return; }
         setIsSaving(true);
+        const clientData = {
+            ...client,
+            consentToShare: true,
+            consentDate: new Date().toISOString(),
+            consentSignature: `${user.preferredFirstName || user.legalFirstName || ''} ${user.legalLastName || ''}`.trim(),
+        };
+        if (isWalkIn) {
+            (clientData as any).contactMethod = 'walk-in';
+        }
         try {
-            const newClient = await apiService.post('/api/clients/create', { client });
+            const newClient = await apiService.post('/api/clients/create', { client: clientData });
             setActiveClient(newClient);
             setView('screening');
-            onLog({ actionType: 'CREATE_CLIENT', targetSystem: 'FIRESTORE', targetId: newClient.id, summary: `Created new client: ${newClient.firstName} ${newClient.lastName}` });
+            onLog({ actionType: 'CREATE_CLIENT', targetSystem: 'FIRESTORE', targetId: newClient.id, summary: `Created new client: ${newClient.firstName} ${newClient.lastName}${isWalkIn ? ' (walk-in)' : ''}` });
         } catch(err) {
             toastService.error('Failed to save new client.');
         } finally {
@@ -649,43 +689,369 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
         }
     };
 
-    const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
+    const inputCls = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
+    const labelCls = "text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2";
+    const sectionCls = "p-4 md:p-6 bg-white rounded-2xl border border-zinc-100 space-y-4";
 
     return (
-        <div className="max-w-xl mx-auto space-y-6 animate-in fade-in">
+        <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-black text-zinc-900">Register New Client</h3>
                 <button type="button" onClick={() => setView('search')} className="text-xs font-bold text-zinc-400 hover:text-zinc-600">Back to Search</button>
             </div>
-            <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input required placeholder="First Name *" onChange={e => setClient({...client, firstName: e.target.value})} className={inputClass} />
-                    <input required placeholder="Last Name *" onChange={e => setClient({...client, lastName: e.target.value})} className={inputClass} />
-                </div>
-                <input placeholder="Preferred Name (Optional)" onChange={e => setClient({...client, preferredName: e.target.value} as any)} className={inputClass} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
-                        <input type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} onChange={e => { let v = e.target.value.replace(/[^\d/]/g, ''); const d = v.replace(/\//g, ''); if (d.length >= 4) v = d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4,8); else if (d.length >= 2) v = d.slice(0,2)+'/'+d.slice(2); else v = d; e.target.value = v; setClient({...client, dob: v}); }} className={inputClass} />
+
+            {isWalkIn && (
+                <>
+                    <div className="flex items-center gap-2 text-xs font-black text-amber-700 uppercase tracking-[0.2em]">
+                        <Footprints size={14} /> Contact Method: Walk-in / No Contact Info
                     </div>
-                    <div>
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Housing Status</label>
-                        <select onChange={e => setClient({...client, housingStatus: e.target.value} as any)} className={inputClass}>
-                            <option value="">-- Select --</option>
-                            <option value="housed">Housed</option>
-                            <option value="unhoused">Unhoused / Homeless</option>
-                            <option value="transitional">Transitional Housing</option>
-                            <option value="shelter">Shelter</option>
-                            <option value="unknown">Unknown / Declined</option>
-                        </select>
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <p className="text-sm font-bold text-amber-800">Walk-in Client — contact info optional</p>
+                        <p className="text-xs text-amber-600 mt-1">Phone, email, and date of birth are not required for walk-in clients.</p>
+                    </div>
+                </>
+            )}
+
+            <form onSubmit={handleSave} className="space-y-6">
+                {/* Client Information */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Client Information</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input required placeholder="First Name" onChange={e => setClient({...client, firstName: e.target.value})} className={inputCls} />
+                        <input required placeholder="Last Name" onChange={e => setClient({...client, lastName: e.target.value})} className={inputCls} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelCls}>Date of Birth</label>
+                            <input {...(isWalkIn ? {} : { required: true })} type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} onChange={e => { let v = e.target.value.replace(/[^\d/]/g, ''); const d = v.replace(/\//g, ''); if (d.length >= 4) v = d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4,8); else if (d.length >= 2) v = d.slice(0,2)+'/'+d.slice(2); else v = d; e.target.value = v; setClient({...client, dob: v}); }} className={inputCls} />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Gender</label>
+                            <select onChange={e => setClient({...client, gender: e.target.value})} className={inputCls}>
+                                <option value="">Select...</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Non-binary</option>
+                                <option>Other</option>
+                                <option>Prefer not to say</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input placeholder="Pronouns" onChange={e => setClient({...client, pronouns: e.target.value})} className={inputCls} />
+                        <input placeholder="Primary Language" onChange={e => setClient({...client, primaryLanguage: e.target.value})} className={inputCls} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input {...(isWalkIn ? {} : { required: true })} type="tel" placeholder={isWalkIn ? 'Phone (Optional)' : 'Phone Number'} onChange={e => setClient({...client, phone: e.target.value})} className={inputCls} />
+                        <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className={inputCls} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input placeholder="Address" onChange={e => setClient({...client, address: e.target.value})} className={inputCls} />
+                        <input placeholder="Zip Code" onChange={e => setClient({...client, zipCode: e.target.value})} className={inputCls} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelCls}>Housing Status</label>
+                            <select onChange={e => setClient({...client, homelessnessStatus: e.target.value as any})} className={inputCls}>
+                                <option value="">Select...</option>
+                                <option value="Currently Homeless">Currently Homeless</option>
+                                <option value="At Risk">At Risk</option>
+                                <option value="Recently Housed">Recently Housed</option>
+                                <option value="Stably Housed">Stably Housed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className={labelCls}>Preferred Contact Method</label>
+                            <select onChange={e => setClient({...client, contactMethod: e.target.value as any})} className={inputCls}>
+                                <option value="">Select...</option>
+                                <option value="phone">Phone</option>
+                                <option value="email">Email</option>
+                                <option value="name">Text</option>
+                            </select>
+                        </div>
+                    </div>
+                    {isWalkIn && (
+                        <div>
+                            <label className={labelCls}>Identifying Information</label>
+                            <textarea placeholder="Description, nickname, etc." onChange={e => setClient({...client, identifyingInfo: e.target.value})} className="w-full h-20 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Emergency Contact */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Emergency Contact</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input placeholder="Contact Name" onChange={e => setClient({...client, emergencyContactName: e.target.value})} className={inputCls} />
+                        <input placeholder="Relationship" onChange={e => setClient({...client, emergencyContactRelationship: e.target.value})} className={inputCls} />
+                        <input type="tel" placeholder="Contact Phone" onChange={e => setClient({...client, emergencyContactPhone: e.target.value})} className={inputCls} />
                     </div>
                 </div>
-                <input type="tel" placeholder="Phone (Optional)" onChange={e => setClient({...client, phone: e.target.value})} className={inputClass} />
-                <input type="email" placeholder="Email (Optional)" onChange={e => setClient({...client, email: e.target.value})} className={inputClass} />
-                <textarea placeholder="Identifying Info (Optional -- e.g., physical description, known alias, camp location for unhoused clients)" onChange={e => setClient({...client, identifyingInfo: e.target.value} as any)} className={`${inputClass} resize-none`} rows={2} />
+
+                {/* Demographics */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Demographics</p>
+                    <div className="flex flex-wrap gap-2">
+                        {RACE_OPTIONS.map(race => (
+                            <button key={race} type="button" onClick={() => toggleRace(race)}
+                                className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${(client.race || []).includes(race) ? 'bg-brand text-white border-brand' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-brand/30'}`}>
+                                {race}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex gap-6 mt-2">
+                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-700 cursor-pointer">
+                            <input type="checkbox" onChange={e => setClient({...client, veteranStatus: e.target.checked})} className="w-4 h-4 rounded border-zinc-300 text-brand focus:ring-brand" />
+                            Veteran
+                        </label>
+                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-700 cursor-pointer">
+                            <input type="checkbox" onChange={e => setClient({...client, lgbtqiaIdentity: e.target.checked})} className="w-4 h-4 rounded border-zinc-300 text-brand focus:ring-brand" />
+                            LGBTQIA+
+                        </label>
+                    </div>
+                </div>
+
+                {/* Social Determinant Needs */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Social Determinant Needs</p>
+                    <div className="flex flex-wrap gap-2">
+                        {NEED_OPTIONS.map(need => (
+                            <button key={need.key} type="button" onClick={() => toggleNeed(need.key)}
+                                className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${(client.needs as any)?.[need.key] ? 'bg-brand text-white border-brand' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-brand/30'}`}>
+                                {need.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Insurance */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Insurance</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input placeholder="Insurance Provider" onChange={e => setClient({...client, insuranceStatus: e.target.value})} className={inputCls} />
+                        <input placeholder="Member ID" onChange={e => setClient({...client, insuranceMemberId: e.target.value})} className={inputCls} />
+                        <input placeholder="Group Number" onChange={e => setClient({...client, insuranceGroupNumber: e.target.value})} className={inputCls} />
+                    </div>
+                </div>
+
+                {/* Consent to Share */}
+                <div className="p-4 md:p-6 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-4">
+                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.2em]">Consent to Share Information for Referrals</p>
+                    <div className="text-xs text-emerald-800 leading-relaxed space-y-3">
+                        <p>I understand that my personal information, including my contact details, basic demographic information, and relevant service needs, may be shared with partner agencies and service providers for the purpose of connecting me to appropriate resources and support.</p>
+                        <p>I consent to the release of this information solely for referral and coordination purposes. I understand that my information will be shared securely and only with organizations directly involved in assisting with my identified needs.</p>
+                        <p>I acknowledge that I may withdraw this consent at any time by notifying the program staff in writing.</p>
+                        <hr className="border-emerald-300" />
+                        <p className="italic text-emerald-700">Entiendo que mi informacion personal, incluyendo mis datos de contacto, informacion demografica basica y necesidades de servicios relevantes, puede ser compartida con agencias asociadas y proveedores de servicios con el proposito de conectarme con recursos y apoyos adecuados.</p>
+                        <p className="italic text-emerald-700">Doy mi consentimiento para la divulgacion de esta informacion unicamente con fines de referencia y coordinacion. Entiendo que mi informacion sera compartida de manera segura y solo con organizaciones directamente involucradas en ayudar con mis necesidades identificadas.</p>
+                        <p className="italic text-emerald-700">Reconozco que puedo retirar este consentimiento en cualquier momento notificando por escrito al personal del programa.</p>
+                    </div>
+                    <label className="flex items-center gap-3 cursor-pointer pt-2">
+                        <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} className="w-5 h-5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500" />
+                        <span className="text-sm font-bold text-emerald-800">Verbal consent obtained — client has been read and agrees to the above</span>
+                    </label>
+                </div>
+
                 <div className="flex gap-4">
                     <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
-                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+const ClientProfileCompletion: React.FC<{client: ClientRecord, user: Volunteer, setActiveClient: Function, setView: Function, onLog: Function}> = ({ client, user, setActiveClient, setView, onLog }) => {
+    const [fields, setFields] = useState<Partial<ClientRecord & { identifyingInfo?: string }>>({
+        gender: client.gender || '',
+        pronouns: client.pronouns || '',
+        primaryLanguage: client.primaryLanguage || '',
+        contactMethod: client.contactMethod || '' as any,
+        emergencyContactName: client.emergencyContactName || '',
+        emergencyContactRelationship: client.emergencyContactRelationship || '',
+        emergencyContactPhone: client.emergencyContactPhone || '',
+        race: client.race || [],
+        veteranStatus: client.veteranStatus || false,
+        lgbtqiaIdentity: client.lgbtqiaIdentity || false,
+        needs: client.needs || {},
+        insuranceStatus: client.insuranceStatus || '',
+        insuranceMemberId: client.insuranceMemberId || '',
+        insuranceGroupNumber: client.insuranceGroupNumber || '',
+    });
+    const [consentChecked, setConsentChecked] = useState(client.consentToShare === true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const hasConsent = client.consentToShare === true;
+
+    const toggleRace = (race: string) => {
+        const current = fields.race || [];
+        setFields({ ...fields, race: current.includes(race) ? current.filter(r => r !== race) : [...current, race] });
+    };
+    const toggleNeed = (key: string) => {
+        const needs = fields.needs || {};
+        setFields({ ...fields, needs: { ...needs, [key]: !(needs as any)[key] } });
+    };
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!consentChecked) { toastService.error('Client consent is required before proceeding.'); return; }
+        setIsSaving(true);
+        try {
+            const updateData: any = { ...fields };
+            if (!hasConsent) {
+                updateData.consentToShare = true;
+                updateData.consentDate = new Date().toISOString();
+                updateData.consentSignature = `${user.preferredFirstName || user.legalFirstName || ''} ${user.legalLastName || ''}`.trim();
+            }
+            const updated = await apiService.put(`/api/clients/${client.id}`, { client: updateData });
+            const mergedClient = { ...client, ...updated };
+            setActiveClient(mergedClient);
+            setView('screening');
+            onLog({ actionType: 'UPDATE_CLIENT', targetSystem: 'FIRESTORE', targetId: client.id, summary: `Updated profile for ${client.firstName} ${client.lastName} (consent + missing fields)` });
+        } catch {
+            toastService.error('Failed to update client profile.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const inputCls = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
+    const labelCls = "text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2";
+    const sectionCls = "p-4 md:p-6 bg-white rounded-2xl border border-zinc-100 space-y-4";
+
+    return (
+        <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in">
+            <div className="p-4 md:p-6 bg-amber-50 border border-amber-200 rounded-2xl">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-[0.2em] mb-1">Profile Incomplete</p>
+                <p className="text-sm font-bold text-amber-900">{client.firstName} {client.lastName}</p>
+                <p className="text-xs text-amber-700 mt-1">This client's profile is missing consent and/or key fields. Please review and complete before starting the screening.</p>
+            </div>
+
+            <form onSubmit={handleUpdate} className="space-y-6">
+                {/* Pre-filled client info (read-only summary) */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Existing Client Info</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div><span className="text-zinc-400 text-xs font-bold">Name:</span> <span className="font-bold text-zinc-800">{client.firstName} {client.lastName}</span></div>
+                        {client.dob && <div><span className="text-zinc-400 text-xs font-bold">DOB:</span> <span className="font-bold text-zinc-800">{client.dob}</span></div>}
+                        {client.phone && <div><span className="text-zinc-400 text-xs font-bold">Phone:</span> <span className="font-bold text-zinc-800">{client.phone}</span></div>}
+                        {client.email && <div><span className="text-zinc-400 text-xs font-bold">Email:</span> <span className="font-bold text-zinc-800">{client.email}</span></div>}
+                    </div>
+                </div>
+
+                {/* Editable missing fields */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Complete Missing Fields</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className={labelCls}>Gender</label>
+                            <select value={fields.gender || ''} onChange={e => setFields({...fields, gender: e.target.value})} className={inputCls}>
+                                <option value="">Select...</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Non-binary</option>
+                                <option>Other</option>
+                                <option>Prefer not to say</option>
+                            </select>
+                        </div>
+                        <input placeholder="Pronouns" value={fields.pronouns || ''} onChange={e => setFields({...fields, pronouns: e.target.value})} className={inputCls} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input placeholder="Primary Language" value={fields.primaryLanguage || ''} onChange={e => setFields({...fields, primaryLanguage: e.target.value})} className={inputCls} />
+                        <div>
+                            <label className={labelCls}>Preferred Contact Method</label>
+                            <select value={fields.contactMethod || ''} onChange={e => setFields({...fields, contactMethod: e.target.value as any})} className={inputCls}>
+                                <option value="">Select...</option>
+                                <option value="phone">Phone</option>
+                                <option value="email">Email</option>
+                                <option value="name">Text</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Emergency Contact</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input placeholder="Contact Name" value={fields.emergencyContactName || ''} onChange={e => setFields({...fields, emergencyContactName: e.target.value})} className={inputCls} />
+                        <input placeholder="Relationship" value={fields.emergencyContactRelationship || ''} onChange={e => setFields({...fields, emergencyContactRelationship: e.target.value})} className={inputCls} />
+                        <input type="tel" placeholder="Contact Phone" value={fields.emergencyContactPhone || ''} onChange={e => setFields({...fields, emergencyContactPhone: e.target.value})} className={inputCls} />
+                    </div>
+                </div>
+
+                {/* Demographics */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Demographics</p>
+                    <div className="flex flex-wrap gap-2">
+                        {RACE_OPTIONS.map(race => (
+                            <button key={race} type="button" onClick={() => toggleRace(race)}
+                                className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${(fields.race || []).includes(race) ? 'bg-brand text-white border-brand' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-brand/30'}`}>
+                                {race}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex gap-6 mt-2">
+                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-700 cursor-pointer">
+                            <input type="checkbox" checked={fields.veteranStatus || false} onChange={e => setFields({...fields, veteranStatus: e.target.checked})} className="w-4 h-4 rounded border-zinc-300 text-brand focus:ring-brand" />
+                            Veteran
+                        </label>
+                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-700 cursor-pointer">
+                            <input type="checkbox" checked={fields.lgbtqiaIdentity || false} onChange={e => setFields({...fields, lgbtqiaIdentity: e.target.checked})} className="w-4 h-4 rounded border-zinc-300 text-brand focus:ring-brand" />
+                            LGBTQIA+
+                        </label>
+                    </div>
+                </div>
+
+                {/* Social Determinant Needs */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Social Determinant Needs</p>
+                    <div className="flex flex-wrap gap-2">
+                        {NEED_OPTIONS.map(need => (
+                            <button key={need.key} type="button" onClick={() => toggleNeed(need.key)}
+                                className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${(fields.needs as any)?.[need.key] ? 'bg-brand text-white border-brand' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-brand/30'}`}>
+                                {need.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Insurance */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Insurance</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input placeholder="Insurance Provider" value={fields.insuranceStatus || ''} onChange={e => setFields({...fields, insuranceStatus: e.target.value})} className={inputCls} />
+                        <input placeholder="Member ID" value={fields.insuranceMemberId || ''} onChange={e => setFields({...fields, insuranceMemberId: e.target.value})} className={inputCls} />
+                        <input placeholder="Group Number" value={fields.insuranceGroupNumber || ''} onChange={e => setFields({...fields, insuranceGroupNumber: e.target.value})} className={inputCls} />
+                    </div>
+                </div>
+
+                {/* Consent to Share — required if not already obtained */}
+                {!hasConsent && (
+                    <div className="p-4 md:p-6 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-4">
+                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.2em]">Consent to Share Information for Referrals</p>
+                        <div className="text-xs text-emerald-800 leading-relaxed space-y-3">
+                            <p>I understand that my personal information, including my contact details, basic demographic information, and relevant service needs, may be shared with partner agencies and service providers for the purpose of connecting me to appropriate resources and support.</p>
+                            <p>I consent to the release of this information solely for referral and coordination purposes. I understand that my information will be shared securely and only with organizations directly involved in assisting with my identified needs.</p>
+                            <p>I acknowledge that I may withdraw this consent at any time by notifying the program staff in writing.</p>
+                            <hr className="border-emerald-300" />
+                            <p className="italic text-emerald-700">Entiendo que mi informacion personal, incluyendo mis datos de contacto, informacion demografica basica y necesidades de servicios relevantes, puede ser compartida con agencias asociadas y proveedores de servicios con el proposito de conectarme con recursos y apoyos adecuados.</p>
+                            <p className="italic text-emerald-700">Doy mi consentimiento para la divulgacion de esta informacion unicamente con fines de referencia y coordinacion. Entiendo que mi informacion sera compartida de manera segura y solo con organizaciones directamente involucradas en ayudar con mis necesidades identificadas.</p>
+                            <p className="italic text-emerald-700">Reconozco que puedo retirar este consentimiento en cualquier momento notificando por escrito al personal del programa.</p>
+                        </div>
+                        <label className="flex items-center gap-3 cursor-pointer pt-2">
+                            <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} className="w-5 h-5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500" />
+                            <span className="text-sm font-bold text-emerald-800">Verbal consent obtained — client has been read and agrees to the above</span>
+                        </label>
+                    </div>
+                )}
+
+                <div className="flex gap-4">
+                    <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
+                    {hasConsent && (
+                        <button type="button" onClick={() => { setActiveClient(client); setView('screening'); }} className="py-3 px-6 border border-zinc-300 text-zinc-500 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-50">Skip</button>
+                    )}
+                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Update & Start Screening'}</button>
                 </div>
             </form>
         </div>
