@@ -3451,11 +3451,13 @@ app.get('/api/referral-flags', verifyToken, async (req: Request, res: Response) 
     try {
         const { eventId } = req.query;
         if (!eventId) return res.status(400).json({ error: 'eventId is required' });
+        // Single where clause — filter status in memory to avoid composite index
         const snap = await db.collection('referral_flags')
-            .where('eventId', '==', eventId)
-            .where('status', '==', 'pending')
+            .where('eventId', '==', String(eventId))
             .get();
-        const flags = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const flags = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter((f: any) => f.status === 'pending');
         flags.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         res.json(flags);
     } catch (error) {
@@ -4064,13 +4066,13 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
         const today = getPacificDate();
         const includeAll = req.query.all === 'true'; // ?all=true to get all approved (for internal tools)
 
-        // Query approved events with date >= today
+        // Single where clause, filter date in memory to avoid composite index
         const snapshot = await db.collection('opportunities')
             .where('approvalStatus', '==', 'approved')
-            .where('date', '>=', today)
             .get();
 
         const events = snapshot.docs
+            .filter(doc => doc.data().date >= today)
             .filter(doc => includeAll || doc.data().isPublicFacing !== false)
             .map(doc => {
                 const data = doc.data();
@@ -4170,13 +4172,13 @@ const processVolunteerMatch = async (
             }
           });
 
-          // Notify coordinators
+          // Notify coordinators — single where, filter role in memory to avoid composite index
           const coordinatorsSnap = await db.collection('volunteers')
-            .where('role', 'in', EVENT_MANAGEMENT_ROLES)
             .where('status', '==', 'active')
             .get();
+          const coordinatorDocs = coordinatorsSnap.docs.filter((d: any) => EVENT_MANAGEMENT_ROLES.includes(d.data().role));
 
-          for (const coord of coordinatorsSnap.docs) {
+          for (const coord of coordinatorDocs) {
             const coordData = coord.data();
             if (coordData.email) {
               await EmailService.send('coordinator_public_rsvp_name_match', {
@@ -7735,12 +7737,13 @@ app.put('/api/notifications/:id/read', verifyToken, async (req: Request, res: Re
 app.put('/api/notifications/read-all', verifyToken, async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;
+        // Single where clause, filter read status in memory to avoid composite index
         const snap = await db.collection('notifications')
             .where('recipientId', '==', user.uid)
-            .where('read', '==', false)
             .get();
+        const unread = snap.docs.filter(d => d.data().read === false);
         const batch = db.batch();
-        snap.docs.forEach(d => batch.update(d.ref, { read: true }));
+        unread.forEach(d => batch.update(d.ref, { read: true }));
         await batch.commit();
         res.json({ success: true, count: snap.size });
     } catch (e: any) {
@@ -8708,21 +8711,24 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
 
     // Query all upcoming events from ALL collections in the next 8 days
     const eightDaysOut = getPacificDate(8);
+    // Single where clause per query, filter upper bound in memory to avoid composite index
     const [oppsSnap, orgCalSnap] = await Promise.all([
       db.collection('opportunities')
         .where('date', '>=', todayStr)
-        .where('date', '<=', eightDaysOut)
         .get(),
       db.collection('org_calendar_events')
         .where('date', '>=', todayStr)
-        .where('date', '<=', eightDaysOut)
         .get(),
     ]);
 
-    // Normalize all events into a unified list with their IDs
+    // Normalize all events into a unified list with their IDs, filter by upper bound
     const allEvents: { id: string; data: any; source: string }[] = [];
-    for (const doc of oppsSnap.docs) allEvents.push({ id: doc.id, data: doc.data(), source: 'opportunities' });
-    for (const doc of orgCalSnap.docs) allEvents.push({ id: doc.id, data: doc.data(), source: 'org_calendar_events' });
+    for (const doc of oppsSnap.docs) {
+      if (doc.data().date <= eightDaysOut) allEvents.push({ id: doc.id, data: doc.data(), source: 'opportunities' });
+    }
+    for (const doc of orgCalSnap.docs) {
+      if (doc.data().date <= eightDaysOut) allEvents.push({ id: doc.id, data: doc.data(), source: 'org_calendar_events' });
+    }
 
     if (allEvents.length === 0) {
       console.log('[WORKFLOW] No upcoming events in next 8 days for reminder cadence');
@@ -8987,13 +8993,13 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
           createdAt: new Date().toISOString(),
         });
 
-        // Notify eligible volunteers that registration is open
-        const eligibleSnap = await db.collection('volunteers')
+        // Notify eligible volunteers — single where, filter eligibility in memory to avoid composite index
+        const activeVolsSnap = await db.collection('volunteers')
           .where('status', '==', 'active')
-          .where('eventEligibility.streetMedicineGate', '==', true)
           .get();
+        const eligibleDocs = activeVolsSnap.docs.filter((d: any) => d.data().eventEligibility?.streetMedicineGate === true);
 
-        for (const volDoc of eligibleSnap.docs) {
+        for (const volDoc of eligibleDocs) {
           const vol = volDoc.data();
           if (vol.email) {
             try {
@@ -10707,11 +10713,13 @@ app.post('/api/screenings/create', verifyToken, async (req: Request, res: Respon
 app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
     try {
         const { clientId, shiftId } = req.query;
+        // Use only one where clause to avoid composite index requirement, filter second in memory
         let query: admin.firestore.Query = db.collection('screenings');
         if (clientId) query = query.where('clientId', '==', clientId);
-        if (shiftId) query = query.where('shiftId', '==', shiftId);
         const snap = await query.get();
-        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (shiftId) results = results.filter((r: any) => r.shiftId === shiftId);
+        res.json(results);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 

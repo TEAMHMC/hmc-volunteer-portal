@@ -8,7 +8,6 @@ import {
   getDoc,
   query,
   where,
-  orderBy,
   limit,
   Timestamp,
   serverTimestamp
@@ -31,6 +30,13 @@ const isFirestoreAvailable = (): boolean => {
     return false;
   }
   return true;
+};
+
+// Helper to sort by submittedAt descending in memory
+const sortBySubmittedAtDesc = (a: any, b: any) => {
+  const aTime = a.submittedAt?.toDate?.()?.getTime() || a.submittedAt || 0;
+  const bTime = b.submittedAt?.toDate?.()?.getTime() || b.submittedAt || 0;
+  return bTime - aTime;
 };
 
 // ============ FORM DEFINITIONS ============
@@ -85,17 +91,25 @@ export const deleteForm = async (formId: string): Promise<void> => {
  */
 export const getForms = async (category?: FormDefinition['category']): Promise<FormDefinition[]> => {
   if (!isFirestoreAvailable()) return [];
-  let q = query(collection(db!, COLLECTIONS.FORMS), orderBy('createdAt', 'desc'));
+  let q;
 
   if (category) {
-    q = query(collection(db!, COLLECTIONS.FORMS), where('category', '==', category), orderBy('createdAt', 'desc'));
+    q = query(collection(db!, COLLECTIONS.FORMS), where('category', '==', category));
+  } else {
+    q = query(collection(db!, COLLECTIONS.FORMS));
   }
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
+  const results = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   } as FormDefinition));
+  results.sort((a: any, b: any) => {
+    const aTime = a.createdAt?.toDate?.()?.getTime() || a.createdAt || 0;
+    const bTime = b.createdAt?.toDate?.()?.getTime() || b.createdAt || 0;
+    return bTime - aTime;
+  });
+  return results;
 };
 
 /**
@@ -148,16 +162,16 @@ export const getSurveyResponsesByForm = async (formId: string, limitCount = 100)
   if (!isFirestoreAvailable()) return [];
   const q = query(
     collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-    where('formId', '==', formId),
-    orderBy('submittedAt', 'desc'),
-    limit(limitCount)
+    where('formId', '==', formId)
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
+  const results = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   } as SurveyResponse));
+  results.sort(sortBySubmittedAtDesc);
+  return results.slice(0, limitCount);
 };
 
 /**
@@ -167,33 +181,34 @@ export const getSurveyResponsesByEvent = async (eventId: string): Promise<Survey
   if (!isFirestoreAvailable()) return [];
   const q = query(
     collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-    where('eventId', '==', eventId),
-    orderBy('submittedAt', 'desc')
+    where('eventId', '==', eventId)
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
+  const results = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   } as SurveyResponse));
+  results.sort(sortBySubmittedAtDesc);
+  return results;
 };
 
 /**
  * Get all survey responses within a date range
  */
 export const getSurveyResponsesByDateRange = async (startDate: Date, endDate: Date): Promise<SurveyResponse[]> => {
-  const q = query(
-    collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-    where('submittedAt', '>=', Timestamp.fromDate(startDate)),
-    where('submittedAt', '<=', Timestamp.fromDate(endDate)),
-    orderBy('submittedAt', 'desc')
-  );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as SurveyResponse));
+  // Fetch all responses, filter by date range in memory to avoid composite index
+  const snapshot = await getDocs(collection(db!, COLLECTIONS.SURVEY_RESPONSES));
+  const startMs = startDate.getTime();
+  const endMs = endDate.getTime();
+  const results = snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as SurveyResponse))
+    .filter(r => {
+      const ts = (r as any).submittedAt?.toDate?.()?.getTime() || 0;
+      return ts >= startMs && ts <= endMs;
+    });
+  results.sort(sortBySubmittedAtDesc);
+  return results;
 };
 
 // ============ VOLUNTEER FEEDBACK SURVEYS ============
@@ -219,34 +234,34 @@ export const getVolunteerFeedback = async (eventId?: string): Promise<VolunteerS
   let q;
 
   if (eventId) {
+    // Single where clause — filter formId in memory to avoid composite index
     q = query(
       collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-      where('formId', '==', 'volunteer-feedback'),
-      where('eventId', '==', eventId),
-      orderBy('submittedAt', 'desc')
+      where('eventId', '==', eventId)
     );
   } else {
     q = query(
       collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-      where('formId', '==', 'volunteer-feedback'),
-      orderBy('submittedAt', 'desc'),
-      limit(100)
+      where('formId', '==', 'volunteer-feedback')
     );
   }
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      volunteerId: data.respondentId || data.volunteerId,
-      volunteerRole: data.volunteerRole || 'Unknown',
-      eventId: data.eventId,
-      rating: data.responses?.rating || data.rating || 0,
-      feedback: data.responses?.feedback || data.feedback || '',
-      submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
-    } as VolunteerSurveyResponse;
-  });
+  const results = snapshot.docs
+    .map(doc => doc.data())
+    .filter(data => data.formId === 'volunteer-feedback')
+    .sort(sortBySubmittedAtDesc)
+    .slice(0, 100);
+
+  return results.map(data => ({
+    id: data.id,
+    volunteerId: data.respondentId || data.volunteerId,
+    volunteerRole: data.volunteerRole || 'Unknown',
+    eventId: data.eventId,
+    rating: data.responses?.rating || data.rating || 0,
+    feedback: data.responses?.feedback || data.feedback || '',
+    submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
+  } as VolunteerSurveyResponse));
 };
 
 // ============ CLIENT SURVEYS (SDOH, Intake, etc.) ============
@@ -287,15 +302,16 @@ export const getClientSurveysByEvent = async (eventId: string): Promise<ClientSu
   if (!isFirestoreAvailable()) return [];
   const q = query(
     collection(db!, COLLECTIONS.CLIENT_SURVEYS),
-    where('eventId', '==', eventId),
-    orderBy('submittedAt', 'desc')
+    where('eventId', '==', eventId)
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
+  const results = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   } as ClientSurveySubmission));
+  results.sort(sortBySubmittedAtDesc);
+  return results;
 };
 
 /**
@@ -304,16 +320,16 @@ export const getClientSurveysByEvent = async (eventId: string): Promise<ClientSu
 export const getClientSurveysBySurveyKit = async (surveyKitId: string, limitCount = 100): Promise<ClientSurveySubmission[]> => {
   const q = query(
     collection(db!, COLLECTIONS.CLIENT_SURVEYS),
-    where('surveyKitId', '==', surveyKitId),
-    orderBy('submittedAt', 'desc'),
-    limit(limitCount)
+    where('surveyKitId', '==', surveyKitId)
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
+  const results = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   } as ClientSurveySubmission));
+  results.sort(sortBySubmittedAtDesc);
+  return results.slice(0, limitCount);
 };
 
 // ============ ANALYTICS HELPERS ============
@@ -353,18 +369,22 @@ export const getSurveyStats = async (startDate?: Date, endDate?: Date): Promise<
   averageRating: number;
   responsesOverTime: { date: string; count: number }[];
 }> => {
-  let q = query(collection(db!, COLLECTIONS.SURVEY_RESPONSES), orderBy('submittedAt', 'desc'));
+  let snapshot;
 
   if (startDate && endDate) {
-    q = query(
-      collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-      where('submittedAt', '>=', Timestamp.fromDate(startDate)),
-      where('submittedAt', '<=', Timestamp.fromDate(endDate)),
-      orderBy('submittedAt', 'desc')
-    );
+    // Fetch all, filter in memory to avoid composite index
+    const allSnapshot = await getDocs(collection(db!, COLLECTIONS.SURVEY_RESPONSES));
+    const startMs = startDate.getTime();
+    const endMs = endDate.getTime();
+    const filtered = allSnapshot.docs.filter(doc => {
+      const ts = doc.data().submittedAt?.toDate?.()?.getTime() || 0;
+      return ts >= startMs && ts <= endMs;
+    });
+    snapshot = { docs: filtered };
+  } else {
+    snapshot = await getDocs(collection(db!, COLLECTIONS.SURVEY_RESPONSES));
   }
 
-  const snapshot = await getDocs(q);
   const responses = snapshot.docs.map(doc => doc.data());
 
   // Calculate stats
