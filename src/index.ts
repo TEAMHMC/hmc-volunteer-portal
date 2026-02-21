@@ -4727,7 +4727,15 @@ app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: 
         // Individual signoff: stored per-user
         const signoffDoc = await db.collection('mission_ops_signoffs').doc(`${shiftId}_${userId}`).get();
         const incidentsSnap = await db.collection('incidents').where('shiftId', '==', shiftId).get();
-        const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).orderBy('timestamp', 'desc').get();
+
+        // Audit logs query requires a composite index — gracefully degrade if missing
+        let auditLogs: any[] = [];
+        try {
+            const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).orderBy('timestamp', 'desc').get();
+            auditLogs = auditSnap.docs.map(d => ({id: d.id, ...d.data()}));
+        } catch (auditErr: any) {
+            console.warn('[OPS RUN] Audit logs query failed (index may be building):', auditErr.message);
+        }
 
         const sharedData = sharedDoc.exists ? sharedDoc.data() : {};
         const signoffData = signoffDoc.exists ? signoffDoc.data() : {};
@@ -4741,7 +4749,7 @@ app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: 
                 ...signoffData, // signedOff, signedOffAt, signatureStoragePath
             },
             incidents: incidentsSnap.docs.map(d => ({id: d.id, ...d.data()})),
-            auditLogs: auditSnap.docs.map(d => ({id: d.id, ...d.data()})),
+            auditLogs,
         });
     } catch (e: any) {
         console.error('[OPS RUN] GET failed:', e.message);
