@@ -638,6 +638,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
             status: method === 'email' ? 'In Progress' : 'Pending',
             urgency: 'Standard',
             referredTo: selectedResource["Resource Name"],
+            referredToId: selectedResource.id,
             createdAt: new Date().toISOString(),
             eventId: event?.id,
         };

@@ -725,6 +725,15 @@ const getGlucoseFlag = (value: number) => {
 const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shift, event?: ClinicEvent, onLog: Function, onComplete: Function}> = ({ client, user, shift, event, onLog, onComplete }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [savedScreeningId, setSavedScreeningId] = useState<string | null>(null);
+    const [showRefusalForm, setShowRefusalForm] = useState(false);
+    const [refusalData, setRefusalData] = useState({
+        witness1Name: '',
+        witness1Signature: '',
+        witness2Name: '',
+        witness2Signature: '',
+        refusalReason: '',
+        completed: false,
+    });
     const [vitals, setVitals] = useState({
         systolic: '',
         diastolic: '',
@@ -764,6 +773,16 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
             window.open(blobUrl, '_blank');
         } catch { toastService.error('Failed to download PDF.'); }
     };
+    const downloadRefusalPdf = async (screeningId: string) => {
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`/api/screenings/${screeningId}/refusal-pdf`, { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) throw new Error('PDF generation failed');
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+        } catch { toastService.error('Failed to download Refusal of Care PDF.'); }
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -793,7 +812,15 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 currentMedications: vitals.hasMedications ? vitals.currentMedications : 'None',
                 allergies: vitals.hasAllergies ? vitals.allergies : 'None',
                 resultsSummary: vitals.resultsSummary,
-                refusalOfCare: vitals.refusalOfCare,
+                refusalOfCare: refusalData.completed,
+                refusalData: refusalData.completed ? {
+                    reason: refusalData.refusalReason,
+                    witness1Name: refusalData.witness1Name,
+                    witness1Signature: refusalData.witness1Signature,
+                    witness2Name: refusalData.witness2Name,
+                    witness2Signature: refusalData.witness2Signature,
+                    timestamp: new Date().toISOString(),
+                } : undefined,
                 timestamp: new Date().toISOString()
             };
 
@@ -830,6 +857,11 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 <button onClick={() => downloadPdf()} className="w-full py-3 bg-white border-2 border-zinc-200 text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:border-brand/30 transition-all">
                     <FileDown size={16} /> Download Intake Only (PDF)
                 </button>
+                {refusalData.completed && (
+                    <button onClick={() => downloadRefusalPdf(savedScreeningId!)} className="w-full py-3 bg-rose-600 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-rose-700 transition-all">
+                        <FileDown size={16} /> Download Refusal of Care Form (PDF)
+                    </button>
+                )}
                 <button onClick={() => onComplete()} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:scale-105 transition-transform">
                     Done
                 </button>
@@ -972,11 +1004,113 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     {(vitals.followUpNeeded || hasFlags) && (
                         <input type="text" placeholder="Reason for follow-up..." value={vitals.followUpReason} onChange={e => setVitals({...vitals, followUpReason: e.target.value})} className={inputClass} />
                     )}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={vitals.refusalOfCare} onChange={e => setVitals({...vitals, refusalOfCare: e.target.checked})} className="w-5 h-5 rounded" />
-                        <span className="text-sm font-bold text-zinc-600">Refusal of Care form completed and submitted</span>
-                    </label>
                 </div>
+
+                {/* Refusal of Care */}
+                <div className="p-4 md:p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-2xl md:rounded-[40px] space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-base md:text-xl font-bold text-zinc-900">Refusal of Care</h4>
+                        {refusalData.completed && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">Form Completed</span>
+                        )}
+                    </div>
+                    {!refusalData.completed ? (
+                        <button type="button" onClick={() => setShowRefusalForm(true)}
+                            className="w-full py-3 bg-rose-50 border-2 border-rose-200 text-rose-700 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors">
+                            <AlertTriangle size={16} /> Open Refusal of Care Form
+                        </button>
+                    ) : (
+                        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+                            <p className="text-sm font-bold text-rose-800">Refusal of Care documented</p>
+                            {refusalData.refusalReason && <p className="text-xs text-rose-600">Reason: {refusalData.refusalReason}</p>}
+                            <p className="text-xs text-rose-600">Witness 1: {refusalData.witness1Name}</p>
+                            <p className="text-xs text-rose-600">Witness 2: {refusalData.witness2Name}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Refusal of Care Modal */}
+                {showRefusalForm && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-3 md:p-4">
+                        <div className="bg-white rounded-2xl md:rounded-[40px] max-w-lg w-full shadow-elevation-3 max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-black text-zinc-900">Refusal of Care Form</h3>
+                                <button type="button" onClick={() => setShowRefusalForm(false)} className="p-2 hover:bg-zinc-100 rounded-full">
+                                    <X size={20} className="text-zinc-400" />
+                                </button>
+                            </div>
+
+                            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
+                                <p className="text-sm text-rose-800 font-bold">Client: {client.firstName} {client.lastName}</p>
+                                <p className="text-xs text-rose-600 mt-1">DOB: {client.dob || 'N/A'}</p>
+                                <p className="text-xs text-rose-600">Date: {new Date().toLocaleDateString()}</p>
+                            </div>
+
+                            <div className="text-sm text-zinc-700 leading-relaxed bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <p className="font-bold mb-2">Statement of Refusal:</p>
+                                <p>I, the above-named individual, have been informed of the health screening services available to me today. I understand the purpose and potential benefits of these services. I voluntarily choose to decline the recommended care/screening at this time.</p>
+                                <p className="mt-2">I understand that by refusing care, I may be at risk for undetected health conditions. I release Health Matters Clinic (HMC) and its volunteers from any liability related to my decision to refuse care.</p>
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>Reason for Refusal (Optional)</label>
+                                <input type="text" placeholder="Client's stated reason..."
+                                    value={refusalData.refusalReason}
+                                    onChange={e => setRefusalData({...refusalData, refusalReason: e.target.value})}
+                                    className={inputClass} />
+                            </div>
+
+                            <div className="border-t border-zinc-100 pt-4 space-y-4">
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Witness Signatures (2 Required)</p>
+                                <div>
+                                    <label className={labelClass}>Witness 1 — Full Name</label>
+                                    <input type="text" placeholder="Witness full name"
+                                        value={refusalData.witness1Name}
+                                        onChange={e => setRefusalData({...refusalData, witness1Name: e.target.value})}
+                                        className={inputClass} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Witness 1 — Type Signature</label>
+                                    <input type="text" placeholder="Type full name as signature"
+                                        value={refusalData.witness1Signature}
+                                        onChange={e => setRefusalData({...refusalData, witness1Signature: e.target.value})}
+                                        className={`${inputClass} italic`} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Witness 2 — Full Name</label>
+                                    <input type="text" placeholder="Witness full name"
+                                        value={refusalData.witness2Name}
+                                        onChange={e => setRefusalData({...refusalData, witness2Name: e.target.value})}
+                                        className={inputClass} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Witness 2 — Type Signature</label>
+                                    <input type="text" placeholder="Type full name as signature"
+                                        value={refusalData.witness2Signature}
+                                        onChange={e => setRefusalData({...refusalData, witness2Signature: e.target.value})}
+                                        className={`${inputClass} italic`} />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => setShowRefusalForm(false)}
+                                    className="flex-1 py-3 border border-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide text-zinc-500 hover:bg-zinc-50">
+                                    Cancel
+                                </button>
+                                <button type="button"
+                                    disabled={!refusalData.witness1Name || !refusalData.witness1Signature || !refusalData.witness2Name || !refusalData.witness2Signature}
+                                    onClick={() => {
+                                        setRefusalData({...refusalData, completed: true});
+                                        setVitals({...vitals, refusalOfCare: true});
+                                        setShowRefusalForm(false);
+                                    }}
+                                    className="flex-1 py-3 bg-rose-600 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">
+                                    <CheckCircle size={16} /> Confirm Refusal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-4">

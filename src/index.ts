@@ -3396,7 +3396,7 @@ app.get('/api/referrals', verifyToken, async (req: Request, res: Response) => {
 app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const referral = req.body.referral;
-        if (!referral || !referral.clientId || !referral.resourceId) return res.status(400).json({ error: 'clientId and resourceId required' });
+        if (!referral || !referral.clientId) return res.status(400).json({ error: 'clientId required' });
         referral.createdAt = new Date().toISOString();
         referral.status = referral.status || 'pending';
         const ref = await db.collection('referrals').add(referral);
@@ -3815,6 +3815,16 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
             if (screening.refusalOfCare) {
                 drawCheckbox(page2, 'Refusal of Care form completed and submitted', true, margin + 8, sy);
                 sy -= 18;
+                if (screening.refusalData) {
+                    if (screening.refusalData.reason) {
+                        drawField(page2, 'Reason:', screening.refusalData.reason, margin + 8, sy);
+                        sy -= 16;
+                    }
+                    drawField(page2, 'Witness 1:', `${screening.refusalData.witness1Name || '—'} (signed: ${screening.refusalData.witness1Signature || '—'})`, margin + 8, sy);
+                    sy -= 16;
+                    drawField(page2, 'Witness 2:', `${screening.refusalData.witness2Name || '—'} (signed: ${screening.refusalData.witness2Signature || '—'})`, margin + 8, sy);
+                    sy -= 18;
+                }
             }
             if (screening.abnormalFlag) {
                 drawField(page2, 'Abnormal Flag:', screening.abnormalReason || 'Yes', margin + 8, sy);
@@ -3834,6 +3844,109 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
     } catch (error: any) {
         console.error('[INTAKE PDF] Generation failed:', error);
         res.status(500).json({ error: 'Failed to generate PDF' });
+    }
+});
+
+// --- REFUSAL OF CARE PDF ---
+app.get('/api/screenings/:screeningId/refusal-pdf', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const screenDoc = await db.collection('screenings').doc(req.params.screeningId).get();
+        if (!screenDoc.exists) return res.status(404).json({ error: 'Screening not found' });
+        const screening = screenDoc.data() as any;
+        if (!screening.refusalOfCare || !screening.refusalData) return res.status(400).json({ error: 'No refusal of care data' });
+
+        let client: any = {};
+        if (screening.clientId) {
+            const clientDoc = await db.collection('clients').doc(screening.clientId).get();
+            if (clientDoc.exists) client = clientDoc.data();
+        }
+
+        const pdfDoc = await PDFDocument.create();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+        const margin = 50;
+        const pageW = 612;
+        const pageH = 792;
+        const contentW = pageW - margin * 2;
+
+        const page = pdfDoc.addPage([pageW, pageH]);
+        let y = pageH - margin;
+
+        // Header
+        page.drawRectangle({ x: 0, y: pageH - 6, width: pageW, height: 6, color: rgb(0.7, 0.15, 0.15) });
+        page.drawText('REFUSAL OF CARE FORM', { x: margin, y: y - 10, font: fontBold, size: 18, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText('Health Matters Clinic (HMC)', { x: margin, y: y - 28, font, size: 10, color: rgb(0.4, 0.4, 0.4) });
+        y -= 55;
+
+        // Client Info
+        page.drawRectangle({ x: margin, y: y - 4, width: contentW, height: 16, color: rgb(0.96, 0.96, 0.96) });
+        page.drawText('CLIENT INFORMATION', { x: margin + 8, y, font: fontBold, size: 8, color: rgb(0.5, 0.2, 0.2) });
+        y -= 24;
+        const fullName = client.firstName && client.lastName ? `${client.firstName} ${client.lastName}` : (screening.clientName || '—');
+        page.drawText(`Name: ${fullName}`, { x: margin + 8, y, font: fontBold, size: 10, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(`DOB: ${client.dob || '—'}`, { x: margin + 300, y, font, size: 10, color: rgb(0.1, 0.1, 0.1) });
+        y -= 18;
+        page.drawText(`Date: ${new Date(screening.refusalData.timestamp || screening.timestamp).toLocaleDateString()}`, { x: margin + 8, y, font, size: 10, color: rgb(0.1, 0.1, 0.1) });
+        y -= 30;
+
+        // Statement
+        page.drawRectangle({ x: margin, y: y - 4, width: contentW, height: 16, color: rgb(0.96, 0.96, 0.96) });
+        page.drawText('STATEMENT OF REFUSAL', { x: margin + 8, y, font: fontBold, size: 8, color: rgb(0.5, 0.2, 0.2) });
+        y -= 24;
+        const statement = 'I, the above-named individual, have been informed of the health screening services available to me today. I understand the purpose and potential benefits of these services. I voluntarily choose to decline the recommended care/screening at this time. I understand that by refusing care, I may be at risk for undetected health conditions. I release Health Matters Clinic (HMC) and its volunteers from any liability related to my decision to refuse care.';
+        const stLines = wrapText(statement, contentW - 16, font, 9);
+        stLines.forEach(line => {
+            page.drawText(line, { x: margin + 8, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
+            y -= 14;
+        });
+        y -= 10;
+
+        // Reason
+        if (screening.refusalData.reason) {
+            page.drawText('Reason for Refusal:', { x: margin + 8, y, font: fontBold, size: 9, color: rgb(0.3, 0.3, 0.3) });
+            y -= 14;
+            page.drawText(screening.refusalData.reason, { x: margin + 8, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
+            y -= 24;
+        }
+
+        // Witness signatures
+        page.drawRectangle({ x: margin, y: y - 4, width: contentW, height: 16, color: rgb(0.96, 0.96, 0.96) });
+        page.drawText('WITNESS SIGNATURES', { x: margin + 8, y, font: fontBold, size: 8, color: rgb(0.5, 0.2, 0.2) });
+        y -= 30;
+
+        // Witness 1
+        page.drawText('Witness 1:', { x: margin + 8, y, font: fontBold, size: 9, color: rgb(0.3, 0.3, 0.3) });
+        y -= 18;
+        page.drawText(`Name: ${screening.refusalData.witness1Name || '—'}`, { x: margin + 8, y, font, size: 10, color: rgb(0.1, 0.1, 0.1) });
+        y -= 18;
+        page.drawLine({ start: { x: margin + 8, y: y + 2 }, end: { x: margin + 250, y: y + 2 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(screening.refusalData.witness1Signature || '', { x: margin + 8, y: y + 4, font: fontItalic, size: 12, color: rgb(0.1, 0.1, 0.5) });
+        page.drawText('Signature', { x: margin + 8, y: y - 10, font, size: 7, color: rgb(0.5, 0.5, 0.5) });
+        y -= 40;
+
+        // Witness 2
+        page.drawText('Witness 2:', { x: margin + 8, y, font: fontBold, size: 9, color: rgb(0.3, 0.3, 0.3) });
+        y -= 18;
+        page.drawText(`Name: ${screening.refusalData.witness2Name || '—'}`, { x: margin + 8, y, font, size: 10, color: rgb(0.1, 0.1, 0.1) });
+        y -= 18;
+        page.drawLine({ start: { x: margin + 8, y: y + 2 }, end: { x: margin + 250, y: y + 2 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(screening.refusalData.witness2Signature || '', { x: margin + 8, y: y + 4, font: fontItalic, size: 12, color: rgb(0.1, 0.1, 0.5) });
+        page.drawText('Signature', { x: margin + 8, y: y - 10, font, size: 7, color: rgb(0.5, 0.5, 0.5) });
+        y -= 40;
+
+        // Footer
+        page.drawText('HMC provides screening & education only — NO diagnosis or treatment.', {
+            x: margin, y: 30, font: fontItalic, size: 7, color: rgb(0.5, 0.5, 0.5)
+        });
+
+        const pdfBytes = await pdfDoc.save();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="HMC_Refusal_of_Care_${fullName.replace(/\s+/g, '_')}.pdf"`);
+        res.send(Buffer.from(pdfBytes));
+    } catch (error: any) {
+        console.error('[REFUSAL PDF] Generation failed:', error);
+        res.status(500).json({ error: 'Failed to generate refusal PDF' });
     }
 });
 

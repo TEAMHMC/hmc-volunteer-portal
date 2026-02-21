@@ -135,6 +135,21 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   }, [opportunity]);
     
   const event = useMemo(() => EVENTS.find(e => `opp-${e.id}` === opportunity.id), [opportunity.id]);
+  // Derive a ClinicEvent from the opportunity so child components always have event data
+  // (EVENTS array is empty — event data comes from Firestore opportunities, not constants)
+  const derivedEvent: ClinicEvent = useMemo(() => event || {
+    id: opportunity.id,
+    title: opportunity.title,
+    program: opportunity.category || '',
+    lat: opportunity.locationCoordinates?.lat || 0,
+    lng: opportunity.locationCoordinates?.lng || 0,
+    address: opportunity.address || opportunity.serviceLocation || '',
+    city: '',
+    date: opportunity.date,
+    dateDisplay: opportunity.dateDisplay || opportunity.date,
+    time: opportunity.time || '',
+    surveyKitId: opportunity.surveyKitId,
+  }, [event, opportunity]);
   const surveyKit = useMemo(() => {
     // 1. Match by explicit surveyKitId on the event
     if (event?.surveyKitId) {
@@ -385,9 +400,9 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}
-          {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
-          {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
-          {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={derivedEvent.id} eventTitle={derivedEvent.title} />}
+          {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={derivedEvent} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={derivedEvent} onLog={handleLogAndSetAudit} />}
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
           {activeTab === 'logistics' && <LogisticsView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
           {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} isLead={isLead} />}
