@@ -3454,9 +3454,10 @@ app.get('/api/referral-flags', verifyToken, async (req: Request, res: Response) 
         const snap = await db.collection('referral_flags')
             .where('eventId', '==', eventId)
             .where('status', '==', 'pending')
-            .orderBy('createdAt', 'desc')
             .get();
-        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const flags = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        flags.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        res.json(flags);
     } catch (error) {
         console.error('[REFERRAL-FLAGS] Failed to fetch:', error);
         res.status(500).json({ error: 'Failed to fetch referral flags' });
@@ -4042,7 +4043,6 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
         const snapshot = await db.collection('opportunities')
             .where('approvalStatus', '==', 'approved')
             .where('date', '>=', today)
-            .orderBy('date', 'asc')
             .get();
 
         const events = snapshot.docs
@@ -4067,6 +4067,7 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
                 };
             });
 
+        events.sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
         console.log(`[PUBLIC EVENTS] Returned ${events.length} approved events (includeAll=${includeAll})`);
         res.json(events);
     } catch (error: any) {
@@ -9767,12 +9768,13 @@ app.get('/api/leaderboard/streaks', verifyToken, async (req: Request, res: Respo
   try {
     const snapshot = await db.collection('volunteer_profiles')
       .where('volunteerType', '==', 'weekly_committed')
-      .orderBy('streakDays', 'desc')
-      .limit(50)
       .get();
+    const sortedDocs = snapshot.docs
+      .sort((a, b) => (b.data().streakDays || 0) - (a.data().streakDays || 0))
+      .slice(0, 50);
 
     const leaderboard = await Promise.all(
-      snapshot.docs.map(async (doc, index) => {
+      sortedDocs.map(async (doc, index) => {
         const volunteer = await db.collection('volunteers').doc(doc.id).get();
         const volData = volunteer.data();
         return {
@@ -10647,9 +10649,9 @@ app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: R
         const { eventId } = req.params;
         const snap = await db.collection('screenings')
             .where('eventId', '==', eventId)
-            .orderBy('createdAt', 'desc')
             .get();
         const screenings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         res.json(screenings);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
