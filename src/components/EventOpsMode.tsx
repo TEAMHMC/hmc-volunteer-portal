@@ -134,12 +134,9 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     return CHECKLIST_TEMPLATES.find(t => t.id === 'wellness-workshop-ops') || CHECKLIST_TEMPLATES[0];
   }, [opportunity]);
     
-  const event = useMemo(() => {
-    const found = EVENTS.find(e => `opp-${e.id}` === opportunity.id);
-    if (found) return found;
-    // Fallback: derive a ClinicEvent-like object from the opportunity so event.id is available for live feed, screenings, etc.
-    return { id: opportunity.id, title: opportunity.title, program: opportunity.category || '', lat: 0, lng: 0, address: opportunity.address || '', city: '', date: opportunity.date, dateDisplay: opportunity.dateDisplay || '', time: opportunity.time || '' } as ClinicEvent;
-  }, [opportunity.id, opportunity.title, opportunity.category, opportunity.address, opportunity.date, opportunity.dateDisplay, opportunity.time]);
+  const event = useMemo(() => EVENTS.find(e => `opp-${e.id}` === opportunity.id), [opportunity.id]);
+  // Fallback event for intake/screening stations — ensures event.id is always available even when EVENTS is empty
+  const stationEvent = useMemo<ClinicEvent>(() => event || { id: opportunity.id, title: opportunity.title, program: opportunity.category || '', lat: 0, lng: 0, address: opportunity.address || '', city: '', date: opportunity.date, dateDisplay: opportunity.dateDisplay || '', time: opportunity.time || '' }, [event, opportunity.id, opportunity.title, opportunity.category, opportunity.address, opportunity.date, opportunity.dateDisplay, opportunity.time]);
   const surveyKit = useMemo(() => {
     // 1. Match by explicit surveyKitId on the event
     if (event?.surveyKitId) {
@@ -391,8 +388,8 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={event?.id} eventTitle={event?.title} />}
-          {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
-          {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={stationEvent} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={stationEvent} onLog={handleLogAndSetAudit} />}
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
           {activeTab === 'logistics' && <LogisticsView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
           {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} isLead={isLead} />}
