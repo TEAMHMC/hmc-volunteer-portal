@@ -4575,12 +4575,12 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
         // Normalize email
         const normalizedEmail = String(email).toLowerCase().trim();
 
-        // Query public_rsvps for this event + email
-        let rsvpSnapshot = await db.collection('public_rsvps')
+        // Query public_rsvps for this event, filter by email in memory to avoid composite index
+        const rsvpAllSnap = await db.collection('public_rsvps')
             .where('eventId', '==', eventId)
-            .where('email', '==', normalizedEmail)
-            .limit(1)
             .get();
+        const rsvpMatchDocs = rsvpAllSnap.docs.filter(d => d.data().email === normalizedEmail).slice(0, 1);
+        let rsvpSnapshot = { empty: rsvpMatchDocs.length === 0, docs: rsvpMatchDocs };
 
         // Fallback: case-insensitive search if direct query misses
         if (rsvpSnapshot.empty) {
@@ -5466,11 +5466,10 @@ app.post('/api/ops/volunteer-checkin/:eventId', verifyToken, async (req: Request
                 // Find unpaired checked-in volunteers
                 const checkinsSnap = await db.collection('volunteer_checkins')
                     .where('eventId', '==', eventId)
-                    .where('checkedIn', '==', true)
                     .get();
 
                 const unpairedCheckedIn = checkinsSnap.docs
-                    .filter(d => d.data().volunteerId !== user.uid && !pairedIds.has(d.data().volunteerId))
+                    .filter(d => d.data().checkedIn === true && d.data().volunteerId !== user.uid && !pairedIds.has(d.data().volunteerId))
                     .map(d => d.data());
 
                 if (unpairedCheckedIn.length > 0) {
@@ -5626,12 +5625,11 @@ app.post('/api/ops/rotation-notify/:eventId', verifyToken, async (req: Request, 
         // Create in-app notifications for all checked-in volunteers
         const checkinsSnap = await db.collection('volunteer_checkins')
             .where('eventId', '==', eventId)
-            .where('checkedIn', '==', true)
-            .where('checkedOut', '==', false)
             .get();
+        const activeCheckins = checkinsSnap.docs.filter(d => d.data().checkedIn === true && d.data().checkedOut === false);
 
         const batch = db.batch();
-        checkinsSnap.docs.forEach(doc => {
+        activeCheckins.forEach(doc => {
             const notifRef = db.collection('notifications').doc();
             batch.set(notifRef, {
                 userId: doc.data().volunteerId,
@@ -5645,7 +5643,7 @@ app.post('/api/ops/rotation-notify/:eventId', verifyToken, async (req: Request, 
         });
         await batch.commit();
 
-        res.json({ success: true, notifiedCount: checkinsSnap.size });
+        res.json({ success: true, notifiedCount: activeCheckins.length });
     } catch (e: any) {
         console.error('[ROTATION-NOTIFY] Failed:', e.message);
         res.status(500).json({ error: 'Failed to send notifications' });
@@ -7320,10 +7318,11 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       const REGISTRATION_ALERT_ROLES = ['Events Lead', 'Events Coordinator', 'Outreach & Engagement Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Volunteer Lead'];
       const coordinatorsSnap = await db.collection('volunteers')
         .where('role', 'in', REGISTRATION_ALERT_ROLES)
-        .where('status', '==', 'active')
         .get();
+      // Filter active in memory to avoid composite index requirement
+      const activeCoordinators = coordinatorsSnap.docs.filter(d => d.data().status === 'active');
 
-      const coordinatorNotifications = coordinatorsSnap.docs.map(async (doc) => {
+      const coordinatorNotifications = activeCoordinators.map(async (doc) => {
         const coordinator = doc.data();
         if (coordinator.email) {
           // Send email notification to coordinator
@@ -8229,11 +8228,12 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
   try {
     // Dedup: skip if already ran today
     const todayStr = getPacificDate(0);
-    const dedupSnap = await db.collection('workflow_runs')
+    const dedupSnapAll = await db.collection('workflow_runs')
       .where('workflowId', '==', 'w1')
-      .where('timestamp', '>=', todayStr + 'T00:00:00')
-      .where('timestamp', '<=', todayStr + 'T23:59:59')
-      .limit(1).get();
+      .get();
+    // Filter by date range in memory to avoid composite index requirement
+    const dedupDocs = dedupSnapAll.docs.filter(d => { const ts = d.data().timestamp; return ts && ts >= todayStr + 'T00:00:00' && ts <= todayStr + 'T23:59:59'; });
+    const dedupSnap = { empty: dedupDocs.length === 0 };
     if (!dedupSnap.empty) {
       console.log(`[WORKFLOW] Shift Reminder already ran today (${todayStr}), skipping`);
       return result;
@@ -9616,10 +9616,11 @@ app.get('/api/referral/dashboard', verifyToken, async (req: Request, res: Respon
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const sharesSnapshot = await db.collection('sharing_events')
+    const sharesSnapshotAll = await db.collection('sharing_events')
       .where('volunteerId', '==', userId)
-      .where('timestamp', '>=', thirtyDaysAgo)
       .get();
+    // Filter by date in memory to avoid composite index requirement
+    const sharesSnapshot = { size: sharesSnapshotAll.docs.filter(d => { const ts = d.data().timestamp; return ts && (typeof ts === 'string' ? new Date(ts) : ts.toDate()) >= thirtyDaysAgo; }).length };
 
     const referralsSnapshot = await db.collection('referrals')
       .where('referrerId', '==', userId)
