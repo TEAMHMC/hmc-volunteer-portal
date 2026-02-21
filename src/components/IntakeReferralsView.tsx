@@ -410,7 +410,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                 <h3 className="text-lg font-black text-zinc-900">Client Registered Successfully</h3>
                 <p className="text-sm text-zinc-600">{createdClient.firstName} {createdClient.lastName} has been added to the system.</p>
                 <div className="flex flex-col gap-3">
-                    <button onClick={() => downloadPdf(`/api/clients/${createdClient.id}/intake-pdf`)} className="w-full py-3 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all">
+                    <button onClick={() => downloadPdf(`/api/clients/${createdClient.id}/intake-pdf`).catch(() => toastService.error('Failed to download PDF.'))} className="w-full py-3 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all">
                         <Download size={16} /> Download Intake Form (PDF)
                     </button>
                     <button onClick={handleContinueToReferral} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2">

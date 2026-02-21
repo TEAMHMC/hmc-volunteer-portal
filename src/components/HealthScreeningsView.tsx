@@ -823,10 +823,10 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     </div>
                 )}
                 <div className="flex flex-col gap-3 max-w-md mx-auto">
-                    <button onClick={() => downloadPdf(`/api/clients/${client.id}/intake-pdf?screeningId=${completedScreeningId}`)} className="w-full py-3 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all">
+                    <button onClick={() => downloadPdf(`/api/clients/${client.id}/intake-pdf?screeningId=${completedScreeningId}`).catch(() => toastService.error('Failed to download PDF.'))} className="w-full py-3 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all">
                         <Download size={16} /> Download Full Intake + Screening (PDF)
                     </button>
-                    <button onClick={() => downloadPdf(`/api/clients/${client.id}/intake-pdf`)} className="w-full py-3 bg-white border border-zinc-200 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-50 transition-all">
+                    <button onClick={() => downloadPdf(`/api/clients/${client.id}/intake-pdf`).catch(() => toastService.error('Failed to download PDF.'))} className="w-full py-3 bg-white border border-zinc-200 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-50 transition-all">
                         <Download size={14} /> Download Intake Only (PDF)
                     </button>
                     <button onClick={() => onComplete()} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide">

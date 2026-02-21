@@ -3667,7 +3667,8 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
     const clientRaces = Array.isArray(client.race) ? client.race : [];
     let raceX = margin;
     for (const race of raceOptions) {
-      if (raceX + 180 > pageWidth - margin) { y -= 16; raceX = margin; }
+      const raceItemWidth = font.widthOfTextAtSize(race, 8) + 26;
+      if (raceX + raceItemWidth > pageWidth - margin) { y -= 16; raceX = margin; }
       drawCheckbox(page, race, clientRaces.includes(race), raceX, y);
       raceX += font.widthOfTextAtSize(race, 8) + 26;
     }
@@ -3686,7 +3687,8 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
     const clientNeeds = client.needs || {};
     let needX = margin;
     for (const [key, label] of needLabels) {
-      if (needX + 120 > pageWidth - margin) { y -= 16; needX = margin; }
+      const needItemWidth = font.widthOfTextAtSize(label, 8) + 26;
+      if (needX + needItemWidth > pageWidth - margin) { y -= 16; needX = margin; }
       drawCheckbox(page, label, !!clientNeeds[key], needX, y);
       needX += font.widthOfTextAtSize(label, 8) + 26;
     }
@@ -3790,19 +3792,23 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
       sy = drawSectionHeader(pg, 'COMPLETION & ATTESTATION', sy);
       sy = drawField(pg, 'Performed By:', screening.performedByName || '', margin, sy);
       if (screening.notes) {
+        if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
         pg.drawText('Notes:', { x: margin, y: sy, font: fontBold, size: 8, color: midGray });
         sy -= 14;
         const noteLines = wrapText(screening.notes, contentWidth - 10, font, 8);
         for (const line of noteLines) {
+          if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
           pg.drawText(line, { x: margin + 5, y: sy, font, size: 8, color: darkGray });
           sy -= 12;
         }
       }
       if (screening.resultsSummary) {
+        if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
         pg.drawText('Results Summary:', { x: margin, y: sy, font: fontBold, size: 8, color: midGray });
         sy -= 14;
         const sumLines = wrapText(screening.resultsSummary, contentWidth - 10, font, 8);
         for (const line of sumLines) {
+          if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
           pg.drawText(line, { x: margin + 5, y: sy, font, size: 8, color: darkGray });
           sy -= 12;
         }
