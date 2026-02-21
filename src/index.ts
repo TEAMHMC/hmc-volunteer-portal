@@ -3985,9 +3985,15 @@ app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Re
         if (!eventId) return res.status(400).json({ error: 'eventId required' });
 
         // Query referrals and screenings for this event in parallel
-        const [referralsSnap, screeningsSnap] = await Promise.all([
+        // Also fetch today's orphaned screenings (no eventId) so no clients are missed
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayISO = todayStart.toISOString();
+
+        const [referralsSnap, screeningsSnap, todayScreeningsSnap] = await Promise.all([
             db.collection('referrals').where('eventId', '==', eventId).get(),
             db.collection('screenings').where('eventId', '==', eventId).get(),
+            db.collection('screenings').where('createdAt', '>=', todayISO).get(),
         ]);
 
         // Collect unique clientIds with their station sources
@@ -4000,12 +4006,24 @@ app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Re
                 clientMap.set(cid, entry);
             }
         }
+        const seenScreeningIds = new Set<string>();
         for (const doc of screeningsSnap.docs) {
+            seenScreeningIds.add(doc.id);
             const cid = doc.data().clientId;
             if (cid) {
                 const entry = clientMap.get(cid) || { referral: false, screening: false };
                 entry.screening = true;
                 clientMap.set(cid, entry);
+            }
+        }
+        // Include today's screenings that have no eventId (orphaned)
+        for (const doc of todayScreeningsSnap.docs) {
+            if (seenScreeningIds.has(doc.id)) continue;
+            const data = doc.data();
+            if (!data.eventId && data.clientId) {
+                const entry = clientMap.get(data.clientId) || { referral: false, screening: false };
+                entry.screening = true;
+                clientMap.set(data.clientId, entry);
             }
         }
 
