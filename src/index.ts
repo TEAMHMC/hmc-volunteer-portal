@@ -3498,13 +3498,33 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
             return res.json({ multiple: true, results: matches.slice(0, 10) });
         }
 
-        let query: admin.firestore.Query = db.collection('clients');
-        if (phone) query = query.where('phone', '==', phone);
-        else if (email) query = query.where('email', '==', email);
+        if (phone) {
+            // Normalize phone: strip all non-digit characters for fuzzy matching
+            const normalizedSearch = (phone as string).replace(/\D/g, '');
+            const snap = await db.collection('clients').get();
+            const matches = snap.docs.filter(d => {
+                const stored = (d.data().phone || '').replace(/\D/g, '');
+                return stored && stored === normalizedSearch;
+            }).map(d => ({ id: d.id, ...d.data() }));
+            if (matches.length === 0) return res.status(404).json({ error: 'Not found' });
+            if (matches.length === 1) return res.json(matches[0]);
+            return res.json({ multiple: true, results: matches.slice(0, 10) });
+        }
 
-        const snap = await query.get();
-        if (snap.empty) return res.status(404).json({ error: "Not found" });
-        res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        if (email) {
+            // Case-insensitive email search
+            const emailLower = (email as string).toLowerCase().trim();
+            const snap = await db.collection('clients').get();
+            const matches = snap.docs.filter(d => {
+                const stored = (d.data().email || '').toLowerCase().trim();
+                return stored && stored === emailLower;
+            }).map(d => ({ id: d.id, ...d.data() }));
+            if (matches.length === 0) return res.status(404).json({ error: 'Not found' });
+            if (matches.length === 1) return res.json(matches[0]);
+            return res.json({ multiple: true, results: matches.slice(0, 10) });
+        }
+
+        return res.status(400).json({ error: 'Search query required' });
     } catch (error: any) {
         console.error('[CLIENTS] Search failed:', error);
         res.status(500).json({ error: 'Client search failed' });

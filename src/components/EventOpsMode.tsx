@@ -134,7 +134,12 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     return CHECKLIST_TEMPLATES.find(t => t.id === 'wellness-workshop-ops') || CHECKLIST_TEMPLATES[0];
   }, [opportunity]);
     
-  const event = useMemo(() => EVENTS.find(e => `opp-${e.id}` === opportunity.id), [opportunity.id]);
+  const event = useMemo(() => {
+    const found = EVENTS.find(e => `opp-${e.id}` === opportunity.id);
+    if (found) return found;
+    // Fallback: derive a ClinicEvent-like object from the opportunity so event.id is available for live feed, screenings, etc.
+    return { id: opportunity.id, title: opportunity.title, program: opportunity.category || '', lat: 0, lng: 0, address: opportunity.address || '', city: '', date: opportunity.date, dateDisplay: opportunity.dateDisplay || '', time: opportunity.time || '' } as ClinicEvent;
+  }, [opportunity.id, opportunity.title, opportunity.category, opportunity.address, opportunity.date, opportunity.dateDisplay, opportunity.time]);
   const surveyKit = useMemo(() => {
     // 1. Match by explicit surveyKitId on the event
     if (event?.surveyKitId) {
