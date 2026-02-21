@@ -4,7 +4,7 @@ import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -3196,9 +3196,11 @@ const SidewalkLayoutCanvas: React.FC<{
     canvasWidth: number;
     canvasHeight: number;
     layoutTemplate: string;
+    flowDirection: 'ltr' | 'rtl';
     onUpdateStations: (stations: Station[]) => void;
     onUpdateLayout: (template: string) => void;
-}> = ({ stations, buddyPairs, rotationSlots, rovingTeam, canvasWidth, canvasHeight, layoutTemplate, onUpdateStations, onUpdateLayout }) => {
+    onUpdateFlowDirection: (dir: 'ltr' | 'rtl') => void;
+}> = ({ stations, buddyPairs, rotationSlots, rovingTeam, canvasWidth, canvasHeight, layoutTemplate, flowDirection, onUpdateStations, onUpdateLayout, onUpdateFlowDirection }) => {
     const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
@@ -3269,9 +3271,13 @@ const SidewalkLayoutCanvas: React.FC<{
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         if (!draggingId || !canvasRef.current) return;
+        const draggingStation = stations.find(s => s.id === draggingId);
+        if (!draggingStation) return;
+        const w = draggingStation.rotation === 90 ? draggingStation.height : draggingStation.width;
+        const h = draggingStation.rotation === 90 ? draggingStation.width : draggingStation.height;
         const rect = canvasRef.current.getBoundingClientRect();
-        const x = Math.max(0, Math.min(canvasWidth - 110, e.clientX - rect.left - 55));
-        const y = Math.max(0, Math.min(canvasHeight - 70, e.clientY - rect.top - 35));
+        const x = Math.max(0, Math.min(canvasWidth - w, e.clientX - rect.left - w / 2));
+        const y = Math.max(0, Math.min(canvasHeight - h, e.clientY - rect.top - h / 2));
         const updated = stations.map(s =>
             s.id === draggingId ? { ...s, position: { x: Math.round(x), y: Math.round(y) } } : s
         );
@@ -3282,9 +3288,13 @@ const SidewalkLayoutCanvas: React.FC<{
     // Mobile tap-to-move
     const handleCanvasTap = (e: React.MouseEvent) => {
         if (!selectedStationId || !canvasRef.current) return;
+        const selStation = stations.find(s => s.id === selectedStationId);
+        if (!selStation) return;
+        const w = selStation.rotation === 90 ? selStation.height : selStation.width;
+        const h = selStation.rotation === 90 ? selStation.width : selStation.height;
         const rect = canvasRef.current.getBoundingClientRect();
-        const x = Math.max(0, Math.min(canvasWidth - 110, e.clientX - rect.left - 55));
-        const y = Math.max(0, Math.min(canvasHeight - 70, e.clientY - rect.top - 35));
+        const x = Math.max(0, Math.min(canvasWidth - w, e.clientX - rect.left - w / 2));
+        const y = Math.max(0, Math.min(canvasHeight - h, e.clientY - rect.top - h / 2));
         const updated = stations.map(s =>
             s.id === selectedStationId ? { ...s, position: { x: Math.round(x), y: Math.round(y) } } : s
         );
@@ -3318,6 +3328,13 @@ const SidewalkLayoutCanvas: React.FC<{
                         {t === 'l-shape' ? 'L-Shape' : t.charAt(0).toUpperCase() + t.slice(1)}
                     </button>
                 ))}
+                <button
+                    onClick={() => onUpdateFlowDirection(flowDirection === 'ltr' ? 'rtl' : 'ltr')}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-zinc-100 text-zinc-600 rounded-full text-[10px] font-black uppercase hover:bg-zinc-200 transition-all"
+                    style={{ minHeight: '36px' }}
+                >
+                    {flowDirection === 'rtl' ? <><ArrowLeft size={12} /> Flow</> : <>Flow <ArrowRight size={12} /></>}
+                </button>
                 <div className="flex-1" />
                 <button
                     onClick={handleAddStation}
@@ -3364,12 +3381,24 @@ const SidewalkLayoutCanvas: React.FC<{
                             <polygon points="0 0, 8 3, 0 6" fill="#a1a1aa" />
                         </marker>
                     </defs>
-                    {stations.slice(0, -1).map((from, i) => {
-                        const to = stations[i + 1];
+                    {(flowDirection === 'rtl' ? [...stations].reverse() : stations).slice(0, -1).map((from, i, arr) => {
+                        const to = arr[i + 1];
+                        const fromW = from.rotation === 90 ? from.height : from.width;
+                        const fromH = from.rotation === 90 ? from.width : from.height;
+                        const toW = to.rotation === 90 ? to.height : to.width;
+                        const toH = to.rotation === 90 ? to.width : to.height;
+                        const fromCx = flowDirection === 'rtl'
+                            ? from.position.x - 4
+                            : from.position.x + fromW + 4;
+                        const fromCy = from.position.y + fromH / 2;
+                        const toCx = flowDirection === 'rtl'
+                            ? to.position.x + toW + 4
+                            : to.position.x - 4;
+                        const toCy = to.position.y + toH / 2;
                         return (
                             <line key={i}
-                                x1={from.position.x + from.width + 4} y1={from.position.y + from.height / 2}
-                                x2={to.position.x - 4} y2={to.position.y + to.height / 2}
+                                x1={fromCx} y1={fromCy}
+                                x2={toCx} y2={toCy}
                                 stroke="#a1a1aa" strokeWidth="1.5" strokeDasharray="6 3"
                                 markerEnd="url(#flow-arrow)" />
                         );
@@ -3382,6 +3411,8 @@ const SidewalkLayoutCanvas: React.FC<{
                     const isRoving = rovingTeam.status === 'active' && rovingTeam.assignedPairIds.some(pid =>
                         rotationSlots.some(sl => sl.assignments.some(a => a.pairId === pid && a.stationId === station.id))
                     );
+                    const renderW = station.rotation === 90 ? station.height : station.width;
+                    const renderH = station.rotation === 90 ? station.width : station.height;
                     return (
                         <div
                             key={station.id}
@@ -3395,9 +3426,9 @@ const SidewalkLayoutCanvas: React.FC<{
                             style={{
                                 left: station.position.x,
                                 top: station.position.y,
-                                width: station.width,
-                                height: station.height,
-                                minWidth: '90px',
+                                width: renderW,
+                                height: renderH,
+                                minWidth: station.rotation === 90 ? undefined : '90px',
                                 backgroundColor: station.status === 'depleted' ? '#f4f4f5' : `${getStationColor(station.id)}15`,
                                 borderColor: station.status === 'depleted' ? '#d4d4d8' : getStationColor(station.id),
                             }}
@@ -3417,12 +3448,24 @@ const SidewalkLayoutCanvas: React.FC<{
                                 <span className="text-[7px] font-black text-orange-500 uppercase">Roving</span>
                             )}
                             {selectedStationId === station.id && (
-                                <button
-                                    onClick={e => { e.stopPropagation(); handleRemoveStation(station.id); }}
-                                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
-                                >
-                                    <X size={10} />
-                                </button>
+                                <>
+                                    <button
+                                        onClick={e => { e.stopPropagation(); handleRemoveStation(station.id); }}
+                                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                                    >
+                                        <X size={10} />
+                                    </button>
+                                    <button
+                                        onClick={e => { e.stopPropagation();
+                                            onUpdateStations(stations.map(s => s.id === station.id
+                                                ? { ...s, rotation: s.rotation === 90 ? 0 : 90 } : s));
+                                        }}
+                                        className="absolute -top-2 -left-2 w-5 h-5 bg-brand text-white rounded-full flex items-center justify-center"
+                                        title="Rotate station"
+                                    >
+                                        <RotateCw size={10} />
+                                    </button>
+                                </>
                             )}
                             {/* Editable station name — shown when selected */}
                             {selectedStationId === station.id && (
@@ -3446,7 +3489,9 @@ const SidewalkLayoutCanvas: React.FC<{
                 })}
             </div>
             {/* Canvas legend */}
-            <span className="text-[9px] text-zinc-400 font-bold">Dashed arrows = Client Flow &rarr;</span>
+            <span className="text-[9px] text-zinc-400 font-bold">
+                {flowDirection === 'rtl' ? 'Dashed arrows = \u2190 Client Flow' : 'Dashed arrows = Client Flow \u2192'}
+            </span>
         </div>
     );
 };
@@ -4111,8 +4156,10 @@ const StationRotationPlanner: React.FC<{
                     canvasWidth={config.canvasWidth}
                     canvasHeight={config.canvasHeight}
                     layoutTemplate={config.layoutTemplate || 'linear'}
+                    flowDirection={config.flowDirection || 'ltr'}
                     onUpdateStations={stations => updateConfig({ stations })}
                     onUpdateLayout={t => updateConfig({ layoutTemplate: t as StationRotationConfig['layoutTemplate'] })}
+                    onUpdateFlowDirection={dir => updateConfig({ flowDirection: dir })}
                 />
             )}
 

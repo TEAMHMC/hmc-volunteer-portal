@@ -146,6 +146,11 @@ if (!FIREBASE_WEB_API_KEY) {
     console.log(`[AUTH] Using API key from ${keySource}`);
 }
 const twilioClient = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) : null;
+if (twilioClient) {
+  console.log(`✅ Twilio SMS configured${TWILIO_MESSAGING_SERVICE_SID ? ' with Messaging Service SID' : TWILIO_PHONE_NUMBER ? ' with phone number' : ' (⚠️ no Messaging SID or phone number — SMS will not send)'}`);
+} else {
+  console.warn('⚠️  Twilio not configured — SMS features will be disabled');
+}
 
 // Twilio signature validation middleware (prevents spoofed webhook requests)
 const validateTwilioSignature = (req: Request, res: Response, next: NextFunction) => {
@@ -1949,9 +1954,12 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
     }
 
     try {
+        // Normalize email before duplicate check and storage
+        user.email = user.email.toLowerCase().trim();
+
         // Check if email already exists
         const existingByEmail = await db.collection('volunteers')
-            .where('email', '==', user.email.toLowerCase())
+            .where('email', '==', user.email)
             .limit(1)
             .get();
 
@@ -2053,35 +2061,41 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
           applicationId: finalUserId.substring(0, 12).toUpperCase(),
         });
 
-        // Notify ALL admins about new applicant
-        for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
+        // Notify ALL admins about new applicant (with dedup guard to prevent spam on retries)
+        const freshDoc = await db.collection('volunteers').doc(finalUserId).get();
+        if (!freshDoc.data()?._signupAlertSent) {
+          for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
+            try {
+              await EmailService.send('admin_new_applicant', {
+                toEmail: adminEmail,
+                volunteerName: user.name || user.firstName || 'New Applicant',
+                volunteerEmail: user.email,
+                appliedRole: user.appliedRole || 'HMC Champion',
+                applicationId: finalUserId.substring(0, 12).toUpperCase(),
+              });
+              console.log(`[SIGNUP] Sent admin notification to ${maskEmail(adminEmail)} for new applicant: ${maskEmail(user.email)}`);
+            } catch (adminEmailErr) {
+              console.error(`[SIGNUP] Failed to send admin notification to ${maskEmail(adminEmail)}:`, adminEmailErr);
+            }
+          }
+
+          // Also create an in-app notification in Firestore as fallback
           try {
-            await EmailService.send('admin_new_applicant', {
-              toEmail: adminEmail,
+            await db.collection('admin_notifications').add({
+              type: 'new_application',
               volunteerName: user.name || user.firstName || 'New Applicant',
               volunteerEmail: user.email,
+              volunteerId: finalUserId,
               appliedRole: user.appliedRole || 'HMC Champion',
-              applicationId: finalUserId.substring(0, 12).toUpperCase(),
+              status: 'unread',
+              createdAt: new Date().toISOString(),
             });
-            console.log(`[SIGNUP] Sent admin notification to ${maskEmail(adminEmail)} for new applicant: ${maskEmail(user.email)}`);
-          } catch (adminEmailErr) {
-            console.error(`[SIGNUP] Failed to send admin notification to ${maskEmail(adminEmail)}:`, adminEmailErr);
+          } catch (notifErr) {
+            console.error('[SIGNUP] Failed to create in-app notification:', notifErr);
           }
-        }
 
-        // Also create an in-app notification in Firestore as fallback
-        try {
-          await db.collection('admin_notifications').add({
-            type: 'new_application',
-            volunteerName: user.name || user.firstName || 'New Applicant',
-            volunteerEmail: user.email,
-            volunteerId: finalUserId,
-            appliedRole: user.appliedRole || 'HMC Champion',
-            status: 'unread',
-            createdAt: new Date().toISOString(),
-          });
-        } catch (notifErr) {
-          console.error('[SIGNUP] Failed to create in-app notification:', notifErr);
+          // Mark signup alerts as sent to prevent duplicate emails on retries
+          await db.collection('volunteers').doc(finalUserId).update({ _signupAlertSent: true });
         }
 
         // Process referral if provided
@@ -3144,7 +3158,7 @@ app.post('/api/gemini/draft-announcement', verifyToken, async (req: Request, res
 app.get('/api/resources', verifyToken, async (req: Request, res: Response) => {
     try {
         const snap = await db.collection('referral_resources').get();
-        res.json(snap.docs.map(d => d.data()));
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error: any) {
         console.error('[RESOURCES] Failed to fetch:', error);
         res.status(500).json({ error: 'Failed to fetch resources' });
@@ -3403,6 +3417,65 @@ app.put('/api/referrals/:id', verifyToken, requireAdmin, async (req: Request, re
         res.status(500).json({ error: 'Failed to update referral' });
     }
 });
+
+// --- REFERRAL FLAGS (Live Feed → Intake handoff) ---
+
+// Create a referral flag
+app.post('/api/referral-flags', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { clientId, clientName, screeningId, eventId, notes } = req.body;
+        if (!clientId || !eventId) return res.status(400).json({ error: 'clientId and eventId are required' });
+        const flag = {
+            clientId,
+            clientName: clientName || '',
+            screeningId: screeningId || '',
+            eventId,
+            notes: notes || '',
+            flaggedBy: (req as any).user.uid,
+            flaggedByName: (req as any).user.profile?.name || 'Unknown',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+        };
+        const doc = await db.collection('referral_flags').add(flag);
+        res.json({ id: doc.id, ...flag });
+    } catch (error) {
+        console.error('[REFERRAL-FLAGS] Failed to create:', error);
+        res.status(500).json({ error: 'Failed to create referral flag' });
+    }
+});
+
+// Get pending referral flags for an event
+app.get('/api/referral-flags', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.query;
+        if (!eventId) return res.status(400).json({ error: 'eventId is required' });
+        const snap = await db.collection('referral_flags')
+            .where('eventId', '==', eventId)
+            .where('status', '==', 'pending')
+            .orderBy('createdAt', 'desc')
+            .get();
+        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+        console.error('[REFERRAL-FLAGS] Failed to fetch:', error);
+        res.status(500).json({ error: 'Failed to fetch referral flags' });
+    }
+});
+
+// Mark a referral flag as addressed
+app.put('/api/referral-flags/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        await db.collection('referral_flags').doc(req.params.id).update({
+            status: 'addressed',
+            addressedBy: (req as any).user.uid,
+            addressedAt: new Date().toISOString(),
+        });
+        res.json({ id: req.params.id, status: 'addressed' });
+    } catch (error) {
+        console.error('[REFERRAL-FLAGS] Failed to update:', error);
+        res.status(500).json({ error: 'Failed to update referral flag' });
+    }
+});
+
 app.post('/api/clients/search', verifyToken, async (req: Request, res: Response) => {
     try {
         const { phone, email, name } = req.body;
@@ -3466,7 +3539,7 @@ app.get('/api/clients', verifyToken, requireAdmin, async (req: Request, res: Res
 });
 
 // Get single client
-app.get('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
     try {
         const doc = await db.collection('clients').doc(req.params.id).get();
         if (!doc.exists) return res.status(404).json({ error: 'Client not found' });
@@ -3477,9 +3550,9 @@ app.get('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res:
 });
 
 // Update client
-app.put('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
     try {
-        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status']), updatedAt: new Date().toISOString() };
+        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
         await db.collection('clients').doc(req.params.id).update(updates);
         res.json({ id: req.params.id, ...updates });
     } catch (error) {
@@ -3488,12 +3561,65 @@ app.put('/api/clients/:id', verifyToken, requireAdmin, async (req: Request, res:
 });
 
 // Get client referral history
-app.get('/api/clients/:id/referrals', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Response) => {
     try {
         const snap = await db.collection('referrals').where('clientId', '==', req.params.id).orderBy('createdAt', 'desc').get();
         res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch client referrals' });
+    }
+});
+
+// --- EVENT CLIENTS (cross-tab visibility) ---
+app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        if (!eventId) return res.status(400).json({ error: 'eventId required' });
+
+        // Query referrals and screenings for this event in parallel
+        const [referralsSnap, screeningsSnap] = await Promise.all([
+            db.collection('referrals').where('eventId', '==', eventId).get(),
+            db.collection('screenings').where('eventId', '==', eventId).get(),
+        ]);
+
+        // Collect unique clientIds with their station sources
+        const clientMap = new Map<string, { referral: boolean; screening: boolean }>();
+        for (const doc of referralsSnap.docs) {
+            const cid = doc.data().clientId;
+            if (cid) {
+                const entry = clientMap.get(cid) || { referral: false, screening: false };
+                entry.referral = true;
+                clientMap.set(cid, entry);
+            }
+        }
+        for (const doc of screeningsSnap.docs) {
+            const cid = doc.data().clientId;
+            if (cid) {
+                const entry = clientMap.get(cid) || { referral: false, screening: false };
+                entry.screening = true;
+                clientMap.set(cid, entry);
+            }
+        }
+
+        if (clientMap.size === 0) return res.json([]);
+
+        // Batch-fetch client records (Firestore IN queries limited to 30)
+        const clientIds = Array.from(clientMap.keys());
+        const clients: any[] = [];
+        for (let i = 0; i < clientIds.length; i += 30) {
+            const batch = clientIds.slice(i, i + 30);
+            const snap = await db.collection('clients').where(admin.firestore.FieldPath.documentId(), 'in', batch).get();
+            snap.docs.forEach(d => {
+                const data = d.data();
+                const stations = clientMap.get(d.id)!;
+                clients.push({ id: d.id, firstName: data.firstName, lastName: data.lastName, dob: data.dob, phone: data.phone, stations });
+            });
+        }
+
+        res.json(clients);
+    } catch (error: any) {
+        console.error('[EVENT CLIENTS] Failed:', error.message);
+        res.status(500).json({ error: 'Failed to fetch event clients' });
     }
 });
 
@@ -5465,14 +5591,12 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
         // Check if this is an onboarding completion (new user finishing their application)
         const existingDoc = await db.collection('volunteers').doc(docId).get();
         const existingData = existingDoc.exists ? existingDoc.data() : null;
-        // Detect onboarding completion by EITHER:
-        // 1. Existing doc still has isNewUser=true (first submission), OR
-        // 2. The update payload sets isNewUser=false AND includes onboarding fields
-        //    (retry/re-submission after a prior partial save or kick-out)
-        const isOnboardingCompletion = existingData && (
-            existingData.isNewUser === true ||
-            (updates.isNewUser === false && updates.legalFirstName && !existingData.applicationStatus)
-        );
+        // Detect onboarding completion: only fire when user is transitioning FROM isNewUser=true
+        // TO completing onboarding (isNewUser=false), and guard with _onboardingAlertSent to prevent re-firing
+        const isOnboardingCompletion = existingData &&
+            existingData.isNewUser === true &&
+            updates.isNewUser === false &&
+            !existingData._onboardingAlertSent;
 
         let finalUpdates: any;
         if (isOnboardingCompletion) {
@@ -5494,6 +5618,10 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
         // Encrypt SSN if being updated
         if (finalUpdates.ssn) finalUpdates.ssn = encryptSSN(finalUpdates.ssn);
         // Ensure they can only update their own doc
+        // If this is an onboarding completion, also set the guard flag to prevent duplicate alerts
+        if (isOnboardingCompletion) {
+            finalUpdates._onboardingAlertSent = true;
+        }
         await db.collection('volunteers').doc(docId).set(finalUpdates, { merge: true });
         const updated = (await db.collection('volunteers').doc(docId).get()).data();
 

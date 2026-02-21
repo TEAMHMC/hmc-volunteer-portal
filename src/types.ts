@@ -979,6 +979,7 @@ export interface Station {
   roleB: string;
   swapRoles: boolean;
   linkedTool?: 'screenings' | 'intake' | 'tracker';
+  rotation?: number; // 0 = horizontal (default), 90 = vertical
 }
 
 export interface RotationSlot {
@@ -1028,6 +1029,7 @@ export interface StationRotationConfig {
   rotationSlots: RotationSlot[];
   rovingTeam: RovingTeam;
   reallocationLog: ReallocationEntry[];
+  flowDirection?: 'ltr' | 'rtl';
   updatedAt: string;
   updatedBy: string;
 }

@@ -3,8 +3,106 @@ import React, { useState, useEffect } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ReferralRecord, AuditLog, ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
-import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot, Phone, Mail, Users, Footprints } from 'lucide-react';
+import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot, Phone, Mail, Users, Footprints, Edit3, Save, Flag, Bell } from 'lucide-react';
 import { toastService } from '../services/toastService';
+
+// --- CLIENT HISTORY BADGES ---
+const ClientHistoryBadges: React.FC<{ clientId?: string }> = ({ clientId }) => {
+    const [screeningCount, setScreeningCount] = useState<number | null>(null);
+    const [referralCount, setReferralCount] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!clientId) return;
+        const fetchHistory = async () => {
+            try {
+                const [screenings, referrals] = await Promise.all([
+                    apiService.get(`/api/screenings?clientId=${clientId}`),
+                    apiService.get(`/api/clients/${clientId}/referrals`),
+                ]);
+                setScreeningCount(Array.isArray(screenings) ? screenings.length : 0);
+                setReferralCount(Array.isArray(referrals) ? referrals.length : 0);
+            } catch { setScreeningCount(0); setReferralCount(0); }
+        };
+        fetchHistory();
+    }, [clientId]);
+
+    if (screeningCount === null) return null;
+    const isNew = screeningCount === 0 && referralCount === 0;
+
+    return (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+            {isNew ? (
+                <span className="px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-full text-[10px] font-bold">New client — no prior history</span>
+            ) : (
+                <>
+                    {screeningCount! > 0 && <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-[10px] font-bold">{screeningCount} screening{screeningCount !== 1 ? 's' : ''}</span>}
+                    {referralCount! > 0 && <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-[10px] font-bold">{referralCount} referral{referralCount !== 1 ? 's' : ''}</span>}
+                </>
+            )}
+        </div>
+    );
+};
+
+// --- EDIT CLIENT FORM ---
+const EditClientForm: React.FC<{ client: ClientRecord; onUpdate: (updated: Partial<ClientRecord>) => void; onClose: () => void }> = ({ client, onUpdate, onClose }) => {
+    const [fields, setFields] = useState({
+        phone: client.phone || '',
+        email: client.email || '',
+        address: client.address || '',
+        city: client.city || '',
+        zipCode: client.zipCode || '',
+        primaryLanguage: client.primaryLanguage || '',
+        housingStatus: (client as any).housingStatus || '',
+        notes: (client as any).notes || '',
+    });
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        if (!client.id) return;
+        setIsSaving(true);
+        try {
+            const updated = await apiService.put(`/api/clients/${client.id}`, { client: fields });
+            onUpdate(updated);
+            toastService.success('Client info updated.');
+            onClose();
+        } catch { toastService.error('Failed to update client.'); }
+        finally { setIsSaving(false); }
+    };
+
+    const inputClass = "w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-brand/30 text-sm";
+
+    return (
+        <div className="p-4 bg-white border border-zinc-200 rounded-2xl space-y-3 animate-in fade-in mt-3">
+            <div className="flex items-center justify-between">
+                <p className="text-xs font-black text-zinc-400 uppercase tracking-[0.15em]">Edit Client Info</p>
+                <button onClick={onClose} className="p-1 hover:bg-zinc-100 rounded-full"><X size={14} /></button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input placeholder="Phone" value={fields.phone} onChange={e => setFields({...fields, phone: e.target.value})} className={inputClass} />
+                <input placeholder="Email" value={fields.email} onChange={e => setFields({...fields, email: e.target.value})} className={inputClass} />
+                <input placeholder="Address" value={fields.address} onChange={e => setFields({...fields, address: e.target.value})} className={inputClass} />
+                <input placeholder="City" value={fields.city} onChange={e => setFields({...fields, city: e.target.value})} className={inputClass} />
+                <input placeholder="Zip Code" value={fields.zipCode} onChange={e => setFields({...fields, zipCode: e.target.value})} className={inputClass} />
+                <input placeholder="Primary Language" value={fields.primaryLanguage} onChange={e => setFields({...fields, primaryLanguage: e.target.value})} className={inputClass} />
+                <select value={fields.housingStatus} onChange={e => setFields({...fields, housingStatus: e.target.value})} className={inputClass}>
+                    <option value="">Housing Status</option>
+                    <option value="housed">Housed</option>
+                    <option value="unhoused">Unhoused / Homeless</option>
+                    <option value="transitional">Transitional Housing</option>
+                    <option value="shelter">Shelter</option>
+                    <option value="unknown">Unknown / Declined</option>
+                </select>
+            </div>
+            <textarea placeholder="Notes" value={fields.notes} onChange={e => setFields({...fields, notes: e.target.value})} rows={2} className={`${inputClass} resize-none`} />
+            <div className="flex gap-2 justify-end">
+                <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-zinc-500 hover:text-zinc-700">Cancel</button>
+                <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-brand text-white rounded-full text-xs font-bold flex items-center gap-1.5 disabled:opacity-50">
+                    {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Save
+                </button>
+            </div>
+        </div>
+    );
+};
 
 interface IntakeReferralsViewProps {
     user: Volunteer;
@@ -23,6 +121,23 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
     const [resources, setResources] = useState<ReferralResource[]>([]);
     const [searchMode, setSearchMode] = useState<'phone' | 'email' | 'name' | 'walk-in'>('phone');
     const [walkInMode, setWalkInMode] = useState(false);
+    const [editingClientId, setEditingClientId] = useState<string | null>(null);
+    const [referralFlags, setReferralFlags] = useState<any[]>([]);
+    const [eventClients, setEventClients] = useState<any[]>([]);
+
+    // Poll for event clients (cross-tab visibility)
+    useEffect(() => {
+        if (!event?.id) return;
+        const fetchEventClients = async () => {
+            try {
+                const clients = await apiService.get(`/api/clients/event/${event.id}`);
+                setEventClients(Array.isArray(clients) ? clients : []);
+            } catch { /* ignore polling errors */ }
+        };
+        fetchEventClients();
+        const interval = setInterval(fetchEventClients, 15000);
+        return () => clearInterval(interval);
+    }, [event?.id]);
 
     useEffect(() => {
         const fetchResources = async () => {
@@ -35,6 +150,20 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         };
         fetchResources();
     }, []);
+
+    // Poll for referral flags from the live feed
+    useEffect(() => {
+        if (!event?.id) return;
+        const fetchFlags = async () => {
+            try {
+                const flags = await apiService.get(`/api/referral-flags?eventId=${event.id}`);
+                setReferralFlags(Array.isArray(flags) ? flags : []);
+            } catch { /* ignore polling errors */ }
+        };
+        fetchFlags();
+        const interval = setInterval(fetchFlags, 15000);
+        return () => clearInterval(interval);
+    }, [event?.id]);
 
     const resetState = () => {
         setView('search');
@@ -96,6 +225,17 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
         setView('referral');
     };
 
+    const handleFlaggedClient = async (flag: any) => {
+        try {
+            const client = await apiService.get(`/api/clients/${flag.clientId}`);
+            setActiveClient(client);
+            setView('referral');
+            // Mark flag as addressed
+            await apiService.put(`/api/referral-flags/${flag.id}`, {});
+            setReferralFlags(prev => prev.filter(f => f.id !== flag.id));
+        } catch { toastService.error('Failed to load flagged client.'); }
+    };
+
     // Medical roles need clinical onboarding completed, others need core volunteer training
     const isMedicalRole = user.role?.includes('Medical') || user.role?.includes('Licensed');
     const LEAD_ROLES = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
@@ -116,6 +256,22 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
 
             {view === 'search' && (
                 <div className="max-w-xl mx-auto space-y-6">
+                    {/* Event Clients Quick-Pick */}
+                    {eventClients.length > 0 && (
+                        <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl">
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Event Clients — {eventClients.length} today</p>
+                            <div className="flex flex-wrap gap-2">
+                                {eventClients.map((ec: any) => (
+                                    <button key={ec.id} onClick={() => handleStartReferral(ec as ClientRecord)} className="px-3 py-1.5 bg-white border border-indigo-100 rounded-full text-xs font-bold text-zinc-700 hover:border-brand/40 hover:shadow-sm transition-all flex items-center gap-1.5">
+                                        {ec.firstName} {ec.lastName}
+                                        {ec.stations?.screening && <span className="w-1.5 h-1.5 rounded-full bg-blue-400" title="Screened" />}
+                                        {ec.stations?.referral && <span className="w-1.5 h-1.5 rounded-full bg-purple-400" title="Referred" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Search Mode Selector */}
                     <div className="flex flex-wrap gap-2">
                         <button type="button" onClick={() => handleSearchModeChange('phone')} className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-colors ${searchMode === 'phone' ? 'bg-brand text-white' : 'bg-zinc-100 text-zinc-500'}`}><Phone size={14} /> By Phone</button>
@@ -140,7 +296,18 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
 
                     {/* Single Result */}
                     {searchResult && searchResult !== 'not_found' && (
-                        <div className="p-4 md:p-8 bg-emerald-50 rounded-3xl border border-emerald-200 shadow-elevation-1"><p className="text-xs font-bold text-emerald-800">Client Found</p><p className="text-base md:text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p><button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 min-h-[44px]"><Send size={14}/> Create Referral</button></div>
+                        <div className="p-4 md:p-8 bg-emerald-50 rounded-3xl border border-emerald-200 shadow-elevation-1">
+                            <p className="text-xs font-bold text-emerald-800">Client Found</p>
+                            <p className="text-base md:text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
+                            <ClientHistoryBadges clientId={searchResult.id} />
+                            <div className="flex items-center gap-2 mt-4">
+                                <button onClick={() => handleStartReferral(searchResult as ClientRecord)} className="px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 min-h-[44px]"><Send size={14}/> Create Referral</button>
+                                <button onClick={() => setEditingClientId(editingClientId === searchResult.id ? null : searchResult.id!)} className="px-3 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-full text-xs font-bold flex items-center gap-1.5 hover:border-brand/30 min-h-[44px]"><Edit3 size={12} /> Edit Info</button>
+                            </div>
+                            {editingClientId === searchResult.id && (
+                                <EditClientForm client={searchResult as ClientRecord} onUpdate={(updated) => setSearchResult({...searchResult, ...updated} as ClientRecord)} onClose={() => setEditingClientId(null)} />
+                            )}
+                        </div>
                     )}
 
                     {/* Multiple Results */}
@@ -249,7 +416,14 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
         setIsLoading(true);
         setRecommendations([]);
         try {
-            const result = await apiService.post('/api/ai/match-resources', { serviceNeeded: clientNeed });
+            const result = await apiService.post('/api/ai/match-resources', {
+                serviceNeeded: clientNeed,
+                clientData: {
+                    primaryLanguage: client.primaryLanguage,
+                    spa: client.zipCode,
+                    needs: { housing: (client as any).housingStatus, name: `${client.firstName} ${client.lastName}` }
+                }
+            });
             setRecommendations(result.matches || []);
             onLog({ actionType: 'AI_REFERRAL_MATCH', targetSystem: 'FIRESTORE', targetId: client.id, summary: `AI referral match requested for need: "${clientNeed}"` });
         } catch(e) {
