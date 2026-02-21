@@ -4877,6 +4877,20 @@ app.post('/api/events/:id/walkin-checkin', verifyToken, async (req: Request, res
     }
 });
 
+// --- CLIENT SURVEY ENDPOINTS ---
+app.post('/api/client-surveys/create', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const survey = req.body;
+        survey.submittedAt = new Date().toISOString();
+        survey.submittedByUid = (req as any).user?.uid;
+        const ref = await db.collection('clientSurveys').add(survey);
+        res.json({ id: ref.id, ...survey });
+    } catch (e: any) {
+        console.error('[CLIENT SURVEY] Failed to create:', e.message);
+        res.status(500).json({ error: 'Failed to submit survey' });
+    }
+});
+
 // --- FEEDBACK ENDPOINTS ---
 app.get('/api/feedback', verifyToken, async (req: Request, res: Response) => {
     try {

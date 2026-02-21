@@ -1236,8 +1236,8 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
 
         setIsSubmitting(true);
         try {
-            // 1. Submit survey to survey service
-            const surveyId = await surveyService.submitClientSurvey({
+            // Submit survey via backend API (avoids client-side Firestore security rules)
+            await apiService.post('/api/client-surveys/create', {
                 surveyKitId: surveyKit.id,
                 surveyKitName: surveyKit.name,
                 clientFirstName: clientInfo.firstName,
