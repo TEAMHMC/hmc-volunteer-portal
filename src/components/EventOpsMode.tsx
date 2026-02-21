@@ -830,17 +830,17 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
                     {opportunity.date && <p className="text-sm text-zinc-500 font-medium mt-1">{opportunity.date}</p>}
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
-                    <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity shadow-elevation-2">
+                    <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider hover:opacity-90 transition-opacity shadow-elevation-2">
                         <FileText size={14} /> Print QR Code
                     </button>
-                    <button onClick={handleCopyLink} className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-700 rounded-full text-[11px] font-bold uppercase tracking-wider border border-zinc-200 hover:bg-zinc-100 transition-colors">
+                    <button onClick={handleCopyLink} className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-white text-zinc-700 rounded-full text-[11px] font-bold uppercase tracking-wider border border-zinc-200 hover:bg-zinc-100 transition-colors">
                         {copied ? <><Check size={14} className="text-emerald-500" /> Copied!</> : <><ClipboardPaste size={14} /> Copy Link</>}
                     </button>
                 </div>
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <p className="text-3xl font-black text-zinc-900">{totalRsvps}</p>
                     <p className="text-sm font-bold text-blue-500 mt-1">RSVPs</p>
@@ -1120,13 +1120,13 @@ const ChecklistsView: React.FC<{
             className="text-2xl font-black text-zinc-900 tracking-tight uppercase leading-none bg-transparent border-b-2 border-brand outline-none w-full"
           />
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={handleCancelEdit} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors">Cancel</button>
+            <button onClick={handleCancelEdit} className="px-4 py-2 min-h-[44px] text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors">Cancel</button>
             {hasOverride && onResetTemplate && (
-              <button onClick={handleReset} disabled={saving} className="px-4 py-2 bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold uppercase tracking-wider border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+              <button onClick={handleReset} disabled={saving} className="px-4 py-2 min-h-[44px] bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold uppercase tracking-wider border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1.5 disabled:opacity-50">
                 <RotateCcw size={12} /> Reset
               </button>
             )}
-            <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:bg-brand-hover transition-colors flex items-center gap-1.5 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving} className="px-6 py-2 min-h-[44px] bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider border border-black shadow-elevation-2 hover:bg-brand-hover transition-colors flex items-center gap-1.5 disabled:opacity-50">
               {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Save
             </button>
           </div>

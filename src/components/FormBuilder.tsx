@@ -266,7 +266,7 @@ const FormBuilder: React.FC = () => {
                           <h3 className="text-base md:text-xl font-bold text-zinc-900">{form.title}</h3>
                           <p className="text-xs md:text-sm text-zinc-500 mt-2">{form.description}</p>
                           <div className="mt-3">
-                            <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] rounded">
+                            <span className="px-2 py-1 bg-zinc-100 text-zinc-500 text-[11px] font-black uppercase tracking-[0.2em] rounded">
                               {form.category || 'custom'}
                             </span>
                           </div>

@@ -105,12 +105,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
           <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider group-hover:text-brand transition-colors">HMC VOLUNTEER PLATFORM</span>
         </a>
         <div className="flex items-center gap-1.5 md:gap-2">
-          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
+          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
             Admin
             <span className="hidden sm:inline">Portal</span>
           </button>
-          <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-3 md:px-8 py-2 md:py-3.5 rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3">
+          <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
             Login
             <span className="hidden sm:inline">/ Sign Up</span>
@@ -207,7 +207,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 {!isAdmin && (
                     <div className="text-center pt-2">
                         <p className="text-xs font-bold text-zinc-400">Don't have an account yet?</p>
-                        <button onClick={handleSignUpClick} className="mt-3 bg-white border border-black text-zinc-900 px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-wide flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-elevation-1 mx-auto">
+                        <button onClick={handleSignUpClick} className="mt-3 bg-white border border-black text-zinc-900 px-6 py-2.5 min-h-[44px] rounded-full font-bold text-[10px] uppercase tracking-wide flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-elevation-1 mx-auto">
                             <div className="w-1.5 h-1.5 rounded-full bg-black" />
                             Apply to Volunteer
                         </button>

@@ -474,7 +474,7 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-zinc-200 p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">

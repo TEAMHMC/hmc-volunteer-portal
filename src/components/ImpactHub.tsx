@@ -30,7 +30,7 @@ const ImpactHub: React.FC<ImpactHubProps> = ({ user, allVolunteers, onUpdate }) 
           <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Impact Hub</h2>
           <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">Amplify your contribution, earn rewards, and see how you rank among your peers.</p>
         </div>
-        <div className="flex bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto">
+        <div className="flex flex-wrap sm:flex-nowrap bg-white border border-zinc-100 p-2 rounded-full shadow-elevation-1 shrink-0 overflow-x-auto w-full sm:w-auto">
           <button onClick={() => setActiveTab('content')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === 'content' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><DollarSign size={16} /> {isComms ? 'Content Studio' : 'Fundraising'}</button>
           <button onClick={() => setActiveTab('leaderboard')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Leaderboard</button>
           <button onClick={() => setActiveTab('rewards')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === 'rewards' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Gift size={16} /> Rewards</button>
@@ -229,7 +229,7 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
                 </div>
                 <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>
                 <p className="text-2xl font-black text-zinc-900 my-4">{reward.points} <span className="text-xs font-bold text-zinc-300">XP</span></p>
-                <button disabled={!canAfford} className="w-full py-3 bg-brand border border-black text-white rounded-full font-black text-[10px] uppercase tracking-[0.2em] disabled:opacity-30 disabled:cursor-not-allowed">
+                <button disabled={!canAfford} className="w-full py-3 bg-brand border border-black text-white rounded-full font-black text-[11px] uppercase tracking-[0.2em] disabled:opacity-30 disabled:cursor-not-allowed">
                   Redeem
                 </button>
               </div>

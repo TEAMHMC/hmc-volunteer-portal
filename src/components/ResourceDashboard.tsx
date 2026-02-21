@@ -366,8 +366,8 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8 animate-in fade-in" onClick={onClose}>
-            <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-8 space-y-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 p-4 md:p-8 space-y-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-black tracking-tight text-zinc-900">Bulk Upload Resources</h2>
                     <button onClick={onClose} className="p-2 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900">
@@ -392,7 +392,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                             <div><span className="text-2xl font-black text-amber-900">{importResult.updatedCount}</span> <span className="text-amber-700">updated</span></div>
                             <div><span className="text-2xl font-black text-zinc-500">{importResult.skippedCount}</span> <span className="text-zinc-400">skipped</span></div>
                         </div>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 min-h-[44px] bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide">Done</button>
                     </div>
                 ) : (
                     <>
@@ -419,13 +419,13 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
 };
 
 const NewResourceModal: React.FC<{ onClose: () => void, onComplete: () => void }> = ({ onClose, onComplete }) => (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-8" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8" onClick={onClose}>
         <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 flex flex-col max-h-[90vh] border border-zinc-100" onClick={e => e.stopPropagation()}>
-            <header className="p-8 border-b border-zinc-100 flex items-center justify-between">
+            <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between">
                 <h2 className="text-2xl font-black tracking-tight text-zinc-900">Add New Resource</h2>
                 <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
             </header>
-            <main className="p-8 overflow-y-auto">
+            <main className="p-4 md:p-8 overflow-y-auto">
                 <NewResourceForm onComplete={() => { onComplete(); onClose(); }} />
             </main>
         </div>

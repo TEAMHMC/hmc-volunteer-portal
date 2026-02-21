@@ -91,9 +91,9 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                             <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Client</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Service Needed</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Status</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Urgency</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Assigned To</th>
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">SLA</th>
+                            <th className="hidden md:table-cell px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Urgency</th>
+                            <th className="hidden md:table-cell px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Assigned To</th>
+                            <th className="hidden md:table-cell px-6 py-4 text-xs font-bold text-zinc-500 uppercase">SLA</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -105,9 +105,9 @@ const ReferralsDashboard: React.FC<{ user: Volunteer, allVolunteers: Volunteer[]
                                     <td className="px-6 py-4 font-bold">{r.clientName}</td>
                                     <td className="px-6 py-4 text-sm text-zinc-600">{r.serviceNeeded}</td>
                                     <td className="px-6 py-4"><span className="px-2 py-1 text-xs font-bold rounded bg-zinc-100 text-zinc-600">{r.status}</span></td>
-                                    <td className="px-6 py-4"><span className={`font-bold text-sm ${r.urgency === 'Urgent' ? 'text-amber-600' : r.urgency === 'Emergency' ? 'text-rose-600' : 'text-zinc-600'}`}>{r.urgency}</span></td>
-                                    <td className="px-6 py-4 text-sm">{assigned?.name || 'Unassigned'}</td>
-                                    <td className="px-6 py-4"><div className="flex items-center gap-2 text-xs font-bold"><div className={`w-2 h-2 rounded-full ${sla.color}`} />{sla.status}</div></td>
+                                    <td className="hidden md:table-cell px-6 py-4"><span className={`font-bold text-sm ${r.urgency === 'Urgent' ? 'text-amber-600' : r.urgency === 'Emergency' ? 'text-rose-600' : 'text-zinc-600'}`}>{r.urgency}</span></td>
+                                    <td className="hidden md:table-cell px-6 py-4 text-sm">{assigned?.name || 'Unassigned'}</td>
+                                    <td className="hidden md:table-cell px-6 py-4"><div className="flex items-center gap-2 text-xs font-bold"><div className={`w-2 h-2 rounded-full ${sla.color}`} />{sla.status}</div></td>
                                 </tr>
                             )
                         })}
@@ -151,28 +151,28 @@ const ReferralDetailModal: React.FC<ReferralDetailModalProps> = ({ referral, use
             <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between">
                     <h2 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight">{isNew ? 'New Referral' : `Referral for ${formData.clientName}`}</h2>
-                    <button onClick={onClose} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800"><X size={20} /></button>
+                    <button onClick={onClose} className="min-h-[44px] min-w-[44px] p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-800 flex items-center justify-center"><X size={20} /></button>
                 </header>
                 <main className="p-4 md:p-8 space-y-4 md:space-y-6 overflow-y-auto">
                     {/* Client Info */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
-                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                         <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Client</label><input value={formData.clientName || ''} onChange={e => setFormData({...formData, clientName: e.target.value, clientId: ''})} placeholder="Search or Type Client Name..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                         <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Referral Date</label><input type="date" value={formData.referralDate?.split('T')[0] || ''} onChange={e => setFormData({...formData, referralDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
                     </div>
                      {/* Status & Urgency */}
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
-                         <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
+                         <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Pending</option><option>In Progress</option><option>Completed</option><option>Withdrawn</option></select></div>
+                         <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Urgency</label><select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"><option>Standard</option><option>Urgent</option><option>Emergency</option></select></div>
                      </div>
                       {/* Service Needed */}
-                     <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full p-4 h-20 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Service Needed</label><textarea value={formData.serviceNeeded || ''} onChange={e => setFormData({...formData, serviceNeeded: e.target.value})} placeholder="Describe client's need... (e.g. 'unhoused veteran seeking mental health support')" className="w-full p-4 h-20 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
                      
                      {/* AI Matching */}
                      <AIResourceMatcher serviceNeed={formData.serviceNeeded || ''} onSelect={(resource) => setFormData({...formData, referredTo: resource['Resource Name']})} />
                      
                      {/* Final Resource & Notes */}
-                     <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
-                     <div><label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-4 h-24 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Referred To</label><input value={formData.referredTo || ''} onChange={e => setFormData({...formData, referredTo: e.target.value})} placeholder="Final selected resource..." className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
+                     <div><label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes</label><textarea value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-4 h-24 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"/></div>
 
                 </main>
                 <footer className="p-4 md:p-8 border-t border-zinc-100 flex justify-end">
@@ -204,7 +204,7 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
         <div className="p-4 bg-brand/5 rounded-3xl border border-brand/10 space-y-4">
             <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-brand uppercase flex items-center gap-2"><Sparkles size={14}/> AI Matching Assistant</h4>
-                <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="px-3 py-1 bg-white border border-black text-brand text-xs font-bold rounded-full uppercase tracking-wide disabled:opacity-50">
+                <button onClick={handleFindMatch} disabled={!serviceNeed || isLoading} className="min-h-[44px] px-3 py-1 bg-white border border-black text-brand text-xs font-bold rounded-full uppercase tracking-wide disabled:opacity-50">
                     {isLoading ? <Loader2 size={14} className="animate-spin"/> : 'Find Matches'}
                 </button>
             </div>
@@ -214,10 +214,10 @@ const AIResourceMatcher: React.FC<{ serviceNeed: string, onSelect: (resource: Re
                         <div key={i} className="p-3 bg-white/50 rounded-2xl border border-brand/10">
                             <div className="flex items-center justify-between gap-2">
                                 <h5 className="font-bold text-sm text-zinc-800">{rec.resourceName}</h5>
-                                {rec.matchScore && <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{rec.matchScore}%</span>}
+                                {rec.matchScore && <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{rec.matchScore}%</span>}
                             </div>
                             <p className="text-xs italic text-zinc-500 my-1">"{rec.matchReason}"</p>
-                            <button onClick={() => onSelect({ 'Resource Name': rec.resourceName, id: rec.resourceId } as any)} className="text-xs font-bold text-brand hover:underline">Select</button>
+                            <button onClick={() => onSelect({ 'Resource Name': rec.resourceName, id: rec.resourceId } as any)} className="min-h-[44px] text-xs font-bold text-brand hover:underline">Select</button>
                         </div>
                     ))}
                 </div>

@@ -730,7 +730,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
           <label className="text-sm font-bold text-zinc-600 block mb-2">Street Address *</label>
           <input type="text" value={data.address || ''} onChange={e => onChange('address', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="123 Main St" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-bold text-zinc-600 block mb-2">City *</label>
             <input type="text" value={data.city || ''} onChange={e => onChange('city', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder="Los Angeles" />

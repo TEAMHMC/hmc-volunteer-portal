@@ -118,8 +118,8 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                             />
                         </div>
                         <div className="flex bg-zinc-100 rounded-2xl p-0.5">
-                            <button onClick={() => setFilterMode('all')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterMode === 'all' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>All</button>
-                            <button onClick={() => setFilterMode('recommended')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterMode === 'recommended' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>Recommended</button>
+                            <button onClick={() => setFilterMode('all')} className={`px-3 py-1.5 min-h-[44px] rounded-md text-xs font-bold transition-all ${filterMode === 'all' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>All</button>
+                            <button onClick={() => setFilterMode('recommended')} className={`px-3 py-1.5 min-h-[44px] rounded-md text-xs font-bold transition-all ${filterMode === 'recommended' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'}`}>Recommended</button>
                         </div>
                     </div>
                 </header>
@@ -165,7 +165,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                         <p className="text-xs text-zinc-400 mb-4">Invite someone who hasn't created a portal account yet. They'll receive an email with a link to register.</p>
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
                             <div className="flex-1">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Name</label>
+                                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Name</label>
                                 <input
                                     type="text"
                                     value={inviteName}
@@ -175,7 +175,7 @@ const StaffingSuggestions: React.FC<StaffingSuggestionsProps> = ({ role, eventDa
                                 />
                             </div>
                             <div className="flex-1">
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Email</label>
+                                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Email</label>
                                 <input
                                     type="email"
                                     value={inviteEmail}

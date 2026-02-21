@@ -268,7 +268,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                  <div className="space-y-4 md:space-y-6">
                     <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Available Days & Hours</label>
-                        <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 mb-4">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3 mb-4">
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`py-4 rounded-2xl text-[10px] font-black border transition-all ${profileData.availDays?.includes(day) ? 'bg-brand text-white border-brand' : 'bg-white border-zinc-200'}`}>{day}</button>)}
                         </div>
                         {profileData.availDays.length > 0 && (
@@ -299,7 +299,7 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Time Off / Unavailable Dates</label>
                          <div className="flex gap-2">
                             <input type="date" value={newUnavailableDate} onChange={e => setNewUnavailableDate(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
-                            <button onClick={addUnavailableDate} className="px-4 py-2 bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide"><Plus size={16}/></button>
+                            <button onClick={addUnavailableDate} className="px-4 py-2 min-h-[44px] bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide"><Plus size={16}/></button>
                          </div>
                          <div className="flex flex-wrap gap-2 mt-4">
                              {profileData.unavailableDates.map(date => (

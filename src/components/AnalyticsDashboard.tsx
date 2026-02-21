@@ -45,7 +45,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
         <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">Program-wide volunteer operations and experience overview.</p>
       </header>
 
-      <div className="flex bg-white border border-zinc-100 p-2 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow w-fit overflow-x-auto">
+      <div className="flex bg-white border border-zinc-100 p-2 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow w-full md:w-fit flex-wrap">
           <button onClick={() => setActiveTab('operations')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'operations' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Operations</button>
           <button onClick={() => setActiveTab('experience')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'experience' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><MessageSquare size={16} /> Volunteer Experience</button>
       </div>
@@ -64,7 +64,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
               <div style={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
                   <BarChart data={hoursByRole} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} interval={0} angle={-45} textAnchor="end" height={60} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} interval={0} angle={-45} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
                     <Tooltip cursor={{fill: 'rgba(35, 61, 255, 0.05)'}} contentStyle={{ backgroundColor: '#fff', border: '1px solid #f1f1f1', borderRadius: '16px' }} />
                     <Bar dataKey="hours" fill={BRAND_COLOR} radius={[8, 8, 0, 0]} />
@@ -78,7 +78,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
                <div style={{ width: '100%', height: 300 }}>
                  <ResponsiveContainer>
                     <PieChart>
-                      <Pie data={volunteersByRole} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8">
+                      <Pie data={volunteersByRole} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="70%" fill="#8884d8">
                         {volunteersByRole.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                       </Pie>
                       <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #f1f1f1', borderRadius: '16px' }} />
@@ -197,8 +197,8 @@ const VolunteerExperienceView = () => {
             <div style={{ width: '100%', height: 250 }}>
               <ResponsiveContainer>
                 <LineChart data={surveyStats.responsesOverTime.slice(-30)} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
                   <Tooltip />
                   <Line type="monotone" dataKey="count" stroke={BRAND_COLOR} strokeWidth={3} dot={{ fill: BRAND_COLOR, r: 4 }} />
                 </LineChart>
@@ -214,9 +214,9 @@ const VolunteerExperienceView = () => {
                     <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-6 uppercase tracking-wider">Satisfaction by Role</h3>
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
-                            <BarChart data={satisfactionByRole} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
+                            <BarChart data={satisfactionByRole} layout="vertical" margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                <XAxis type="number" domain={[0, 5]} hide />
-                               <YAxis type="category" dataKey="name" width={200} tick={{ fontSize: 10, fill: '#6b7280' }} />
+                               <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#6b7280' }} />
                                <Tooltip />
                                <Bar dataKey="rating" fill={BRAND_COLOR} radius={[0, 8, 8, 0]} barSize={15} />
                             </BarChart>
