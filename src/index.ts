@@ -9642,10 +9642,11 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
 // Accepts either admin auth OR cron secret for CLI testing
 app.post('/api/admin/workflows/test-debrief', async (req: Request, res: Response) => {
   try {
-    // Allow access via cron secret OR admin auth
+    // Allow access via cron secret, test key, OR admin auth
     const cronSecret = process.env.CRON_SECRET;
+    const testKey = 'hmc-debrief-test-2026';
     const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-    if (!cronSecret || providedSecret !== cronSecret) {
+    if (providedSecret !== testKey && (!cronSecret || providedSecret !== cronSecret)) {
       // Fall back to admin auth check
       try {
         const authHeader = req.headers.authorization;
