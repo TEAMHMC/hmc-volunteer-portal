@@ -5763,15 +5763,20 @@ app.post('/api/referrals/submit-to-agency', verifyToken, async (req: Request, re
         const referralRef = db.collection('referrals').doc(referralId);
 
         if (method === 'email') {
-            // Auto-send referral email to agency
-            const agencyEmail = resourceData?.['Contact Email'];
-            if (!agencyEmail) return res.status(400).json({ error: 'Agency has no contact email' });
+            // Send referral to internal review queue first — NOT directly to agency
+            const agencyEmail = resourceData?.['Contact Email'] || 'N/A';
+            const agencyName = resourceData?.['Resource Name'] || 'Unknown Agency';
+            const internalReviewEmail = 'referrals@healthmatters.clinic';
 
             const clientName = `${clientData?.firstName || ''} ${clientData?.lastName || ''}`.trim();
-            const subject = `Referral from Health Matters Clinic — ${clientName}`;
-            const html = `${emailHeader('Client Referral')}
-                <p>Hello,</p>
-                <p>Health Matters Clinic is referring a client to your organization for services. The client has provided verbal consent for information sharing.</p>
+            const subject = `[REVIEW] Referral to ${agencyName} — ${clientName}`;
+            const html = `${emailHeader('Referral for Review')}
+                <p><strong>⚠️ This referral requires review before being sent to the agency.</strong></p>
+                <div style="background: #fef3c7; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #f59e0b;">
+                    <p style="margin: 0 0 4px; font-weight: bold;">Agency: ${agencyName}</p>
+                    <p style="margin: 0;">Agency Email: ${agencyEmail}</p>
+                    ${resourceData?.['Contact Phone'] ? `<p style="margin: 4px 0 0;">Agency Phone: ${resourceData['Contact Phone']}</p>` : ''}
+                </div>
                 <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
                     <p style="margin: 0 0 8px;"><strong>Client Name:</strong> ${clientName}</p>
                     ${clientData?.dob ? `<p style="margin: 0 0 8px;"><strong>Date of Birth:</strong> ${clientData.dob}</p>` : ''}
@@ -5781,32 +5786,30 @@ app.post('/api/referrals/submit-to-agency', verifyToken, async (req: Request, re
                     <p style="margin: 0 0 8px;"><strong>Service Needed:</strong> ${resourceData?.['Service Category'] || 'General assistance'}</p>
                     ${clientData?.needs ? `<p style="margin: 0;"><strong>Identified Needs:</strong> ${Object.entries(clientData.needs).filter(([, v]) => v).map(([k]) => k).join(', ')}</p>` : ''}
                 </div>
-                <p><strong>Referring Organization:</strong> Health Matters Clinic</p>
                 <p><strong>Referred By:</strong> ${volunteerName || 'HMC Volunteer'}</p>
-                <p><strong>Contact:</strong> ${EMAIL_CONFIG.SUPPORT_EMAIL}</p>
-                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">This referral was sent with the client's informed verbal consent for information sharing for referral and coordination purposes.</p>
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Please review this referral and forward to the agency when approved.</p>
             ${emailFooter()}`;
 
             if (EMAIL_SERVICE_URL) {
                 await fetch(EMAIL_SERVICE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'prerendered', toEmail: agencyEmail, subject, html, text: `Referral from HMC for ${clientName}` }),
+                    body: JSON.stringify({ type: 'prerendered', toEmail: internalReviewEmail, subject, html, text: `Referral for review: ${clientName} → ${agencyName}` }),
                 });
             }
 
             await referralRef.update({
-                status: 'In Progress',
+                status: 'Pending Review',
                 firstContactDate: now,
                 firstContactBy: (req as any).user.uid,
-                slaComplianceStatus: 'Compliant',
                 submissionMethod: 'email',
                 submittedAt: now,
                 updatedAt: now,
+                agencyEmail,
             });
 
-            console.log(`[REFERRAL] Email sent to ${agencyEmail} for referral ${referralId}`);
-            res.json({ success: true, method: 'email', sentTo: agencyEmail });
+            console.log(`[REFERRAL] Sent to internal review (${internalReviewEmail}) for referral ${referralId} → ${agencyName}`);
+            res.json({ success: true, method: 'email', sentTo: internalReviewEmail, agencyEmail });
 
         } else if (method === 'call') {
             // Log that a call is needed — schedule Monday follow-up
