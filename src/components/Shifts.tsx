@@ -1489,7 +1489,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-zinc-50 border-2 border-zinc-100 rounded-2xl p-4 text-sm font-bold text-zinc-700 outline-none focus:border-brand/30 min-w-[180px]"
+              className="bg-zinc-50 border-2 border-zinc-100 rounded-2xl p-4 text-sm font-bold text-zinc-700 outline-none focus:border-brand/30 w-full md:min-w-[180px] md:w-auto"
             >
               <option value="all">All Categories</option>
               {EVENT_CATEGORIES.map(cat => (
@@ -1613,11 +1613,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                     })()}
                                     {canManageEvents && (() => {
                                       const isReg = user.assignedShiftIds?.includes(shift.id);
+                                      const adminOpsVisible = isInOpsWindow(opp.date);
                                       return (
                                         <div className="flex items-center gap-2">
-                                          <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
-                                            <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
-                                          </button>
+                                          {adminOpsVisible && (
+                                            <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                              <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
+                                            </button>
+                                          )}
                                           <button
                                             onClick={() => handleToggleRegistration(shift.id)}
                                             disabled={registeringShiftIds.has(shift.id) || (!isReg && slotsLeft === 0)}
@@ -1837,11 +1840,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                           })()}
                                           {canManageEvents && (() => {
                                             const isReg = user.assignedShiftIds?.includes(shift.id);
+                                            const adminOpsVisible = isInOpsWindow(opp.date);
                                             return (
                                               <div className="flex items-center gap-2">
-                                                <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
-                                                  <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
-                                                </button>
+                                                {adminOpsVisible && (
+                                                  <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                                    <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
+                                                  </button>
+                                                )}
                                                 <button
                                                   onClick={() => handleToggleRegistration(shift.id)}
                                                   disabled={registeringShiftIds.has(shift.id) || (!isReg && slotsLeft === 0)}

@@ -335,14 +335,14 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-3 px-6 py-4 rounded-full text-[13px] font-bold transition-all ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2 scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
+                className={`flex-1 min-w-[72px] lg:min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-1.5 lg:gap-3 px-3 lg:px-6 py-3 lg:py-4 rounded-full text-[10px] lg:text-[13px] font-bold transition-all ${activeTab === tab.id ? 'bg-brand text-white shadow-elevation-2 scale-105' : 'text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50'}`}
               >
                 <tab.icon size={16} /> <span className="whitespace-nowrap">{tab.label}</span>
               </button>
             ))}
         </div>
 
-        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[400px] md:min-h-[600px] relative">
+        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[300px] md:min-h-[600px] relative">
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}

@@ -973,7 +973,7 @@ const TicketDetailModal: React.FC<{
   const visibleNotes = (ticket.notes || []).filter(n => !n.isInternal || userMode === 'admin');
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-2 md:p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-3 md:p-4">
       <div className="bg-white rounded-2xl md:rounded-modal max-w-4xl w-full shadow-elevation-3 max-h-[95vh] md:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-zinc-100 flex items-start justify-between shrink-0">

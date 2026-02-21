@@ -488,7 +488,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       {showMobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[299] md:hidden" onClick={() => setShowMobileMenu(false)} />
-          <div className="fixed inset-y-0 left-0 w-[min(300px,85vw)] bg-white z-[300] md:hidden flex flex-col p-5 gap-5 overflow-y-auto animate-in slide-in-from-left duration-200">
+          <div className="fixed inset-y-0 left-0 w-[min(280px,75vw)] bg-white z-[300] md:hidden flex flex-col p-5 gap-5 overflow-y-auto animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center">
@@ -550,7 +550,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           { id: 'briefing', label: 'Comms', icon: MessageSquare },
           { id: 'docs', label: 'Docs', icon: BookOpen },
         ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-brand' : 'text-zinc-400'}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-brand' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
             <span className="text-[10px] font-black truncate">{tab.label}</span>
           </button>

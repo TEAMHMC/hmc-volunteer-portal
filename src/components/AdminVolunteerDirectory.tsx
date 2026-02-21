@@ -374,7 +374,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
               <div className="p-4 md:p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-300" size={28} /></div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs whitespace-nowrap">
                   <thead>
                     <tr className="bg-zinc-50 border-b border-zinc-100">
                       <th className="text-left px-4 py-3 font-bold text-zinc-500 uppercase tracking-wider sticky left-0 bg-zinc-50">Volunteer</th>
@@ -526,7 +526,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
       
       {selectedVolunteer && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={() => setSelectedVolunteer(null)}>
-           <div className="bg-white max-w-4xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+           <div className="bg-white max-w-lg md:max-w-4xl w-full rounded-modal shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[95vh] md:max-h-[90vh]" onClick={e => e.stopPropagation()}>
               <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
                  <div className="flex items-center gap-6">
                     <div className="w-20 h-20 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-2xl shadow-elevation-2 overflow-hidden">
@@ -1160,6 +1160,54 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                               {selectedVolunteer.clinicalOnboarding.completedAt && (
                                 <p className="text-[10px] text-zinc-400 font-bold mt-2">Onboarding completed: {new Date(selectedVolunteer.clinicalOnboarding.completedAt).toLocaleDateString()}</p>
                               )}
+                            </div>
+                          )}
+
+                          {/* Clinical Credentials (Summary) */}
+                          {selectedVolunteer.clinicalOnboarding?.credentials && (
+                            <div className="mt-4">
+                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Clinical Credentials</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {selectedVolunteer.clinicalOnboarding.credentials.npiNumber && (
+                                  <div className="p-2 bg-zinc-50 rounded-xl">
+                                    <p className="text-[9px] font-bold text-zinc-400 uppercase">NPI</p>
+                                    <p className="text-xs font-bold text-zinc-700">{selectedVolunteer.clinicalOnboarding.credentials.npiNumber}</p>
+                                  </div>
+                                )}
+                                {selectedVolunteer.clinicalOnboarding.credentials.licenseNumber && (
+                                  <div className="p-2 bg-zinc-50 rounded-xl">
+                                    <p className="text-[9px] font-bold text-zinc-400 uppercase">License #</p>
+                                    <p className="text-xs font-bold text-zinc-700">{selectedVolunteer.clinicalOnboarding.credentials.licenseNumber}</p>
+                                  </div>
+                                )}
+                                {selectedVolunteer.clinicalOnboarding.credentials.licenseState && (
+                                  <div className="p-2 bg-zinc-50 rounded-xl">
+                                    <p className="text-[9px] font-bold text-zinc-400 uppercase">State</p>
+                                    <p className="text-xs font-bold text-zinc-700">{selectedVolunteer.clinicalOnboarding.credentials.licenseState}</p>
+                                  </div>
+                                )}
+                                {selectedVolunteer.clinicalOnboarding.credentials.licenseExpiration && (
+                                  <div className="p-2 bg-zinc-50 rounded-xl">
+                                    <p className="text-[9px] font-bold text-zinc-400 uppercase">Expires</p>
+                                    <p className="text-xs font-bold text-zinc-700">{selectedVolunteer.clinicalOnboarding.credentials.licenseExpiration}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Completed Training Modules */}
+                          {selectedVolunteer.completedTrainingIds && selectedVolunteer.completedTrainingIds.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Completed Training ({selectedVolunteer.completedTrainingIds.length})</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {selectedVolunteer.completedTrainingIds.map((id: string) => (
+                                  <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-100">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    {id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           )}
 
