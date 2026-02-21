@@ -3751,7 +3751,29 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
             page2.drawRectangle({ x: 0, y: pageH - 6, width: pageW, height: 6, color: rgb(0.2, 0.5, 0.35) });
             page2.drawText('HMC HEALTH SCREENING REPORT', { x: margin, y: sy - 10, font: fontBold, size: 16, color: rgb(0.1, 0.1, 0.1) });
             page2.drawText(`Screening Date: ${screening.timestamp ? new Date(screening.timestamp).toLocaleDateString() : '---'}`, { x: pageW - margin - 180, y: sy - 10, font, size: 8, color: rgb(0.5, 0.5, 0.5) });
-            sy -= 40;
+            sy -= 36;
+
+            // Client Info on screening page
+            sy = drawSectionHeader(page2, 'Client Information', sy);
+            const sName = client.firstName && client.lastName ? `${client.firstName} ${client.lastName}` : (client.name || screening.clientName || '---');
+            drawField(page2, 'Name:', sName, margin + 8, sy);
+            drawField(page2, 'DOB:', client.dob || client.dateOfBirth || '---', margin + 280, sy);
+            sy -= 18;
+            drawField(page2, 'Phone:', client.phone || '---', margin + 8, sy);
+            drawField(page2, 'Gender:', client.gender || '---', margin + 280, sy);
+            sy -= 18;
+            drawField(page2, 'Language:', client.primaryLanguage || '---', margin + 8, sy);
+            drawField(page2, 'Housing:', client.homelessnessStatus || client.housingStatus || '---', margin + 280, sy);
+            sy -= 18;
+            if (client.emergencyContactName) {
+                drawField(page2, 'Emergency Contact:', `${client.emergencyContactName} (${client.emergencyContactRelationship || '---'}) ${client.emergencyContactPhone || ''}`, margin + 8, sy);
+                sy -= 18;
+            }
+            if (client.insuranceStatus || client.insuranceProvider) {
+                drawField(page2, 'Insurance:', `${client.insuranceStatus || client.insuranceProvider || '---'}${client.insuranceMemberId ? ' / ID: ' + client.insuranceMemberId : ''}`, margin + 8, sy);
+                sy -= 18;
+            }
+            sy -= 8;
 
             // Past Medical History
             sy = drawSectionHeader(page2, 'Past Medical History', sy);
