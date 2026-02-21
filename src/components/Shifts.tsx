@@ -734,6 +734,17 @@ interface ShiftsProps {
 
 const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShifts, onUpdate, opportunities, setOpportunities, allVolunteers, setAllVolunteers, manageOnly }) => {
   const canManageEvents = userMode === 'admin' || userMode === 'coordinator';
+
+  // Ops Mode is visible when the event is within 7 days before to 3 days after its date
+  const isInOpsWindow = (eventDate: string): boolean => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const evtDate = new Date(eventDate + 'T00:00:00');
+    const diffMs = evtDate.getTime() - now.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    return diffDays >= -3 && diffDays <= 7;
+  };
+
   const [activeTab, setActiveTab] = useState<'available' | 'my-schedule' | 'manage'>(manageOnly ? 'manage' : 'my-schedule');
   const [searchQuery, setSearchQuery] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -1572,6 +1583,24 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       if (!volRegStatus.canRegister && !isRegistered) {
                                         return <p className="text-[10px] text-zinc-400 font-bold leading-tight text-right max-w-[200px]">{volRegStatus.message}</p>;
                                       }
+                                      const showOps = isRegistered && isInOpsWindow(opp.date);
+                                      if (showOps) {
+                                        return (
+                                          <div className="flex items-center gap-2">
+                                            <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                              <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
+                                            </button>
+                                            <button
+                                              onClick={() => handleToggleRegistration(shift.id)}
+                                              disabled={registeringShiftIds.has(shift.id)}
+                                              className="px-4 py-3 rounded-full font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50"
+                                            >
+                                              {registeringShiftIds.has(shift.id) ? <Loader2 size={12} className="animate-spin" /> : null}
+                                              Unregister
+                                            </button>
+                                          </div>
+                                        );
+                                      }
                                       return (
                                         <button
                                           onClick={() => handleToggleRegistration(shift.id)}
@@ -1775,6 +1804,24 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                               return (
                                                 <div className="text-right max-w-[200px]">
                                                   <p className="text-[10px] text-zinc-400 font-bold leading-tight">{volRegStatus.message}</p>
+                                                </div>
+                                              );
+                                            }
+                                            const showOps = isRegistered && isInOpsWindow(opp.date);
+                                            if (showOps) {
+                                              return (
+                                                <div className="flex items-center gap-2">
+                                                  <button onClick={() => setSelectedShiftId(shift.id)} className="px-6 py-3 rounded-full font-bold text-sm bg-brand text-white border border-brand flex items-center gap-2 shadow-elevation-2 active:scale-95">
+                                                    <span className="w-2 h-2 rounded-full bg-white" /> Ops Mode <ChevronRight size={14}/>
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleToggleRegistration(shift.id)}
+                                                    disabled={registeringShiftIds.has(shift.id)}
+                                                    className="px-4 py-3 rounded-full font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50"
+                                                  >
+                                                    {registeringShiftIds.has(shift.id) ? <Loader2 size={12} className="animate-spin" /> : null}
+                                                    Unregister
+                                                  </button>
                                                 </div>
                                               );
                                             }

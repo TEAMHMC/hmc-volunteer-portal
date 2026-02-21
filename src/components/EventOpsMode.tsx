@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry, ClientServiceLog, BuddyPair, BuddyRole, Station, StationStatus, RotationSlot, RovingTeam, StationRotationConfig, ReallocationEntry } from '../types';
+import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun, IncidentReport, SurveyKit, ClientRecord, ScreeningRecord, AuditLog, ChecklistStage, ClinicEvent, FormField, DistributionEntry, ClientServiceLog, BuddyPair, BuddyRole, Station, StationStatus, RotationSlot, RovingTeam, StationRotationConfig, ReallocationEntry, InventoryItem, LoadoutTemplate, EventLoadout } from '../types';
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import surveyService from '../services/surveyService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -37,10 +37,10 @@ interface EventOpsModeProps {
   canEdit?: boolean;
 }
 
-type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'tracker' | 'incidents' | 'signoff' | 'audit' | 'itinerary';
+type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'tracker' | 'logistics' | 'incidents' | 'signoff' | 'audit' | 'itinerary';
 
 const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts, setOpportunities, onEditEvent, canEdit }) => {
-  const [activeTab, setActiveTab] = useState<OpsTab>('overview');
+  const [activeTab, setActiveTab] = useState<OpsTab>('checklists');
   const [opsRun, setOpsRun] = useState<MissionOpsRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
@@ -228,16 +228,17 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   };
 
   const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
-    { id: 'overview', label: 'Brief', icon: BookUser },
     { id: 'checklists', label: 'Tasks', icon: ListChecks },
     { id: 'checkin', label: 'Check-In', icon: QrCode },
+    { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
     { id: 'survey', label: 'Survey', icon: FileText },
     { id: 'intake', label: 'Intake', icon: ClipboardPaste },
     { id: 'screenings', label: 'Health', icon: HeartPulse },
     { id: 'tracker', label: 'Tracker', icon: Package },
-    { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
+    { id: 'logistics', label: 'Loadout', icon: Truck },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
     { id: 'signoff', label: 'Finish', icon: UserCheck },
+    { id: 'overview', label: 'Brief', icon: BookUser },
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
   ];
   
@@ -349,6 +350,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'intake' && <IntakeReferralsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
+          {activeTab === 'logistics' && <LogisticsView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
           {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => { toastService.error('Failed to save incident report to server. Report recorded locally only.'); }); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
@@ -372,7 +374,6 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
 
 const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: Shift; onNavigateToAcademy?: () => void; allVolunteers?: Volunteer[]; eventShifts?: Shift[] }> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
     const fullAddress = opportunity.serviceLocation || '';
-    const [briefCopied, setBriefCopied] = useState(false);
     const services = (opportunity.serviceOfferingIds || [])
         .map(id => SERVICE_OFFERINGS.find(s => s.id === id))
         .filter(Boolean) as typeof SERVICE_OFFERINGS;
@@ -452,7 +453,10 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
             {opportunity.staffingQuotas && opportunity.staffingQuotas.length > 0 && (
                 <div className="space-y-3">
                     {opportunity.staffingQuotas.map((q, i) => {
-                        const pct = q.count > 0 ? Math.min(100, Math.round((q.filled / q.count) * 100)) : 0;
+                        // Calculate filled from actual shift assignments (same as Event Management tab)
+                        const matchingShift = eventShifts?.find(s => s.roleType === q.role);
+                        const actualFilled = matchingShift ? [...new Set(matchingShift.assignedVolunteerIds || [])].length : q.filled;
+                        const pct = q.count > 0 ? Math.min(100, Math.round((actualFilled / q.count) * 100)) : 0;
                         const isMyRole = q.role === shift.roleType || q.role === user.role;
                         return (
                             <div key={i} className={`p-5 rounded-3xl border transition-all hover:shadow-elevation-1 ${isMyRole ? 'bg-brand/5 border-brand/20' : 'bg-zinc-50 border-zinc-100'}`}>
@@ -460,7 +464,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                                     <span className={`text-xs font-black uppercase tracking-tight ${isMyRole ? 'text-brand' : 'text-zinc-700'}`}>
                                         {q.role} {isMyRole && '(You)'}
                                     </span>
-                                    <span className="text-[10px] font-black text-zinc-400">{q.filled}/{q.count}</span>
+                                    <span className="text-[10px] font-black text-zinc-400">{actualFilled}/{q.count}</span>
                                 </div>
                                 <div className="w-full h-2.5 bg-zinc-200 rounded-full overflow-hidden">
                                     <div className={`h-full rounded-full transition-all ${isMyRole ? 'bg-brand' : 'bg-gradient-to-r from-emerald-400 to-emerald-500'}`} style={{ width: `${pct}%` }} />
@@ -564,101 +568,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
             </div>
         </div>
 
-        {/* Share Logistics Brief */}
-        {(opportunity.supplyList || (opportunity.equipment && opportunity.equipment.length > 0) || opportunity.checklist) && (() => {
-            const buildLogisticsBrief = () => {
-                const lines: string[] = [];
-                lines.push(`LOGISTICS BRIEF`);
-                lines.push(`------------------`);
-                lines.push(`Event: ${opportunity.title}`);
-                lines.push(`Date: ${opportunity.date}`);
-                lines.push(`Time: ${opportunity.time || `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`}`);
-                if (opportunity.serviceLocation) lines.push(`Location: ${opportunity.serviceLocation}`);
-                if (fullAddress) lines.push(`Address: ${fullAddress}`);
-                if (fullAddress) lines.push(`Directions: https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`);
-                lines.push('');
-
-                if (opportunity.equipment && opportunity.equipment.length > 0) {
-                    lines.push(`EQUIPMENT CHECKLIST`);
-                    lines.push(`------------------`);
-                    opportunity.equipment.forEach(eq => {
-                        lines.push(`[ ] ${eq.name} x ${eq.quantity}`);
-                    });
-                    lines.push('');
-                }
-
-                if (opportunity.supplyList) {
-                    lines.push(`SUPPLIES`);
-                    lines.push(`------------------`);
-                    opportunity.supplyList.split('\n').forEach(line => {
-                        const trimmed = line.trim();
-                        if (trimmed) lines.push(trimmed.startsWith('-') ? `[ ] ${trimmed.slice(1).trim()}` : `[ ] ${trimmed}`);
-                    });
-                    lines.push('');
-                }
-
-                if (opportunity.checklist && opportunity.checklist.length > 0) {
-                    lines.push(`PRE-EVENT CHECKLIST`);
-                    lines.push(`------------------`);
-                    opportunity.checklist.forEach(item => {
-                        if (item.text.trim()) lines.push(`${item.done ? '[x]' : '[ ]'} ${item.text}`);
-                    });
-                    lines.push('');
-                }
-
-                lines.push(`Sent from HMC Volunteer Portal`);
-                return lines.join('\n');
-            };
-
-            const handleCopyBrief = () => {
-                navigator.clipboard.writeText(buildLogisticsBrief());
-                setBriefCopied(true);
-                setTimeout(() => setBriefCopied(false), 2000);
-            };
-
-            const handleShareBrief = async () => {
-                const text = buildLogisticsBrief();
-                if (navigator.share) {
-                    try {
-                        await navigator.share({ title: `Logistics Brief: ${opportunity.title}`, text });
-                    } catch { /* user cancelled */ }
-                } else {
-                    handleCopyBrief();
-                }
-            };
-
-            const handleTextBrief = () => {
-                const text = encodeURIComponent(buildLogisticsBrief());
-                window.open(`sms:?body=${text}`, '_blank');
-            };
-
-            return (
-                <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 space-y-3">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Share with Logistics Team</p>
-                    <p className="text-xs text-zinc-500">Send the supply list, equipment checklist, and event details to your logistics person (truck driver, supply runner, etc.)</p>
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={handleShareBrief}
-                            className="flex items-center gap-2 px-5 py-3 bg-brand text-white border border-black rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:opacity-95 active:scale-95 transition-all"
-                        >
-                            <Share2 size={14} /> Share Brief
-                        </button>
-                        <button
-                            onClick={handleCopyBrief}
-                            className="flex items-center gap-2 px-5 py-3 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50 active:scale-95 transition-all"
-                        >
-                            {briefCopied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
-                        </button>
-                        <button
-                            onClick={handleTextBrief}
-                            className="flex items-center gap-2 px-5 py-3 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50 active:scale-95 transition-all"
-                        >
-                            <Send size={14} /> Text
-                        </button>
-                    </div>
-                </div>
-            );
-        })()}
+        {/* Logistics brief moved to Loadout tab */}
 
         {/* Get Directions */}
         {fullAddress && (
@@ -1350,6 +1260,538 @@ const AuditTrailView: React.FC<{auditLogs: AuditLog[]}> = ({ auditLogs }) => (
 );
 
 // ========================================
+// ========================================
+// Logistics / Loadout View
+// ========================================
+
+const LOADOUT_STATUS_OPTIONS: { value: EventLoadout['status']; label: string; color: string }[] = [
+    { value: 'pending', label: 'Pending', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    { value: 'packed', label: 'Packed', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    { value: 'loaded', label: 'Loaded', color: 'bg-violet-100 text-violet-700 border-violet-200' },
+    { value: 'delivered', label: 'Delivered', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+];
+
+const LogisticsView: React.FC<{
+    user: Volunteer;
+    opportunity: Opportunity;
+    shift: Shift;
+    allVolunteers: Volunteer[];
+}> = ({ user, opportunity, shift, allVolunteers }) => {
+    const [loadout, setLoadout] = useState<EventLoadout | null>(null);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [templates, setTemplates] = useState<LoadoutTemplate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [briefCopied, setBriefCopied] = useState(false);
+    const [showTemplates, setShowTemplates] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+    const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const isLead = user.isAdmin || ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'].includes(user.role);
+
+    // Build initial loadout items from event's equipment + supplyList
+    const buildItemsFromEvent = (): EventLoadout['items'] => {
+        const items: EventLoadout['items'] = [];
+        if (opportunity.equipment) {
+            opportunity.equipment.forEach(eq => {
+                items.push({ name: eq.name, quantity: eq.quantity, packed: false, loaded: false });
+            });
+        }
+        if (opportunity.supplyList) {
+            opportunity.supplyList.split('\n').forEach(line => {
+                const trimmed = line.trim().replace(/^[-•*]\s*/, '');
+                if (!trimmed) return;
+                // Try to extract quantity like "Narcan kits x20" or "20 Narcan kits"
+                const matchEnd = trimmed.match(/^(.+?)\s*[x×]\s*(\d+)$/i);
+                const matchStart = trimmed.match(/^(\d+)\s*[x×]?\s+(.+)$/i);
+                if (matchEnd) {
+                    items.push({ name: matchEnd[1].trim(), quantity: parseInt(matchEnd[2]), packed: false, loaded: false });
+                } else if (matchStart) {
+                    items.push({ name: matchStart[2].trim(), quantity: parseInt(matchStart[1]), packed: false, loaded: false });
+                } else {
+                    items.push({ name: trimmed, quantity: 1, packed: false, loaded: false });
+                }
+            });
+        }
+        return items;
+    };
+
+    // Load data — each call independent so one failure doesn't block others
+    useEffect(() => {
+        const fetchAll = async () => {
+            try {
+                const loadoutRes = await apiService.get(`/api/events/${opportunity.id}/loadout`).catch(() => null);
+                if (loadoutRes?.loadout) {
+                    setLoadout(loadoutRes.loadout);
+                } else {
+                    const items = buildItemsFromEvent();
+                    setLoadout({ eventId: opportunity.id, items, status: 'pending', updatedAt: new Date().toISOString(), updatedBy: user.id });
+                }
+                const invRes = await apiService.get('/api/inventory').catch(() => []);
+                setInventory(Array.isArray(invRes) ? invRes : []);
+                const tmplRes = await apiService.get('/api/loadout-templates').catch(() => []);
+                setTemplates(Array.isArray(tmplRes) ? tmplRes : []);
+            } catch {
+                const items = buildItemsFromEvent();
+                setLoadout({ eventId: opportunity.id, items, status: 'pending', updatedAt: new Date().toISOString(), updatedBy: user.id });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAll();
+    }, [opportunity.id]);
+
+    // Debounced auto-save
+    const autoSave = (updated: EventLoadout) => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(async () => {
+            try {
+                await apiService.put(`/api/events/${opportunity.id}/loadout`, updated);
+            } catch {
+                // Silent fail for auto-save
+            }
+        }, 1000);
+    };
+
+    useEffect(() => {
+        return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    }, []);
+
+    const updateLoadout = (changes: Partial<EventLoadout>) => {
+        setLoadout(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, ...changes, updatedAt: new Date().toISOString(), updatedBy: user.id };
+            autoSave(updated);
+            return updated;
+        });
+    };
+
+    const toggleItemField = (index: number, field: 'packed' | 'loaded') => {
+        if (!loadout) return;
+        const items = [...loadout.items];
+        items[index] = { ...items[index], [field]: !items[index][field] };
+        // If all packed, auto-advance status
+        const allPacked = items.every(i => i.packed);
+        const allLoaded = items.every(i => i.loaded);
+        let status = loadout.status;
+        if (allLoaded) status = 'loaded';
+        else if (allPacked) status = 'packed';
+        else status = 'pending';
+        updateLoadout({ items, status });
+    };
+
+    const handleStatusChange = (status: EventLoadout['status']) => {
+        updateLoadout({ status });
+    };
+
+    const handleApplyTemplate = (template: LoadoutTemplate) => {
+        const items: EventLoadout['items'] = template.items.map(i => ({
+            name: i.name,
+            quantity: i.quantity,
+            packed: false,
+            loaded: false,
+        }));
+        updateLoadout({ items, templateId: template.id });
+    };
+
+    const handleSaveAsTemplate = async () => {
+        if (!loadout || !templateName.trim()) return;
+        setSaving(true);
+        try {
+            const template = {
+                name: templateName.trim(),
+                eventType: opportunity.category || '',
+                items: loadout.items.map(i => ({ name: i.name, quantity: i.quantity })),
+            };
+            const saved = await apiService.post('/api/loadout-templates', template);
+            setTemplates(prev => [...prev, saved]);
+            setTemplateName('');
+            toastService.success('Template saved');
+        } catch {
+            toastService.error('Failed to save template');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAddItem = () => {
+        if (!loadout) return;
+        const items = [...loadout.items, { name: '', quantity: 1, packed: false, loaded: false }];
+        updateLoadout({ items });
+    };
+
+    const handleRemoveItem = (index: number) => {
+        if (!loadout) return;
+        const items = loadout.items.filter((_, i) => i !== index);
+        updateLoadout({ items });
+    };
+
+    const handleItemChange = (index: number, field: 'name' | 'quantity', value: string | number) => {
+        if (!loadout) return;
+        const items = [...loadout.items];
+        items[index] = { ...items[index], [field]: value };
+        updateLoadout({ items });
+    };
+
+    // Low-stock items from inventory
+    const lowStockItems = useMemo(() => {
+        return inventory.filter(item => item.onHand <= item.reorderAt);
+    }, [inventory]);
+
+    // Concise share brief
+    const formatTime = (iso: string) => {
+        if (!iso) return '';
+        try {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        } catch { return iso; }
+    };
+
+    const buildConciseBrief = () => {
+        const lines: string[] = [];
+        lines.push(`LOADOUT: ${opportunity.title}`);
+        const timeStr = opportunity.time || `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`;
+        lines.push(`${opportunity.date} | ${timeStr} | ${opportunity.serviceLocation || ''}`);
+        const fullAddress = opportunity.address || opportunity.serviceLocation || '';
+        if (fullAddress) {
+            lines.push(`Maps: https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`);
+        }
+        lines.push('');
+        if (loadout && loadout.items.length > 0) {
+            lines.push('Pack List:');
+            loadout.items.forEach(item => {
+                const packedMark = item.packed ? 'x' : ' ';
+                lines.push(`[${packedMark}] ${item.name} x${item.quantity}`);
+            });
+            lines.push('');
+        }
+        if (loadout?.assignedTo) {
+            lines.push(`Assigned: ${loadout.assignedTo}`);
+        }
+        const statusLabel = LOADOUT_STATUS_OPTIONS.find(s => s.value === loadout?.status)?.label || 'Pending';
+        lines.push(`Status: ${statusLabel}`);
+        return lines.join('\n');
+    };
+
+    const handleCopyBrief = () => {
+        navigator.clipboard.writeText(buildConciseBrief());
+        setBriefCopied(true);
+        setTimeout(() => setBriefCopied(false), 2000);
+    };
+
+    const handleShareBrief = async () => {
+        const text = buildConciseBrief();
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: `Loadout: ${opportunity.title}`, text });
+            } catch { /* user cancelled */ }
+        } else {
+            handleCopyBrief();
+        }
+    };
+
+    const handleTextBrief = () => {
+        const text = encodeURIComponent(buildConciseBrief());
+        window.open(`sms:?body=${text}`, '_blank');
+    };
+
+    if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-brand" size={32} /></div>;
+
+    return (
+        <div className="space-y-10 animate-in fade-in">
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Loadout</h2>
+
+            {/* Section 1: Status Banner */}
+            <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Loadout Status</p>
+                        <div className="flex flex-wrap gap-2">
+                            {LOADOUT_STATUS_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => isLead && handleStatusChange(opt.value)}
+                                    className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${
+                                        loadout?.status === opt.value
+                                            ? opt.color + ' shadow-elevation-2 scale-105'
+                                            : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300'
+                                    } ${isLead ? 'cursor-pointer' : 'cursor-default'}`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    {isLead && (
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Assigned To</p>
+                            <input
+                                type="text"
+                                value={loadout?.assignedTo || ''}
+                                onChange={e => updateLoadout({ assignedTo: e.target.value })}
+                                placeholder="Logistics person name"
+                                className="px-4 py-2.5 bg-white border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 w-full md:w-64"
+                            />
+                        </div>
+                    )}
+                </div>
+                {loadout?.assignedTo && !isLead && (
+                    <p className="text-sm font-bold text-zinc-600 flex items-center gap-2"><Truck size={14} /> Assigned to: {loadout.assignedTo}</p>
+                )}
+            </div>
+
+            {/* Section 2: Event Loadout Checklist */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Pack List</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {templates.length > 0 && (
+                            <select
+                                onChange={e => {
+                                    const tmpl = templates.find(t => t.id === e.target.value);
+                                    if (tmpl) handleApplyTemplate(tmpl);
+                                    e.target.value = '';
+                                }}
+                                className="px-3 py-2 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 outline-none"
+                                defaultValue=""
+                            >
+                                <option value="" disabled>Apply Template...</option>
+                                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        )}
+                        {isLead && (
+                            <button onClick={handleAddItem} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all">
+                                <Plus size={12} /> Add Item
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {loadout && loadout.items.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-zinc-100">
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-3 text-left">Item</th>
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-3 text-center w-20">Qty</th>
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-3 text-center w-20">Packed</th>
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-3 text-center w-20">Loaded</th>
+                                    {isLead && <th className="w-10"></th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loadout.items.map((item, idx) => (
+                                    <tr key={idx} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                                        <td className="py-3 pr-3">
+                                            {isLead ? (
+                                                <input
+                                                    type="text"
+                                                    value={item.name}
+                                                    onChange={e => handleItemChange(idx, 'name', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-zinc-200 focus:border-brand/30 rounded-xl font-bold text-sm outline-none transition-colors"
+                                                    placeholder="Item name"
+                                                />
+                                            ) : (
+                                                <span className={`font-bold ${item.packed && item.loaded ? 'line-through text-zinc-400' : 'text-zinc-800'}`}>{item.name}</span>
+                                            )}
+                                        </td>
+                                        <td className="py-3 text-center">
+                                            {isLead ? (
+                                                <input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    onChange={e => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)}
+                                                    min={0}
+                                                    className="w-16 px-2 py-2 bg-transparent border border-transparent hover:border-zinc-200 focus:border-brand/30 rounded-xl font-bold text-sm text-center outline-none transition-colors"
+                                                />
+                                            ) : (
+                                                <span className="font-bold text-zinc-600">{item.quantity}</span>
+                                            )}
+                                        </td>
+                                        <td className="py-3 text-center">
+                                            <button
+                                                onClick={() => toggleItemField(idx, 'packed')}
+                                                className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                                    item.packed
+                                                        ? 'bg-emerald-500 border-emerald-600 text-white shadow-sm'
+                                                        : 'bg-white border-zinc-200 text-zinc-300 hover:border-zinc-300'
+                                                }`}
+                                            >
+                                                {item.packed && <Check size={14} strokeWidth={3} />}
+                                            </button>
+                                        </td>
+                                        <td className="py-3 text-center">
+                                            <button
+                                                onClick={() => toggleItemField(idx, 'loaded')}
+                                                className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                                    item.loaded
+                                                        ? 'bg-brand border-blue-600 text-white shadow-sm'
+                                                        : 'bg-white border-zinc-200 text-zinc-300 hover:border-zinc-300'
+                                                }`}
+                                            >
+                                                {item.loaded && <Check size={14} strokeWidth={3} />}
+                                            </button>
+                                        </td>
+                                        {isLead && (
+                                            <td className="py-3 text-center">
+                                                <button onClick={() => handleRemoveItem(idx)} className="p-1.5 text-zinc-300 hover:text-rose-500 transition-colors">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="flex items-center gap-4 mt-4 text-xs font-bold text-zinc-400">
+                            <span>{loadout.items.filter(i => i.packed).length}/{loadout.items.length} packed</span>
+                            <span>{loadout.items.filter(i => i.loaded).length}/{loadout.items.length} loaded</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-8 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
+                        <Package size={32} className="mx-auto text-zinc-300 mb-3" />
+                        <p className="text-sm font-bold text-zinc-400">No items in loadout yet</p>
+                        <p className="text-xs text-zinc-400 mt-1">Add items manually or apply a template</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Section 3: Low-Stock Alerts */}
+            {lowStockItems.length > 0 && (
+                <div className="space-y-3">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <AlertTriangle size={12} className="text-amber-500" /> Low-Stock Alerts
+                    </p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-zinc-100">
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-2 text-left">Item</th>
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-2 text-left">Category</th>
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-2 text-center">On Hand</th>
+                                    <th className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] py-2 text-center">Reorder At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {lowStockItems.map(item => {
+                                    const isInLoadout = loadout?.items.some(li => li.name.toLowerCase() === item.name.toLowerCase());
+                                    return (
+                                        <tr key={item.id} className={`border-b border-zinc-50 ${isInLoadout ? 'bg-amber-50/50' : ''}`}>
+                                            <td className="py-2 font-bold text-zinc-700">
+                                                {item.name}
+                                                {isInLoadout && <span className="ml-2 text-[9px] font-black text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase tracking-wider">In Loadout</span>}
+                                            </td>
+                                            <td className="py-2 text-zinc-500">{item.category}</td>
+                                            <td className="py-2 text-center font-bold text-rose-600">{item.onHand}</td>
+                                            <td className="py-2 text-center text-zinc-500">{item.reorderAt}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Section 4: Concise Share Brief */}
+            <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 space-y-3">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Share Loadout Brief</p>
+                <p className="text-xs text-zinc-500">Send a concise pack list to your logistics person (truck driver, supply runner, etc.)</p>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={handleShareBrief}
+                        className="flex items-center gap-2 px-5 py-3 bg-brand text-white border border-black rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:opacity-95 active:scale-95 transition-all"
+                    >
+                        <Share2 size={14} /> Share Brief
+                    </button>
+                    <button
+                        onClick={handleCopyBrief}
+                        className="flex items-center gap-2 px-5 py-3 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50 active:scale-95 transition-all"
+                    >
+                        {briefCopied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
+                    </button>
+                    <button
+                        onClick={handleTextBrief}
+                        className="flex items-center gap-2 px-5 py-3 bg-white text-zinc-700 border border-zinc-200 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-50 active:scale-95 transition-all"
+                    >
+                        <Send size={14} /> Text
+                    </button>
+                </div>
+            </div>
+
+            {/* Section 5: Loadout Templates (collapsible) */}
+            <div className="space-y-3">
+                <button
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] hover:text-zinc-600 transition-colors"
+                >
+                    <ClipboardList size={12} /> Loadout Templates
+                    <ArrowRight size={10} className={`transition-transform ${showTemplates ? 'rotate-90' : ''}`} />
+                </button>
+                {showTemplates && (
+                    <div className="p-4 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100 space-y-4">
+                        {templates.length > 0 ? (
+                            <div className="space-y-2">
+                                {templates.map(tmpl => (
+                                    <div key={tmpl.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-zinc-100">
+                                        <div>
+                                            <p className="text-sm font-bold text-zinc-800">{tmpl.name}</p>
+                                            <p className="text-[10px] text-zinc-400">{tmpl.items.length} items • {tmpl.eventType || 'General'}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleApplyTemplate(tmpl)}
+                                            className="px-3 py-1.5 bg-brand/5 text-brand rounded-full text-[11px] font-bold uppercase tracking-wider hover:bg-brand/10 transition-all"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-zinc-400 font-bold">No templates saved yet</p>
+                        )}
+                        {isLead && loadout && loadout.items.length > 0 && (
+                            <div className="flex items-center gap-2 pt-3 border-t border-zinc-200">
+                                <input
+                                    type="text"
+                                    value={templateName}
+                                    onChange={e => setTemplateName(e.target.value)}
+                                    placeholder="Template name..."
+                                    className="flex-1 px-3 py-2 bg-white border border-zinc-200 rounded-full text-xs font-bold outline-none focus:border-brand/30"
+                                />
+                                <button
+                                    onClick={handleSaveAsTemplate}
+                                    disabled={saving || !templateName.trim()}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-full text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 hover:bg-brand-hover transition-all"
+                                >
+                                    {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                                    Save as Template
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Notes */}
+            {isLead && (
+                <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Loadout Notes</p>
+                    <textarea
+                        value={loadout?.notes || ''}
+                        onChange={e => updateLoadout({ notes: e.target.value })}
+                        rows={3}
+                        placeholder="Delivery instructions, special requests, etc."
+                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 resize-none"
+                    />
+                </div>
+            )}
+        </div>
+    );
+};
+
 // Distribution Tracker — Event Supply Logging
 // ========================================
 
@@ -2308,7 +2750,7 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
                                 onClick={() => setIsEditingItinerary(!isEditingItinerary)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all"
                             >
-                                {isEditingItinerary ? <><Eye size={12} /> Preview</> : <><Edit3 size={12} /> Edit</>}
+                                {isEditingItinerary ? <><Eye size={12} /> Preview</> : <><Pencil size={12} /> Edit</>}
                             </button>
                         </div>
                     </div>

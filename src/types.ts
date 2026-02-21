@@ -1031,6 +1031,46 @@ export interface StationRotationConfig {
   updatedBy: string;
 }
 
+// ============================================================
+// INVENTORY & LOADOUT TYPES
+// ============================================================
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;        // 'Setup', 'PPE', 'Medical', 'Tech', 'Outreach', 'Harm Reduction', 'Diagnostics'
+  onHand: number;
+  reorderAt: number;
+  unit: string;             // 'each', 'box', 'pack', 'case'
+  lastUpdated: string;
+  updatedBy: string;
+}
+
+export interface LoadoutTemplate {
+  id: string;
+  name: string;             // "Street Medicine – Evening Route"
+  eventType: string;        // matches event category
+  items: { inventoryItemId?: string; name: string; quantity: number }[];
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface EventLoadout {
+  eventId: string;
+  items: {
+    name: string;
+    quantity: number;
+    packed: boolean;
+    loaded: boolean;
+  }[];
+  templateId?: string;
+  status: 'pending' | 'packed' | 'loaded' | 'delivered';
+  assignedTo?: string;      // logistics person name
+  notes?: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export interface CSVImportRow {
   legalFirstName: string;
   legalLastName: string;

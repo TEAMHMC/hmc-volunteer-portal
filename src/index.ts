@@ -5068,6 +5068,113 @@ app.post('/api/ops/rotation-notify/:eventId', verifyToken, async (req: Request, 
 });
 
 // ============================================================
+// INVENTORY & EVENT LOADOUT ROUTES
+// ============================================================
+
+// GET /api/inventory — List all inventory items
+app.get('/api/inventory', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('inventory').orderBy('category').get();
+        const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json(items);
+    } catch (e: any) {
+        console.error('[INVENTORY] GET failed:', e.message);
+        res.json([]);
+    }
+});
+
+// POST /api/inventory — Add/update inventory item (upsert by ID)
+app.post('/api/inventory', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const item = req.body;
+        const id = item.id || db.collection('inventory').doc().id;
+        await db.collection('inventory').doc(id).set(
+            { ...item, id, lastUpdated: new Date().toISOString(), updatedBy: (req as any).user.uid },
+            { merge: true }
+        );
+        res.json({ id, ...item });
+    } catch (e: any) {
+        console.error('[INVENTORY] POST failed:', e.message);
+        res.status(500).json({ error: 'Failed to save inventory item' });
+    }
+});
+
+// POST /api/inventory/bulk — Bulk import inventory items
+app.post('/api/inventory/bulk', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const items: any[] = req.body.items || [];
+        const batch = db.batch();
+        const now = new Date().toISOString();
+        const uid = (req as any).user.uid;
+        items.forEach((item: any) => {
+            const id = item.id || db.collection('inventory').doc().id;
+            const ref = db.collection('inventory').doc(id);
+            batch.set(ref, { ...item, id, lastUpdated: now, updatedBy: uid }, { merge: true });
+        });
+        await batch.commit();
+        res.json({ success: true, count: items.length });
+    } catch (e: any) {
+        console.error('[INVENTORY] BULK failed:', e.message);
+        res.status(500).json({ error: 'Failed to bulk import inventory' });
+    }
+});
+
+// GET /api/events/:eventId/loadout — Get event loadout
+app.get('/api/events/:eventId/loadout', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const doc = await db.collection('event_loadouts').doc(req.params.eventId).get();
+        if (!doc.exists) return res.json({ loadout: null });
+        res.json({ loadout: { eventId: doc.id, ...doc.data() } });
+    } catch (e: any) {
+        console.error('[LOADOUT] GET failed:', e.message);
+        res.json({ loadout: null });
+    }
+});
+
+// PUT /api/events/:eventId/loadout — Save/update event loadout
+app.put('/api/events/:eventId/loadout', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const loadout = req.body;
+        await db.collection('event_loadouts').doc(req.params.eventId).set(
+            { ...loadout, eventId: req.params.eventId, updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid },
+            { merge: true }
+        );
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[LOADOUT] PUT failed:', e.message);
+        res.status(500).json({ error: 'Failed to save event loadout' });
+    }
+});
+
+// GET /api/loadout-templates — List loadout templates
+app.get('/api/loadout-templates', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('loadout_templates').orderBy('name').get();
+        const templates = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.json(templates);
+    } catch (e: any) {
+        console.error('[LOADOUT-TEMPLATES] GET failed:', e.message);
+        res.json([]);
+    }
+});
+
+// POST /api/loadout-templates — Save a loadout template
+app.post('/api/loadout-templates', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const template = req.body;
+        const id = template.id || db.collection('loadout_templates').doc().id;
+        await db.collection('loadout_templates').doc(id).set(
+            { ...template, id, createdAt: new Date().toISOString(), createdBy: (req as any).user.uid },
+            { merge: true }
+        );
+        res.json({ id, ...template });
+    } catch (e: any) {
+        console.error('[LOADOUT-TEMPLATES] POST failed:', e.message);
+        res.status(500).json({ error: 'Failed to save loadout template' });
+    }
+});
+
+// ============================================================
 // TEST SMS ENDPOINT
 // ============================================================
 app.post('/api/admin/test-sms', verifyToken, requireAdmin, async (req: Request, res: Response) => {
