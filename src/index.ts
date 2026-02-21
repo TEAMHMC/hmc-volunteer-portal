@@ -9638,6 +9638,44 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
   }
 });
 
+// POST /api/admin/workflows/test-debrief — Send a test debrief SMS to a phone number
+app.post('/api/admin/workflows/test-debrief', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { phone, name } = req.body;
+    if (!phone) return res.status(400).json({ error: 'phone is required' });
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) return res.status(400).json({ error: 'Invalid phone number' });
+
+    const volunteerName = (name || 'Volunteer').split(' ')[0];
+    const surveyUrl = `${EMAIL_CONFIG.WEBSITE_URL}/surveys/volunteer-debrief`;
+
+    // Find next upcoming event for teaser
+    let nextEventTeaser = '';
+    try {
+      const todayStr = getPacificDate(0);
+      const upcomingSnap = await db.collection('opportunities')
+        .where('date', '>', todayStr)
+        .orderBy('date', 'asc')
+        .limit(1)
+        .get();
+      if (!upcomingSnap.empty) {
+        const nextEvent = upcomingSnap.docs[0].data();
+        nextEventTeaser = `\n\nYour next mission is loading — ${nextEvent.title} is open for registration!`;
+      }
+    } catch {}
+
+    const msg = `Mission Complete, ${volunteerName}! Thank you for volunteering today. Be sure to complete your debrief survey before you check out: ${surveyUrl}${nextEventTeaser}`;
+
+    const smsResult = await sendSMS(null, `+1${normalizedPhone}`, msg);
+    console.log(`[TEST DEBRIEF] SMS sent to +1${normalizedPhone}: ${smsResult.sent}`);
+    res.json({ success: smsResult.sent, message: msg, reason: smsResult.reason });
+  } catch (error: any) {
+    console.error('[TEST DEBRIEF] Failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const runsSnap = await db.collection('workflow_runs')
