@@ -13,12 +13,26 @@ const DEFAULT_FORMS: FormDefinition[] = [
     ], isActive: true, category: 'feedback' },
     // Internal coordinator survey templates
     { id: 'volunteer-debrief', title: 'Post-Event Volunteer Debrief', description: 'Internal debrief survey for volunteers after an event. Measures team performance, communication, and areas for improvement.', fields: [
+        // Section 1: Pre-Event Preparation
         { id: 'vd1', type: 'Rating', question: 'How clear were your role and responsibilities before the event?', options: ['1', '2', '3', '4', '5'], required: true },
-        { id: 'vd2', type: 'Rating', question: 'How well did the team communicate during the event?', options: ['1', '2', '3', '4', '5'], required: true },
-        { id: 'vd3', type: 'Rating', question: 'How adequate were the supplies and equipment provided?', options: ['1', '2', '3', '4', '5'], required: true },
-        { id: 'vd4', type: 'Multiple Choice', question: 'Did you feel adequately trained for your assigned tasks?', options: ['Yes', 'Mostly', 'Somewhat', 'No'], required: true },
-        { id: 'vd5', type: 'Short Text', question: 'What went well that we should repeat?', required: false },
-        { id: 'vd6', type: 'Short Text', question: 'What could be improved for next time?', required: false },
+        { id: 'vd2', type: 'Multiple Choice', question: 'Did you receive adequate information about the event beforehand (location, time, parking, what to bring)?', options: ['Yes, everything was clear', 'Mostly — a few details were missing', 'Some info was provided but key details were unclear', 'No, I felt unprepared'], required: true },
+        { id: 'vd3', type: 'Multiple Choice', question: 'Did you feel adequately trained for your assigned tasks?', options: ['Yes, fully prepared', 'Mostly — minor gaps', 'Somewhat — needed more guidance', 'No — I was not trained for what I was asked to do'], required: true },
+        // Section 2: On-Site Experience
+        { id: 'vd4', type: 'Rating', question: 'How well did the team communicate during the event?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd5', type: 'Rating', question: 'How organized and well-run was the event overall?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd6', type: 'Rating', question: 'How adequate were the supplies, equipment, and materials provided?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd7', type: 'Multiple Choice', question: 'Was your workload during the event manageable?', options: ['Yes, it was well-balanced', 'Slightly too much but manageable', 'Overwhelmed — needed more help', 'Too light — I could have done more'], required: true },
+        { id: 'vd8', type: 'Multiple Choice', question: 'Did you feel supported by your coordinator or team lead during the event?', options: ['Yes, very supported', 'Mostly — they were available when needed', 'Somewhat — hard to reach at times', 'No — I felt on my own'], required: true },
+        // Section 3: Client & Community Impact
+        { id: 'vd9', type: 'Rating', question: 'How would you rate the overall impact on clients/community members served?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd10', type: 'Multiple Choice', question: 'Were there any safety or clinical concerns during the event?', options: ['No concerns', 'Minor issue that was handled', 'Concern that needs follow-up', 'Serious issue — please contact me'], required: true },
+        // Section 4: Personal Experience
+        { id: 'vd11', type: 'Rating', question: 'How would you rate your overall experience at this event?', options: ['1', '2', '3', '4', '5'], required: true },
+        { id: 'vd12', type: 'Multiple Choice', question: 'Would you volunteer for a similar event again?', options: ['Definitely yes', 'Probably yes', 'Unsure', 'Probably not'], required: true },
+        // Section 5: Open Feedback
+        { id: 'vd13', type: 'Short Text', question: 'What went well that we should repeat at future events?', required: false },
+        { id: 'vd14', type: 'Short Text', question: 'What could be improved for next time?', required: false },
+        { id: 'vd15', type: 'Short Text', question: 'Any other comments, concerns, or shout-outs for fellow volunteers?', required: false },
     ], isActive: true, category: 'internal' },
     { id: 'volunteer-satisfaction', title: 'Volunteer Satisfaction Check-In', description: 'Quarterly survey to gauge volunteer engagement, satisfaction, and retention risk.', fields: [
         { id: 'vs1', type: 'Rating', question: 'Overall, how satisfied are you with your volunteer experience at HMC?', options: ['1', '2', '3', '4', '5'], required: true },
