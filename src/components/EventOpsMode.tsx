@@ -1895,8 +1895,14 @@ const LogisticsView: React.FC<{
 // Distribution Tracker — Event Supply Logging
 // ========================================
 
-const RESOURCE_ITEMS = [
-  'Basic Needs Kit', 'Free Meal', 'Fresh Produce', 'HMC Resource Guide',
+// Bulk distribution items (quick-tap, no demographics needed — meals, guides, bags)
+const DISTRIBUTION_ITEMS = [
+  'Free Meal', 'Fresh Produce', 'Basic Needs Bag', 'HMC Resource Guide',
+  'Hygiene Kit', 'Water/Beverage', 'Clothing Item', 'Blanket',
+];
+
+// Per-client resources (logged with demographics in Client Service Log — clinical/harm reduction)
+const CLIENT_RESOURCE_ITEMS = [
   'Naloxone/Narcan', 'Fentanyl Test Strip', 'Safe Sex Supplies', 'HIV Self-Test Kit',
 ];
 
@@ -1921,7 +1927,7 @@ const DistributionTrackerView: React.FC<{
     const [clientHealthScreening, setClientHealthScreening] = useState(false);
     const [clientFullConsult, setClientFullConsult] = useState(false);
     const [clientReferralGiven, setClientReferralGiven] = useState(false);
-    const [clientHarmReduction, setClientHarmReduction] = useState(false);
+    const [clientMentalHealthWellness, setClientMentalHealthWellness] = useState(false);
     const [clientResources, setClientResources] = useState<string[]>([]);
     const [clientNotes, setClientNotes] = useState('');
     const [clientSaving, setClientSaving] = useState(false);
@@ -1967,8 +1973,7 @@ const DistributionTrackerView: React.FC<{
         const genderMap: Record<string, number> = {};
         const raceMap: Record<string, number> = {};
         const ageMap: Record<string, number> = {};
-        let resourcesOnly = 0, healthScreening = 0, fullConsult = 0;
-        let referrals = 0, harmReduction = 0;
+        let resourcesOnly = 0, healthScreening = 0, fullConsult = 0, referrals = 0, mentalHealth = 0;
         const resourceMap: Record<string, number> = {};
 
         clientLogs.forEach(log => {
@@ -1979,7 +1984,7 @@ const DistributionTrackerView: React.FC<{
             if (log.healthScreeningOnly) healthScreening++;
             if (log.fullConsult) fullConsult++;
             if (log.referralGiven) referrals++;
-            if (log.harmReductionSupplies) harmReduction++;
+            if ((log as any).mentalHealthWellness) mentalHealth++;
             (log.resourcesDistributed || []).forEach(r => {
                 resourceMap[r] = (resourceMap[r] || 0) + 1;
             });
@@ -1990,8 +1995,7 @@ const DistributionTrackerView: React.FC<{
             gender: Object.entries(genderMap).sort((a, b) => b[1] - a[1]),
             race: Object.entries(raceMap).sort((a, b) => b[1] - a[1]),
             age: Object.entries(ageMap).sort((a, b) => b[1] - a[1]),
-            serviceTypes: { resourcesOnly, healthScreening, fullConsult },
-            services: { referrals, harmReduction },
+            serviceTypes: { resourcesOnly, healthScreening, fullConsult, referrals, mentalHealth },
             resources: Object.entries(resourceMap).sort((a, b) => b[1] - a[1]),
         };
     }, [clientLogs]);
@@ -2005,8 +2009,8 @@ const DistributionTrackerView: React.FC<{
     const resetClientForm = () => {
         setClientGender(''); setClientRace(''); setClientAge(''); setClientZip('');
         setClientResourcesOnly(false); setClientHealthScreening(false); setClientFullConsult(false);
-        setClientReferralGiven(false);
-        setClientHarmReduction(false); setClientResources([]); setClientNotes('');
+        setClientReferralGiven(false); setClientMentalHealthWellness(false);
+        setClientResources([]); setClientNotes('');
     };
 
     // Submit client log
@@ -2027,9 +2031,10 @@ const DistributionTrackerView: React.FC<{
                 healthScreeningOnly: clientHealthScreening,
                 fullConsult: clientFullConsult,
                 referralGiven: clientReferralGiven,
+                mentalHealthWellness: clientMentalHealthWellness,
                 hivSelfTestToGo: false,
                 hivSelfTestWithTeam: false,
-                harmReductionSupplies: clientHarmReduction,
+                harmReductionSupplies: false,
                 resourcesDistributed: clientResources,
                 notes: clientNotes || undefined,
                 shiftId: shift.id,
@@ -2143,18 +2148,13 @@ const DistributionTrackerView: React.FC<{
                                     <span className="text-sm font-bold text-zinc-700">Full Consult</span>
                                     <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.serviceTypes.fullConsult}</span>
                                 </div>
-                            </div>
-
-                            {/* Services Given */}
-                            <div className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-3">
-                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Services Given</p>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-zinc-700">Referral Given</span>
-                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.referrals}</span>
+                                    <span className="text-sm font-bold text-zinc-700">Referral</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.serviceTypes.referrals}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-zinc-700">Harm Reduction Supplies</span>
-                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.services.harmReduction}</span>
+                                    <span className="text-sm font-bold text-zinc-700">Mental Health / Wellness</span>
+                                    <span className="text-sm font-black text-zinc-900 tabular-nums">{clientTotals.serviceTypes.mentalHealth}</span>
                                 </div>
                             </div>
 
@@ -2232,7 +2232,7 @@ const DistributionTrackerView: React.FC<{
                                         {log.healthScreeningOnly && <span className="px-2 py-0.5 bg-violet-50 text-violet-600 rounded-full text-[9px] font-black uppercase">Health Screening</span>}
                                         {log.fullConsult && <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase">Full Consult</span>}
                                         {log.referralGiven && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase">Referral</span>}
-                                        {log.harmReductionSupplies && <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full text-[9px] font-black uppercase">Harm Reduction</span>}
+                                        {(log as any).mentalHealthWellness && <span className="px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full text-[9px] font-black uppercase">Mental Health / Wellness</span>}
                                         {(log.resourcesDistributed || []).map(r => (
                                             <span key={r} className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-full text-[9px] font-bold">{r}</span>
                                         ))}
@@ -2267,7 +2267,7 @@ const DistributionTrackerView: React.FC<{
                 <div className="space-y-4">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Quick Log (tap to log 1 unit)</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {RESOURCE_ITEMS.map(item => {
+                        {DISTRIBUTION_ITEMS.map(item => {
                             const count = distributions.filter(d => d.item === item).reduce((sum, d) => sum + d.quantity, 0);
                             return (
                                 <button
@@ -2393,32 +2393,25 @@ const DistributionTrackerView: React.FC<{
                                         Resources Only
                                     </button>
                                     <button type="button" onClick={() => setClientHealthScreening(!clientHealthScreening)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHealthScreening ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
-                                        Health Screening Only
+                                        Health Screening
                                     </button>
                                     <button type="button" onClick={() => setClientFullConsult(!clientFullConsult)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientFullConsult ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
                                         Full Consult
                                     </button>
-                                </div>
-                            </div>
-
-                            {/* Services Given */}
-                            <div className="space-y-3">
-                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Services Given</p>
-                                <div className="flex flex-wrap gap-2">
-                                    <button type="button" onClick={() => setClientReferralGiven(!clientReferralGiven)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientReferralGiven ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
-                                        Referral Given
+                                    <button type="button" onClick={() => setClientReferralGiven(!clientReferralGiven)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientReferralGiven ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Referral
                                     </button>
-                                    <button type="button" onClick={() => setClientHarmReduction(!clientHarmReduction)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientHarmReduction ? 'bg-emerald-500 text-white border-emerald-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
-                                        Harm Reduction Supplies
+                                    <button type="button" onClick={() => setClientMentalHealthWellness(!clientMentalHealthWellness)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientMentalHealthWellness ? 'bg-brand text-white border-black shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
+                                        Mental Health / Wellness
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Resources Distributed */}
+                            {/* Resources Distributed (clinical/harm reduction items only) */}
                             <div className="space-y-3">
                                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Resources Distributed</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {RESOURCE_ITEMS.map(item => (
+                                    {CLIENT_RESOURCE_ITEMS.map(item => (
                                         <button key={item} type="button" onClick={() => toggleClientResource(item)} className={`px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${clientResources.includes(item) ? 'bg-blue-500 text-white border-blue-700 shadow-elevation-2' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'}`}>
                                             {item}
                                         </button>
@@ -2456,7 +2449,7 @@ const DistributionTrackerView: React.FC<{
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Item *</label>
                                 <select value={formItem} onChange={e => setFormItem(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
                                     <option value="">Select item...</option>
-                                    {RESOURCE_ITEMS.map(item => <option key={item} value={item}>{item}</option>)}
+                                    {DISTRIBUTION_ITEMS.map(item => <option key={item} value={item}>{item}</option>)}
                                     <option value="_custom">Other (custom)</option>
                                 </select>
                                 {formItem === '_custom' && (

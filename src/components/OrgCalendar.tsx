@@ -493,7 +493,9 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
               setEvents(prev => [...prev, { ...newEvent, _optimistic: true }].sort((a, b) => (a.date || '').localeCompare(b.date || '')));
             }
             // Soft re-fetch after delay — gives Firestore time to index the new doc
-            setTimeout(() => fetchEvents(true), 1000);
+            // Two retries: 2s and 5s to handle slow indexing
+            setTimeout(() => fetchEvents(true), 2000);
+            setTimeout(() => fetchEvents(true), 5000);
           }}
           editingEvent={editingEvent}
         />
