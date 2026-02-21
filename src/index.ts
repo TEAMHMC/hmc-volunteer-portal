@@ -9639,8 +9639,24 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
 });
 
 // POST /api/admin/workflows/test-debrief — Send a test debrief SMS to a phone number
-app.post('/api/admin/workflows/test-debrief', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+// Accepts either admin auth OR cron secret for CLI testing
+app.post('/api/admin/workflows/test-debrief', async (req: Request, res: Response) => {
   try {
+    // Allow access via cron secret OR admin auth
+    const cronSecret = process.env.CRON_SECRET;
+    const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+    if (!cronSecret || providedSecret !== cronSecret) {
+      // Fall back to admin auth check
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+        const token = authHeader.split('Bearer ')[1];
+        const decoded = await admin.auth().verifyIdToken(token);
+        const profile = (await db.collection('volunteers').doc(decoded.uid).get()).data();
+        if (!profile?.isAdmin) return res.status(403).json({ error: 'Admin only' });
+      } catch { return res.status(401).json({ error: 'Unauthorized' }); }
+    }
+
     const { phone, name } = req.body;
     if (!phone) return res.status(400).json({ error: 'phone is required' });
 
