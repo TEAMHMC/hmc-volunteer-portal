@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, CheckCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import { FormField } from '../types';
 import surveyService, { FormDefinition } from '../services/surveyService';
+import { DEFAULT_FORMS } from './FormBuilder';
 import { toastService } from '../services/toastService';
 
 interface VolunteerSurveyModalProps {
@@ -32,13 +33,20 @@ const VolunteerSurveyModal: React.FC<VolunteerSurveyModalProps> = ({
   useEffect(() => {
     const loadForm = async () => {
       try {
+        // Try Firestore first
         const forms = await surveyService.getForms();
         const found = forms.find(f => f.id === formId);
         if (found) {
           setForm(found);
+        } else {
+          // Fall back to hardcoded defaults (forms may not be persisted to Firestore yet)
+          const defaultForm = DEFAULT_FORMS.find(f => f.id === formId);
+          if (defaultForm) setForm(defaultForm);
         }
       } catch (err) {
-        console.error('Failed to load survey form:', err);
+        console.error('Failed to load survey form from Firestore, using defaults:', err);
+        const defaultForm = DEFAULT_FORMS.find(f => f.id === formId);
+        if (defaultForm) setForm(defaultForm);
       } finally {
         setLoading(false);
       }

@@ -4,7 +4,7 @@ import { FormField } from '../types';
 import surveyService, { FormDefinition, SurveyResponse } from '../services/surveyService';
 import { toastService } from '../services/toastService';
 
-const DEFAULT_FORMS: FormDefinition[] = [
+export const DEFAULT_FORMS: FormDefinition[] = [
     { id: 'client-intake', title: 'Client Intake Form', description: 'Collect comprehensive client information, demographics, and social determinant needs.', fields: [], isActive: true, category: 'intake' },
     { id: 'new-resource', title: 'New Referral Resource', description: 'Add a new community organization or program to the referral database.', fields: [], isActive: true, category: 'referral' },
     { id: 'event-feedback', title: 'Post-Event Feedback Survey', description: 'Gather attendee feedback on community events and workshops.', fields: [
