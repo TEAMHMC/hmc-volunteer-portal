@@ -869,7 +869,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
           eventLocation: opp?.serviceLocation || '',
           volunteerEmail: user.email || '',
           volunteerName: user.name || '',
-          eventType: opp?.type || '',
+          eventType: opp?.category || '',
           status: canManageEvents ? 'confirmed' : (regStatus.isPending ? 'pending_training' : 'confirmed'),
         });
         // Update local state
@@ -1072,14 +1072,14 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const filteredShifts = shiftsToDisplay.filter(s => {
     const opp = getOpp(s.opportunityId);
     if (!opp) return false;
-    const matchesSearch = opp.title.toLowerCase().includes(searchQuery.toLowerCase()) || opp.serviceLocation.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (opp.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (opp.serviceLocation || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || normalizeCategory(opp.category) === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   // Filter rsvped opportunities by search query and category
   const filteredRsvpedOpps = rsvpedOppsWithoutShifts.filter(o => {
-    const matchesSearch = o.title.toLowerCase().includes(searchQuery.toLowerCase()) || o.serviceLocation.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (o.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (o.serviceLocation || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || normalizeCategory(o.category) === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -1382,7 +1382,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                               <span className="font-bold">{q.role}</span>
                               <div className="flex items-center gap-2">
                                 <span className={`${actualFilled < q.count ? 'text-rose-500' : 'text-emerald-500'}`}>{actualFilled} / {q.count} Filled</span>
-                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation, eventType: opp.type })} className="text-xs font-bold bg-brand/10 text-brand px-2 py-1 rounded-full">Find Volunteer</button>}
+                                {actualFilled < q.count && <button onClick={() => setShowStaffingModal({ role: q.role, eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation, eventType: opp.category })} className="text-xs font-bold bg-brand/10 text-brand px-2 py-1 rounded-full">Find Volunteer</button>}
                               </div>
                             </div>
                             {assignedVols.length > 0 && (
@@ -1417,7 +1417,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                       }) : (
                         <div className="space-y-2">
                           <p className="text-xs text-zinc-400 italic">No staffing roles configured for this event.</p>
-                          <button onClick={() => setShowStaffingModal({ role: 'Volunteer', eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation, eventType: opp.type })} className="flex items-center gap-2 text-xs font-bold bg-brand/10 text-brand px-3 py-2 rounded-full hover:bg-brand/20 transition-colors">
+                          <button onClick={() => setShowStaffingModal({ role: 'Volunteer', eventDate: opp.date, eventId: opp.id, eventTitle: opp.title, eventLocation: opp.serviceLocation, eventType: opp.category })} className="flex items-center gap-2 text-xs font-bold bg-brand/10 text-brand px-3 py-2 rounded-full hover:bg-brand/20 transition-colors">
                             <UserPlus size={14} /> Assign / Invite Volunteer
                           </button>
                         </div>

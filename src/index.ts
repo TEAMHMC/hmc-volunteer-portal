@@ -4594,34 +4594,44 @@ CRITICAL: Only include organizations you are confident actually exist and are cu
 });
 
 app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: Response) => {
-    const { shiftId, userId } = req.params;
-    // Shared checklist: stored per-shift (not per-user) so all registered users see the same state
-    const sharedDoc = await db.collection('mission_ops_runs').doc(shiftId).get();
-    // Individual signoff: stored per-user
-    const signoffDoc = await db.collection('mission_ops_signoffs').doc(`${shiftId}_${userId}`).get();
-    const incidentsSnap = await db.collection('incidents').where('shiftId', '==', shiftId).get();
-    const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).orderBy('timestamp', 'desc').get();
+    try {
+        const { shiftId, userId } = req.params;
+        // Shared checklist: stored per-shift (not per-user) so all registered users see the same state
+        const sharedDoc = await db.collection('mission_ops_runs').doc(shiftId).get();
+        // Individual signoff: stored per-user
+        const signoffDoc = await db.collection('mission_ops_signoffs').doc(`${shiftId}_${userId}`).get();
+        const incidentsSnap = await db.collection('incidents').where('shiftId', '==', shiftId).get();
+        const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).orderBy('timestamp', 'desc').get();
 
-    const sharedData = sharedDoc.exists ? sharedDoc.data() : {};
-    const signoffData = signoffDoc.exists ? signoffDoc.data() : {};
+        const sharedData = sharedDoc.exists ? sharedDoc.data() : {};
+        const signoffData = signoffDoc.exists ? signoffDoc.data() : {};
 
-    res.json({
-        opsRun: {
-            id: shiftId,
-            shiftId,
-            userId,
-            completedItems: sharedData?.completedItems || [],
-            ...signoffData, // signedOff, signedOffAt, signatureStoragePath
-        },
-        incidents: incidentsSnap.docs.map(d => ({id: d.id, ...d.data()})),
-        auditLogs: auditSnap.docs.map(d => ({id: d.id, ...d.data()})),
-    });
+        res.json({
+            opsRun: {
+                id: shiftId,
+                shiftId,
+                userId,
+                completedItems: sharedData?.completedItems || [],
+                ...signoffData, // signedOff, signedOffAt, signatureStoragePath
+            },
+            incidents: incidentsSnap.docs.map(d => ({id: d.id, ...d.data()})),
+            auditLogs: auditSnap.docs.map(d => ({id: d.id, ...d.data()})),
+        });
+    } catch (e: any) {
+        console.error('[OPS RUN] GET failed:', e.message);
+        res.status(500).json({ error: 'Failed to load ops run data' });
+    }
 });
 app.post('/api/ops/checklist', verifyToken, async (req: Request, res: Response) => {
-    const { runId, completedItems } = req.body;
-    // runId is now the shiftId — shared across all users
-    await db.collection('mission_ops_runs').doc(runId).set({ completedItems, updatedAt: new Date().toISOString() }, { merge: true });
-    res.json({ success: true });
+    try {
+        const { runId, completedItems } = req.body;
+        // runId is now the shiftId — shared across all users
+        await db.collection('mission_ops_runs').doc(runId).set({ completedItems, updatedAt: new Date().toISOString() }, { merge: true });
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error('[OPS CHECKLIST] POST failed:', e.message);
+        res.status(500).json({ error: 'Failed to save checklist' });
+    }
 });
 
 // POST /api/ops/signoff — Save shift signoff with signature (per-user)
@@ -5102,7 +5112,7 @@ app.post('/api/inventory', verifyToken, requireAdmin, async (req: Request, res: 
 // POST /api/inventory/bulk — Bulk import inventory items
 app.post('/api/inventory/bulk', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        const items: any[] = req.body.items || [];
+        const items: any[] = (req.body.items || []).slice(0, 450); // Firestore batch limit is 500
         const batch = db.batch();
         const now = new Date().toISOString();
         const uid = (req as any).user.uid;
@@ -5159,7 +5169,7 @@ app.get('/api/loadout-templates', verifyToken, async (req: Request, res: Respons
 });
 
 // POST /api/loadout-templates — Save a loadout template
-app.post('/api/loadout-templates', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/loadout-templates', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         const template = req.body;
         const id = template.id || db.collection('loadout_templates').doc().id;
@@ -5701,7 +5711,9 @@ app.get('/api/messages/stream', async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('[SSE] Connection failed:', error);
-        res.status(500).json({ error: 'SSE connection failed' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'SSE connection failed' });
+        }
     }
 });
 
@@ -8164,7 +8176,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
                 eventDate: eventDate,
                 eventTime: time,
                 location: location,
-                eventType: opp.type || opp.eventType || '',
+                eventType: opp.category || opp.eventType || '',
               });
               result.sent++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
             } else { result.skipped++; volDetails.push({ volunteerId: volDoc.id, status: 'skipped', timestamp: new Date().toISOString() }); }

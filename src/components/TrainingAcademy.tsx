@@ -39,11 +39,11 @@ const getRoleSlug = (roleLabel: string): string => {
 
 // Format badge component
 const FormatBadge: React.FC<{ format: TrainingModule['format'] }> = ({ format }) => {
-  const config = {
+  const config = ({
     screenpal: { label: 'Video', icon: PlayCircle, color: 'bg-sky-100 text-sky-700 border-sky-200' },
     recorded_video: { label: 'Video', icon: Youtube, color: 'bg-sky-100 text-sky-700 border-sky-200' },
     read_ack: { label: 'Read & Acknowledge', icon: FileCheck, color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  }[format];
+  } as Record<string, { label: string; icon: any; color: string }>)[format] || { label: 'Module', icon: FileCheck, color: 'bg-zinc-100 text-zinc-500 border-zinc-200' };
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${config.color}`}>

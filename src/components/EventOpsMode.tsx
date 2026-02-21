@@ -1030,15 +1030,15 @@ const ChecklistsView: React.FC<{
 };
 
 const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventId?: string, eventTitle?: string}> = ({ surveyKit, user, eventId, eventTitle }) => {
-    // Guard MUST be before all hooks to prevent React hooks violation (error #300)
-    if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
-
     const [submission, setSubmission] = useState<{ [key: string]: any }>({});
     const [clientInfo, setClientInfo] = useState({ firstName: '', lastName: '', phone: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [consentGiven, setConsentGiven] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
+
+    // Guard AFTER hooks to comply with React Rules of Hooks
+    if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -2411,16 +2411,16 @@ const ItineraryView: React.FC<{
         // Primary: current shift's assigned volunteers
         (shift.assignedVolunteerIds || []).forEach(id => assignedIds.add(id));
         // Secondary: all event shifts' assigned volunteers
-        eventShifts.forEach(s => (s.assignedVolunteerIds || []).forEach(id => assignedIds.add(id)));
+        (eventShifts || []).forEach(s => (s.assignedVolunteerIds || []).forEach(id => assignedIds.add(id)));
 
         // Also check volunteers who RSVP'd to this event's opportunity
         const eventId = opportunity.id;
-        allVolunteers.forEach(v => {
-            if ((v.assignedShiftIds || []).some(sid => eventShifts.some(s => s.id === sid))) assignedIds.add(v.id);
+        (allVolunteers || []).forEach(v => {
+            if ((v.assignedShiftIds || []).some(sid => (eventShifts || []).some(s => s.id === sid))) assignedIds.add(v.id);
             if ((v.rsvpedEventIds || []).includes(eventId)) assignedIds.add(v.id);
         });
 
-        return allVolunteers.filter(v => assignedIds.has(v.id));
+        return (allVolunteers || []).filter(v => assignedIds.has(v.id));
     }, [allVolunteers, shift.assignedVolunteerIds, eventShifts, opportunity.id]);
 
     const volunteerCount = registeredVolunteers.length || opportunity.slotsFilled || 0;
@@ -3334,9 +3334,10 @@ const RotationScheduleView: React.FC<{
     const generateSchedule = () => {
         if (corePairs.length === 0 || activeStations.length === 0) return;
 
-        const [startH, startM] = serviceStart.split(':').map(Number);
-        const [endH, endM] = serviceEnd.split(':').map(Number);
-        const totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        const [startH, startM] = (serviceStart || '9:00').split(':').map(Number);
+        const [endH, endM] = (serviceEnd || '17:00').split(':').map(Number);
+        if (isNaN(startH) || isNaN(endH)) return;
+        const totalMinutes = (endH * 60 + (endM || 0)) - (startH * 60 + (startM || 0));
         const numSlots = Math.floor(totalMinutes / rotationMinutes);
         const N = corePairs.length;
         const S = activeStations.length;

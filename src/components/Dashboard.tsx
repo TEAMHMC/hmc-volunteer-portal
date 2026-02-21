@@ -190,6 +190,12 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return user;
   }, [user, viewingAsRole]);
 
+  // Dismissed announcement IDs (moved out of IIFE to comply with Rules of Hooks)
+  const DISMISSED_KEY = 'hmcDismissedAnnouncements';
+  const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch { return []; }
+  });
+
   // Only reset tab when admin switches role preview
   useEffect(() => {
     if (viewingAsRole) setActiveTab('overview');
@@ -770,11 +776,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       <main className={`flex-1 p-6 md:p-8 space-y-8 overflow-y-auto h-screen no-scrollbar pb-20 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {/* Announcement Banner */}
          {(() => {
-           const DISMISSED_KEY = 'hmcDismissedAnnouncements';
-           const getDismissed = (): string[] => {
-             try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch { return []; }
-           };
-           const [dismissedIds, setDismissedIds] = React.useState<string[]>(getDismissed);
            const now = new Date();
            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
            const visibleAnnouncements = announcements
@@ -782,7 +783,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                a.status === 'approved'
                && new Date(a.date) >= sevenDaysAgo
                && (!a.targetRoles || a.targetRoles.length === 0 || a.targetRoles.includes(displayUser.role))
-               && !dismissedIds.includes(a.id)
+               && !dismissedAnnouncementIds.includes(a.id)
              )
              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
              .slice(0, 2);
@@ -790,8 +791,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            if (visibleAnnouncements.length === 0) return null;
 
            const handleDismiss = (id: string) => {
-             const updated = [...dismissedIds, id];
-             setDismissedIds(updated);
+             const updated = [...dismissedAnnouncementIds, id];
+             setDismissedAnnouncementIds(updated);
              localStorage.setItem(DISMISSED_KEY, JSON.stringify(updated));
            };
 
@@ -834,17 +835,17 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50/80 backdrop-blur-sm border border-zinc-200/50 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-clock text-zinc-400 text-xs" />
-                      <span className="text-sm font-bold text-zinc-900">{displayUser.hoursContributed}</span>
+                      <span className="text-sm font-bold text-zinc-900">{displayUser.hoursContributed || 0}</span>
                       <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">hrs</span>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-brand/5 backdrop-blur-sm border border-brand/15 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-bolt text-brand text-xs" />
-                      <span className="text-sm font-bold text-brand">{(computeLevel(displayUser.points).currentXP).toLocaleString()}</span>
+                      <span className="text-sm font-bold text-brand">{(computeLevel(displayUser.points || 0).currentXP).toLocaleString()}</span>
                       <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">xp</span>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-full shadow-elevation-1">
                       <i className="fa-solid fa-shield text-emerald-500 text-xs" />
-                      <span className="text-sm font-bold text-emerald-600">Lv {computeLevel(displayUser.points).level}</span>
+                      <span className="text-sm font-bold text-emerald-600">Lv {computeLevel(displayUser.points || 0).level}</span>
                     </div>
                     {gamification && gamification.streakDays > 0 && (
                       <div className="flex items-center gap-2 px-4 py-2 bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-full shadow-elevation-1">
@@ -857,7 +858,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
                 {/* Level Progress Bar */}
                 {(() => {
-                  const lvl = computeLevel(displayUser.points);
+                  const lvl = computeLevel(displayUser.points || 0);
                   if (lvl.isMaxLevel) {
                     return (
                       <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 rounded-3xl md:rounded-[40px] p-5 md:p-8 text-center">
