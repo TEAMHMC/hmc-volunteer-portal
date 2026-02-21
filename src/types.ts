@@ -606,22 +606,14 @@ export interface ClientRecord {
         other?: string;
     };
 
-    // Emergency Contact
-    emergencyContactName?: string;
-    emergencyContactRelationship?: string;
-    emergencyContactPhone?: string;
-
     // Eligibility factors
     incomeLevel?: string;
     insuranceStatus?: string;
-    insuranceMemberId?: string;
-    insuranceGroupNumber?: string;
     documentationStatus?: string;
 
     // Consent & Privacy
     consentToShare?: boolean;
     consentDate?: string;
-    consentSignature?: string;
 
     // AI-generated fields
     aiEligibilitySummary?: string;
@@ -675,11 +667,6 @@ export interface ScreeningRecord {
   followUpNeeded?: boolean;
   followUpReason?: string;
   clientName?: string;
-  // Additional screening fields
-  allergies?: string;
-  currentMedications?: string;
-  refusalOfCare?: boolean;
-  resultsSummary?: string;
   // Clinical review
   reviewedAt?: string;
   reviewedBy?: string;

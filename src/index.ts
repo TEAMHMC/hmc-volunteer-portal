@@ -3498,33 +3498,13 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
             return res.json({ multiple: true, results: matches.slice(0, 10) });
         }
 
-        if (phone) {
-            // Normalize phone: strip all non-digit characters for fuzzy matching
-            const normalizedSearch = (phone as string).replace(/\D/g, '');
-            const snap = await db.collection('clients').get();
-            const matches = snap.docs.filter(d => {
-                const stored = (d.data().phone || '').replace(/\D/g, '');
-                return stored && stored === normalizedSearch;
-            }).map(d => ({ id: d.id, ...d.data() }));
-            if (matches.length === 0) return res.status(404).json({ error: 'Not found' });
-            if (matches.length === 1) return res.json(matches[0]);
-            return res.json({ multiple: true, results: matches.slice(0, 10) });
-        }
+        let query: admin.firestore.Query = db.collection('clients');
+        if (phone) query = query.where('phone', '==', phone);
+        else if (email) query = query.where('email', '==', email);
 
-        if (email) {
-            // Case-insensitive email search
-            const emailLower = (email as string).toLowerCase().trim();
-            const snap = await db.collection('clients').get();
-            const matches = snap.docs.filter(d => {
-                const stored = (d.data().email || '').toLowerCase().trim();
-                return stored && stored === emailLower;
-            }).map(d => ({ id: d.id, ...d.data() }));
-            if (matches.length === 0) return res.status(404).json({ error: 'Not found' });
-            if (matches.length === 1) return res.json(matches[0]);
-            return res.json({ multiple: true, results: matches.slice(0, 10) });
-        }
-
-        return res.status(400).json({ error: 'Search query required' });
+        const snap = await query.get();
+        if (snap.empty) return res.status(404).json({ error: "Not found" });
+        res.json({ id: snap.docs[0].id, ...snap.docs[0].data() });
     } catch (error: any) {
         console.error('[CLIENTS] Search failed:', error);
         res.status(500).json({ error: 'Client search failed' });
@@ -3532,7 +3512,7 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
 });
 app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode', 'pronouns', 'primaryLanguage', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceStatus', 'insuranceMemberId', 'insuranceGroupNumber', 'lgbtqiaIdentity', 'needs', 'consentToShare', 'consentDate', 'consentSignature']);
+        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode']);
         if (!clientData.name && !clientData.firstName) return res.status(400).json({ error: 'Client name required' });
         const client = {
             ...clientData,
@@ -3572,7 +3552,7 @@ app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => 
 // Update client
 app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
     try {
-        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod', 'gender', 'pronouns', 'race', 'ethnicity', 'veteranStatus', 'lgbtqiaIdentity', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceStatus', 'insuranceMemberId', 'insuranceGroupNumber', 'needs', 'consentToShare', 'consentDate', 'consentSignature']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
+        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
         await db.collection('clients').doc(req.params.id).update(updates);
         res.json({ id: req.params.id, ...updates });
     } catch (error) {
@@ -3588,272 +3568,6 @@ app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Res
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch client referrals' });
     }
-});
-
-// --- CLIENT INTAKE PDF GENERATION ---
-app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, res: Response) => {
-  try {
-    const { clientId } = req.params;
-    const screeningId = req.query.screeningId as string | undefined;
-
-    const clientDoc = await db.collection('clients').doc(clientId).get();
-    if (!clientDoc.exists) return res.status(404).json({ error: 'Client not found' });
-    const client = { id: clientDoc.id, ...clientDoc.data() } as any;
-
-    let screening: any = null;
-    if (screeningId) {
-      const screenDoc = await db.collection('screenings').doc(screeningId).get();
-      if (screenDoc.exists) screening = { id: screenDoc.id, ...screenDoc.data() };
-    }
-
-    const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-    const margin = 50;
-    const pageWidth = 612;
-    const pageHeight = 792;
-    const contentWidth = pageWidth - 2 * margin;
-    const green = rgb(0.086, 0.639, 0.247);
-    const darkGray = rgb(0.1, 0.1, 0.1);
-    const midGray = rgb(0.3, 0.3, 0.3);
-    const lightGray = rgb(0.6, 0.6, 0.6);
-
-    const drawField = (page: any, label: string, value: string, x: number, yPos: number) => {
-      page.drawText(label, { x, y: yPos, font: fontBold, size: 8, color: midGray });
-      page.drawText(value || '—', { x: x + 120, y: yPos, font, size: 9, color: darkGray });
-      return yPos - 16;
-    };
-
-    const drawCheckbox = (page: any, label: string, checked: boolean, x: number, yPos: number) => {
-      page.drawRectangle({ x, y: yPos - 2, width: 10, height: 10, borderColor: midGray, borderWidth: 0.5, color: rgb(1, 1, 1) });
-      if (checked) page.drawText('X', { x: x + 2, y: yPos, font: fontBold, size: 8, color: green });
-      page.drawText(label, { x: x + 14, y: yPos, font, size: 8, color: darkGray });
-      return yPos;
-    };
-
-    const drawSectionHeader = (page: any, title: string, yPos: number) => {
-      page.drawRectangle({ x: margin, y: yPos - 4, width: contentWidth, height: 18, color: rgb(0.95, 0.97, 0.95) });
-      page.drawText(title, { x: margin + 6, y: yPos, font: fontBold, size: 9, color: green });
-      return yPos - 24;
-    };
-
-    const drawFooter = (page: any) => {
-      page.drawLine({ start: { x: margin, y: 40 }, end: { x: pageWidth - margin, y: 40 }, thickness: 0.5, color: lightGray });
-      page.drawText('HMC provides screening & education only — NO diagnosis or treatment.', { x: margin, y: 28, font: fontItalic, size: 7, color: lightGray });
-      page.drawText(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, { x: pageWidth - margin - 160, y: 28, font, size: 7, color: lightGray });
-    };
-
-    // ===== PAGE 1: CLIENT INTAKE FORM =====
-    let page = pdfDoc.addPage([pageWidth, pageHeight]);
-    let y = pageHeight - margin;
-
-    // Header
-    page.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green });
-    page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, font: fontBold, size: 16, color: green });
-    y -= 18;
-    page.drawText('Client Intake and General Health Screening Form', { x: margin, y, font: fontBold, size: 11, color: darkGray });
-    y -= 14;
-    page.drawText('Los Angeles County, California', { x: margin, y, font, size: 8, color: midGray });
-    y -= 24;
-    page.drawLine({ start: { x: margin, y: y + 8 }, end: { x: margin + contentWidth, y: y + 8 }, thickness: 1, color: green });
-    y -= 8;
-
-    // Client Info
-    y = drawSectionHeader(page, 'CLIENT INFORMATION', y);
-    y = drawField(page, 'Name:', `${client.firstName || ''} ${client.lastName || ''}`.trim(), margin, y);
-    y = drawField(page, 'Date of Birth:', client.dob || '', margin, y);
-    y = drawField(page, 'Gender:', client.gender || '', margin, y);
-    y = drawField(page, 'Pronouns:', client.pronouns || '', margin, y);
-    y = drawField(page, 'Phone:', client.phone || '', margin, y);
-    y = drawField(page, 'Email:', client.email || '', margin, y);
-    y = drawField(page, 'Address:', client.address || '', margin, y);
-    y = drawField(page, 'Zip Code:', client.zipCode || '', margin, y);
-    y = drawField(page, 'Primary Language:', client.primaryLanguage || '', margin, y);
-    y = drawField(page, 'Housing Status:', client.homelessnessStatus || '', margin, y);
-    y = drawField(page, 'Contact Method:', client.contactMethod || '', margin, y);
-    y -= 8;
-
-    // Emergency Contact
-    y = drawSectionHeader(page, 'EMERGENCY CONTACT', y);
-    y = drawField(page, 'Name:', client.emergencyContactName || '', margin, y);
-    y = drawField(page, 'Relationship:', client.emergencyContactRelationship || '', margin, y);
-    y = drawField(page, 'Phone:', client.emergencyContactPhone || '', margin, y);
-    y -= 8;
-
-    // Demographics
-    y = drawSectionHeader(page, 'DEMOGRAPHICS', y);
-    const raceOptions = ['Asian American/Pacific Islander', 'Black/African American', 'American Indian/Alaska Native', 'Asian', 'White', 'Hispanic/Latino', 'Other'];
-    const clientRaces = Array.isArray(client.race) ? client.race : [];
-    let raceX = margin;
-    for (const race of raceOptions) {
-      const raceItemWidth = font.widthOfTextAtSize(race, 8) + 26;
-      if (raceX + raceItemWidth > pageWidth - margin) { y -= 16; raceX = margin; }
-      drawCheckbox(page, race, clientRaces.includes(race), raceX, y);
-      raceX += font.widthOfTextAtSize(race, 8) + 26;
-    }
-    y -= 20;
-    drawCheckbox(page, 'Veteran', !!client.veteranStatus, margin, y);
-    drawCheckbox(page, 'LGBTQIA+', !!client.lgbtqiaIdentity, margin + 100, y);
-    y -= 20;
-
-    // Social Determinant Needs
-    y = drawSectionHeader(page, 'SOCIAL DETERMINANT NEEDS', y);
-    const needLabels: [string, string][] = [
-      ['housing', 'Housing'], ['food', 'Food'], ['healthcare', 'Healthcare'], ['mentalHealth', 'Mental Health'],
-      ['employment', 'Employment'], ['education', 'Education'], ['childcare', 'Childcare'],
-      ['substanceUse', 'Substance Use'], ['transportation', 'Transportation']
-    ];
-    const clientNeeds = client.needs || {};
-    let needX = margin;
-    for (const [key, label] of needLabels) {
-      const needItemWidth = font.widthOfTextAtSize(label, 8) + 26;
-      if (needX + needItemWidth > pageWidth - margin) { y -= 16; needX = margin; }
-      drawCheckbox(page, label, !!clientNeeds[key], needX, y);
-      needX += font.widthOfTextAtSize(label, 8) + 26;
-    }
-    y -= 20;
-
-    // Insurance
-    y = drawSectionHeader(page, 'INSURANCE INFORMATION', y);
-    y = drawField(page, 'Provider:', client.insuranceStatus || '', margin, y);
-    y = drawField(page, 'Member ID:', client.insuranceMemberId || '', margin, y);
-    y = drawField(page, 'Group Number:', client.insuranceGroupNumber || '', margin, y);
-    y -= 8;
-
-    // Consent Section
-    if (y < margin + 220) { drawFooter(page); page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; page.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-    y = drawSectionHeader(page, 'CONSENT TO SHARE INFORMATION FOR REFERRALS', y);
-    const consentTextEn = 'I understand that my personal information, including my contact details, basic demographic information, and relevant service needs, may be shared with partner agencies and service providers for the purpose of connecting me to appropriate resources and support. I consent to the release of this information solely for referral and coordination purposes. I understand that my information will be shared securely and only with organizations directly involved in assisting with my identified needs. I acknowledge that I may withdraw this consent at any time by notifying the program staff in writing.';
-    const consentTextEs = 'Entiendo que mi informacion personal, incluyendo mis datos de contacto, informacion demografica basica y necesidades de servicios relevantes, puede ser compartida con agencias asociadas y proveedores de servicios con el proposito de conectarme con recursos y apoyos adecuados. Doy mi consentimiento para la divulgacion de esta informacion unicamente con fines de referencia y coordinacion. Entiendo que mi informacion sera compartida de manera segura y solo con organizaciones directamente involucradas en ayudar con mis necesidades identificadas. Reconozco que puedo retirar este consentimiento en cualquier momento notificando por escrito al personal del programa.';
-
-    const enLines = wrapText(consentTextEn, contentWidth - 10, font, 7);
-    for (const line of enLines) {
-      if (y < margin + 60) { drawFooter(page); page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; page.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-      page.drawText(line, { x: margin + 5, y, font, size: 7, color: midGray });
-      y -= 10;
-    }
-    y -= 6;
-    const esLines = wrapText(consentTextEs, contentWidth - 10, fontItalic, 7);
-    for (const line of esLines) {
-      if (y < margin + 60) { drawFooter(page); page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; page.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-      page.drawText(line, { x: margin + 5, y, font: fontItalic, size: 7, color: lightGray });
-      y -= 10;
-    }
-    y -= 10;
-    drawCheckbox(page, `Verbal consent obtained${client.consentDate ? ' — ' + new Date(client.consentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`, !!client.consentToShare, margin, y);
-    y -= 16;
-    if (client.consentSignature) {
-      page.drawText(`Attestor: ${client.consentSignature}`, { x: margin, y, font, size: 8, color: midGray });
-      y -= 16;
-    }
-
-    drawFooter(page);
-
-    // ===== PAGE 2: HEALTH SCREENING (if screeningId provided) =====
-    if (screening) {
-      let pg = pdfDoc.addPage([pageWidth, pageHeight]);
-      let sy = pageHeight - margin;
-
-      pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green });
-      pg.drawText('HEALTH MATTERS CLINIC', { x: margin, y: sy, font: fontBold, size: 16, color: green });
-      sy -= 18;
-      pg.drawText('Health Screening Report', { x: margin, y: sy, font: fontBold, size: 11, color: darkGray });
-      sy -= 14;
-      pg.drawText(`Client: ${client.firstName || ''} ${client.lastName || ''}`, { x: margin, y: sy, font, size: 9, color: midGray });
-      sy -= 14;
-      pg.drawText(`Screening Date: ${screening.timestamp ? new Date(screening.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`, { x: margin, y: sy, font, size: 9, color: midGray });
-      sy -= 24;
-      pg.drawLine({ start: { x: margin, y: sy + 8 }, end: { x: margin + contentWidth, y: sy + 8 }, thickness: 1, color: green });
-      sy -= 8;
-
-      // Past Medical History
-      sy = drawSectionHeader(pg, 'PAST MEDICAL HISTORY', sy);
-      const hasMeds = screening.currentMedications && screening.currentMedications !== 'None';
-      drawCheckbox(pg, 'Current Medications', !!hasMeds, margin, sy);
-      if (hasMeds) { sy -= 16; pg.drawText(`  ${screening.currentMedications}`, { x: margin + 14, y: sy, font, size: 8, color: darkGray }); }
-      sy -= 16;
-      const hasAllergies = screening.allergies && screening.allergies !== 'None';
-      drawCheckbox(pg, 'Allergies', !!hasAllergies, margin, sy);
-      if (hasAllergies) { sy -= 16; pg.drawText(`  ${screening.allergies}`, { x: margin + 14, y: sy, font, size: 8, color: darkGray }); }
-      sy -= 20;
-
-      // Vital Signs
-      sy = drawSectionHeader(pg, 'VITAL SIGNS', sy);
-      const v = screening.vitals || {};
-      const bp = v.bloodPressure || {};
-      sy = drawField(pg, 'Blood Pressure:', bp.systolic && bp.diastolic ? `${bp.systolic}/${bp.diastolic} mmHg` : `${screening.systolic || ''}/${screening.diastolic || ''} mmHg`, margin, sy);
-      sy = drawField(pg, 'Heart Rate:', v.heartRate ? `${v.heartRate} bpm` : '', margin, sy);
-      sy = drawField(pg, 'Oxygen Sat:', v.oxygenSat ? `${v.oxygenSat}%` : '', margin, sy);
-      sy = drawField(pg, 'Temperature:', v.temperature ? `${v.temperature} °F` : '', margin, sy);
-      sy = drawField(pg, 'Weight:', v.weight ? `${v.weight} lbs` : '', margin, sy);
-      sy = drawField(pg, 'Height:', v.height ? `${v.height} in` : '', margin, sy);
-      sy -= 8;
-
-      // Screening Results
-      sy = drawSectionHeader(pg, 'SCREENING RESULTS', sy);
-      sy = drawField(pg, 'Glucose:', v.glucose ? `${v.glucose} mg/dL` : '', margin, sy);
-      const flags = screening.flags || {};
-      if (flags.bloodPressure) {
-        const bpf = flags.bloodPressure;
-        const flagColor = bpf.level === 'critical' ? rgb(0.8, 0.1, 0.1) : bpf.level === 'high' ? rgb(0.85, 0.45, 0.0) : midGray;
-        pg.drawText(`BP Flag: ${bpf.label}`, { x: margin, y: sy, font: fontBold, size: 9, color: flagColor });
-        sy -= 16;
-      }
-      if (flags.glucose) {
-        const gf = flags.glucose;
-        const flagColor = gf.level === 'critical' ? rgb(0.8, 0.1, 0.1) : gf.level === 'high' ? rgb(0.85, 0.45, 0.0) : midGray;
-        pg.drawText(`Glucose Flag: ${gf.label}`, { x: margin, y: sy, font: fontBold, size: 9, color: flagColor });
-        sy -= 16;
-      }
-      sy -= 8;
-
-      // Notes & Attestation
-      sy = drawSectionHeader(pg, 'COMPLETION & ATTESTATION', sy);
-      sy = drawField(pg, 'Performed By:', screening.performedByName || '', margin, sy);
-      if (screening.notes) {
-        if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-        pg.drawText('Notes:', { x: margin, y: sy, font: fontBold, size: 8, color: midGray });
-        sy -= 14;
-        const noteLines = wrapText(screening.notes, contentWidth - 10, font, 8);
-        for (const line of noteLines) {
-          if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-          pg.drawText(line, { x: margin + 5, y: sy, font, size: 8, color: darkGray });
-          sy -= 12;
-        }
-      }
-      if (screening.resultsSummary) {
-        if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-        pg.drawText('Results Summary:', { x: margin, y: sy, font: fontBold, size: 8, color: midGray });
-        sy -= 14;
-        const sumLines = wrapText(screening.resultsSummary, contentWidth - 10, font, 8);
-        for (const line of sumLines) {
-          if (sy < margin + 60) { drawFooter(pg); pg = pdfDoc.addPage([pageWidth, pageHeight]); sy = pageHeight - margin; pg.drawRectangle({ x: 0, y: pageHeight - 4, width: pageWidth, height: 4, color: green }); }
-          pg.drawText(line, { x: margin + 5, y: sy, font, size: 8, color: darkGray });
-          sy -= 12;
-        }
-      }
-      sy -= 8;
-      if (screening.refusalOfCare) {
-        drawCheckbox(pg, 'Refusal of Care form completed and submitted', true, margin, sy);
-        sy -= 16;
-      }
-      if (screening.followUpNeeded) {
-        drawCheckbox(pg, `Follow-up needed${screening.followUpReason ? ': ' + screening.followUpReason : ''}`, true, margin, sy);
-        sy -= 16;
-      }
-
-      drawFooter(pg);
-    }
-
-    const pdfBytes = await pdfDoc.save();
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="HMC-intake-${client.firstName || 'client'}-${client.lastName || ''}.pdf"`);
-    res.send(Buffer.from(pdfBytes));
-  } catch (e: any) {
-    console.error('[PDF] Intake PDF error:', e);
-    res.status(500).json({ error: 'Failed to generate intake PDF' });
-  }
 });
 
 // --- EVENT CLIENTS (cross-tab visibility) ---

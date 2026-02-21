@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ScreeningRecord, AuditLog } from '../types';
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
-import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, AlertTriangle, Activity, ClipboardList, Eye, Clock, Edit3, Save, Flag, BadgeCheck, Download } from 'lucide-react';
+import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, AlertTriangle, Activity, ClipboardList, Eye, Clock, Edit3, Save, Flag, BadgeCheck } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
 // --- CLIENT HISTORY BADGES ---
@@ -718,19 +718,8 @@ const getGlucoseFlag = (value: number) => {
     return { level: 'normal', label: 'Normal', color: 'emerald' };
 };
 
-const downloadPdf = async (url: string) => {
-    const token = localStorage.getItem('authToken');
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error('Download failed');
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-};
-
 const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shift, event?: ClinicEvent, onLog: Function, onComplete: Function}> = ({ client, user, shift, event, onLog, onComplete }) => {
     const [isSaving, setIsSaving] = useState(false);
-    const [completedScreeningId, setCompletedScreeningId] = useState<string | null>(null);
     const [vitals, setVitals] = useState({
         systolic: '',
         diastolic: '',
@@ -742,13 +731,7 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
         oxygenSat: '',
         notes: '',
         followUpNeeded: false,
-        followUpReason: '',
-        currentMedications: '',
-        hasMedications: false,
-        allergies: '',
-        hasAllergies: false,
-        resultsSummary: '',
-        refusalOfCare: false,
+        followUpReason: ''
     });
 
     const bpFlag = vitals.systolic && vitals.diastolic
@@ -784,21 +767,17 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                 notes: vitals.notes,
                 followUpNeeded: vitals.followUpNeeded || hasFlags,
                 followUpReason: vitals.followUpReason || (hasFlags ? 'Abnormal vitals flagged' : ''),
-                currentMedications: vitals.hasMedications ? vitals.currentMedications : 'None',
-                allergies: vitals.hasAllergies ? vitals.allergies : 'None',
-                resultsSummary: vitals.resultsSummary,
-                refusalOfCare: vitals.refusalOfCare,
                 timestamp: new Date().toISOString()
             };
 
-            const result = await apiService.post('/api/screenings/create', screening);
+            await apiService.post('/api/screenings/create', screening);
             onLog({
                 actionType: 'CREATE_SCREENING',
                 targetSystem: 'FIRESTORE',
                 targetId: client.id,
                 summary: `Screening completed for ${client.firstName} ${client.lastName}. ${hasFlags ? 'FLAGS PRESENT' : 'No flags.'}`
             });
-            setCompletedScreeningId(result?.id || null);
+            onComplete();
         } catch(err) {
             toastService.error('Failed to save screening.');
         } finally {
@@ -808,34 +787,6 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
 
     const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
     const labelClass = "text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2";
-
-    // Post-save: show completion + download
-    if (completedScreeningId) {
-        return (
-            <div className="space-y-6 animate-in fade-in max-w-2xl mx-auto text-center py-8">
-                <CheckCircle size={48} className="mx-auto text-emerald-500" />
-                <h3 className="text-lg font-black text-zinc-900">Screening Complete</h3>
-                <p className="text-sm text-zinc-600">Screening for {client.firstName} {client.lastName} has been saved.</p>
-                {hasFlags && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800">
-                        <AlertTriangle size={16} className="inline mr-2" />
-                        Flagged vitals detected — this screening has been added to the clinical review queue.
-                    </div>
-                )}
-                <div className="flex flex-col gap-3 max-w-md mx-auto">
-                    <button onClick={() => downloadPdf(`/api/clients/${client.id}/intake-pdf?screeningId=${completedScreeningId}`).catch(() => toastService.error('Failed to download PDF.'))} className="w-full py-3 bg-zinc-100 border border-zinc-200 text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all">
-                        <Download size={16} /> Download Full Intake + Screening (PDF)
-                    </button>
-                    <button onClick={() => downloadPdf(`/api/clients/${client.id}/intake-pdf`).catch(() => toastService.error('Failed to download PDF.'))} className="w-full py-3 bg-white border border-zinc-200 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-50 transition-all">
-                        <Download size={14} /> Download Intake Only (PDF)
-                    </button>
-                    <button onClick={() => onComplete()} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide">
-                        Done
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6 animate-in fade-in max-w-2xl mx-auto">
@@ -852,27 +803,6 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
             </div>
 
             <form onSubmit={handleSave} className="space-y-6">
-                {/* Past Medical History */}
-                <div className="p-4 md:p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-2xl md:rounded-[40px] space-y-4">
-                    <h4 className="text-base md:text-xl font-bold text-zinc-900">Past Medical History</h4>
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked={vitals.hasMedications} onChange={e => setVitals({...vitals, hasMedications: e.target.checked})} className="w-5 h-5 rounded" />
-                            <span className="text-sm font-bold text-zinc-600">Currently taking medications</span>
-                        </label>
-                        {vitals.hasMedications && (
-                            <input type="text" placeholder="List medications..." value={vitals.currentMedications} onChange={e => setVitals({...vitals, currentMedications: e.target.value})} className={inputClass} />
-                        )}
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked={vitals.hasAllergies} onChange={e => setVitals({...vitals, hasAllergies: e.target.checked})} className="w-5 h-5 rounded" />
-                            <span className="text-sm font-bold text-zinc-600">Known allergies</span>
-                        </label>
-                        {vitals.hasAllergies && (
-                            <input type="text" placeholder="List allergies..." value={vitals.allergies} onChange={e => setVitals({...vitals, allergies: e.target.value})} className={inputClass} />
-                        )}
-                    </div>
-                </div>
-
                 {/* Blood Pressure */}
                 <div className="p-4 md:p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-2xl md:rounded-[40px] space-y-4">
                     <div className="flex items-center justify-between">
@@ -943,10 +873,6 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                             <label className={labelClass}>Weight (lbs)</label>
                             <input type="number" placeholder="150" value={vitals.weight} onChange={e => setVitals({...vitals, weight: e.target.value})} className={inputClass} />
                         </div>
-                        <div>
-                            <label className={labelClass}>Height (inches)</label>
-                            <input type="number" placeholder="66" value={vitals.height} onChange={e => setVitals({...vitals, height: e.target.value})} className={inputClass} />
-                        </div>
                     </div>
                 </div>
 
@@ -957,10 +883,6 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                         <label className={labelClass}>Clinical Notes</label>
                         <textarea rows={3} placeholder="Any observations, client concerns, or recommendations..." value={vitals.notes} onChange={e => setVitals({...vitals, notes: e.target.value})} className={inputClass} />
                     </div>
-                    <div>
-                        <label className={labelClass}>Results Summary / Recommendations</label>
-                        <textarea rows={2} placeholder="Summary of screening results and recommendations for the client..." value={vitals.resultsSummary} onChange={e => setVitals({...vitals, resultsSummary: e.target.value})} className={inputClass} />
-                    </div>
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" checked={vitals.followUpNeeded || hasFlags} onChange={e => setVitals({...vitals, followUpNeeded: e.target.checked})} className="w-5 h-5 rounded" />
                         <span className="text-sm font-bold text-zinc-600">Follow-up needed</span>
@@ -969,10 +891,6 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     {(vitals.followUpNeeded || hasFlags) && (
                         <input type="text" placeholder="Reason for follow-up..." value={vitals.followUpReason} onChange={e => setVitals({...vitals, followUpReason: e.target.value})} className={inputClass} />
                     )}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={vitals.refusalOfCare} onChange={e => setVitals({...vitals, refusalOfCare: e.target.checked})} className="w-5 h-5 rounded" />
-                        <span className="text-sm font-bold text-zinc-600">Refusal of Care form completed and submitted</span>
-                    </label>
                 </div>
 
                 {/* Actions */}
