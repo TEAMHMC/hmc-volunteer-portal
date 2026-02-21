@@ -371,6 +371,35 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         </div>
       </div>
 
+      {/* Compliance Status */}
+      {currentUser.compliance && Object.keys(currentUser.compliance).length > 0 && (
+        <div className="bg-white rounded-2xl md:rounded-[40px] p-4 md:p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="flex items-center gap-4 mb-4 md:mb-6">
+            <div className="w-12 h-12 bg-brand/5 rounded-2xl flex items-center justify-center text-brand shadow-elevation-1"><Shield size={24} /></div>
+            <div>
+              <h3 className="text-base md:text-xl font-black text-zinc-900 tracking-tight">Compliance Status</h3>
+              <p className="text-xs text-zinc-400 font-bold">Your onboarding and compliance requirements</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {Object.values(currentUser.compliance).map((step: any) => (
+              <div key={step.id} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-zinc-50 transition-colors">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
+                  {step.status === 'completed' || step.status === 'verified' ? <Check size={16} /> : <Clock size={16} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm font-bold ${step.status === 'completed' || step.status === 'verified' ? 'text-zinc-900' : 'text-zinc-400'}`}>{step.label}</p>
+                  {step.dateCompleted && <p className="text-[10px] text-zinc-400 font-bold">{new Date(step.dateCompleted).toLocaleDateString()}</p>}
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full ${step.status === 'completed' || step.status === 'verified' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                  {step.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Signed Clinical Documents */}
       {currentUser.clinicalOnboarding?.documents && Object.values(currentUser.clinicalOnboarding.documents).some((d: any) => d?.signed) && (
         <div className="bg-white rounded-2xl md:rounded-[40px] p-4 md:p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">

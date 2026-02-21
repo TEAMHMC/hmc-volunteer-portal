@@ -97,7 +97,8 @@ The HMC Street Medicine program provides direct, on-the-street medical care, soc
         title: 'Clinical Onboarding Guide',
         content: 'Step-by-step onboarding guide for clinical volunteers including orientation, compliance requirements, scope of practice, and supervision protocols.',
         documentUrl: '/documents/clinical-onboarding-guide.html',
-        tags: ['protocol', 'clinical', 'onboarding', 'guide']
+        tags: ['protocol', 'clinical', 'onboarding', 'guide'],
+        visibleTo: ['Licensed Medical Professional']
     },
     {
         id: 'protocol-003',
@@ -105,7 +106,8 @@ The HMC Street Medicine program provides direct, on-the-street medical care, soc
         title: 'Clinical Policies & Procedures Manual',
         content: 'Full clinical policies and procedures manual covering governance structure, volunteer expectations, compliance standards, and operational protocols.',
         documentUrl: '/documents/HMC-Clinical-Policies-Procedures-Manual-v1.0.html',
-        tags: ['protocol', 'clinical', 'policies', 'procedures', 'manual']
+        tags: ['protocol', 'clinical', 'policies', 'procedures', 'manual'],
+        visibleTo: ['Licensed Medical Professional']
     },
     {
         id: 'protocol-004',
@@ -113,7 +115,8 @@ The HMC Street Medicine program provides direct, on-the-street medical care, soc
         title: 'Standing Orders v3.0',
         content: 'Current standing orders for clinical procedures and protocols used during health screenings, wellness events, and street medicine operations.',
         documentUrl: '/documents/HMC-Standing-Orders-v3.0.html',
-        tags: ['protocol', 'standing orders', 'clinical', 'procedures']
+        tags: ['protocol', 'standing orders', 'clinical', 'procedures'],
+        visibleTo: ['Licensed Medical Professional']
     },
     {
         id: 'protocol-005',
@@ -121,6 +124,7 @@ The HMC Street Medicine program provides direct, on-the-street medical care, soc
         title: 'General Screening Consent Form',
         content: 'Standard consent form template used for health screenings and clinical services at HMC events.',
         documentUrl: '/documents/HMC-General-Screening-Consent-Form.html',
-        tags: ['protocol', 'consent', 'screening', 'form']
+        tags: ['protocol', 'consent', 'screening', 'form'],
+        visibleTo: ['Licensed Medical Professional']
     },
 ];
