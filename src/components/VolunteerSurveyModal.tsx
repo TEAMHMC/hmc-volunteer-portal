@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Star, CheckCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import { FormField } from '../types';
-import surveyService, { FormDefinition } from '../services/surveyService';
+import { FormDefinition } from '../services/surveyService';
+import { apiService } from '../services/apiService';
 import { DEFAULT_FORMS } from './FormBuilder';
 import { toastService } from '../services/toastService';
 
@@ -33,20 +34,13 @@ const VolunteerSurveyModal: React.FC<VolunteerSurveyModalProps> = ({
   useEffect(() => {
     const loadForm = async () => {
       try {
-        // Try Firestore first
-        const forms = await surveyService.getForms();
-        const found = forms.find(f => f.id === formId);
-        if (found) {
-          setForm(found);
-        } else {
-          // Fall back to hardcoded defaults (forms may not be persisted to Firestore yet)
-          const defaultForm = DEFAULT_FORMS.find(f => f.id === formId);
-          if (defaultForm) setForm(defaultForm);
+        // Load form definition from DEFAULT_FORMS (always available client-side)
+        const defaultForm = DEFAULT_FORMS.find(f => f.id === formId);
+        if (defaultForm) {
+          setForm(defaultForm);
         }
       } catch (err) {
-        console.error('Failed to load survey form from Firestore, using defaults:', err);
-        const defaultForm = DEFAULT_FORMS.find(f => f.id === formId);
-        if (defaultForm) setForm(defaultForm);
+        console.error('Failed to load survey form:', err);
       } finally {
         setLoading(false);
       }
@@ -82,18 +76,16 @@ const VolunteerSurveyModal: React.FC<VolunteerSurveyModalProps> = ({
       const answersFlat = Object.fromEntries(
         Object.entries(answers).map(([key, val]) => [key, Array.isArray(val) ? val.join(', ') : val])
       );
-      await surveyService.submitSurveyResponse({
+      await apiService.post('/api/survey-responses/submit', {
         formId,
         formTitle: form.title,
         eventId: eventId || '',
-        respondentId: volunteerId,
-        respondentType: 'volunteer',
         responses: answersFlat,
-        // Also store as answers for analytics compatibility
         answers: answersFlat,
         respondentName: volunteerName,
-      } as any);
+      });
       setSubmitted(true);
+      toastService.success('Survey submitted successfully!');
       onComplete?.();
     } catch (err) {
       toastService.error('Failed to submit survey. Please try again.');

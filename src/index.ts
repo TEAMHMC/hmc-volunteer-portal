@@ -805,7 +805,7 @@ const EmailTemplates = {
       </div>
       ${actionButton('Complete Debrief Survey', data.surveyUrl || `${EMAIL_CONFIG.WEBSITE_URL}?survey=volunteer-debrief`)}
       ${(data as any).nextEventTeaser ? `<div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 24px 0; border-radius: 4px;">
-        <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e3a5f;">Your next mission is loading...</p>
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e3a5f;">Next Up</p>
         <p style="margin: 0; color: #1e40af;">${(data as any).nextEventTeaser.replace(/\n/g, '')}</p>
       </div>` : ''}
     ${emailFooter()}`,
@@ -5794,6 +5794,52 @@ app.post('/api/ops/volunteer-checkout/:eventId', verifyToken, async (req: Reques
     }
 });
 
+// POST /api/survey-responses/submit — Submit a survey response (authenticated)
+app.post('/api/survey-responses/submit', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { formId, formTitle, eventId, responses, answers, respondentName } = req.body;
+        if (!formId) return res.status(400).json({ error: 'formId is required' });
+
+        const docRef = await db.collection('surveyResponses').add({
+            formId,
+            formTitle: formTitle || '',
+            eventId: eventId || '',
+            respondentId: user.uid,
+            respondentName: respondentName || user.profile?.name || 'Unknown',
+            respondentType: 'volunteer',
+            responses: responses || answers || {},
+            answers: answers || responses || {},
+            submittedAt: new Date().toISOString(),
+        });
+
+        console.log(`[SURVEY] Response saved: ${docRef.id} for form ${formId} by ${user.uid}`);
+        res.json({ success: true, id: docRef.id });
+    } catch (error: any) {
+        console.error('[SURVEY] Submit failed:', error.message);
+        res.status(500).json({ error: 'Failed to save survey response' });
+    }
+});
+
+// GET /api/survey-responses — Get survey responses by formId (for Forms dashboard)
+app.get('/api/survey-responses', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { formId } = req.query;
+        if (!formId) return res.status(400).json({ error: 'formId query param required' });
+
+        const snap = await db.collection('surveyResponses')
+            .where('formId', '==', String(formId))
+            .get();
+
+        const results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        results.sort((a: any, b: any) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+        res.json(results);
+    } catch (error: any) {
+        console.error('[SURVEY] Fetch failed:', error.message);
+        res.status(500).json({ error: 'Failed to load responses' });
+    }
+});
+
 // GET /api/volunteer/recent-checkins — Get volunteer's check-ins for today (for debrief prompt)
 app.get('/api/volunteer/recent-checkins', verifyToken, async (req: Request, res: Response) => {
     try {
@@ -8765,17 +8811,19 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
 
       if (assignedIds.size === 0) continue;
 
-      // Find next upcoming event for the "your next mission" teaser
+      // Find next upcoming event for the teaser (skip the current event)
       let nextEventTeaser = '';
       try {
         const upcomingSnap = await db.collection('opportunities')
           .where('date', '>', todayStr)
           .orderBy('date', 'asc')
-          .limit(1)
+          .limit(5)
           .get();
-        if (!upcomingSnap.empty) {
-          const nextEvent = upcomingSnap.docs[0].data();
-          nextEventTeaser = `\n\nYour next mission is loading — ${nextEvent.title} is open for registration!`;
+        const nextEvent = upcomingSnap.docs
+          .map(d => d.data())
+          .find(e => e.title !== opp.title); // Skip the current event
+        if (nextEvent) {
+          nextEventTeaser = `\n\nThe next ${nextEvent.title} is open for registration — sign up now!`;
         }
       } catch (e) {
         // Non-fatal — skip the teaser if query fails
@@ -9673,11 +9721,11 @@ app.post('/api/admin/workflows/test-debrief', async (req: Request, res: Response
       const upcomingSnap = await db.collection('opportunities')
         .where('date', '>', todayStr)
         .orderBy('date', 'asc')
-        .limit(1)
+        .limit(5)
         .get();
       if (!upcomingSnap.empty) {
         const nextEvent = upcomingSnap.docs[0].data();
-        nextEventTeaser = `\n\nYour next mission is loading — ${nextEvent.title} is open for registration!`;
+        nextEventTeaser = `\n\nThe next ${nextEvent.title} is open for registration — sign up now!`;
       }
     } catch {}
 
