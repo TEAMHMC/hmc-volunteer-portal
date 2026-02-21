@@ -113,7 +113,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
           <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
             Login
-            <span className="hidden sm:inline">/ Sign Up</span>
           </button>
         </div>
       </nav>
