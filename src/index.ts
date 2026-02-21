@@ -3990,10 +3990,11 @@ app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Re
         todayStart.setHours(0, 0, 0, 0);
         const todayISO = todayStart.toISOString();
 
-        const [referralsSnap, screeningsSnap, todayScreeningsSnap] = await Promise.all([
+        const [referralsSnap, screeningsSnap, todayScreeningsSnap, todayClientsSnap] = await Promise.all([
             db.collection('referrals').where('eventId', '==', eventId).get(),
             db.collection('screenings').where('eventId', '==', eventId).get(),
             db.collection('screenings').where('createdAt', '>=', todayISO).get(),
+            db.collection('clients').where('createdAt', '>=', todayISO).get(),
         ]);
 
         // Collect unique clientIds with their station sources
@@ -4024,6 +4025,12 @@ app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Re
                 const entry = clientMap.get(data.clientId) || { referral: false, screening: false };
                 entry.screening = true;
                 clientMap.set(data.clientId, entry);
+            }
+        }
+        // Include clients created today (registered but screening not yet submitted)
+        for (const doc of todayClientsSnap.docs) {
+            if (!clientMap.has(doc.id)) {
+                clientMap.set(doc.id, { referral: false, screening: false });
             }
         }
 
