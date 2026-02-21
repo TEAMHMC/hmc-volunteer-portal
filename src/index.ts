@@ -4700,6 +4700,39 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
                         checkinCount: admin.firestore.FieldValue.increment(1)
                     });
                 }
+                // Try to bridge walk-in to volunteer account by email
+                let walkinVolunteerId: string | null = null;
+                if (searchContact && searchContact.includes('@')) {
+                    try {
+                        const volSnap = await db.collection('volunteers').where('email', '==', searchContact).limit(1).get();
+                        if (!volSnap.empty) {
+                            const volDoc = volSnap.docs[0];
+                            walkinVolunteerId = volDoc.id;
+                            const volData = volDoc.data();
+                            const volCheckinRef = db.collection('volunteer_checkins').doc(`${eventId}_${volDoc.id}`);
+                            const existingCheckin = await volCheckinRef.get();
+                            if (!existingCheckin.exists || !existingCheckin.data()?.checkedIn) {
+                                await volCheckinRef.set({
+                                    volunteerId: volDoc.id,
+                                    volunteerName: volData?.name || displayName,
+                                    volunteerRole: volData?.volunteerRole || volData?.role || 'Volunteer',
+                                    eventId,
+                                    shiftId: '',
+                                    checkedIn: true,
+                                    checkedInAt,
+                                    checkedOut: false,
+                                    checkedOutAt: null,
+                                    hoursServed: 0,
+                                    checkedInMethod: 'qr-walkin-bridge',
+                                }, { merge: true });
+                                console.log(`[QR CHECKIN] Bridged walk-in volunteer check-in for ${volData?.name || displayName} (${volDoc.id})`);
+                            }
+                        }
+                    } catch (bridgeErr: any) {
+                        console.error(`[QR CHECKIN] Walk-in volunteer bridge failed:`, bridgeErr.message);
+                    }
+                }
+
                 console.log(`[QR CHECKIN] Walk-in checked in for event ${eventId}: ${displayName}`);
                 return res.json({
                     success: true,
@@ -4707,6 +4740,7 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
                     eventTitle: eventData?.title || '',
                     checkedInAt,
                     walkIn: true,
+                    volunteerBridged: !!walkinVolunteerId,
                 });
             }
             return res.status(404).json({ error: 'No RSVP found', code: 'no_rsvp' });
@@ -4727,11 +4761,46 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
             if (eventSnap.exists) {
                 tx.update(eventRef, { checkinCount: admin.firestore.FieldValue.increment(1 + (rsvpData.guests || 0)) });
             }
-            return { alreadyCheckedIn: false, name: rsvpData.name, eventTitle: rsvpData.eventTitle };
+            return { alreadyCheckedIn: false, name: rsvpData.name, eventTitle: rsvpData.eventTitle, volunteerMatch: rsvpData.volunteerMatch };
         });
 
         if (result.alreadyCheckedIn) {
             return res.status(400).json({ error: 'Already checked in', code: 'already_checked_in', checkedInAt: result.checkedInAt });
+        }
+
+        // Bridge to volunteer_checkins: if this RSVP is linked to a volunteer account,
+        // also create a volunteer_checkins record so they can check out through the portal
+        const volunteerId = result.volunteerMatch?.volunteerId;
+        if (volunteerId) {
+            try {
+                const volCheckinRef = db.collection('volunteer_checkins').doc(`${eventId}_${volunteerId}`);
+                const existing = await volCheckinRef.get();
+                if (!existing.exists || !existing.data()?.checkedIn) {
+                    // Look up volunteer profile for name/role
+                    const volDoc = await db.collection('volunteers').doc(volunteerId).get();
+                    const volData = volDoc.data();
+                    const volName = volData?.name || volData?.legalFirstName ? `${volData?.legalFirstName || ''} ${volData?.legalLastName || ''}`.trim() : result.name || 'Volunteer';
+                    const volRole = volData?.volunteerRole || volData?.role || 'Volunteer';
+
+                    await volCheckinRef.set({
+                        volunteerId,
+                        volunteerName: volName,
+                        volunteerRole: volRole,
+                        eventId,
+                        shiftId: '',
+                        checkedIn: true,
+                        checkedInAt,
+                        checkedOut: false,
+                        checkedOutAt: null,
+                        hoursServed: 0,
+                        checkedInMethod: 'qr-bridge',
+                    }, { merge: true });
+                    console.log(`[QR CHECKIN] Bridged volunteer check-in for ${volName} (${volunteerId}) on event ${eventId}`);
+                }
+            } catch (bridgeErr: any) {
+                // Non-fatal — log but don't fail the check-in
+                console.error(`[QR CHECKIN] Failed to bridge volunteer check-in:`, bridgeErr.message);
+            }
         }
 
         console.log(`[QR CHECKIN] Checked in for event ${eventId}: ${result.name}`);
@@ -4739,7 +4808,8 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
             success: true,
             name: result.name,
             eventTitle: result.eventTitle,
-            checkedInAt
+            checkedInAt,
+            volunteerBridged: !!volunteerId,
         });
     } catch (error: any) {
         console.error('[QR CHECKIN] Failed:', error);
