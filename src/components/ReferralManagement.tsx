@@ -1066,9 +1066,12 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             <div>
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
               <input
-                type="date"
+                type="text"
+                inputMode="numeric"
+                placeholder="MM/DD/YYYY"
+                maxLength={10}
                 value={formData.dob || ''}
-                onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                onChange={e => { let v = e.target.value.replace(/[^\d/]/g, ''); const d = v.replace(/\//g, ''); if (d.length >= 4) v = d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4,8); else if (d.length >= 2) v = d.slice(0,2)+'/'+d.slice(2); else v = d; setFormData({ ...formData, dob: v }); }}
                 className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
               />
             </div>

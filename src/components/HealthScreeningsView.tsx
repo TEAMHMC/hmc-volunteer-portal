@@ -528,7 +528,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date of Birth</label>
-                        <input type="date" onChange={e => setClient({...client, dob: e.target.value})} className={inputClass} />
+                        <input type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} onChange={e => { let v = e.target.value.replace(/[^\d/]/g, ''); const d = v.replace(/\//g, ''); if (d.length >= 4) v = d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4,8); else if (d.length >= 2) v = d.slice(0,2)+'/'+d.slice(2); else v = d; e.target.value = v; setClient({...client, dob: v}); }} className={inputClass} />
                     </div>
                     <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Housing Status</label>

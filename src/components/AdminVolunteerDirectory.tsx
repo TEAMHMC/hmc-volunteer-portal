@@ -581,7 +581,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                       </div>
                       <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Date of Birth</label>
-                        <input type="date" value={editProfileData.dob} onChange={e => setEditProfileData(p => ({ ...p, dob: e.target.value }))} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
+                        <input type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} value={editProfileData.dob} onChange={e => { let v = e.target.value.replace(/[^\d/]/g, ''); const d = v.replace(/\//g, ''); if (d.length >= 4) v = d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4,8); else if (d.length >= 2) v = d.slice(0,2)+'/'+d.slice(2); else v = d; setEditProfileData(p => ({ ...p, dob: v })); }} className="w-full p-3 bg-white border-2 border-zinc-100 rounded-2xl text-sm font-bold outline-none focus:border-brand/30" />
                       </div>
                       <div>
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-1">Gender</label>

@@ -703,7 +703,7 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
         </div>
         <div>
           <label className="text-sm font-bold text-zinc-600 block mb-2">Date of Birth *</label>
-          <input type="date" value={data.dob || ''} onChange={e => onChange('dob', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
+          <input type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} value={data.dob || ''} onChange={e => { let v = e.target.value.replace(/[^\d/]/g, ''); const d = v.replace(/\//g, ''); if (d.length >= 4) v = d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4,8); else if (d.length >= 2) v = d.slice(0,2)+'/'+d.slice(2); else v = d; onChange('dob', v); }} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" />
         </div>
         <div>
           <label className="text-sm font-bold text-zinc-600 block mb-2">Gender</label>
