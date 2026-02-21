@@ -3614,13 +3614,17 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
         const contentW = pageW - margin * 2;
 
         // Helper functions
-        const drawField = (page: any, label: string, value: string, x: number, y: number, labelW = 120) => {
+        const drawField = (page: any, label: string, value: any, x: number, y: number, labelW = 120) => {
             page.drawText(label, { x, y, font: fontBold, size: 8, color: rgb(0.4, 0.4, 0.4) });
-            page.drawText(value || '—', { x: x + labelW, y, font, size: 9, color: rgb(0.1, 0.1, 0.1) });
+            const safeVal = (value != null && String(value).trim()) ? String(value) : '---';
+            page.drawText(safeVal, { x: x + labelW, y, font, size: 9, color: rgb(0.1, 0.1, 0.1) });
         };
         const drawCheckbox = (page: any, label: string, checked: boolean, x: number, y: number) => {
             page.drawRectangle({ x, y: y - 2, width: 10, height: 10, borderColor: rgb(0.5, 0.5, 0.5), borderWidth: 0.5 });
-            if (checked) page.drawText('✓', { x: x + 1.5, y: y - 1, font: fontBold, size: 9, color: rgb(0.1, 0.6, 0.3) });
+            if (checked) {
+                page.drawRectangle({ x: x + 1.5, y: y - 0.5, width: 7, height: 7, color: rgb(0.1, 0.6, 0.3) });
+                page.drawText('X', { x: x + 2, y: y - 0.5, font: fontBold, size: 7, color: rgb(1, 1, 1) });
+            }
             page.drawText(label, { x: x + 15, y, font, size: 8, color: rgb(0.2, 0.2, 0.2) });
         };
         const drawSectionHeader = (page: any, title: string, y: number) => {
@@ -3629,7 +3633,7 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
             return y - 24;
         };
         const drawFooter = (page: any) => {
-            page.drawText('HMC provides screening & education only — NO diagnosis or treatment.', {
+            page.drawText('HMC provides screening & education only - NO diagnosis or treatment.', {
                 x: margin, y: 30, font: fontItalic, size: 7, color: rgb(0.5, 0.5, 0.5)
             });
         };
@@ -3662,7 +3666,7 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
         drawField(page1, 'Language:', client.primaryLanguage || '—', margin + 8, y);
         drawField(page1, 'Contact Method:', client.contactMethod || '—', margin + 280, y);
         y -= 18;
-        drawField(page1, 'Housing Status:', client.homelessnessStatus || '—', margin + 8, y);
+        drawField(page1, 'Housing Status:', client.homelessnessStatus || client.housingStatus, margin + 8, y);
         y -= 26;
 
         // Emergency Contact
@@ -3746,7 +3750,7 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
             let sy = pageH - margin;
             page2.drawRectangle({ x: 0, y: pageH - 6, width: pageW, height: 6, color: rgb(0.2, 0.5, 0.35) });
             page2.drawText('HMC HEALTH SCREENING REPORT', { x: margin, y: sy - 10, font: fontBold, size: 16, color: rgb(0.1, 0.1, 0.1) });
-            page2.drawText(`Screening Date: ${screening.timestamp ? new Date(screening.timestamp).toLocaleDateString() : '—'}`, { x: pageW - margin - 180, y: sy - 10, font, size: 8, color: rgb(0.5, 0.5, 0.5) });
+            page2.drawText(`Screening Date: ${screening.timestamp ? new Date(screening.timestamp).toLocaleDateString() : '---'}`, { x: pageW - margin - 180, y: sy - 10, font, size: 8, color: rgb(0.5, 0.5, 0.5) });
             sy -= 40;
 
             // Past Medical History
@@ -3758,18 +3762,19 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
 
             // Vital Signs
             sy = drawSectionHeader(page2, 'Vital Signs', sy);
-            const vitals = screening.vitals || {};
-            const bp = vitals.bloodPressure || {};
-            drawField(page2, 'Blood Pressure:', bp.systolic && bp.diastolic ? `${bp.systolic}/${bp.diastolic} mmHg` : `${screening.systolic || '—'}/${screening.diastolic || '—'} mmHg`, margin + 8, sy);
-            drawField(page2, 'Heart Rate:', `${vitals.heartRate ?? screening.heartRate ?? '—'} bpm`, margin + 280, sy);
+            const sVitals = screening.vitals || {};
+            const bp = sVitals.bloodPressure || {};
+            const v = (val: any, unit = '') => (val != null && val !== '' && val !== 0) ? `${val}${unit}` : '---';
+            drawField(page2, 'Blood Pressure:', (bp.systolic && bp.diastolic) ? `${bp.systolic}/${bp.diastolic} mmHg` : `${screening.systolic || '---'}/${screening.diastolic || '---'} mmHg`, margin + 8, sy);
+            drawField(page2, 'Heart Rate:', v(sVitals.heartRate || screening.heartRate, ' bpm'), margin + 280, sy);
             sy -= 18;
-            drawField(page2, 'O2 Saturation:', `${vitals.oxygenSat ?? screening.oxygenSaturation ?? '—'}%`, margin + 8, sy);
-            drawField(page2, 'Temperature:', vitals.temperature ? `${vitals.temperature}°F` : '—', margin + 280, sy);
+            drawField(page2, 'O2 Saturation:', v(sVitals.oxygenSat || screening.oxygenSaturation, '%'), margin + 8, sy);
+            drawField(page2, 'Temperature:', v(sVitals.temperature, ' F'), margin + 280, sy);
             sy -= 18;
-            drawField(page2, 'Weight:', `${vitals.weight ?? screening.weight ?? '—'} lbs`, margin + 8, sy);
-            drawField(page2, 'Height:', screening.height ? `${screening.height} in` : '—', margin + 280, sy);
+            drawField(page2, 'Weight:', v(sVitals.weight || screening.weight, ' lbs'), margin + 8, sy);
+            drawField(page2, 'Height:', v(sVitals.height || screening.height, ' in'), margin + 280, sy);
             sy -= 18;
-            drawField(page2, 'Glucose:', `${vitals.glucose ?? screening.glucose ?? '—'} mg/dL`, margin + 8, sy);
+            drawField(page2, 'Glucose:', v(sVitals.glucose || screening.glucose, ' mg/dL'), margin + 8, sy);
             if (screening.bmi) drawField(page2, 'BMI:', `${screening.bmi}`, margin + 280, sy);
             sy -= 26;
 
