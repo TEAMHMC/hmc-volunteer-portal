@@ -4926,6 +4926,30 @@ app.post('/api/events/:id/walkin-checkin', verifyToken, async (req: Request, res
 });
 
 // --- CLIENT SURVEY ENDPOINTS ---
+app.get('/api/client-surveys', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId, surveyKitId } = req.query;
+        let snap;
+        if (eventId) {
+            snap = await db.collection('clientSurveys')
+                .where('eventId', '==', String(eventId))
+                .get();
+        } else if (surveyKitId) {
+            snap = await db.collection('clientSurveys')
+                .where('surveyKitId', '==', String(surveyKitId))
+                .get();
+        } else {
+            snap = await db.collection('clientSurveys').get();
+        }
+        const results = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        results.sort((a: any, b: any) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+        res.json(results);
+    } catch (e: any) {
+        console.error('[CLIENT SURVEY] Failed to fetch:', e.message);
+        res.status(500).json({ error: 'Failed to fetch surveys' });
+    }
+});
+
 app.post('/api/client-surveys/create', verifyToken, async (req: Request, res: Response) => {
     try {
         const survey = req.body;

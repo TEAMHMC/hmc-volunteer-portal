@@ -1224,6 +1224,21 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     const [consentGiven, setConsentGiven] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
 
+    // Load existing survey count for this event from backend
+    useEffect(() => {
+        if (eventId) {
+            apiService.get(`/api/client-surveys?eventId=${encodeURIComponent(eventId)}`)
+                .then((data: any) => {
+                    if (Array.isArray(data)) {
+                        // Count surveys for this specific survey kit
+                        const kitCount = data.filter((s: any) => s.surveyKitId === surveyKit.id).length;
+                        setResponseCount(kitCount);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [eventId, surveyKit.id]);
+
     // Guard AFTER hooks to comply with React Rules of Hooks
     if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
 
