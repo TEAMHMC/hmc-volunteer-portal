@@ -4829,6 +4829,52 @@ app.post('/api/events/:id/manual-checkin', verifyToken, async (req: Request, res
     }
 });
 
+// POST /api/events/:id/walkin-checkin - Coordinator registers and checks in a walk-in attendee
+app.post('/api/events/:id/walkin-checkin', verifyToken, async (req: Request, res: Response) => {
+    const userProfile = (req as any).user?.profile;
+    if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
+        return res.status(403).json({ error: 'Only admins and event coordinators can register walk-ins' });
+    }
+    try {
+        const eventId = req.params.id;
+        const { name, email } = req.body;
+        if (!name) return res.status(400).json({ error: 'Name is required' });
+
+        const eventDoc = await db.collection('opportunities').doc(eventId).get();
+        const eventData = eventDoc.exists ? eventDoc.data() : null;
+        const checkedInAt = new Date().toISOString();
+
+        const walkinRsvp = {
+            eventId,
+            email: email ? String(email).toLowerCase().trim() : '',
+            name: String(name).trim(),
+            guests: 0,
+            rsvpDate: checkedInAt,
+            checkedIn: true,
+            checkedInAt,
+            checkedInMethod: 'coordinator-walkin',
+            checkedInBy: (req as any).user?.uid,
+            isWalkIn: true,
+            eventTitle: eventData?.title || '',
+            eventDate: eventData?.date || '',
+        };
+        const rsvpRef = await db.collection('public_rsvps').add(walkinRsvp);
+
+        // Increment event check-in count
+        if (eventDoc.exists) {
+            await db.collection('opportunities').doc(eventId).update({
+                checkinCount: admin.firestore.FieldValue.increment(1)
+            });
+        }
+
+        console.log(`[WALKIN CHECKIN] Coordinator registered walk-in for event ${eventId}: ${String(name).trim()}`);
+        res.json({ success: true, rsvpId: rsvpRef.id, ...walkinRsvp });
+    } catch (error: any) {
+        console.error('[WALKIN CHECKIN] Failed:', error);
+        res.status(500).json({ error: 'Failed to register walk-in' });
+    }
+});
+
 // --- FEEDBACK ENDPOINTS ---
 app.get('/api/feedback', verifyToken, async (req: Request, res: Response) => {
     try {
@@ -10713,8 +10759,17 @@ app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: R
                 screenings.push({ id: doc.id, ...data });
             }
         }
+        // Deduplicate by clientId — keep most recent screening per client
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        res.json(screenings);
+        const seenClients = new Set<string>();
+        const dedupedScreenings: any[] = [];
+        for (const s of screenings) {
+            const key = s.clientId || s.id;
+            if (seenClients.has(key)) continue;
+            seenClients.add(key);
+            dedupedScreenings.push(s);
+        }
+        res.json(dedupedScreenings);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
@@ -10727,9 +10782,18 @@ app.get('/api/ops/screenings-today', verifyToken, async (req: Request, res: Resp
         const snap = await db.collection('screenings')
             .where('createdAt', '>=', todayISO)
             .get();
-        const screenings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const screenings: any[] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Deduplicate by clientId — keep most recent screening per client
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        res.json(screenings);
+        const seenClients = new Set<string>();
+        const dedupedScreenings: any[] = [];
+        for (const s of screenings) {
+            const key = s.clientId || s.id;
+            if (seenClients.has(key)) continue;
+            seenClients.add(key);
+            dedupedScreenings.push(s);
+        }
+        res.json(dedupedScreenings);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 

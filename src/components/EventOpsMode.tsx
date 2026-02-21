@@ -707,6 +707,10 @@ const CheckInView: React.FC<{ opportunity: Opportunity; user: Volunteer }> = ({ 
     const [searchQuery, setSearchQuery] = useState('');
     const [checkingIn, setCheckingIn] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [showWalkinForm, setShowWalkinForm] = useState(false);
+    const [walkinName, setWalkinName] = useState('');
+    const [walkinEmail, setWalkinEmail] = useState('');
+    const [walkinSubmitting, setWalkinSubmitting] = useState(false);
 
     const checkinUrl = `${window.location.origin}/api/public/event-checkin/${opportunity.id}`;
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkinUrl)}`;
@@ -770,6 +774,32 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
         }
     };
 
+    const handleWalkinCheckin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!walkinName.trim()) return;
+        setWalkinSubmitting(true);
+        try {
+            const result = await apiService.post(`/api/events/${opportunity.id}/walkin-checkin`, {
+                name: walkinName.trim(),
+                email: walkinEmail.trim() || undefined,
+            });
+            // Add to local rsvps list
+            setRsvps(prev => [...prev, { id: result.rsvpId, name: walkinName.trim(), email: walkinEmail.trim(), checkedIn: true, checkedInAt: result.checkedInAt, isWalkIn: true }]);
+            if (rsvpStats) {
+                setRsvpStats((prev: any) => prev ? { ...prev, checkedInCount: (prev.checkedInCount || 0) + 1, totalExpectedAttendees: (prev.totalExpectedAttendees || 0) + 1 } : prev);
+            }
+            toastService.success(`${walkinName.trim()} checked in as walk-in`);
+            setWalkinName('');
+            setWalkinEmail('');
+            setShowWalkinForm(false);
+        } catch (err) {
+            console.error('[CheckInView] Walk-in check-in failed:', err);
+            toastService.error('Failed to register walk-in');
+        } finally {
+            setWalkinSubmitting(false);
+        }
+    };
+
     const totalRsvps = rsvpStats?.totalExpectedAttendees || rsvps.length || 0;
     const checkedInCount = rsvpStats?.checkedInCount || rsvps.filter(r => r.checkedIn).length;
     const checkInRate = totalRsvps > 0 ? Math.round((checkedInCount / totalRsvps) * 100) : 0;
@@ -825,6 +855,48 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
                 </div>
             </div>
 
+            {/* Walk-in Check-in */}
+            <div className="space-y-3">
+                {!showWalkinForm ? (
+                    <button
+                        onClick={() => setShowWalkinForm(true)}
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-brand to-indigo-600 text-white rounded-2xl text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-opacity shadow-elevation-2"
+                    >
+                        <UserPlus size={16} /> Register Walk-in
+                    </button>
+                ) : (
+                    <form onSubmit={handleWalkinCheckin} className="p-5 bg-white border border-zinc-200 rounded-3xl space-y-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Walk-in Check-in</p>
+                            <button type="button" onClick={() => { setShowWalkinForm(false); setWalkinName(''); setWalkinEmail(''); }} className="p-1 hover:bg-zinc-100 rounded-full"><X size={14} className="text-zinc-400" /></button>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Full name *"
+                            value={walkinName}
+                            onChange={(e) => setWalkinName(e.target.value)}
+                            required
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm font-medium text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30"
+                        />
+                        <input
+                            type="email"
+                            placeholder="Email (optional)"
+                            value={walkinEmail}
+                            onChange={(e) => setWalkinEmail(e.target.value)}
+                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl text-sm font-medium text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/30"
+                        />
+                        <button
+                            type="submit"
+                            disabled={walkinSubmitting || !walkinName.trim()}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-brand text-white rounded-2xl text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
+                        >
+                            {walkinSubmitting ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
+                            Check In Walk-in
+                        </button>
+                    </form>
+                )}
+            </div>
+
             {/* Attendee List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -852,7 +924,7 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
                                     {rsvp.checkedIn ? <Check size={14} /> : (rsvp.name?.charAt(0)?.toUpperCase() || '?')}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-zinc-800 truncate">{rsvp.name || 'Unknown'}</p>
+                                    <p className="text-sm font-bold text-zinc-800 truncate">{rsvp.name || 'Unknown'}{rsvp.isWalkIn && <span className="ml-1.5 text-[9px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full uppercase">Walk-in</span>}</p>
                                     <p className="text-[11px] text-zinc-400 truncate">{rsvp.email || ''}{rsvp.guests ? ` +${rsvp.guests} guest${rsvp.guests > 1 ? 's' : ''}` : ''}</p>
                                 </div>
                             </div>
