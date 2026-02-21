@@ -2480,16 +2480,18 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
         let messages: any[] = [];
         try {
             const [sentMsgs, receivedMsgs, generalMsgs] = await Promise.all([
-                db.collection('messages').where('senderId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
-                db.collection('messages').where('recipientId', '==', userId).orderBy('timestamp', 'desc').limit(100).get(),
-                db.collection('messages').where('recipientId', '==', 'general').orderBy('timestamp', 'desc').limit(50).get(),
+                db.collection('messages').where('senderId', '==', userId).get(),
+                db.collection('messages').where('recipientId', '==', userId).get(),
+                db.collection('messages').where('recipientId', '==', 'general').get(),
             ]);
-            // Dedupe messages
+            // Dedupe and sort messages
             const messagesMap = new Map();
             [...sentMsgs.docs, ...receivedMsgs.docs, ...generalMsgs.docs].forEach(doc => {
                 messagesMap.set(doc.id, { id: doc.id, ...doc.data() });
             });
             messages = Array.from(messagesMap.values());
+            messages.sort((a: any, b: any) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+            messages = messages.slice(0, 200);
         } catch (msgError) {
             console.warn('[AUTH/ME] Messages query failed (may need Firestore indexes):', msgError);
             // Fallback: try simple query without orderBy
@@ -3578,8 +3580,10 @@ app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => 
 // Get client referral history
 app.get('/api/clients/:id/referrals', verifyToken, async (req: Request, res: Response) => {
     try {
-        const snap = await db.collection('referrals').where('clientId', '==', req.params.id).orderBy('createdAt', 'desc').get();
-        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const snap = await db.collection('referrals').where('clientId', '==', req.params.id).get();
+        const results = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        results.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        res.json(results);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch client referrals' });
     }
@@ -4991,14 +4995,9 @@ app.get('/api/ops/run/:shiftId/:userId', verifyToken, async (req: Request, res: 
         const signoffDoc = await db.collection('mission_ops_signoffs').doc(`${shiftId}_${userId}`).get();
         const incidentsSnap = await db.collection('incidents').where('shiftId', '==', shiftId).get();
 
-        // Audit logs query requires a composite index — gracefully degrade if missing
-        let auditLogs: any[] = [];
-        try {
-            const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).orderBy('timestamp', 'desc').get();
-            auditLogs = auditSnap.docs.map(d => ({id: d.id, ...d.data()}));
-        } catch (auditErr: any) {
-            console.warn('[OPS RUN] Audit logs query failed (index may be building):', auditErr.message);
-        }
+        const auditSnap = await db.collection('audit_logs').where('shiftId', '==', shiftId).get();
+        const auditLogs = auditSnap.docs.map(d => ({id: d.id, ...d.data()} as any));
+        auditLogs.sort((a: any, b: any) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
         const sharedData = sharedDoc.exists ? sharedDoc.data() : {};
         const signoffData = signoffDoc.exists ? signoffDoc.data() : {};
@@ -5081,10 +5080,12 @@ app.get('/api/ops/tracker/:eventId', verifyToken, async (req: Request, res: Resp
     try {
         const { eventId } = req.params;
         const trackerDoc = await db.collection('event_trackers').doc(eventId).get();
-        const distSnap = await db.collection('distribution_entries').where('eventId', '==', eventId).orderBy('timestamp', 'desc').get();
-        const distributions = distSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const clientLogSnap = await db.collection('client_service_logs').where('eventId', '==', eventId).orderBy('timestamp', 'desc').get();
-        const clientLogs = clientLogSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const distSnap = await db.collection('distribution_entries').where('eventId', '==', eventId).get();
+        const distributions = distSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        distributions.sort((a: any, b: any) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+        const clientLogSnap = await db.collection('client_service_logs').where('eventId', '==', eventId).get();
+        const clientLogs = clientLogSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        clientLogs.sort((a: any, b: any) => (b.timestamp || '').localeCompare(a.timestamp || ''));
         const trackerData = trackerDoc.exists ? trackerDoc.data() : { participantsServed: 0 };
         res.json({ ...trackerData, eventId, distributions, clientLogs });
     } catch (e: any) {
@@ -6057,9 +6058,9 @@ app.get('/api/messages', verifyToken, async (req: Request, res: Response) => {
 
         // Get messages where user is sender or recipient, plus general channel
         const [sentSnapshot, receivedSnapshot, generalSnapshot] = await Promise.all([
-            db.collection('messages').where('senderId', '==', userId).orderBy('timestamp', 'desc').limit(200).get(),
-            db.collection('messages').where('recipientId', '==', userId).orderBy('timestamp', 'desc').limit(200).get(),
-            db.collection('messages').where('recipientId', '==', 'general').orderBy('timestamp', 'desc').limit(100).get()
+            db.collection('messages').where('senderId', '==', userId).get(),
+            db.collection('messages').where('recipientId', '==', userId).get(),
+            db.collection('messages').where('recipientId', '==', 'general').get()
         ]);
 
         const messagesMap = new Map();
@@ -7496,10 +7497,10 @@ app.get('/api/notifications', verifyToken, async (req: Request, res: Response) =
         const user = (req as any).user;
         const snap = await db.collection('notifications')
             .where('recipientId', '==', user.uid)
-            .orderBy('createdAt', 'desc')
-            .limit(50)
             .get();
-        res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const results = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        results.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        res.json(results.slice(0, 50));
     } catch (e: any) {
         console.error('[NOTIFICATIONS] GET failed:', e.message);
         res.json([]);
