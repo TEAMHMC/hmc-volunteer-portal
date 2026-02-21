@@ -4473,19 +4473,23 @@ app.get('/api/public/event-checkin/:eventId', rateLimit(30, 60000), async (req: 
 
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Check-in | Health Matters Clinic</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>*{box-sizing:border-box;margin:0;padding:0}body{-webkit-font-smoothing:antialiased;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(180deg,#f5f3ef 0%,#eae7e2 100%);min-height:100vh;padding:48px 24px}
-.card{max-width:380px;margin:0 auto;background:white;border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.card{max-width:400px;margin:0 auto;background:white;border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.08)}
 .logo{width:72px;height:72px;border-radius:18px;margin:0 auto 24px;display:block;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
-h1{color:#1a1a1a;font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px}
-.subtitle{color:#666;font-size:17px;margin-bottom:8px}
-.event-info{background:#f8f9fc;padding:20px;border-radius:16px;margin-bottom:28px}
+h1{color:#1a1a1a;font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
+.subtitle{color:#666;font-size:15px;margin-bottom:8px}
+.event-info{background:#f8f9fc;padding:20px;border-radius:16px;margin-bottom:24px}
 .event-title{font-weight:600;color:#1a1a1a;font-size:16px;line-height:1.4;margin-bottom:4px}
 .event-date{color:#233dff;font-size:13px;font-weight:600}
-input[type=email]{width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none;transition:border-color 0.2s}
-input[type=email]:focus{border-color:#233dff}
+.input{width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none;transition:border-color 0.2s}
+.input:focus{border-color:#233dff}
+.input+.input{margin-top:12px}
 .btn{display:inline-block;width:100%;background:#233dff;color:white;padding:16px;border-radius:100px;border:none;font-weight:700;font-size:15px;font-family:Inter,sans-serif;cursor:pointer;margin-top:16px;box-shadow:0 4px 12px rgba(35,61,255,0.3);transition:opacity 0.2s}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-hero{background:#10b981;font-size:18px;font-weight:800;padding:20px;margin-top:0;margin-bottom:16px;box-shadow:0 6px 20px rgba(16,185,129,0.35);letter-spacing:0.5px}
+.or-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#bbb;font-size:12px;font-weight:600}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:#e5e5e5}
 .msg{margin-top:20px;padding:16px;border-radius:16px;font-size:14px;font-weight:600}
 .msg.success{background:#ecfdf5;color:#065f46}
 .msg.already{background:#fefce8;color:#854d0e}
@@ -4495,24 +4499,29 @@ input[type=email]:focus{border-color:#233dff}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none}
 .check-icon{font-size:48px;margin-bottom:16px}
+.hint{color:#999;font-size:12px;margin-top:8px}
+.walkin-link{color:#233dff;font-size:13px;font-weight:600;cursor:pointer;margin-top:16px;display:inline-block;text-decoration:none}
+.walkin-link:hover{text-decoration:underline}
 </style></head>
 <body>
 <div class="card" id="card">
 <img src="${logoUrl}" alt="Health Matters Clinic" class="logo">
-<h1>Event Check-In</h1>
-<p class="subtitle">Welcome!</p>
+<h1>I'm Here!</h1>
+<p class="subtitle">Check in to the event</p>
 <div class="event-info">
 <p class="event-title">${eventTitle.replace(/'/g, '&#39;').replace(/"/g, '&quot;')}</p>
 ${eventDate ? `<p class="event-date">${eventDate}</p>` : ''}
 </div>
 <form id="checkinForm">
-<input type="email" id="emailInput" placeholder="Enter your email" required autocomplete="email" autocapitalize="off">
-<button type="submit" class="btn" id="submitBtn">Check In</button>
+<input type="text" id="nameInput" class="input" placeholder="Your full name" required autocomplete="name">
+<input type="text" id="contactInput" class="input" placeholder="Email or phone (optional)" autocomplete="email">
+<button type="submit" class="btn btn-hero" id="submitBtn">I'm Here!</button>
+<p class="hint">Enter your name to find your registration</p>
 </form>
 <form id="walkinForm" class="hidden">
 <p style="color:#666;font-size:14px;margin-bottom:16px;font-weight:500">No registration found. Check in as a walk-in:</p>
-<input type="text" id="walkinName" placeholder="Your full name" required autocomplete="name" style="width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none;margin-bottom:12px">
-<input type="email" id="walkinEmail" placeholder="Your email" required autocomplete="email" autocapitalize="off" style="width:100%;padding:16px 20px;border:2px solid #e5e5e5;border-radius:16px;font-size:16px;font-family:Inter,sans-serif;outline:none">
+<input type="text" id="walkinName" class="input" placeholder="Your full name" required autocomplete="name">
+<input type="text" id="walkinContact" class="input" placeholder="Email or phone" autocomplete="email">
 <button type="submit" class="btn">Check In as Walk-In</button>
 </form>
 <div id="loading" class="hidden" style="margin-top:20px"><div class="spinner"></div><span style="color:#666;font-size:14px">Checking in...</span></div>
@@ -4520,7 +4529,7 @@ ${eventDate ? `<p class="event-date">${eventDate}</p>` : ''}
 </div>
 <p class="footer">HEALTH MATTERS CLINIC</p>
 <script>
-var form=document.getElementById('checkinForm'),email=document.getElementById('emailInput'),loading=document.getElementById('loading'),msg=document.getElementById('message'),walkinForm=document.getElementById('walkinForm'),walkinName=document.getElementById('walkinName'),walkinEmail=document.getElementById('walkinEmail');
+var form=document.getElementById('checkinForm'),nameIn=document.getElementById('nameInput'),contactIn=document.getElementById('contactInput'),loading=document.getElementById('loading'),msg=document.getElementById('message'),walkinForm=document.getElementById('walkinForm'),walkinName=document.getElementById('walkinName'),walkinContact=document.getElementById('walkinContact');
 function showResult(res){
 loading.classList.add('hidden');
 msg.classList.remove('hidden');
@@ -4538,17 +4547,18 @@ form.classList.remove('hidden');
 }
 form.addEventListener('submit',function(e){
 e.preventDefault();
-var val=email.value.trim();
-if(!val)return;
+var n=nameIn.value.trim(),c=contactIn.value.trim();
+if(!n)return;
 form.classList.add('hidden');
 loading.classList.remove('hidden');
 msg.classList.add('hidden');
-fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',email:val})})
+fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',name:n,contact:c})})
 .then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,data:d}})})
 .then(function(res){
 if(res.data.code==='no_rsvp'){
 loading.classList.add('hidden');
-walkinEmail.value=val;
+walkinName.value=n;
+walkinContact.value=c;
 walkinForm.classList.remove('hidden');
 }else{
 showResult(res);
@@ -4563,12 +4573,12 @@ form.classList.remove('hidden');
 });
 walkinForm.addEventListener('submit',function(e){
 e.preventDefault();
-var name=walkinName.value.trim(),em=walkinEmail.value.trim();
-if(!name||!em)return;
+var nm=walkinName.value.trim(),ct=walkinContact.value.trim();
+if(!nm)return;
 walkinForm.classList.add('hidden');
 loading.classList.remove('hidden');
 msg.classList.add('hidden');
-fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',email:em,name:name,walkIn:true})})
+fetch('${submitUrl}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:'${eventId}',name:nm,contact:ct,walkIn:true})})
 .then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,data:d}})})
 .then(function(res){showResult(res);})
 .catch(function(){
@@ -4590,50 +4600,83 @@ walkinForm.classList.remove('hidden');
     }
 });
 
-// POST /api/public/event-checkin-submit - Email-based check-in from QR code page
+// POST /api/public/event-checkin-submit - Name/email/phone check-in from QR code page
 app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: Request, res: Response) => {
     try {
-        const { eventId, email, name, walkIn } = req.body;
+        // Support both old format (email only) and new format (name + contact)
+        const { eventId, email, name, contact, walkIn } = req.body;
 
-        if (!eventId || !email) {
-            return res.status(400).json({ error: 'eventId and email are required' });
+        if (!eventId) {
+            return res.status(400).json({ error: 'eventId is required' });
         }
 
-        // Normalize email
-        const normalizedEmail = String(email).toLowerCase().trim();
+        // Normalize inputs
+        const searchName = String(name || '').trim().toLowerCase();
+        const searchContact = String(contact || email || '').trim().toLowerCase();
+        // Strip non-digits for phone matching
+        const searchPhone = searchContact.replace(/\D/g, '');
+        const isPhoneLike = searchPhone.length >= 7;
 
-        // Query public_rsvps for this event, filter by email in memory to avoid composite index
+        if (!searchName && !searchContact) {
+            return res.status(400).json({ error: 'Name or contact info is required' });
+        }
+
+        // Query all RSVPs for this event
         const rsvpAllSnap = await db.collection('public_rsvps')
             .where('eventId', '==', eventId)
             .get();
-        const rsvpMatchDocs = rsvpAllSnap.docs.filter(d => d.data().email === normalizedEmail).slice(0, 1);
-        let rsvpSnapshot = { empty: rsvpMatchDocs.length === 0, docs: rsvpMatchDocs };
 
-        // Fallback: case-insensitive search if direct query misses
-        if (rsvpSnapshot.empty) {
-            const allRsvps = await db.collection('public_rsvps')
-                .where('eventId', '==', eventId)
-                .get();
-            const match = allRsvps.docs.find(doc => {
-                const data = doc.data();
-                return data.email && String(data.email).toLowerCase().trim() === normalizedEmail;
-            });
-            if (match) {
-                rsvpSnapshot = { empty: false, docs: [match] } as any;
+        // Search by name, email, or phone — flexible matching
+        let matchDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+        for (const doc of rsvpAllSnap.docs) {
+            const data = doc.data();
+            const rsvpEmail = String(data.email || '').toLowerCase().trim();
+            const rsvpName = String(data.name || '').toLowerCase().trim();
+            const rsvpPhone = String(data.phone || '').replace(/\D/g, '');
+
+            // Exact email match
+            if (searchContact && rsvpEmail && rsvpEmail === searchContact) {
+                matchDoc = doc;
+                break;
+            }
+            // Phone match (last 10 digits)
+            if (isPhoneLike && rsvpPhone) {
+                const rsvpLast10 = rsvpPhone.slice(-10);
+                const searchLast10 = searchPhone.slice(-10);
+                if (rsvpLast10 === searchLast10 && rsvpLast10.length >= 7) {
+                    matchDoc = doc;
+                    break;
+                }
+            }
+            // Name match (case-insensitive, trimmed)
+            if (searchName && rsvpName && rsvpName === searchName) {
+                matchDoc = doc;
+                break;
+            }
+        }
+
+        // Fuzzy name match if exact didn't work (first+last name partial)
+        if (!matchDoc && searchName) {
+            for (const doc of rsvpAllSnap.docs) {
+                const rsvpName = String(doc.data().name || '').toLowerCase().trim();
+                // Check if search name contains the RSVP name or vice versa
+                if (rsvpName && (rsvpName.includes(searchName) || searchName.includes(rsvpName))) {
+                    matchDoc = doc;
+                    break;
+                }
             }
         }
 
         // No RSVP found — handle walk-in or return error
-        if (rsvpSnapshot.empty) {
-            if (walkIn && name) {
-                // Create a walk-in RSVP and check them in immediately
+        if (!matchDoc) {
+            if (walkIn) {
+                const displayName = String(name || '').trim() || 'Walk-in';
                 const eventDoc = await db.collection('opportunities').doc(eventId).get();
                 const eventData = eventDoc.exists ? eventDoc.data() : null;
                 const checkedInAt = new Date().toISOString();
-                const walkinRsvp = {
+                const walkinRsvp: any = {
                     eventId,
-                    email: normalizedEmail,
-                    name: String(name).trim(),
+                    name: displayName,
                     guests: 0,
                     rsvpDate: checkedInAt,
                     checkedIn: true,
@@ -4643,37 +4686,42 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
                     eventTitle: eventData?.title || '',
                     eventDate: eventData?.date || '',
                 };
+                // Store contact as email or phone
+                if (searchContact) {
+                    if (searchContact.includes('@')) {
+                        walkinRsvp.email = searchContact;
+                    } else {
+                        walkinRsvp.phone = searchContact;
+                    }
+                }
                 await db.collection('public_rsvps').add(walkinRsvp);
-                // Increment event check-in count
                 if (eventDoc.exists) {
                     await db.collection('opportunities').doc(eventId).update({
                         checkinCount: admin.firestore.FieldValue.increment(1)
                     });
                 }
-                console.log(`[QR CHECKIN] Walk-in checked in for event ${eventId}: ${String(name).trim()} (${normalizedEmail})`);
+                console.log(`[QR CHECKIN] Walk-in checked in for event ${eventId}: ${displayName}`);
                 return res.json({
                     success: true,
-                    name: String(name).trim(),
+                    name: displayName,
                     eventTitle: eventData?.title || '',
                     checkedInAt,
                     walkIn: true,
                 });
             }
-            return res.status(404).json({ error: 'No RSVP found for this email', code: 'no_rsvp' });
+            return res.status(404).json({ error: 'No RSVP found', code: 'no_rsvp' });
         }
-
-        const rsvpDoc = rsvpSnapshot.docs[0];
 
         // Use transaction to prevent double check-in
         const checkedInAt = new Date().toISOString();
         const result = await db.runTransaction(async (tx) => {
-            const rsvpSnap = await tx.get(rsvpDoc.ref);
+            const rsvpSnap = await tx.get(matchDoc!.ref);
             const rsvpData = rsvpSnap.data();
             if (!rsvpData) throw new Error('RSVP not found');
             if (rsvpData.checkedIn) {
                 return { alreadyCheckedIn: true, checkedInAt: rsvpData.checkedInAt };
             }
-            tx.update(rsvpDoc.ref, { checkedIn: true, checkedInAt, checkedInMethod: 'qr-email' });
+            tx.update(matchDoc!.ref, { checkedIn: true, checkedInAt, checkedInMethod: 'qr-name' });
             const eventRef = db.collection('opportunities').doc(eventId);
             const eventSnap = await tx.get(eventRef);
             if (eventSnap.exists) {
@@ -4686,7 +4734,7 @@ app.post('/api/public/event-checkin-submit', rateLimit(20, 60000), async (req: R
             return res.status(400).json({ error: 'Already checked in', code: 'already_checked_in', checkedInAt: result.checkedInAt });
         }
 
-        console.log(`[QR CHECKIN] Checked in via email for event ${eventId}: ${normalizedEmail}`);
+        console.log(`[QR CHECKIN] Checked in for event ${eventId}: ${result.name}`);
         res.json({
             success: true,
             name: result.name,
