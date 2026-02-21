@@ -223,18 +223,28 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return () => clearInterval(intervalId);
   }, [user.id]);
 
-  // Auto-detect pending debrief survey: check if volunteer was checked in to a recently-ended event
+  // Open survey from URL query param: ?survey=volunteer-debrief
+  // Also auto-detect pending debrief for recently-ended events
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const surveyParam = params.get('survey');
+    if (surveyParam) {
+      setDebriefEventTitle('');
+      setDebriefEventId('');
+      setShowDebriefSurvey(true);
+      // Clean the URL so refreshing doesn't re-open
+      window.history.replaceState({}, '', window.location.pathname);
+      return; // Skip auto-detect if opened via link
+    }
+
     const checkDebrief = async () => {
       try {
-        // Skip if already dismissed this session
         const dismissedKey = `hmcDebriefDismissed_${user.id}`;
         if (sessionStorage.getItem(dismissedKey)) return;
 
         const checkins = await apiService.get(`/api/volunteer/recent-checkins`);
         if (!Array.isArray(checkins) || checkins.length === 0) return;
 
-        // Find an event that ended today and volunteer hasn't submitted debrief for
         for (const checkin of checkins) {
           if (checkin.checkedIn && checkin.eventTitle) {
             setDebriefEventTitle(checkin.eventTitle);
@@ -244,7 +254,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           }
         }
       } catch {
-        // Non-critical — silently skip
+        // Non-critical
       }
     };
     checkDebrief();

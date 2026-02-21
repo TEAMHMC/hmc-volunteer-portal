@@ -803,13 +803,13 @@ const EmailTemplates = {
         <p style="margin: 0 0 8px 0; font-weight: 600; color: #065f46;">Before you check out...</p>
         <p style="margin: 0; color: #047857;">Please take 2 minutes to complete your debrief survey. Your feedback helps us improve every event.</p>
       </div>
-      ${actionButton('Complete Debrief Survey', data.surveyUrl || `${EMAIL_CONFIG.WEBSITE_URL}/surveys/volunteer-debrief`)}
+      ${actionButton('Complete Debrief Survey', data.surveyUrl || `${EMAIL_CONFIG.WEBSITE_URL}?survey=volunteer-debrief`)}
       ${(data as any).nextEventTeaser ? `<div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e3a5f;">Your next mission is loading...</p>
         <p style="margin: 0; color: #1e40af;">${(data as any).nextEventTeaser.replace(/\n/g, '')}</p>
       </div>` : ''}
     ${emailFooter()}`,
-    text: `Mission Complete, ${data.volunteerName || 'Volunteer'}! Thank you for volunteering at ${data.eventName || 'today\'s event'}. Please complete your debrief survey: ${data.surveyUrl || EMAIL_CONFIG.WEBSITE_URL + '/surveys/volunteer-debrief'}`
+    text: `Mission Complete, ${data.volunteerName || 'Volunteer'}! Thank you for volunteering at ${data.eventName || 'today\'s event'}. Please complete your debrief survey: ${data.surveyUrl || EMAIL_CONFIG.WEBSITE_URL + '?survey=volunteer-debrief'}`
   }),
 
   // 7. Shift Cancellation
@@ -8782,7 +8782,7 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
         console.warn('[WORKFLOW w8] Could not fetch next event:', (e as Error).message);
       }
 
-      const surveyUrl = `${EMAIL_CONFIG.WEBSITE_URL}/surveys/volunteer-debrief`;
+      const surveyUrl = `${EMAIL_CONFIG.WEBSITE_URL}?survey=volunteer-debrief`;
 
       for (const volId of assignedIds) {
         try {
@@ -9648,7 +9648,7 @@ app.post('/api/admin/workflows/test-debrief', verifyToken, requireAdmin, async (
     if (!normalizedPhone) return res.status(400).json({ error: 'Invalid phone number' });
 
     const volunteerName = (name || 'Volunteer').split(' ')[0];
-    const surveyUrl = `${EMAIL_CONFIG.WEBSITE_URL}/surveys/volunteer-debrief`;
+    const surveyUrl = `${EMAIL_CONFIG.WEBSITE_URL}?survey=volunteer-debrief`;
 
     // Find next upcoming event for teaser
     let nextEventTeaser = '';
