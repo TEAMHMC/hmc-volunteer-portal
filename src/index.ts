@@ -10647,20 +10647,6 @@ app.post('/api/screenings/create', verifyToken, async (req: Request, res: Respon
         const createdAt = new Date().toISOString();
         const screening = { ...screeningData, performedBy: user.uid, performedByName: user.profile?.name || 'Unknown', createdAt };
 
-        // Prevent duplicate screenings for the same client within 30 minutes
-        if (screening.clientId) {
-            const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-            const recentSnap = await db.collection('screenings')
-                .where('clientId', '==', screening.clientId)
-                .where('createdAt', '>=', thirtyMinAgo)
-                .get();
-            if (!recentSnap.empty) {
-                const existing = recentSnap.docs[0];
-                console.warn(`[SCREENING] Duplicate blocked for client ${screening.clientId} — existing screening ${existing.id} from ${existing.data().createdAt}`);
-                return res.json({ id: existing.id, ...existing.data(), duplicate: true });
-            }
-        }
-
         // Look up client name for display
         if (screening.clientId) {
             try {
