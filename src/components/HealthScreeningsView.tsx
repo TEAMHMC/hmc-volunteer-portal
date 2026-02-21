@@ -704,17 +704,21 @@ const VITALS_FLAGS = {
 };
 
 const getBloodPressureFlag = (systolic: number, diastolic: number) => {
-    if (systolic >= 180 || diastolic >= 120) return { level: 'critical', label: 'Hypertensive Crisis', color: 'rose' };
-    if (systolic >= 140 || diastolic >= 90) return { level: 'high', label: 'Stage 2 Hypertension', color: 'orange' };
-    if (systolic >= 130 || diastolic >= 80) return { level: 'medium', label: 'Stage 1 Hypertension', color: 'amber' };
-    if (systolic >= 120) return { level: 'low', label: 'Elevated', color: 'yellow' };
+    // HMC Clinical Screening Guide thresholds
+    if (systolic >= 180 || diastolic >= 120) return { level: 'critical', label: 'Hypertensive Crisis — Recheck in 5 min', color: 'rose' };
+    if ((systolic >= 140 && systolic <= 179) || (diastolic >= 90 && diastolic <= 119)) return { level: 'high', label: 'Stage 2 — Urgent referral 1-2 weeks', color: 'orange' };
+    if ((systolic >= 130 && systolic <= 139) || (diastolic >= 80 && diastolic <= 89)) return { level: 'medium', label: 'Stage 1 — Refer to doctor within 1 month', color: 'amber' };
+    if (systolic >= 120 && systolic <= 129 && diastolic < 80) return { level: 'low', label: 'Elevated — Follow-up in 3-6 months', color: 'yellow' };
+    if (systolic < 120 && diastolic < 80) return { level: 'normal', label: 'Normal', color: 'emerald' };
     return { level: 'normal', label: 'Normal', color: 'emerald' };
 };
 
 const getGlucoseFlag = (value: number) => {
-    if (value >= 300) return { level: 'critical', label: 'Critical - Seek Care', color: 'rose' };
-    if (value >= 200) return { level: 'high', label: 'Diabetes Range', color: 'orange' };
-    if (value >= 140) return { level: 'medium', label: 'Prediabetes Range', color: 'amber' };
+    // HMC Clinical Screening Guide thresholds
+    if (value < 70) return { level: 'critical', label: 'Low Blood Sugar — Give juice/glucose, recheck 15 min', color: 'rose' };
+    if (value >= 200) return { level: 'high', label: 'Diabetes Range — Urgent referral', color: 'orange' };
+    if (value >= 126) return { level: 'medium', label: 'Fasting Diabetes Range — Refer within 1-2 weeks', color: 'amber' };
+    if (value >= 100) return { level: 'low', label: 'Prediabetes Range — Refer for confirmatory test', color: 'yellow' };
     return { level: 'normal', label: 'Normal', color: 'emerald' };
 };
 
