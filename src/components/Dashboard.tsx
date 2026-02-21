@@ -36,6 +36,7 @@ import BoardGovernance from './BoardGovernance';
 import LiveChatDashboard from './LiveChatDashboard';
 import OrgCalendar from './OrgCalendar';
 import EventBuilder from './EventBuilder';
+import VolunteerSurveyModal from './VolunteerSurveyModal';
 
 interface DashboardProps {
   user: Volunteer;
@@ -161,6 +162,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [commHubTab, setCommHubTab] = useState<'broadcasts' | 'briefing' | 'support' | undefined>(undefined);
+  const [showDebriefSurvey, setShowDebriefSurvey] = useState(false);
+  const [debriefEventTitle, setDebriefEventTitle] = useState('');
+  const [debriefEventId, setDebriefEventId] = useState('');
   const [mentionNotifications, setMentionNotifications] = useState<Array<{id: string; type: string; title: string; body: string; link?: string; read: boolean; createdAt: string; mentionedBy?: string; mentionedByName?: string}>>([]);
 
   const handleDismissBetaBanner = () => {
@@ -217,6 +221,33 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     const intervalId = setInterval(updatePresence, 30 * 1000);
 
     return () => clearInterval(intervalId);
+  }, [user.id]);
+
+  // Auto-detect pending debrief survey: check if volunteer was checked in to a recently-ended event
+  useEffect(() => {
+    const checkDebrief = async () => {
+      try {
+        // Skip if already dismissed this session
+        const dismissedKey = `hmcDebriefDismissed_${user.id}`;
+        if (sessionStorage.getItem(dismissedKey)) return;
+
+        const checkins = await apiService.get(`/api/volunteer/recent-checkins`);
+        if (!Array.isArray(checkins) || checkins.length === 0) return;
+
+        // Find an event that ended today and volunteer hasn't submitted debrief for
+        for (const checkin of checkins) {
+          if (checkin.checkedIn && checkin.eventTitle) {
+            setDebriefEventTitle(checkin.eventTitle);
+            setDebriefEventId(checkin.eventId);
+            setShowDebriefSurvey(true);
+            break;
+          }
+        }
+      } catch {
+        // Non-critical — silently skip
+      }
+    };
+    checkDebrief();
   }, [user.id]);
 
   const handleUpdateUser = (updatedUser: Volunteer) => {
@@ -441,6 +472,22 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   return (
     <div className="min-h-screen bg-[#FDFEFE] flex flex-col md:flex-row font-['Inter'] relative">
       {showTour && <SystemTour onComplete={handleTourComplete} onClose={handleTourComplete} />}
+      {showDebriefSurvey && (
+        <VolunteerSurveyModal
+          formId="volunteer-debrief"
+          volunteerId={user.id}
+          volunteerName={user.name || `${user.legalFirstName || ''} ${user.legalLastName || ''}`.trim()}
+          eventId={debriefEventId}
+          eventTitle={debriefEventTitle}
+          onClose={() => {
+            setShowDebriefSurvey(false);
+            sessionStorage.setItem(`hmcDebriefDismissed_${user.id}`, 'true');
+          }}
+          onComplete={() => {
+            sessionStorage.setItem(`hmcDebriefDismissed_${user.id}`, 'true');
+          }}
+        />
+      )}
       
       {showBetaBanner && (
         <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-bold z-[101] md:pl-[320px] gap-4 px-4">

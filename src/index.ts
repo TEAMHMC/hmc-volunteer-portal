@@ -5794,6 +5794,62 @@ app.post('/api/ops/volunteer-checkout/:eventId', verifyToken, async (req: Reques
     }
 });
 
+// GET /api/volunteer/recent-checkins — Get volunteer's check-ins for today (for debrief prompt)
+app.get('/api/volunteer/recent-checkins', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const todayStr = getPacificDate(0);
+
+        // Find today's events where this volunteer was checked in
+        const checkinsSnap = await db.collection('volunteer_checkins')
+            .where('volunteerId', '==', user.uid)
+            .get();
+
+        const todayCheckins: any[] = checkinsSnap.docs
+            .filter(doc => doc.data().eventId && doc.id.includes(todayStr.replace(/-/g, '')))
+            .map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // If no checkins found by doc ID pattern, try matching by fetching event dates
+        if (todayCheckins.length === 0) {
+            const recentCheckins: any[] = checkinsSnap.docs
+                .filter(doc => doc.data().checkedIn === true)
+                .map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Check which events are from today
+            for (const checkin of recentCheckins) {
+                try {
+                    const eventDoc = await db.collection('opportunities').doc(checkin.eventId).get();
+                    if (eventDoc.exists && eventDoc.data()?.date === todayStr) {
+                        todayCheckins.push({ ...checkin, eventTitle: eventDoc.data()?.title || checkin.eventTitle });
+                    }
+                } catch {}
+            }
+        }
+
+        // Check if volunteer already submitted a debrief for any of these events
+        const filtered = [];
+        for (const checkin of todayCheckins) {
+            try {
+                const responsesSnap = await db.collection('surveyResponses')
+                    .where('formId', '==', 'volunteer-debrief')
+                    .where('respondentId', '==', user.uid)
+                    .where('eventId', '==', checkin.eventId)
+                    .get();
+                if (responsesSnap.empty) {
+                    filtered.push(checkin);
+                }
+            } catch {
+                filtered.push(checkin); // If query fails, still show the prompt
+            }
+        }
+
+        res.json(filtered);
+    } catch (error: any) {
+        console.error('[RECENT-CHECKINS] Error:', error.message);
+        res.json([]);
+    }
+});
+
 // POST /api/volunteer/award-points — Award XP points to current user (daily quests, training, etc.)
 app.post('/api/volunteer/award-points', verifyToken, async (req: Request, res: Response) => {
     try {
