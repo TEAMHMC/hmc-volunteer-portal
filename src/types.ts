@@ -251,6 +251,7 @@ export interface Volunteer {
   profilePhoto?: string;
   hoursContributed: number;
   hasCompletedSystemTour?: boolean;
+  hasCompletedOpsTour?: boolean;
   isNewUser?: boolean;
   interestedIn?: string;
   timeCommitment?: string;

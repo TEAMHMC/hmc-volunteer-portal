@@ -40,7 +40,9 @@ interface EventOpsModeProps {
 type OpsTab = 'overview' | 'checklists' | 'checkin' | 'survey' | 'intake' | 'screenings' | 'tracker' | 'logistics' | 'incidents' | 'signoff' | 'audit' | 'itinerary';
 
 const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, onBack, onUpdateUser, onNavigateToAcademy, allVolunteers, eventShifts, setOpportunities, onEditEvent, canEdit }) => {
-  const [activeTab, setActiveTab] = useState<OpsTab>('checklists');
+  const LEAD_ROLES_INIT = ['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead'];
+  const isLeadInit = user.isAdmin || LEAD_ROLES_INIT.includes(user.role);
+  const [activeTab, setActiveTab] = useState<OpsTab>(isLeadInit ? 'checkin' : 'overview');
   const [opsRun, setOpsRun] = useState<MissionOpsRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
@@ -227,25 +229,56 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     }
   };
 
-  const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
-    { id: 'checklists', label: 'Tasks', icon: ListChecks },
-    { id: 'checkin', label: 'Check-In', icon: QrCode },
+  const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean; leadOnly?: boolean; logisticsOnly?: boolean }[] = [
+    { id: 'checkin', label: 'Check-In', icon: QrCode, leadOnly: true },
+    { id: 'overview', label: 'Brief', icon: BookUser },
+    { id: 'checklists', label: 'Tasks', icon: ListChecks, leadOnly: true },
     { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
     { id: 'survey', label: 'Survey', icon: FileText },
     { id: 'intake', label: 'Intake', icon: ClipboardPaste },
     { id: 'screenings', label: 'Health', icon: HeartPulse },
     { id: 'tracker', label: 'Tracker', icon: Package },
-    { id: 'logistics', label: 'Loadout', icon: Truck },
+    { id: 'logistics', label: 'Loadout', icon: Truck, logisticsOnly: true },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
     { id: 'signoff', label: 'Finish', icon: UserCheck },
-    { id: 'overview', label: 'Brief', icon: BookUser },
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
   ];
   
+  // === OpsTour state ===
+  const [showOpsTour, setShowOpsTour] = useState(false);
+  useEffect(() => {
+    if (!loading && !user.hasCompletedOpsTour) setShowOpsTour(true);
+  }, [loading, user.hasCompletedOpsTour]);
+
+  const handleCompleteOpsTour = async () => {
+    setShowOpsTour(false);
+    try {
+      await apiService.put('/api/volunteer', { hasCompletedOpsTour: true });
+      onUpdateUser({ ...user, hasCompletedOpsTour: true });
+    } catch { /* non-critical */ }
+  };
+
+  // === Tab helper banners (dismissible per session) ===
+  const TAB_HELPERS: Partial<Record<OpsTab, { title: string; description: string; tips?: string[] }>> = {
+    overview: { title: 'Start Here', description: 'Review the mission summary, goals, team roster, and your assignment before the huddle.' },
+    itinerary: { title: 'Event Timeline', description: 'Review the event day schedule with your team during the huddle.', tips: isLead ? ['Use the rotation planner to assign buddy pairs to stations.', 'Setup starts at shift start, but rotations begin at service start time.'] : undefined },
+    survey: { title: 'Community Survey', description: 'Use this tab to survey community members during the event. The script and questions are pre-loaded — follow the prompts for each interaction.' },
+    intake: { title: 'Client Referrals', description: 'Log every client referral here. If someone needs a service connection (housing, mental health, substance use), create an intake record. Every interaction must be accounted for.' },
+    screenings: { title: 'Health Screenings', description: 'Log health screenings here — blood pressure, glucose, HIV testing, BMI. Every person receiving a screening gets a record.' },
+    tracker: { title: 'Distribution Tracker', description: 'Track distribution of supplies — Narcan, fentanyl test strips, food, hygiene kits. Log each distribution so we can estimate future needs.' },
+    incidents: { title: 'Incident Reporting', description: 'Report any incidents or safety concerns here. Your lead will be notified immediately.' },
+    signoff: { title: 'End-of-Day', description: 'End-of-day sign-off. Complete this after breakdown and the debrief session.' },
+    checkin: { title: 'Volunteer Check-In', description: 'Manage volunteer check-ins. Share the QR code for self check-in or manually check volunteers in.' },
+    checklists: { title: 'Setup & Breakdown', description: 'Setup and breakdown checklists.', tips: ['First hour: equipment setup, station layout, team huddle.', 'Last hour: recap, pack-up, debrief.'] },
+    logistics: { title: 'Equipment Loadout', description: 'Equipment loadout for logistics. Track what\'s packed, loaded, and delivered.' },
+  };
+
   if (loading) return <div className="flex items-center justify-center h-96"><Loader2 className="animate-spin text-brand" size={48} /></div>;
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
+      {/* === OpsTour Welcome Modal === */}
+      {showOpsTour && <OpsTour onComplete={handleCompleteOpsTour} onClose={() => setShowOpsTour(false)} />}
       <header className="space-y-4 px-2">
         <button onClick={onBack} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-900 transition-colors">
           <ArrowLeft size={14} /> Back to Schedule
@@ -331,7 +364,12 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
 
       <div className="flex flex-col lg:flex-row gap-4 md:gap-8 items-start">
         <div className="w-full lg:w-72 bg-white border border-zinc-100 p-2 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
-            {TABS.filter(tab => !tab.adminOnly || user.isAdmin).map(tab => (
+            {TABS.filter(tab => {
+              if (tab.adminOnly && !user.isAdmin) return false;
+              if (tab.leadOnly && !isLead) return false;
+              if (tab.logisticsOnly && !isLead && user.role !== 'Logistics') return false;
+              return true;
+            }).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
@@ -343,6 +381,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         </div>
 
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[300px] md:min-h-[600px] relative">
+          <TabHelper tabId={activeTab} helpers={TAB_HELPERS} />
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}
@@ -351,7 +390,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'screenings' && <HealthScreeningsView user={user} shift={shift} event={event} onLog={handleLogAndSetAudit} />}
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
           {activeTab === 'logistics' && <LogisticsView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
-          {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} />}
+          {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} isLead={isLead} />}
           {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => { toastService.error('Failed to save incident report to server. Report recorded locally only.'); }); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
                 try {
@@ -370,6 +409,67 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
       </div>
     </div>
   );
+};
+
+// ============================================================
+// TAB HELPER — DISMISSIBLE CONTEXTUAL HELP BANNER
+// ============================================================
+const TabHelper: React.FC<{ tabId: OpsTab; helpers: Partial<Record<OpsTab, { title: string; description: string; tips?: string[] }>> }> = ({ tabId, helpers }) => {
+    const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
+    const helper = helpers[tabId];
+    if (!helper || dismissed[tabId]) return null;
+    return (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl relative">
+            <button onClick={() => setDismissed(prev => ({ ...prev, [tabId]: true }))} className="absolute top-3 right-3 text-blue-300 hover:text-blue-500"><X size={14} /></button>
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-wider mb-1">{helper.title}</p>
+            <p className="text-sm font-bold text-blue-900 leading-relaxed">{helper.description}</p>
+            {helper.tips && helper.tips.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                    {helper.tips.map((tip, i) => <li key={i} className="text-xs text-blue-700 font-medium flex items-start gap-1.5"><span className="text-blue-400 mt-0.5">&bull;</span>{tip}</li>)}
+                </ul>
+            )}
+        </div>
+    );
+};
+
+// ============================================================
+// OPS TOUR — FIRST-TIME WELCOME MODAL
+// ============================================================
+const opsTourSteps = [
+    { title: 'Welcome to Mission Ops', content: 'This is your event day command center. Everything you need for the mission is organized by phase.' },
+    { title: 'Phase 1: Arrive & Check In', content: "Tap 'I'm Here' in the header to check in. You'll be assigned a buddy pair. Review the Brief tab for your mission summary and assignment." },
+    { title: 'Phase 2: Huddle & Setup', content: 'Review the Itinerary with your team. Your lead will walk through station assignments, rotations, and goals. Setup equipment at your assigned station.' },
+    { title: 'Phase 3: Active Operations', content: 'During the event, use the tabs for your role: Survey for community surveys, Intake for client referrals, Health for screenings, Tracker for supply distribution. Every interaction must be logged.' },
+    { title: 'Phase 4: Live Ops', content: 'Leads: the Station Rotation Planner has a Live Ops panel. Activate it to track real-time rotation slots, mark depleted stations, and deploy the roving team for street outreach.' },
+    { title: 'Phase 5: Pack-Up & Debrief', content: "Breakdown equipment, complete your checklist, and attend the debrief. Hit 'Check Out' and complete the Finish tab sign-off." },
+];
+
+const OpsTour: React.FC<{ onComplete: () => void; onClose: () => void }> = ({ onComplete, onClose }) => {
+    const [step, setStep] = useState(0);
+    const current = opsTourSteps[step];
+    const isLast = step === opsTourSteps.length - 1;
+    const handleNext = () => { if (isLast) onComplete(); else setStep(s => s + 1); };
+    return (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={onClose}>
+            <div className="bg-white max-w-xl w-full rounded-modal shadow-elevation-3 p-4 md:p-8 relative border border-zinc-100" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors"><X size={20} /></button>
+                <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Ops Tour — Step {step + 1} of {opsTourSteps.length}</p>
+                <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tight">{current.title}</h2>
+                <p className="text-zinc-500 mt-4 font-bold text-sm md:text-lg leading-relaxed">{current.content}</p>
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-10 gap-4">
+                    <div className="flex items-center gap-2">
+                        {opsTourSteps.map((_, i) => (
+                            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === step ? 'bg-brand scale-125' : i < step ? 'bg-brand/40' : 'bg-zinc-200'}`} />
+                        ))}
+                    </div>
+                    <button onClick={handleNext} className="px-4 md:px-8 py-4 min-h-[44px] bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-3 group shadow-elevation-2">
+                        {isLast ? "Get Started" : "Next"}
+                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: Shift; onNavigateToAcademy?: () => void; allVolunteers?: Volunteer[]; eventShifts?: Shift[] }> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
@@ -2388,7 +2488,8 @@ const ItineraryView: React.FC<{
     shift: Shift;
     allVolunteers: Volunteer[];
     eventShifts: Shift[];
-}> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
+    isLead?: boolean;
+}> = ({ user, opportunity, shift, allVolunteers, eventShifts, isLead = false }) => {
     const [itinerary, setItinerary] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [setupDiagram, setSetupDiagram] = useState('');
@@ -2397,6 +2498,7 @@ const ItineraryView: React.FC<{
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [showGenerator, setShowGenerator] = useState(false);
     const [isEditingItinerary, setIsEditingItinerary] = useState(false);
     const diagramTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -2451,18 +2553,21 @@ const ItineraryView: React.FC<{
                 if (data?.itinerary) {
                     setItinerary(data.itinerary);
                     setSavedItinerary(data.itinerary);
+                } else if (isLead) {
+                    setShowGenerator(true); // No saved itinerary — auto-show generator for leads
                 }
                 if (data?.setupDiagram) {
                     setSetupDiagram(data.setupDiagram);
                 }
             } catch {
-                // No saved itinerary — that's fine
+                // No saved itinerary — show generator for leads
+                if (isLead) setShowGenerator(true);
             } finally {
                 setIsLoading(false);
             }
         };
         loadItinerary();
-    }, [opportunity.id]);
+    }, [opportunity.id, isLead]);
 
     // Debounced auto-save for setup diagram
     useEffect(() => {
@@ -2676,7 +2781,7 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
         <div className="space-y-10 animate-in fade-in">
             <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Itinerary</h2>
 
-            {/* Section 1: Event Summary */}
+            {/* Section 1: Event Summary — volunteer count only, no individual pills */}
             <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-4">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Event Summary</p>
                 <div className="space-y-3">
@@ -2690,71 +2795,29 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
                         <Users size={14} className="text-zinc-400" />
                         <span className="text-sm font-bold text-zinc-600">{volunteerCount} Volunteer{volunteerCount !== 1 ? 's' : ''} Registered</span>
                     </div>
-                    {registeredVolunteers.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {registeredVolunteers.map(v => {
-                                const hasCoreTraining = v.coreVolunteerStatus;
-                                const hasBasicTraining = hasCoreTraining && v.completedHIPAATraining;
-                                return (
-                                    <span key={v.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border rounded-full text-xs font-bold text-zinc-600 ${!hasBasicTraining ? 'border-amber-300' : 'border-zinc-200'}`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${hasBasicTraining ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                                        {v.preferredFirstName || v.legalFirstName} {v.legalLastName}
-                                        <span className="text-zinc-300 ml-0.5">({v.role || 'Volunteer'})</span>
-                                        {!hasBasicTraining && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">Admin Added</span>}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* Section 2: Generate Itinerary */}
-            <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-5">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">AI Itinerary Generator</p>
-                <p className="text-sm font-medium text-zinc-500 leading-relaxed">
-                    Generate a customized event day itinerary based on the event details, volunteer roster, and HMC standard operating procedures.
-                </p>
-                <textarea
-                    value={customNotes}
-                    onChange={e => setCustomNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Additional instructions or notes for the itinerary..."
-                    className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 resize-none"
-                />
-                <button
-                    onClick={handleGenerate}
-                    disabled={isGenerating}
-                    className="flex items-center gap-2 px-6 py-3 bg-brand text-white border border-black rounded-full font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 transition-all text-sm"
-                >
-                    {isGenerating ? (
-                        <><Loader2 size={16} className="animate-spin" /> Generating...</>
-                    ) : itinerary ? (
-                        <><RefreshCw size={16} /> Regenerate Itinerary</>
-                    ) : (
-                        <><Sparkles size={16} /> Generate Itinerary</>
-                    )}
-                </button>
-            </div>
-
-            {/* Section 3: Itinerary Display */}
+            {/* Section 2: Saved Itinerary Display (read-only for volunteers) */}
             {itinerary && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{isEditingItinerary ? 'Edit Itinerary' : 'Generated Itinerary'}</p>
-                        <div className="flex items-center gap-2">
-                            {itinerary !== savedItinerary && (
-                                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Unsaved changes</span>
-                            )}
-                            <button
-                                onClick={() => setIsEditingItinerary(!isEditingItinerary)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all"
-                            >
-                                {isEditingItinerary ? <><Eye size={12} /> Preview</> : <><Pencil size={12} /> Edit</>}
-                            </button>
-                        </div>
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{isLead && isEditingItinerary ? 'Edit Itinerary' : savedItinerary ? 'Saved Itinerary' : 'Generated Itinerary'}</p>
+                        {isLead && (
+                            <div className="flex items-center gap-2">
+                                {itinerary !== savedItinerary && (
+                                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Unsaved changes</span>
+                                )}
+                                <button
+                                    onClick={() => setIsEditingItinerary(!isEditingItinerary)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-all"
+                                >
+                                    {isEditingItinerary ? <><Eye size={12} /> Preview</> : <><Pencil size={12} /> Edit</>}
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    {isEditingItinerary ? (
+                    {isLead && isEditingItinerary ? (
                         <textarea
                             value={itinerary}
                             onChange={e => setItinerary(e.target.value)}
@@ -2762,42 +2825,84 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
                             className="w-full p-4 md:p-8 bg-white border-2 border-brand/20 rounded-2xl md:rounded-3xl font-mono text-sm outline-none focus:border-brand/40 resize-y min-h-[300px]"
                         />
                     ) : (
-                        <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner cursor-pointer" onClick={() => setIsEditingItinerary(true)}>
+                        <div className={`p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner ${isLead ? 'cursor-pointer' : ''}`} onClick={isLead ? () => setIsEditingItinerary(true) : undefined}>
                             <div className="prose prose-sm max-w-none">
                                 {renderMarkdown(itinerary)}
                             </div>
                         </div>
                     )}
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving || itinerary === savedItinerary}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white border border-black rounded-full font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 transition-all text-xs"
-                        >
-                            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                            Save Itinerary
-                        </button>
-                        <button
-                            onClick={handleCopy}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 transition-all text-xs"
-                        >
-                            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                            {copied ? 'Copied' : 'Copy'}
-                        </button>
-                        <button
-                            onClick={handlePrint}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 transition-all text-xs"
-                        >
-                            <Printer size={14} /> Print
-                        </button>
-                        <button
-                            onClick={handleGenerate}
-                            disabled={isGenerating}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 disabled:opacity-50 transition-all text-xs"
-                        >
-                            <RefreshCw size={14} /> Regenerate
-                        </button>
-                    </div>
+                    {isLead && (
+                        <div className="flex flex-wrap gap-3">
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving || itinerary === savedItinerary}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white border border-black rounded-full font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 transition-all text-xs"
+                            >
+                                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                Save Itinerary
+                            </button>
+                            <button
+                                onClick={handleCopy}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 transition-all text-xs"
+                            >
+                                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                {copied ? 'Copied' : 'Copy'}
+                            </button>
+                            <button
+                                onClick={handlePrint}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-600 border border-zinc-200 rounded-full font-bold uppercase tracking-wide hover:bg-zinc-50 transition-all text-xs"
+                            >
+                                <Printer size={14} /> Print
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* No itinerary yet — volunteer sees placeholder */}
+            {!itinerary && !isLead && (
+                <div className="p-8 bg-zinc-50 rounded-2xl border border-zinc-100 text-center">
+                    <p className="text-sm font-bold text-zinc-400">No itinerary has been published yet. Your lead will share the event day plan during the huddle.</p>
+                </div>
+            )}
+
+            {/* Section 3: AI Itinerary Generator — leads only, collapsed below saved itinerary */}
+            {isLead && (
+                <div className="space-y-4">
+                    <button
+                        onClick={() => setShowGenerator(!showGenerator)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-zinc-100 text-zinc-600 rounded-full text-xs font-black uppercase tracking-wide hover:bg-zinc-200 transition-all"
+                    >
+                        {showGenerator ? <Minus size={14} /> : <Plus size={14} />}
+                        AI Itinerary Generator
+                    </button>
+                    {showGenerator && (
+                        <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-5">
+                            <p className="text-sm font-medium text-zinc-500 leading-relaxed">
+                                Generate a customized event day itinerary based on the event details, volunteer roster, and HMC standard operating procedures.
+                            </p>
+                            <textarea
+                                value={customNotes}
+                                onChange={e => setCustomNotes(e.target.value)}
+                                rows={3}
+                                placeholder="Additional instructions or notes for the itinerary..."
+                                className="w-full p-4 bg-white border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30 resize-none"
+                            />
+                            <button
+                                onClick={handleGenerate}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 px-6 py-3 bg-brand text-white border border-black rounded-full font-bold uppercase tracking-wide shadow-elevation-2 hover:bg-brand-hover disabled:opacity-50 transition-all text-sm"
+                            >
+                                {isGenerating ? (
+                                    <><Loader2 size={16} className="animate-spin" /> Generating...</>
+                                ) : itinerary ? (
+                                    <><RefreshCw size={16} /> Regenerate Itinerary</>
+                                ) : (
+                                    <><Sparkles size={16} /> Generate Itinerary</>
+                                )}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -3155,6 +3260,7 @@ const SidewalkLayoutCanvas: React.FC<{
             height: 70,
         };
         onUpdateStations([...stations, newStation]);
+        setSelectedStationId(newId); // Auto-select for immediate renaming
     };
 
     const handleRemoveStation = (id: string) => {
@@ -3258,6 +3364,25 @@ const SidewalkLayoutCanvas: React.FC<{
                 {/* Sidewalk label */}
                 <div className="absolute bottom-2 left-4 text-[9px] font-black text-zinc-300 uppercase tracking-widest">Sidewalk</div>
 
+                {/* Flow-of-traffic arrows SVG overlay */}
+                <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%">
+                    <defs>
+                        <marker id="flow-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#a1a1aa" />
+                        </marker>
+                    </defs>
+                    {stations.slice(0, -1).map((from, i) => {
+                        const to = stations[i + 1];
+                        return (
+                            <line key={i}
+                                x1={from.position.x + from.width + 4} y1={from.position.y + from.height / 2}
+                                x2={to.position.x - 4} y2={to.position.y + to.height / 2}
+                                stroke="#a1a1aa" strokeWidth="1.5" strokeDasharray="6 3"
+                                markerEnd="url(#flow-arrow)" />
+                        );
+                    })}
+                </svg>
+
                 {/* Station blocks */}
                 {stations.map(station => {
                     const pair = getCurrentPairForStation(station.id);
@@ -3306,10 +3431,29 @@ const SidewalkLayoutCanvas: React.FC<{
                                     <X size={10} />
                                 </button>
                             )}
+                            {/* Editable station name — shown when selected */}
+                            {selectedStationId === station.id && (
+                                <div className="absolute -bottom-8 left-0 right-0 flex items-center gap-1 z-20">
+                                    <input
+                                        value={station.name}
+                                        onChange={e => {
+                                            const name = e.target.value;
+                                            const shortName = name.length > 10 ? name.slice(0, 8) + '..' : name;
+                                            onUpdateStations(stations.map(s => s.id === station.id ? { ...s, name, shortName } : s));
+                                        }}
+                                        className="flex-1 px-2 py-1 text-[10px] font-bold bg-white border border-brand rounded-lg outline-none shadow-md"
+                                        onClick={e => e.stopPropagation()}
+                                        placeholder="Station name..."
+                                        autoFocus
+                                    />
+                                </div>
+                            )}
                         </div>
                     );
                 })}
             </div>
+            {/* Canvas legend */}
+            <span className="text-[9px] text-zinc-400 font-bold">Dashed arrows = Client Flow &rarr;</span>
         </div>
     );
 };
@@ -3326,7 +3470,9 @@ const RotationScheduleView: React.FC<{
     rotationMinutes: number;
     onUpdateSlots: (slots: RotationSlot[]) => void;
     onUpdateRotationMinutes: (minutes: number) => void;
-}> = ({ buddyPairs, stations, rotationSlots, serviceStart, serviceEnd, rotationMinutes, onUpdateSlots, onUpdateRotationMinutes }) => {
+    onUpdateServiceStart?: (time: string) => void;
+    onUpdateServiceEnd?: (time: string) => void;
+}> = ({ buddyPairs, stations, rotationSlots, serviceStart, serviceEnd, rotationMinutes, onUpdateSlots, onUpdateRotationMinutes, onUpdateServiceStart, onUpdateServiceEnd }) => {
 
     const corePairs = buddyPairs.filter(p => p.pairType === 'core');
     const activeStations = stations.filter(s => s.status === 'active');
@@ -3384,8 +3530,13 @@ const RotationScheduleView: React.FC<{
                         {[20, 30, 40, 45, 60].map(m => <option key={m} value={m}>{m} min</option>)}
                     </select>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500">
-                    <Clock size={12} /> {serviceStart} — {serviceEnd}
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.1em]">Service Window</label>
+                    <input type="time" value={serviceStart} onChange={e => onUpdateServiceStart?.(e.target.value)}
+                        className="p-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none" />
+                    <span className="text-zinc-400">&mdash;</span>
+                    <input type="time" value={serviceEnd} onChange={e => onUpdateServiceEnd?.(e.target.value)}
+                        className="p-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none" />
                 </div>
                 <div className="flex-1" />
                 <button
@@ -3982,6 +4133,8 @@ const StationRotationPlanner: React.FC<{
                     rotationMinutes={config.rotationMinutes}
                     onUpdateSlots={slots => updateConfig({ rotationSlots: slots })}
                     onUpdateRotationMinutes={m => updateConfig({ rotationMinutes: m })}
+                    onUpdateServiceStart={t => updateConfig({ serviceStart: t })}
+                    onUpdateServiceEnd={t => updateConfig({ serviceEnd: t })}
                 />
             )}
 
