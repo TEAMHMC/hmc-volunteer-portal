@@ -793,6 +793,25 @@ const EmailTemplates = {
     text: `Hi ${data.volunteerName || 'Volunteer'}, Thank you for volunteering at ${data.eventName || 'our event'} yesterday! Your service made a real difference.`
   }),
 
+  // 6c. Post-Event Debrief
+  post_event_debrief: (data: EmailTemplateData) => ({
+    subject: `Mission Complete! Debrief Survey for ${data.eventName || 'Today\'s Event'}`,
+    html: `${emailHeader('Mission Complete!')}
+      <p>Hi ${data.volunteerName || 'Volunteer'},</p>
+      <p>Thank you for volunteering at <strong>${data.eventName || 'today\'s event'}</strong> today! Your service made a real difference.</p>
+      <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #065f46;">Before you check out...</p>
+        <p style="margin: 0; color: #047857;">Please take 2 minutes to complete your debrief survey. Your feedback helps us improve every event.</p>
+      </div>
+      ${actionButton('Complete Debrief Survey', data.surveyUrl || `${EMAIL_CONFIG.WEBSITE_URL}/surveys/volunteer-debrief`)}
+      ${(data as any).nextEventTeaser ? `<div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e3a5f;">Your next mission is loading...</p>
+        <p style="margin: 0; color: #1e40af;">${(data as any).nextEventTeaser.replace(/\n/g, '')}</p>
+      </div>` : ''}
+    ${emailFooter()}`,
+    text: `Mission Complete, ${data.volunteerName || 'Volunteer'}! Thank you for volunteering at ${data.eventName || 'today\'s event'}. Please complete your debrief survey: ${data.surveyUrl || EMAIL_CONFIG.WEBSITE_URL + '/surveys/volunteer-debrief'}`
+  }),
+
   // 7. Shift Cancellation
   shift_cancellation: (data: EmailTemplateData) => ({
     subject: `Shift Cancelled: ${data.eventName}`,
@@ -8400,6 +8419,7 @@ const WORKFLOW_DEFAULTS: Record<string, { enabled: boolean }> = {
   w5: { enabled: true },
   w6: { enabled: true },
   w7: { enabled: true },
+  w8: { enabled: true },
 };
 
 const WORKFLOW_NAMES: Record<string, string> = {
@@ -8410,6 +8430,7 @@ const WORKFLOW_NAMES: Record<string, string> = {
   w5: 'Compliance Expiry Warning',
   w6: 'Event Reminder Cadence',
   w7: 'SMO Monthly Cycle',
+  w8: 'Post-Event Debrief',
 };
 
 interface WorkflowRunDetail {
@@ -8619,6 +8640,152 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
   }
   await logWorkflowRun('w2', result, volDetails);
   console.log(`[WORKFLOW] Post-Shift Thank You done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
+  return result;
+}
+
+// w8: Post-Event Debrief — runs every 10 minutes, texts volunteers 15 min after service hours end
+async function executePostEventDebrief(): Promise<{ sent: number; failed: number; skipped: number }> {
+  console.log('[WORKFLOW] Running Post-Event Debrief (w8)');
+  const result = { sent: 0, failed: 0, skipped: 0 };
+  const volDetails: WorkflowRunDetail[] = [];
+  try {
+    const now = new Date();
+    const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const todayStr = getPacificDate(0);
+
+    // Find today's events
+    const oppsSnap = await db.collection('opportunities').where('date', '==', todayStr).get();
+    if (oppsSnap.empty) return result;
+
+    for (const oppDoc of oppsSnap.docs) {
+      const opp = oppDoc.data();
+
+      // Parse the event's end time
+      let endHour = 14, endMinute = 0; // default 2:00 PM
+      const endTimeRaw = opp.endTime || opp.time?.split?.(' - ')?.[1] || '';
+      if (endTimeRaw) {
+        // Handle ISO format "2026-02-21T14:00:00" or HH:MM format "14:00"
+        const timePart = endTimeRaw.includes('T') ? endTimeRaw.split('T')[1] : endTimeRaw;
+        const parts = timePart.split(':');
+        if (parts.length >= 2) {
+          endHour = parseInt(parts[0], 10);
+          endMinute = parseInt(parts[1], 10);
+        }
+      }
+
+      // Calculate when the debrief text should fire (15 min after end time)
+      const debriefTime = new Date(pacificNow);
+      debriefTime.setHours(endHour, endMinute + 15, 0, 0);
+
+      // Check if we're within the 10-minute window after the debrief time
+      // (window matches the cron interval to avoid double-sends)
+      const diffMs = pacificNow.getTime() - debriefTime.getTime();
+      if (diffMs < 0 || diffMs > 10 * 60 * 1000) continue; // Not in window
+
+      // Check dedup — don't send twice for the same event
+      const dedupRef = db.collection('workflow_dedup').doc(`w8_${oppDoc.id}_${todayStr}`);
+      const dedupDoc = await dedupRef.get();
+      if (dedupDoc.exists) continue;
+      await dedupRef.set({ sentAt: now.toISOString() });
+
+      console.log(`[WORKFLOW w8] Event "${opp.title}" ended at ${endHour}:${String(endMinute).padStart(2, '0')}, sending debrief texts`);
+
+      // Get checked-in volunteers for this event
+      const checkinsSnap = await db.collection('volunteer_checkins')
+        .where('eventId', '==', oppDoc.id)
+        .get();
+
+      // Also get shift-assigned volunteers
+      const assignedIds = new Set<string>();
+      const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppDoc.id).get();
+      for (const shiftDoc of shiftsSnap.docs) {
+        for (const vid of (shiftDoc.data().assignedVolunteerIds || [])) assignedIds.add(vid);
+      }
+      // Add checked-in volunteers
+      for (const doc of checkinsSnap.docs) {
+        const data = doc.data();
+        if (data.volunteerId) assignedIds.add(data.volunteerId);
+      }
+
+      if (assignedIds.size === 0) continue;
+
+      // Find next upcoming event for the "your next mission" teaser
+      let nextEventTeaser = '';
+      try {
+        const upcomingSnap = await db.collection('opportunities')
+          .where('date', '>', todayStr)
+          .orderBy('date', 'asc')
+          .limit(1)
+          .get();
+        if (!upcomingSnap.empty) {
+          const nextEvent = upcomingSnap.docs[0].data();
+          nextEventTeaser = `\n\nYour next mission is loading — ${nextEvent.title} is open for registration!`;
+        }
+      } catch (e) {
+        // Non-fatal — skip the teaser if query fails
+        console.warn('[WORKFLOW w8] Could not fetch next event:', (e as Error).message);
+      }
+
+      const surveyUrl = `${EMAIL_CONFIG.WEBSITE_URL}/surveys/volunteer-debrief`;
+
+      for (const volId of assignedIds) {
+        try {
+          const volDoc = await db.collection('volunteers').doc(volId).get();
+          const vol = volDoc.data();
+          if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: now.toISOString() }); continue; }
+
+          const volName = (vol.name || vol.firstName || 'Volunteer').split(' ')[0]; // First name only
+          const phone = normalizePhone(vol.phone);
+          const msg = `Mission Complete, ${volName}! Thank you for volunteering at ${opp.title} today. Be sure to complete your debrief survey before you check out: ${surveyUrl}${nextEventTeaser}`;
+
+          if (phone) {
+            const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+            if (smsResult.sent) {
+              result.sent++;
+              volDetails.push({ volunteerId: volId, status: 'sent', timestamp: now.toISOString() });
+            } else if (vol.email) {
+              // Fallback to email
+              await EmailService.send('post_event_debrief', {
+                toEmail: vol.email,
+                volunteerName: volName,
+                eventName: opp.title,
+                surveyUrl,
+                nextEventTeaser,
+                userId: volId,
+              });
+              result.sent++;
+              volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: now.toISOString() });
+            } else {
+              result.failed++;
+              volDetails.push({ volunteerId: volId, status: 'failed', timestamp: now.toISOString(), error: 'No contact method' });
+            }
+          } else if (vol.email) {
+            await EmailService.send('post_event_debrief', {
+              toEmail: vol.email,
+              volunteerName: volName,
+              eventName: opp.title,
+              surveyUrl,
+              nextEventTeaser,
+              userId: volId,
+            });
+            result.sent++;
+            volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: now.toISOString() });
+          } else {
+            result.skipped++;
+            volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: now.toISOString() });
+          }
+        } catch (e) {
+          console.error(`[WORKFLOW w8] Debrief failed for volunteer ${volId}:`, e);
+          result.failed++;
+          volDetails.push({ volunteerId: volId, status: 'failed', timestamp: now.toISOString(), error: (e as Error).message });
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[WORKFLOW] executePostEventDebrief error:', e);
+  }
+  await logWorkflowRun('w8', result, volDetails);
+  console.log(`[WORKFLOW] Post-Event Debrief done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`);
   return result;
 }
 
@@ -9403,6 +9570,7 @@ app.post('/api/admin/workflows/trigger/:workflowId', verifyToken, requireAdmin, 
       case 'w5': result = await executeComplianceExpiryWarning(); break;
       case 'w6': result = await executeEventReminderCadence(); break;
       case 'w7': result = await manageSMOCycle(); break;
+      case 'w8': result = await executePostEventDebrief(); break;
       default: return res.status(400).json({ error: `Unknown workflow: ${workflowId}` });
     }
 
@@ -11668,13 +11836,23 @@ const server = app.listen(PORT, () => {
       runSMSCheckWorkflows();
     });
 
+    // Every 10 minutes: Post-event debrief (15 min after service hours end)
+    cron.schedule('*/10 * * * *', async () => {
+      try {
+        const configDoc = await db.collection('workflow_configs').doc('default').get();
+        const config = configDoc.data();
+        const workflows = config?.workflows || WORKFLOW_DEFAULTS;
+        if (workflows.w8?.enabled !== false) await executePostEventDebrief();
+      } catch (e) { console.error('[CRON] Post-event debrief error:', e); }
+    });
+
     // Daily at 8am UTC: birthday + compliance
     cron.schedule('0 8 * * *', () => {
       console.log('[CRON] Running daily workflow check (8am UTC)');
       runDailyWorkflows();
     });
 
-    console.log('[CRON] Workflow scheduler started: daily 6pm UTC (shift/thank-you/cadence/SMO) + every 3h (SMS) + daily 8am UTC (birthday/compliance)');
+    console.log('[CRON] Workflow scheduler started: daily 6pm UTC (shift/thank-you/cadence/SMO) + every 3h (SMS) + every 10m (debrief) + daily 8am UTC (birthday/compliance)');
 
     // Run pending reminders at startup — Cloud Run may scale to zero and miss cron times
     setTimeout(async () => {

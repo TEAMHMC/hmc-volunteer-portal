@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Zap, Clock, Send, Gift, ShieldAlert, CheckCircle, Loader2, Play, MessageSquare, Mail, History, CalendarClock, Stethoscope, Bell, ChevronDown, ChevronUp, Users, Link2, Check, X } from 'lucide-react';
+import { Zap, Clock, Send, Gift, ShieldAlert, CheckCircle, Loader2, Play, MessageSquare, Mail, History, CalendarClock, Stethoscope, Bell, ChevronDown, ChevronUp, Users, Link2, Check, X, ClipboardCheck } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
 type WorkflowIcon = typeof Clock;
@@ -66,6 +66,7 @@ const WORKFLOW_META: { id: string; title: string; description: string; icon: Wor
     { id: 'w5', title: 'Compliance Expiry Warning', description: 'Alert volunteers 30 days before their background check or other compliance items expire.', icon: ShieldAlert },
     { id: 'w6', title: 'Event Reminder Cadence', description: '5-stage automated reminders: confirmation, 7-day, 72h, 24h email + 3h SMS.', icon: CalendarClock },
     { id: 'w7', title: 'SMO Monthly Cycle', description: 'Auto-create Street Medicine events, enforce Thursday training prerequisite, manage waitlist.', icon: Stethoscope },
+    { id: 'w8', title: 'Post-Event Debrief', description: 'Text volunteers 15 min after service hours end with debrief survey link and next event teaser.', icon: ClipboardCheck },
 ];
 
 function timeAgo(dateStr: string): string {
