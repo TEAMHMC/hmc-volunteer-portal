@@ -230,12 +230,18 @@ const FormBuilder: React.FC = () => {
                                     </span>
                                 </div>
                                 <div className="space-y-2">
-                                    {Object.entries(response.responses || {}).map(([key, value]) => (
-                                        <div key={key} className="flex flex-col sm:flex-row gap-1 sm:gap-4">
-                                            <span className="text-xs sm:text-sm font-bold text-zinc-500 sm:min-w-[120px]">{key}:</span>
-                                            <span className="text-xs sm:text-sm text-zinc-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
-                                        </div>
-                                    ))}
+                                    {Object.entries(response.responses || (response as any).answers || {}).map(([key, value]) => {
+                                        // Look up question text from the form definition
+                                        const formDef = forms.find(f => f.id === viewingResponses.formId) || DEFAULT_FORMS.find(f => f.id === viewingResponses.formId);
+                                        const field = formDef?.fields.find(f => f.id === key);
+                                        const label = field?.question || key;
+                                        return (
+                                            <div key={key} className="flex flex-col sm:flex-row gap-1 sm:gap-4">
+                                                <span className="text-xs sm:text-sm font-bold text-zinc-500 sm:min-w-[200px]">{label}:</span>
+                                                <span className="text-xs sm:text-sm text-zinc-800">{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ))}

@@ -79,15 +79,20 @@ const VolunteerSurveyModal: React.FC<VolunteerSurveyModalProps> = ({
 
     setSubmitting(true);
     try {
+      const answersFlat = Object.fromEntries(
+        Object.entries(answers).map(([key, val]) => [key, Array.isArray(val) ? val.join(', ') : val])
+      );
       await surveyService.submitSurveyResponse({
         formId,
+        formTitle: form.title,
         eventId: eventId || '',
         respondentId: volunteerId,
+        respondentType: 'volunteer',
+        responses: answersFlat,
+        // Also store as answers for analytics compatibility
+        answers: answersFlat,
         respondentName: volunteerName,
-        answers: Object.fromEntries(
-          Object.entries(answers).map(([key, val]) => [key, Array.isArray(val) ? val.join(', ') : val])
-        ),
-      });
+      } as any);
       setSubmitted(true);
       onComplete?.();
     } catch (err) {
