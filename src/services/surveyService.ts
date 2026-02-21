@@ -231,37 +231,60 @@ export const submitVolunteerFeedback = async (feedback: Omit<VolunteerSurveyResp
  * Get volunteer feedback responses
  */
 export const getVolunteerFeedback = async (eventId?: string): Promise<VolunteerSurveyResponse[]> => {
-  let q;
+  const VOLUNTEER_FORM_IDS = ['volunteer-feedback', 'volunteer-debrief'];
+  let allResults: any[] = [];
 
   if (eventId) {
-    // Single where clause — filter formId in memory to avoid composite index
-    q = query(
+    const q = query(
       collection(db!, COLLECTIONS.SURVEY_RESPONSES),
       where('eventId', '==', eventId)
     );
+    const snapshot = await getDocs(q);
+    allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    allResults = allResults.filter(data => VOLUNTEER_FORM_IDS.includes(data.formId));
   } else {
-    q = query(
-      collection(db!, COLLECTIONS.SURVEY_RESPONSES),
-      where('formId', '==', 'volunteer-feedback')
-    );
+    // Fetch both form types
+    for (const formId of VOLUNTEER_FORM_IDS) {
+      try {
+        const q = query(
+          collection(db!, COLLECTIONS.SURVEY_RESPONSES),
+          where('formId', '==', formId)
+        );
+        const snapshot = await getDocs(q);
+        allResults.push(...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch {}
+    }
   }
 
-  const snapshot = await getDocs(q);
-  const results = snapshot.docs
-    .map(doc => doc.data())
-    .filter(data => data.formId === 'volunteer-feedback')
-    .sort(sortBySubmittedAtDesc)
-    .slice(0, 100);
+  allResults.sort(sortBySubmittedAtDesc);
+  allResults = allResults.slice(0, 200);
 
-  return results.map(data => ({
-    id: data.id,
-    volunteerId: data.respondentId || data.volunteerId,
-    volunteerRole: data.volunteerRole || 'Unknown',
-    eventId: data.eventId,
-    rating: data.responses?.rating || data.rating || 0,
-    feedback: data.responses?.feedback || data.feedback || '',
-    submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
-  } as VolunteerSurveyResponse));
+  return allResults.map(data => {
+    // For debrief surveys, compute average from rating answers (vd1-vd11 are ratings 1-5)
+    let rating = data.responses?.rating || data.rating || 0;
+    let feedback = data.responses?.feedback || data.feedback || '';
+
+    if (data.formId === 'volunteer-debrief' && data.answers) {
+      const ratingKeys = ['vd1', 'vd4', 'vd5', 'vd6', 'vd9', 'vd11']; // Rating-type questions
+      const ratings = ratingKeys.map(k => parseInt(data.answers[k], 10)).filter(n => !isNaN(n) && n > 0);
+      if (ratings.length > 0) {
+        rating = Math.round((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length) * 10) / 10;
+      }
+      // Combine text answers for feedback
+      const textParts = [data.answers.vd13, data.answers.vd14, data.answers.vd15].filter(Boolean);
+      if (textParts.length > 0) feedback = textParts.join(' | ');
+    }
+
+    return {
+      id: data.id,
+      volunteerId: data.respondentId || data.volunteerId,
+      volunteerRole: data.volunteerRole || 'Unknown',
+      eventId: data.eventId,
+      rating,
+      feedback,
+      submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt
+    } as VolunteerSurveyResponse;
+  });
 };
 
 // ============ CLIENT SURVEYS (SDOH, Intake, etc.) ============
