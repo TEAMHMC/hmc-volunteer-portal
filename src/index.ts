@@ -8811,18 +8811,16 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
 
       if (assignedIds.size === 0) continue;
 
-      // Find next upcoming event for the teaser (skip the current event)
+      // Find next upcoming event for the teaser
       let nextEventTeaser = '';
       try {
         const upcomingSnap = await db.collection('opportunities')
           .where('date', '>', todayStr)
           .orderBy('date', 'asc')
-          .limit(5)
+          .limit(1)
           .get();
-        const nextEvent = upcomingSnap.docs
-          .map(d => d.data())
-          .find(e => e.title !== opp.title); // Skip the current event
-        if (nextEvent) {
+        if (!upcomingSnap.empty) {
+          const nextEvent = upcomingSnap.docs[0].data();
           nextEventTeaser = `\n\nThe next ${nextEvent.title} is open for registration — sign up now!`;
         }
       } catch (e) {
