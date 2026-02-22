@@ -8866,6 +8866,12 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
 
+      // Dedup — don't send twice for the same event
+      const dedupRef = db.collection('workflow_dedup').doc(`w2_${oppDoc.id}_${yesterdayStr}`);
+      const dedupDoc = await dedupRef.get();
+      if (dedupDoc.exists) { console.log(`[WORKFLOW w2] Already sent for ${opp.title} (${yesterdayStr}), skipping`); continue; }
+      await dedupRef.set({ sentAt: new Date().toISOString() });
+
       // Collect volunteer IDs from shift assignments AND rsvpedEventIds
       const targetVolunteerIds = new Set<string>();
 
