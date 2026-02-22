@@ -3551,7 +3551,7 @@ app.post('/api/clients/search', verifyToken, async (req: Request, res: Response)
 });
 app.post('/api/clients/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceMemberId', 'insuranceGroupNumber', 'consentToShare', 'consentDate', 'consentSignature', 'primaryLanguage', 'pronouns', 'needs', 'lgbtqiaIdentity', 'insuranceStatus']);
+        const clientData = pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'dob', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'housingStatus', 'preferredName', 'identifyingInfo', 'contactMethod', 'gender', 'race', 'ethnicity', 'veteranStatus', 'homelessnessStatus', 'zipCode', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceMemberId', 'insuranceGroupNumber', 'consentToShare', 'consentDate', 'consentSignature', 'primaryLanguage', 'pronouns', 'needs', 'lgbtqiaIdentity', 'insuranceStatus', 'eventId', 'shiftId']);
         if (!clientData.name && !clientData.firstName) return res.status(400).json({ error: 'Client name required' });
         const client = {
             ...clientData,
