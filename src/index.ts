@@ -561,6 +561,10 @@ const sendSMS = async (
   to: string,
   body: string
 ): Promise<{ sent: boolean; reason?: string }> => {
+  // EMERGENCY KILL SWITCH: All SMS disabled
+  console.log('[SMS] ALL SMS DISABLED — emergency kill switch active');
+  return { sent: false, reason: 'disabled' };
+
   // Feature flag: check if Twilio is configured (prefer Messaging Service SID, fallback to phone number)
   if (!twilioClient || (!TWILIO_MESSAGING_SERVICE_SID && !TWILIO_PHONE_NUMBER)) {
     console.log('[SMS] Twilio not configured, skipping SMS');
@@ -1401,8 +1405,14 @@ class EmailService {
     templateName: keyof typeof EmailTemplates,
     data: EmailTemplateData
   ): Promise<{ sent: boolean; reason?: string }> {
-    // Check opt-in for non-transactional emails
+    // EMERGENCY KILL SWITCH: Block all non-transactional emails (workflow spam prevention)
     const transactionalTypes = ['email_verification', 'password_reset', 'login_confirmation'];
+    if (!transactionalTypes.includes(templateName)) {
+      console.log(`[EMAIL] BLOCKED by kill switch — ${templateName} to ${data.toEmail || 'unknown'}`);
+      return { sent: false, reason: 'disabled' };
+    }
+
+    // Check opt-in for non-transactional emails
     if (!transactionalTypes.includes(templateName) && data.userId) {
       const canSend = await canSendEmail(data.userId, 'alerts');
       if (!canSend) {
