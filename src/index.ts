@@ -11209,7 +11209,7 @@ app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
 app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: Response) => {
     try {
         const { eventId } = req.params;
-        // Query 1: screenings matching this eventId
+        // Query 1: screenings matching this eventId (return ALL — no dedup)
         const eventSnap = await db.collection('screenings')
             .where('eventId', '==', eventId)
             .get();
@@ -11219,56 +11219,37 @@ app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: R
             seenIds.add(doc.id);
             screenings.push({ id: doc.id, ...doc.data() });
         }
-        // Query 2: today's screenings that may be missing an eventId
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayISO = todayStart.toISOString();
+        // Query 2: today's screenings that may be missing an eventId (orphaned)
+        const todayPacific = getPacificDate(0); // YYYY-MM-DD in Pacific
+        const todayISO = new Date(`${todayPacific}T00:00:00-08:00`).toISOString();
         const todaySnap = await db.collection('screenings')
             .where('createdAt', '>=', todayISO)
             .get();
         for (const doc of todaySnap.docs) {
             if (seenIds.has(doc.id)) continue;
             const data = doc.data();
-            // Include screenings with no eventId or null eventId (orphaned)
             if (!data.eventId) {
                 screenings.push({ id: doc.id, ...data });
             }
         }
-        // Deduplicate by clientId — keep most recent screening per client
+        // Sort newest first — no dedup so every screening is visible
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        const seenClients = new Set<string>();
-        const dedupedScreenings: any[] = [];
-        for (const s of screenings) {
-            const key = s.clientId || s.id;
-            if (seenClients.has(key)) continue;
-            seenClients.add(key);
-            dedupedScreenings.push(s);
-        }
-        res.json(dedupedScreenings);
+        res.json(screenings);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Get all screenings from today (fallback when no event is selected)
 app.get('/api/ops/screenings-today', verifyToken, async (req: Request, res: Response) => {
     try {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayISO = todayStart.toISOString();
+        const todayPacific = getPacificDate(0);
+        const todayISO = new Date(`${todayPacific}T00:00:00-08:00`).toISOString();
         const snap = await db.collection('screenings')
             .where('createdAt', '>=', todayISO)
             .get();
         const screenings: any[] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        // Deduplicate by clientId — keep most recent screening per client
+        // Sort newest first — no dedup so every screening is visible
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        const seenClients = new Set<string>();
-        const dedupedScreenings: any[] = [];
-        for (const s of screenings) {
-            const key = s.clientId || s.id;
-            if (seenClients.has(key)) continue;
-            seenClients.add(key);
-            dedupedScreenings.push(s);
-        }
-        res.json(dedupedScreenings);
+        res.json(screenings);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
