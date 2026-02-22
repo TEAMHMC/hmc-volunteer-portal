@@ -5,7 +5,7 @@ import { Volunteer, VolunteerSurveyResponse } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import { Users, Clock, ShieldCheck, BarChart3, Star, Percent, MessageSquare, Sparkles, Loader2, FileText, CheckCircle, TrendingUp } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
-import surveyService from '../services/surveyService';
+import { apiService } from '../services/apiService';
 
 interface AnalyticsDashboardProps {
   volunteers: Volunteer[];
@@ -123,13 +123,13 @@ const VolunteerExperienceView = () => {
     const fetchResponses = async () => {
       setIsLoading(true);
       try {
-        // Fetch volunteer feedback from Firestore
-        const feedback = await surveyService.getVolunteerFeedback();
-        setSurveyResponses(feedback);
+        // Fetch volunteer feedback via backend API
+        const feedback = await apiService.get('/api/volunteer-feedback');
+        setSurveyResponses(Array.isArray(feedback) ? feedback : []);
 
-        // Fetch overall survey stats
-        const stats = await surveyService.getSurveyStats();
-        setSurveyStats(stats);
+        // Fetch overall survey stats via backend API
+        const stats = await apiService.get('/api/survey-stats');
+        setSurveyStats(stats || { totalResponses: 0, responsesByForm: {}, averageRating: 0, responsesOverTime: [] });
       } catch (error) {
         console.error('Error fetching survey data:', error);
       } finally {

@@ -5840,6 +5840,186 @@ app.get('/api/survey-responses', verifyToken, async (req: Request, res: Response
     }
 });
 
+// ============ FORMS CRUD (backend-backed) ============
+
+// GET /api/forms — Get all form definitions
+app.get('/api/forms', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { category } = req.query;
+        let query: admin.firestore.Query = db.collection('forms');
+        if (category) query = query.where('category', '==', String(category));
+        const snap = await query.get();
+        const results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        results.sort((a: any, b: any) => {
+            const aTime = a.createdAt?.toDate?.()?.getTime?.() || new Date(a.createdAt || 0).getTime();
+            const bTime = b.createdAt?.toDate?.()?.getTime?.() || new Date(b.createdAt || 0).getTime();
+            return bTime - aTime;
+        });
+        res.json(results);
+    } catch (error: any) {
+        console.error('[FORMS] Get failed:', error.message);
+        res.status(500).json({ error: 'Failed to load forms' });
+    }
+});
+
+// POST /api/forms — Create a new form definition
+app.post('/api/forms', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { title, description, fields, isActive, category } = req.body;
+        const docRef = await db.collection('forms').add({
+            title, description: description || '', fields: fields || [],
+            isActive: isActive !== false, category: category || 'custom',
+            createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        });
+        res.json({ id: docRef.id });
+    } catch (error: any) {
+        console.error('[FORMS] Create failed:', error.message);
+        res.status(500).json({ error: 'Failed to create form' });
+    }
+});
+
+// PUT /api/forms/:formId — Update a form definition
+app.put('/api/forms/:formId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { formId } = req.params;
+        const { title, description, fields, isActive, category } = req.body;
+        await db.collection('forms').doc(formId).update({
+            ...(title !== undefined && { title }),
+            ...(description !== undefined && { description }),
+            ...(fields !== undefined && { fields }),
+            ...(isActive !== undefined && { isActive }),
+            ...(category !== undefined && { category }),
+            updatedAt: new Date().toISOString(),
+        });
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[FORMS] Update failed:', error.message);
+        res.status(500).json({ error: 'Failed to update form' });
+    }
+});
+
+// DELETE /api/forms/:formId — Delete a form definition
+app.delete('/api/forms/:formId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { formId } = req.params;
+        await db.collection('forms').doc(formId).delete();
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[FORMS] Delete failed:', error.message);
+        res.status(500).json({ error: 'Failed to delete form' });
+    }
+});
+
+// GET /api/survey-responses/counts — Get response counts grouped by formId
+app.get('/api/survey-responses/counts', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('surveyResponses').get();
+        const counts: { [formId: string]: number } = {};
+        snap.docs.forEach(doc => {
+            const formId = doc.data().formId;
+            if (formId) counts[formId] = (counts[formId] || 0) + 1;
+        });
+        res.json(counts);
+    } catch (error: any) {
+        console.error('[SURVEY] Counts failed:', error.message);
+        res.status(500).json({ error: 'Failed to load counts' });
+    }
+});
+
+// GET /api/volunteer-feedback — Get volunteer feedback responses
+app.get('/api/volunteer-feedback', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.query;
+        const VOLUNTEER_FORM_IDS = ['volunteer-feedback', 'volunteer-debrief'];
+        let allResults: any[] = [];
+
+        if (eventId) {
+            const snap = await db.collection('surveyResponses')
+                .where('eventId', '==', String(eventId))
+                .get();
+            allResults = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allResults = allResults.filter(data => VOLUNTEER_FORM_IDS.includes(data.formId));
+        } else {
+            for (const fId of VOLUNTEER_FORM_IDS) {
+                try {
+                    const snap = await db.collection('surveyResponses')
+                        .where('formId', '==', fId)
+                        .get();
+                    allResults.push(...snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                } catch {}
+            }
+        }
+
+        allResults.sort((a: any, b: any) => {
+            const aTime = a.submittedAt?.toDate?.()?.getTime?.() || new Date(a.submittedAt || 0).getTime();
+            const bTime = b.submittedAt?.toDate?.()?.getTime?.() || new Date(b.submittedAt || 0).getTime();
+            return bTime - aTime;
+        });
+        allResults = allResults.slice(0, 200);
+
+        const feedback = allResults.map(data => {
+            let rating = data.responses?.rating || data.rating || 0;
+            let fb = data.responses?.feedback || data.feedback || '';
+
+            if (data.formId === 'volunteer-debrief' && data.answers) {
+                const ratingKeys = ['vd1', 'vd4', 'vd5', 'vd6', 'vd9', 'vd11'];
+                const ratings = ratingKeys.map((k: string) => parseInt(data.answers[k], 10)).filter((n: number) => !isNaN(n) && n > 0);
+                if (ratings.length > 0) {
+                    rating = Math.round((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length) * 10) / 10;
+                }
+                const textParts = [data.answers.vd13, data.answers.vd14, data.answers.vd15].filter(Boolean);
+                if (textParts.length > 0) fb = textParts.join(' | ');
+            }
+
+            return {
+                id: data.id,
+                volunteerId: data.respondentId || data.volunteerId,
+                volunteerRole: data.volunteerRole || 'Unknown',
+                eventId: data.eventId,
+                rating,
+                feedback: fb,
+                submittedAt: data.submittedAt?.toDate?.()?.toISOString?.() || data.submittedAt,
+            };
+        });
+        res.json(feedback);
+    } catch (error: any) {
+        console.error('[SURVEY] Volunteer feedback failed:', error.message);
+        res.status(500).json({ error: 'Failed to load feedback' });
+    }
+});
+
+// GET /api/survey-stats — Get survey statistics for analytics
+app.get('/api/survey-stats', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('surveyResponses').get();
+        const responses = snap.docs.map(doc => doc.data());
+
+        const responsesByForm: { [formId: string]: number } = {};
+        const responsesOverTime: { [date: string]: number } = {};
+        let ratingSum = 0;
+        let ratingCount = 0;
+
+        responses.forEach(r => {
+            responsesByForm[r.formId] = (responsesByForm[r.formId] || 0) + 1;
+            const date = r.submittedAt?.toDate?.()?.toISOString?.()?.split('T')[0] ||
+                         (typeof r.submittedAt === 'string' ? r.submittedAt.split('T')[0] : 'unknown');
+            responsesOverTime[date] = (responsesOverTime[date] || 0) + 1;
+            const rating = r.responses?.rating || r.rating;
+            if (typeof rating === 'number') { ratingSum += rating; ratingCount++; }
+        });
+
+        res.json({
+            totalResponses: responses.length,
+            responsesByForm,
+            averageRating: ratingCount > 0 ? ratingSum / ratingCount : 0,
+            responsesOverTime: Object.entries(responsesOverTime).map(([date, count]) => ({ date, count })),
+        });
+    } catch (error: any) {
+        console.error('[SURVEY] Stats failed:', error.message);
+        res.status(500).json({ error: 'Failed to load stats' });
+    }
+});
+
 // GET /api/volunteer/recent-checkins — Get volunteer's check-ins for today (for debrief prompt)
 app.get('/api/volunteer/recent-checkins', verifyToken, async (req: Request, res: Response) => {
     try {

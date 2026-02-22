@@ -71,13 +71,13 @@ const FormBuilder: React.FC = () => {
     useEffect(() => {
         const loadForms = async () => {
             try {
-                const firestoreForms = await surveyService.getForms();
-                if (firestoreForms.length > 0) {
+                const firestoreForms = await apiService.get('/api/forms');
+                if (Array.isArray(firestoreForms) && firestoreForms.length > 0) {
                     setForms(firestoreForms);
                 }
                 // Load response counts
-                const counts = await surveyService.getSurveyResponseCounts();
-                setResponseCounts(counts);
+                const counts = await apiService.get('/api/survey-responses/counts');
+                setResponseCounts(counts || {});
             } catch (error) {
                 console.error('Error loading forms:', error);
                 // Fall back to defaults
@@ -95,8 +95,8 @@ const FormBuilder: React.FC = () => {
             const existingFormIndex = forms.findIndex(f => f.id === updatedForm.id);
 
             if (existingFormIndex >= 0 && updatedForm.id && !updatedForm.id.startsWith('form-')) {
-                // Update existing form in Firestore
-                await surveyService.updateForm(updatedForm.id, {
+                // Update existing form via backend
+                await apiService.put(`/api/forms/${updatedForm.id}`, {
                     title: updatedForm.title,
                     description: updatedForm.description,
                     fields: updatedForm.fields,
@@ -105,15 +105,15 @@ const FormBuilder: React.FC = () => {
                 });
                 setForms(forms.map(f => f.id === updatedForm.id ? updatedForm : f));
             } else {
-                // Create new form in Firestore
-                const newFormId = await surveyService.createForm({
+                // Create new form via backend
+                const result = await apiService.post('/api/forms', {
                     title: updatedForm.title,
                     description: updatedForm.description || '',
                     fields: updatedForm.fields,
                     isActive: true,
                     category: updatedForm.category || 'custom'
                 });
-                const newForm = { ...updatedForm, id: newFormId };
+                const newForm = { ...updatedForm, id: result.id };
                 setForms([...forms, newForm]);
             }
             setActiveForm(null);
@@ -129,7 +129,7 @@ const FormBuilder: React.FC = () => {
         if (!confirm('Are you sure you want to delete this form? This cannot be undone.')) return;
 
         try {
-            await surveyService.deleteForm(formId);
+            await apiService.delete(`/api/forms/${formId}`);
             setForms(forms.filter(f => f.id !== formId));
         } catch (error) {
             console.error('Error deleting form:', error);
