@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Save, Trash2, PlusCircle, X, Loader2, CheckCircle, Eye, ChevronRight, TextCursorInput, List, CheckSquare as CheckSquareIcon, Star, BarChart3, Download } from 'lucide-react';
 import { FormField } from '../types';
 import surveyService, { FormDefinition, SurveyResponse } from '../services/surveyService';
+import { apiService } from '../services/apiService';
 import { toastService } from '../services/toastService';
 
 export const DEFAULT_FORMS: FormDefinition[] = [
@@ -138,8 +139,8 @@ const FormBuilder: React.FC = () => {
 
     const handleViewResponses = async (formId: string) => {
         try {
-            const responses = await surveyService.getSurveyResponsesByForm(formId);
-            setViewingResponses({ formId, responses });
+            const responses = await apiService.get(`/api/survey-responses?formId=${formId}`);
+            setViewingResponses({ formId, responses: Array.isArray(responses) ? responses : [] });
         } catch (error) {
             console.error('Error loading responses:', error);
             toastService.error('Failed to load responses.');
