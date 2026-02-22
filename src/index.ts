@@ -11414,10 +11414,21 @@ app.post('/api/team/invite', verifyToken, async (req: Request, res: Response) =>
 // --- INCIDENT PERSISTENCE ---
 app.post('/api/incidents/create', verifyToken, async (req: Request, res: Response) => {
     try {
-        const { type, description, severity, location, eventId, reportedBy } = req.body;
-        const createdAt = new Date().toISOString();
-        const incident = { type, description, severity, location, eventId, reportedBy, createdAt };
+        const user = (req as any).user;
+        const { type, description, severity, location, eventId, shiftId, volunteerId,
+                actionsTaken, whoNotified, status, timestamp, reportedBy } = req.body;
+        const incident = {
+            type, description, severity: severity || 'medium', location: location || '',
+            eventId: eventId || '', shiftId: shiftId || '',
+            volunteerId: volunteerId || user.uid,
+            reportedBy: reportedBy || user.profile?.name || 'Unknown',
+            actionsTaken: actionsTaken || '', whoNotified: whoNotified || '',
+            status: status || 'reported',
+            timestamp: timestamp || new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+        };
         const ref = await db.collection('incidents').add(incident);
+        console.log(`[INCIDENT] Created ${ref.id} for shift ${shiftId} by ${incident.reportedBy}`);
         res.json({ id: ref.id, ...incident });
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
