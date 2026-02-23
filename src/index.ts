@@ -3601,7 +3601,7 @@ app.get('/api/clients/:id', verifyToken, async (req: Request, res: Response) => 
 // Update client
 app.put('/api/clients/:id', verifyToken, async (req: Request, res: Response) => {
     try {
-        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod', 'gender', 'pronouns', 'race', 'ethnicity', 'veteranStatus', 'lgbtqiaIdentity', 'needs', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceMemberId', 'insuranceGroupNumber', 'insuranceStatus', 'consentToShare', 'consentDate', 'consentSignature']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
+        const updates = { ...pickFields(req.body.client, ['name', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'address', 'city', 'state', 'zip', 'insuranceProvider', 'insuranceId', 'language', 'notes', 'demographics', 'status', 'dob', 'housingStatus', 'primaryLanguage', 'identifyingInfo', 'preferredName', 'homelessnessStatus', 'zipCode', 'contactMethod', 'gender', 'pronouns', 'race', 'ethnicity', 'veteranStatus', 'lgbtqiaIdentity', 'needs', 'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone', 'insuranceMemberId', 'insuranceGroupNumber', 'insuranceStatus', 'consentToShare', 'consentDate', 'consentSignature', 'eventId', 'shiftId']), updatedAt: new Date().toISOString(), updatedBy: (req as any).user.uid };
         await db.collection('clients').doc(req.params.id).update(updates);
         res.json({ id: req.params.id, ...updates });
     } catch (error) {
@@ -5555,7 +5555,7 @@ app.post('/api/ops/tracker/:eventId/client-log', verifyToken, async (req: Reques
         const { genderIdentity, raceEthnicity, ageRange, zipCode,
             resourcesOnly, healthScreeningOnly, fullConsult, referralGiven,
             hivSelfTestToGo, hivSelfTestWithTeam, harmReductionSupplies,
-            resourcesDistributed, notes, shiftId } = req.body;
+            resourcesDistributed, notes, shiftId, mentalHealthWellness } = req.body;
         const volunteerDoc = await db.collection('volunteers').doc(user.uid).get();
         const volunteerName = volunteerDoc.data()?.name || 'Unknown';
         const entry = {
@@ -5566,6 +5566,7 @@ app.post('/api/ops/tracker/:eventId/client-log', verifyToken, async (req: Reques
             referralGiven: !!referralGiven, hivSelfTestToGo: !!hivSelfTestToGo,
             hivSelfTestWithTeam: !!hivSelfTestWithTeam, harmReductionSupplies: !!harmReductionSupplies,
             resourcesDistributed: resourcesDistributed || [],
+            mentalHealthWellness: !!mentalHealthWellness,
             notes: notes || null,
             loggedBy: user.uid, loggedByName: volunteerName,
             timestamp: new Date().toISOString(),
@@ -11405,30 +11406,12 @@ app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
 app.get('/api/ops/screenings/:eventId', verifyToken, async (req: Request, res: Response) => {
     try {
         const { eventId } = req.params;
-        // Query 1: screenings matching this eventId (return ALL — no dedup)
+        // Query screenings matching this eventId (return ALL — no dedup)
         const eventSnap = await db.collection('screenings')
             .where('eventId', '==', eventId)
             .get();
-        const seenIds = new Set<string>();
-        const screenings: any[] = [];
-        for (const doc of eventSnap.docs) {
-            seenIds.add(doc.id);
-            screenings.push({ id: doc.id, ...doc.data() });
-        }
-        // Query 2: today's screenings that may be missing an eventId (orphaned)
-        const todayPacific = getPacificDate(0); // YYYY-MM-DD in Pacific
-        const todayISO = new Date(`${todayPacific}T00:00:00-08:00`).toISOString();
-        const todaySnap = await db.collection('screenings')
-            .where('createdAt', '>=', todayISO)
-            .get();
-        for (const doc of todaySnap.docs) {
-            if (seenIds.has(doc.id)) continue;
-            const data = doc.data();
-            if (!data.eventId) {
-                screenings.push({ id: doc.id, ...data });
-            }
-        }
-        // Sort newest first — no dedup so every screening is visible
+        const screenings: any[] = eventSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort newest first
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         res.json(screenings);
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
