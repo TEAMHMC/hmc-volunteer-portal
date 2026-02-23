@@ -5551,12 +5551,27 @@ app.post('/api/ops/tracker/:eventId/distribution', verifyToken, async (req: Requ
         const { eventId } = req.params;
         const { item, quantity, notes, shiftId } = req.body;
         if (!item || !quantity) return res.status(400).json({ error: 'item and quantity required' });
+        // Normalize free-text item names to canonical names
+        const ITEM_ALIASES: Record<string, string> = {
+            'narcan': 'Naloxone/Narcan', 'naloxone': 'Naloxone/Narcan', 'naloxone kit': 'Naloxone/Narcan',
+            'fentanyl': 'Fentanyl Test Kit', 'fentanyl kit': 'Fentanyl Test Kit', 'fentanyl kits': 'Fentanyl Test Kit',
+            'fentanyl test strip': 'Fentanyl Test Kit', 'fentanyl test strips': 'Fentanyl Test Kit',
+            'fentanyl testing kit': 'Fentanyl Test Kit', 'fetanyl test kit': 'Fentanyl Test Kit',
+            'condom': 'Condom', 'condoms': 'Condom', 'condo': 'Condom',
+            'hiv self-test kit': 'HIV Self-Test Kit', 'hiv testing': 'HIV Self-Test Kit', 'hiv test': 'HIV Self-Test Kit',
+            'hiv tests': 'HIV Self-Test Kit', 'hiv selft test': 'HIV Self-Test Kit', 'hiv testing kit': 'HIV Self-Test Kit',
+            'hiv self test': 'HIV Self-Test Kit', 'hiv test kit': 'HIV Self-Test Kit', 'hiv': 'HIV Self-Test Kit',
+            'tylenol': 'Tylenol', 'advil': 'Advil/Motrin', 'motrin': 'Advil/Motrin', 'aleve': 'Aleve',
+            'benadryl': 'Benadryl', 'pepto': 'Pepto/Tums', 'tums': 'Pepto/Tums',
+            'meal': 'Free Meal', 'hygiene kit': 'Hygiene Kit',
+        };
+        const normalizedItem = ITEM_ALIASES[item.trim().toLowerCase()] || item.trim();
         const volunteerDoc = await db.collection('volunteers').doc(user.uid).get();
         const volunteerName = volunteerDoc.data()?.name || 'Unknown';
         const entry = {
             eventId,
             shiftId: shiftId || '',
-            item,
+            item: normalizedItem,
             quantity: Number(quantity),
             notes: notes || null,
             loggedBy: user.uid,

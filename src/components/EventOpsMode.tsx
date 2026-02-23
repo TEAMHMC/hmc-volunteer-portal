@@ -1996,16 +1996,50 @@ const LogisticsView: React.FC<{
 // Distribution Tracker — Event Supply Logging
 // ========================================
 
-// Bulk distribution items (quick-tap, no demographics needed — meals, guides, bags)
-const DISTRIBUTION_ITEMS = [
-  'Free Meal', 'Fresh Produce', 'Basic Needs Bag', 'HMC Resource Guide',
-  'Hygiene Kit', 'Water/Beverage', 'Clothing Item', 'Blanket',
+// All distribution items organized by category
+const DISTRIBUTION_CATEGORIES: { label: string; items: string[] }[] = [
+  { label: 'Food & Essentials', items: ['Free Meal', 'Fresh Produce', 'Water/Beverage', 'Basic Needs Bag'] },
+  { label: 'Hygiene & Clothing', items: ['Hygiene Kit', 'Clothing Item', 'Blanket', 'Wound Care Kit'] },
+  { label: 'Harm Reduction', items: ['Naloxone/Narcan', 'Fentanyl Test Kit', 'Safe Smoking Kit', 'Sharps Container'] },
+  { label: 'Sexual Health', items: ['Condom', 'Safe Sex Supplies', 'Dental Dam', 'HIV Self-Test Kit'] },
+  { label: 'OTC Medications', items: ['Tylenol', 'Advil/Motrin', 'Aleve', 'Benadryl', 'Pepto/Tums', 'Cough Drops'] },
+  { label: 'Information', items: ['HMC Resource Guide', 'Referral Card'] },
 ];
+
+// Flat list for quick-tap buttons and dropdown
+const DISTRIBUTION_ITEMS = DISTRIBUTION_CATEGORIES.flatMap(c => c.items);
 
 // Per-client resources (logged with demographics in Client Service Log — clinical/harm reduction)
 const CLIENT_RESOURCE_ITEMS = [
-  'Naloxone/Narcan', 'HIV Self-Test Kit',
+  'Naloxone/Narcan', 'HIV Self-Test Kit', 'Fentanyl Test Kit', 'Safe Sex Supplies',
 ];
+
+// Normalize free-text item names to canonical names (for display/aggregation)
+const ITEM_ALIASES: Record<string, string> = {
+  'narcan': 'Naloxone/Narcan', 'narcan ': 'Naloxone/Narcan', 'naloxone': 'Naloxone/Narcan',
+  'naloxone kit': 'Naloxone/Narcan', 'naloxone/narcan': 'Naloxone/Narcan',
+  'fentanyl': 'Fentanyl Test Kit', 'fentanyl kit': 'Fentanyl Test Kit', 'fentanyl kits': 'Fentanyl Test Kit',
+  'fentanyl test strip': 'Fentanyl Test Kit', 'fentanyl test strips': 'Fentanyl Test Kit',
+  'fentanyl testing kit': 'Fentanyl Test Kit', 'fetanyl test kit': 'Fentanyl Test Kit',
+  'fentanyl test kit': 'Fentanyl Test Kit',
+  'condom': 'Condom', 'condom ': 'Condom', 'condoms': 'Condom', 'condo': 'Condom',
+  'hiv self-test kit': 'HIV Self-Test Kit', 'hiv testing': 'HIV Self-Test Kit', 'hiv testing ': 'HIV Self-Test Kit',
+  'hiv test': 'HIV Self-Test Kit', 'hiv tests': 'HIV Self-Test Kit', 'hiv selft test': 'HIV Self-Test Kit',
+  'hiv selft test ': 'HIV Self-Test Kit', 'hiv testing kit': 'HIV Self-Test Kit',
+  'hiv testing kit ': 'HIV Self-Test Kit', 'hiv self test': 'HIV Self-Test Kit',
+  'hiv test kit': 'HIV Self-Test Kit', 'hiv': 'HIV Self-Test Kit',
+  'hygiene kit': 'Hygiene Kit', 'hygiene kit ': 'Hygiene Kit',
+  'free meal': 'Free Meal', 'meal': 'Free Meal',
+  'safe sex supplies': 'Safe Sex Supplies', 'dental dam': 'Dental Dam',
+  'tylenol': 'Tylenol', 'advil': 'Advil/Motrin', 'motrin': 'Advil/Motrin', 'aleve': 'Aleve',
+  'benadryl': 'Benadryl', 'pepto': 'Pepto/Tums', 'tums': 'Pepto/Tums',
+  'wound care kit': 'Wound Care Kit',
+};
+
+function normalizeItemName(raw: string): string {
+  const key = raw.trim().toLowerCase();
+  return ITEM_ALIASES[key] || raw.trim();
+}
 
 const GENDER_OPTIONS = ['Cisgender male', 'Cisgender female', 'Transgender woman', 'Transgender man', 'Non-binary', 'Another gender identity', 'Declined'];
 const RACE_ETHNICITY_OPTIONS = ['Latino/Latina/Latinx/Latine', 'Black/African American', 'White/Caucasian', 'Asian', 'More than one race', 'Another race', 'Declined'];
@@ -2060,11 +2094,12 @@ const DistributionTrackerView: React.FC<{
         fetchTracker();
     }, [opportunity.id]);
 
-    // Compute distribution totals by item
+    // Compute distribution totals by item (normalize free-text variants)
     const totals = useMemo(() => {
         const map: Record<string, number> = {};
         distributions.forEach(d => {
-            map[d.item] = (map[d.item] || 0) + d.quantity;
+            const normalized = normalizeItemName(d.item);
+            map[normalized] = (map[normalized] || 0) + d.quantity;
         });
         return Object.entries(map).sort((a, b) => b[1] - a[1]);
     }, [distributions]);
@@ -2364,30 +2399,35 @@ const DistributionTrackerView: React.FC<{
                     </button>
                 </div>
 
-                {/* Quick-Tap Supply Buttons */}
-                <div className="space-y-4">
+                {/* Quick-Tap Supply Buttons by Category */}
+                <div className="space-y-6">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Quick Log (tap to log 1 unit)</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {DISTRIBUTION_ITEMS.map(item => {
-                            const count = distributions.filter(d => d.item === item).reduce((sum, d) => sum + d.quantity, 0);
-                            return (
-                                <button
-                                    key={item}
-                                    onClick={() => handleQuickLog(item)}
-                                    disabled={saving}
-                                    className="p-4 bg-white rounded-2xl border border-zinc-100 hover:border-brand/30 hover:shadow-sm transition-all text-left group disabled:opacity-50"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-zinc-700 leading-tight">{item}</span>
-                                        {count > 0 && (
-                                            <span className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-black">{count}</span>
-                                        )}
-                                    </div>
-                                    <p className="text-[9px] text-zinc-300 font-bold mt-1 group-hover:text-brand transition-colors">Tap to log +1</p>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    {DISTRIBUTION_CATEGORIES.map(cat => (
+                        <div key={cat.label} className="space-y-2">
+                            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-[0.15em] px-2">{cat.label}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {cat.items.map(item => {
+                                    const count = distributions.filter(d => normalizeItemName(d.item) === item).reduce((sum, d) => sum + d.quantity, 0);
+                                    return (
+                                        <button
+                                            key={item}
+                                            onClick={() => handleQuickLog(item)}
+                                            disabled={saving}
+                                            className="p-4 bg-white rounded-2xl border border-zinc-100 hover:border-brand/30 hover:shadow-sm transition-all text-left group disabled:opacity-50"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-zinc-700 leading-tight">{item}</span>
+                                                {count > 0 && (
+                                                    <span className="px-2 py-0.5 bg-brand/10 text-brand rounded-full text-[10px] font-black">{count}</span>
+                                                )}
+                                            </div>
+                                            <p className="text-[9px] text-zinc-300 font-bold mt-1 group-hover:text-brand transition-colors">Tap to log +1</p>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Totals Summary */}
@@ -2425,7 +2465,7 @@ const DistributionTrackerView: React.FC<{
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-xs font-black">{d.quantity}</div>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-bold text-zinc-800 truncate">{d.item}</p>
+                                            <p className="text-sm font-bold text-zinc-800 truncate">{normalizeItemName(d.item)}</p>
                                             <p className="text-[10px] text-zinc-400 truncate">
                                                 {d.loggedByName} · {new Date(d.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                                                 {d.notes ? ` · ${d.notes}` : ''}
@@ -2550,7 +2590,11 @@ const DistributionTrackerView: React.FC<{
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Item *</label>
                                 <select value={formItem} onChange={e => setFormItem(e.target.value)} required className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30">
                                     <option value="">Select item...</option>
-                                    {DISTRIBUTION_ITEMS.map(item => <option key={item} value={item}>{item}</option>)}
+                                    {DISTRIBUTION_CATEGORIES.map(cat => (
+                                        <optgroup key={cat.label} label={cat.label}>
+                                            {cat.items.map(item => <option key={item} value={item}>{item}</option>)}
+                                        </optgroup>
+                                    ))}
                                     <option value="_custom">Other (custom)</option>
                                 </select>
                                 {formItem === '_custom' && (
