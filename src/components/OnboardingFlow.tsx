@@ -581,7 +581,21 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
             setCodeError(res?.message || 'Invalid code');
         }
     } catch (err) {
-        setCodeError('Validation failed. Code may be expired.');
+        setCodeError('Validation failed. Code may be expired. Try resending.');
+    }
+  };
+
+  const handleResendCode = async () => {
+    setCodeError('');
+    setVerificationCode('');
+    setVerifying(true);
+    try {
+        await apiService.post('/auth/resend-verification', { email: data.email });
+        toastService.success('New verification code sent!');
+    } catch (err) {
+        toastService.error((err as Error).message || 'Failed to resend code.');
+    } finally {
+        setVerifying(false);
     }
   };
 
@@ -631,6 +645,12 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
                         <button onClick={handleConfirmCode} className="py-4 px-6 bg-zinc-800 text-white font-bold text-xs uppercase rounded-lg">Confirm</button>
                     </div>
                     {codeError && <div className="flex items-center gap-2 text-rose-500 text-xs font-bold mt-1"><AlertCircle size={12}/>{codeError}</div>}
+                    <div className="flex items-center justify-between mt-2">
+                        <p className="text-[11px] text-zinc-400 font-bold">Didn't get the code?</p>
+                        <button type="button" onClick={handleResendCode} disabled={verifying} className="text-[11px] font-bold text-brand hover:underline disabled:opacity-50">
+                            {verifying ? 'Sending...' : 'Resend Code'}
+                        </button>
+                    </div>
                   </div>
                 }
                 {recaptchaSiteKey && !sent && !data.emailVerified && isValidEmail && (

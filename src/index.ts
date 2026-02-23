@@ -1938,6 +1938,57 @@ app.post('/auth/send-verification', verifyCaptcha, async (req: Request, res: Res
   }
 });
 
+// Resend verification code — no captcha required (rate-limited, requires existing record)
+app.post('/auth/resend-verification', async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  try {
+    // Must have an existing verification record (proves initial captcha was passed)
+    const existing = await db.collection('verification_codes').doc(email).get();
+    if (!existing.exists) return res.status(400).json({ error: 'No verification in progress for this email.' });
+
+    // Rate limiting: 5 requests per hour per email
+    const rateLimitDoc = await db.collection('email_rate_limits').doc(email).get();
+    const hourAgo = Date.now() - 60 * 60 * 1000;
+    if (rateLimitDoc.exists) {
+      const data = rateLimitDoc.data()!;
+      if (data.windowStart > hourAgo && data.count >= 5) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
+      }
+      if (data.windowStart <= hourAgo) {
+        await db.collection('email_rate_limits').doc(email).set({ windowStart: Date.now(), count: 1 });
+      } else {
+        await db.collection('email_rate_limits').doc(email).update({ count: admin.firestore.FieldValue.increment(1) });
+      }
+    } else {
+      await db.collection('email_rate_limits').doc(email).set({ windowStart: Date.now(), count: 1 });
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+    await db.collection('verification_codes').doc(email).set({
+      hashedCode, expires: Date.now() + 15 * 60 * 1000, attempts: 0
+    });
+
+    const emailResult = await EmailService.send('email_verification', {
+      toEmail: email,
+      volunteerName: email.split('@')[0],
+      verificationCode: code,
+      expiresIn: 15,
+    });
+
+    if (!emailResult.sent) {
+      return res.status(500).json({ error: `Failed to send email: ${emailResult.reason}` });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[RESEND] Error:', error);
+    res.status(500).json({ error: 'Failed to resend verification code' });
+  }
+});
+
 app.post('/auth/verify-code', async (req: Request, res: Response) => {
   const { email, code } = req.body;
   try {
