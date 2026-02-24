@@ -7975,11 +7975,9 @@ app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request,
 
         // Send SMS to all opted-in volunteers if requested
         if (sendAsSms) {
-            console.log('[BROADCAST] SMS broadcast requested');
-
-            if (!twilioClient || (!TWILIO_MESSAGING_SERVICE_SID && !TWILIO_PHONE_NUMBER)) {
-                console.log('[BROADCAST] Twilio not configured, skipping SMS');
-            } else {
+            // EMERGENCY KILL SWITCH: All SMS disabled
+            console.log('[BROADCAST] SMS BLOCKED — emergency kill switch active');
+            if (false) {
                 // Fetch all volunteers who have opted in to SMS
                 const volunteersSnap = await db.collection('volunteers')
                     .where('notificationPrefs.smsAlerts', '==', true)
