@@ -2086,7 +2086,7 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
         const { resume, ...userDataToSave } = user;
         userDataToSave.id = finalUserId;
 
-        // Upload resume to Cloud Storage if provided
+        // Save resume: try Cloud Storage first, fall back to storing base64 in Firestore
         if (resume?.data && bucket) {
           try {
             const ext = resume.name?.split('.').pop() || 'pdf';
@@ -2095,10 +2095,12 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
             userDataToSave.resume = { name: resume.name, type: resume.type, storagePath, uploadedAt: new Date().toISOString() };
             console.log(`[SIGNUP] Resume uploaded to ${storagePath}`);
           } catch (uploadErr) {
-            console.error('[SIGNUP] Resume upload failed:', uploadErr);
-            // Still store metadata without storagePath
-            userDataToSave.resume = { name: resume.name, type: resume.type };
+            console.error('[SIGNUP] Cloud Storage upload failed, saving base64 to Firestore:', uploadErr);
+            userDataToSave.resume = { name: resume.name, type: resume.type, data: resume.data, uploadedAt: new Date().toISOString() };
           }
+        } else if (resume?.data) {
+          // No Cloud Storage bucket — save base64 directly to Firestore
+          userDataToSave.resume = { name: resume.name, type: resume.type, data: resume.data, uploadedAt: new Date().toISOString() };
         } else if (resume) {
           userDataToSave.resume = { name: resume.name, type: resume.type };
         }
@@ -10799,11 +10801,29 @@ app.get('/api/admin/volunteer/:id/resume', verifyToken, requireAdmin, async (req
     const volDoc = await db.collection('volunteers').doc(req.params.id).get();
     if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
     const vol = volDoc.data()!;
-    if (!vol.resume?.storagePath) return res.status(404).json({ error: 'No resume on file' });
-    const { buffer, metadata } = await downloadFileBuffer(vol.resume.storagePath);
-    res.set('Content-Type', vol.resume.type || metadata.contentType || 'application/pdf');
-    res.set('Content-Disposition', `attachment; filename="${vol.resume.name || 'resume.pdf'}"`);
-    res.send(buffer);
+    if (!vol.resume) return res.status(404).json({ error: 'No resume on file' });
+
+    // Try Cloud Storage first, then fall back to base64 in Firestore
+    if (vol.resume.storagePath && bucket) {
+      try {
+        const { buffer, metadata } = await downloadFileBuffer(vol.resume.storagePath);
+        res.set('Content-Type', vol.resume.type || metadata.contentType || 'application/pdf');
+        res.set('Content-Disposition', `attachment; filename="${vol.resume.name || 'resume.pdf'}"`);
+        return res.send(buffer);
+      } catch (storageErr) {
+        console.warn(`[RESUME] Cloud Storage download failed for ${req.params.id}, trying Firestore base64`);
+      }
+    }
+
+    // Fall back to base64 data stored in Firestore
+    if (vol.resume.data) {
+      const buffer = Buffer.from(vol.resume.data, 'base64');
+      res.set('Content-Type', vol.resume.type || 'application/pdf');
+      res.set('Content-Disposition', `attachment; filename="${vol.resume.name || 'resume.pdf'}"`);
+      return res.send(buffer);
+    }
+
+    return res.status(404).json({ error: 'Resume file data not available' });
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 

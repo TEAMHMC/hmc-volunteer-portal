@@ -41,8 +41,13 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   }
 
   // Listen for session-expired events from apiService (replaces the old window.location.reload approach)
+  // Don't kick users out during onboarding — they may not have a session yet
   useEffect(() => {
     const handleSessionExpired = () => {
+      if (view === 'onboarding' || view === 'landing') {
+        console.warn('[App] Session expired during onboarding/landing — ignoring (no session expected).');
+        return;
+      }
       console.warn('[App] Session expired event received — redirecting to landing.');
       apiService.stopSessionHeartbeat();
       setCurrentUser(null);
@@ -51,7 +56,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     };
     window.addEventListener('session-expired', handleSessionExpired);
     return () => window.removeEventListener('session-expired', handleSessionExpired);
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     const checkAuth = async () => {
