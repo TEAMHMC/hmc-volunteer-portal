@@ -2627,10 +2627,12 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             console.warn('[AUTH/ME] Gamification profile fetch failed:', gpErr);
         }
 
-        // Auto-fix stale isNewUser flag for users who actually completed onboarding
-        // (must have real application data like legalFirstName, not just applicationStatus
-        //  which was previously set prematurely in the Google login skeleton doc)
-        if (userProfile.isNewUser && userProfile.legalFirstName && userProfile.onboardingProgress === 100) {
+        // Auto-fix stale isNewUser flag for users who completed onboarding OR were manually approved
+        if (userProfile.isNewUser && (
+            (userProfile.legalFirstName && userProfile.onboardingProgress === 100) ||
+            userProfile.status === 'active' ||
+            userProfile.applicationStatus === 'approved'
+        )) {
             userProfile.isNewUser = false;
             db.collection('volunteers').doc(userId).update({ isNewUser: false }).catch(() => {});
         }
@@ -6983,7 +6985,11 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
         if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and event management roles can create events' });
         }
-        const { opportunity } = req.body;
+        // Accept both { opportunity: {...} } and bare {...} payloads
+        const opportunity = req.body.opportunity || req.body;
+        if (!opportunity || !opportunity.title) {
+            return res.status(400).json({ error: 'Event data with a title is required' });
+        }
         // Auto-approve events created by admins and event management roles
         if (userProfile?.isAdmin || EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
             opportunity.approvalStatus = 'approved';

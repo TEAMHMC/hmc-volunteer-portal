@@ -99,7 +99,7 @@ const EventManagementView: React.FC<{
   const [subTab, setSubTab] = useState<'builder' | 'manage'>('builder');
 
   const handleSaveEvent = async (eventData: Omit<Opportunity, 'id'>) => {
-    const res = await apiService.post('/api/opportunities', eventData);
+    const res = await apiService.post('/api/opportunities', { opportunity: eventData });
     setOpportunities(prev => [...prev, { ...eventData, id: res.id || `opp-${Date.now()}` } as Opportunity]);
   };
 
