@@ -3447,6 +3447,9 @@ app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request
         if (!referral || !referral.clientId) return res.status(400).json({ error: 'clientId required' });
         referral.createdAt = new Date().toISOString();
         referral.status = referral.status || 'pending';
+        // Support linking referrals back to screenings
+        if (referral.screeningId) referral.screeningId = referral.screeningId;
+        if (referral.medicalFlagType) referral.medicalFlagType = referral.medicalFlagType;
         const ref = await db.collection('referrals').add(referral);
         res.json({ id: ref.id, ...referral });
     } catch (error: any) {
@@ -3459,7 +3462,7 @@ app.put('/api/referrals/:id', verifyToken, requireAdmin, async (req: Request, re
         if (!req.body.referral) return res.status(400).json({ error: 'Referral data required' });
         const doc = await db.collection('referrals').doc(req.params.id).get();
         if (!doc.exists) return res.status(404).json({ error: 'Referral not found' });
-        const referralUpdates = pickFields(req.body.referral, ['clientId', 'resourceId', 'status', 'notes', 'matchedDate', 'completedDate', 'rating', 'priority', 'assignedTo', 'outcome']);
+        const referralUpdates = pickFields(req.body.referral, ['clientId', 'resourceId', 'status', 'notes', 'matchedDate', 'completedDate', 'rating', 'priority', 'assignedTo', 'outcome', 'screeningId', 'medicalFlagType', 'serviceNeeded', 'urgency']);
         await db.collection('referrals').doc(req.params.id).update(referralUpdates);
         res.json({ id: req.params.id, ...referralUpdates });
     } catch (error: any) {
@@ -8958,6 +8961,11 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
 
       for (const volId of targetVolunteerIds) {
         try {
+          // Per-volunteer dedup: skip if already reminded for this event today
+          const w1DedupKey = `${volId}_${oppDoc.id}_w1_${todayStr}`;
+          const w1DedupDoc = await db.collection('reminder_log').doc(w1DedupKey).get();
+          if (w1DedupDoc.exists) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
+
           const volDoc = await db.collection('volunteers').doc(volId).get();
           const vol = volDoc.data();
           if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
@@ -8994,6 +9002,9 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
             });
             result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
           } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
+
+          // Log dedup after successful processing
+          await db.collection('reminder_log').doc(w1DedupKey).set({ volunteerId: volId, eventId: oppDoc.id, workflow: 'w1', sentAt: new Date().toISOString() });
         } catch (e) {
           console.error(`[WORKFLOW] Shift reminder failed for volunteer ${volId}:`, e);
           result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
@@ -9021,12 +9032,6 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
 
-      // Dedup — don't send twice for the same event
-      const dedupRef = db.collection('workflow_dedup').doc(`w2_${oppDoc.id}_${yesterdayStr}`);
-      const dedupDoc = await dedupRef.get();
-      if (dedupDoc.exists) { console.log(`[WORKFLOW w2] Already sent for ${opp.title} (${yesterdayStr}), skipping`); continue; }
-      await dedupRef.set({ sentAt: new Date().toISOString() });
-
       // Collect volunteer IDs from shift assignments AND rsvpedEventIds
       const targetVolunteerIds = new Set<string>();
 
@@ -9042,6 +9047,11 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
 
       for (const volId of targetVolunteerIds) {
         try {
+          // Per-volunteer dedup — don't send twice for the same event + volunteer
+          const w2DedupRef = db.collection('workflow_dedup').doc(`w2_${oppDoc.id}_${volId}_${yesterdayStr}`);
+          const w2DedupDoc = await w2DedupRef.get();
+          if (w2DedupDoc.exists) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
+
           const volDoc = await db.collection('volunteers').doc(volId).get();
           const vol = volDoc.data();
           if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); continue; }
@@ -9072,6 +9082,9 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
             });
             result.sent++; volDetails.push({ volunteerId: volId, email: vol.email, status: 'sent', timestamp: new Date().toISOString() });
           } else { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: new Date().toISOString() }); }
+
+          // Log dedup after successful processing
+          await w2DedupRef.set({ sentAt: new Date().toISOString() });
         } catch (e) {
           console.error(`[WORKFLOW] Thank you failed for volunteer ${volId}:`, e);
           result.failed++; volDetails.push({ volunteerId: volId, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
@@ -9125,12 +9138,6 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
       const diffMs = pacificNow.getTime() - debriefTime.getTime();
       if (diffMs < 0 || diffMs > 10 * 60 * 1000) continue; // Not in window
 
-      // Check dedup — don't send twice for the same event
-      const dedupRef = db.collection('workflow_dedup').doc(`w8_${oppDoc.id}_${todayStr}`);
-      const dedupDoc = await dedupRef.get();
-      if (dedupDoc.exists) continue;
-      await dedupRef.set({ sentAt: now.toISOString() });
-
       console.log(`[WORKFLOW w8] Event "${opp.title}" ended at ${endHour}:${String(endMinute).padStart(2, '0')}, sending debrief texts`);
 
       // Get checked-in volunteers for this event
@@ -9173,6 +9180,11 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
 
       for (const volId of assignedIds) {
         try {
+          // Per-volunteer dedup — don't send twice for same event + volunteer
+          const w8DedupRef = db.collection('workflow_dedup').doc(`w8_${oppDoc.id}_${volId}_${todayStr}`);
+          const w8DedupDoc = await w8DedupRef.get();
+          if (w8DedupDoc.exists) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: now.toISOString() }); continue; }
+
           const volDoc = await db.collection('volunteers').doc(volId).get();
           const vol = volDoc.data();
           if (!vol) { result.skipped++; volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: now.toISOString() }); continue; }
@@ -9217,6 +9229,9 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
             result.skipped++;
             volDetails.push({ volunteerId: volId, status: 'skipped', timestamp: now.toISOString() });
           }
+
+          // Log dedup after successful processing
+          await w8DedupRef.set({ sentAt: now.toISOString() });
         } catch (e) {
           console.error(`[WORKFLOW w8] Debrief failed for volunteer ${volId}:`, e);
           result.failed++;
@@ -9261,6 +9276,11 @@ async function executeNewOpportunityAlert(opportunity: { id: string; title: stri
         continue;
       }
 
+      // Per-volunteer per-opportunity dedup — prevent re-trigger spam
+      const w3DedupRef = db.collection('reminder_log').doc(`${volDoc.id}_${opportunity.id}_w3`);
+      const w3DedupDoc = await w3DedupRef.get();
+      if (w3DedupDoc.exists) { result.skipped++; continue; }
+
       const phone = normalizePhone(vol.phone);
       const msg = `HMC: New opportunity — ${opportunity.title} on ${opportunity.date}. Log in to sign up!`;
 
@@ -9282,7 +9302,11 @@ async function executeNewOpportunityAlert(opportunity: { id: string; title: stri
           const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
           if (smsResult.sent) sent = true;
         }
-        if (sent) { result.sent++; } else { result.skipped++; }
+        if (sent) {
+          result.sent++;
+          // Log dedup after successful send
+          await w3DedupRef.set({ volunteerId: volDoc.id, opportunityId: opportunity.id, workflow: 'w3', sentAt: new Date().toISOString() });
+        } else { result.skipped++; }
       } catch (e) {
         result.failed++;
       }
@@ -9372,10 +9396,9 @@ async function executeBirthdayRecognition(): Promise<{ sent: number; failed: num
 async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed: number; skipped: number }> {
   console.log('[WORKFLOW] Running Compliance Expiry Warning (w5)');
   const result = { sent: 0, failed: 0, skipped: 0 };
+  const todayStr = getPacificDate(0);
   try {
     const today = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
 
     const volsSnap = await db.collection('volunteers').get();
 
@@ -9384,14 +9407,20 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
       const compliance = vol.compliance;
       if (!compliance || typeof compliance !== 'object') { result.skipped++; continue; }
 
-      // Iterate through compliance items (e.g., backgroundCheck, tbTest, etc.)
+      // Daily per-volunteer dedup — send at most 1 compliance warning per volunteer per day
+      const w5DedupRef = db.collection('workflow_dedup').doc(`w5_${volDoc.id}_${todayStr}`);
+      const w5DedupDoc = await w5DedupRef.get();
+      if (w5DedupDoc.exists) { result.skipped++; continue; }
+
+      // Collect all expiring items for this volunteer into one message
+      const expiringItems: { name: string; daysLeft: number }[] = [];
+
       const items = Array.isArray(compliance) ? compliance : Object.entries(compliance).map(([key, val]: [string, any]) => ({ name: key, ...val }));
 
       for (const item of items) {
         const dateCompleted = item.dateCompleted || item.completedDate;
         if (!dateCompleted) continue;
 
-        // Calculate 1-year anniversary
         let completedDate: Date;
         if (typeof dateCompleted === 'string') {
           completedDate = new Date(dateCompleted);
@@ -9402,39 +9431,52 @@ async function executeComplianceExpiryWarning(): Promise<{ sent: number; failed:
         const expiryDate = new Date(completedDate);
         expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-        // Check if expiry is within 30 days from now
         const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         if (daysUntilExpiry <= 0 || daysUntilExpiry > 30) continue;
 
         const itemName = item.name || item.type || 'compliance item';
-        const phone = normalizePhone(vol.phone);
-        const msg = `HMC: Your ${itemName} is expiring in ${daysUntilExpiry} days. Please contact your coordinator to renew.`;
+        expiringItems.push({ name: itemName, daysLeft: daysUntilExpiry });
+      }
 
-        try {
-          if (phone) {
-            const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
-            if (smsResult.sent) { result.sent++; }
-            else if (vol.email) {
-              await EmailService.send('compliance_expiry_warning', {
-                toEmail: vol.email,
-                volunteerName: vol.name || vol.firstName || 'Volunteer',
-                eventName: `${itemName} Expiry Warning`,
-                userId: volDoc.id,
-              });
-              result.sent++;
-            } else { result.failed++; }
-          } else if (vol.email) {
-            await EmailService.send('compliance_expiry_warning', {
+      if (expiringItems.length === 0) continue;
+
+      // Build combined message for all expiring items
+      const itemList = expiringItems.map(i => `${i.name} (${i.daysLeft} days)`).join(', ');
+      const phone = normalizePhone(vol.phone);
+      const msg = expiringItems.length === 1
+        ? `HMC: Your ${expiringItems[0].name} is expiring in ${expiringItems[0].daysLeft} days. Please contact your coordinator to renew.`
+        : `HMC: ${expiringItems.length} compliance items expiring soon: ${itemList}. Please contact your coordinator to renew.`;
+
+      try {
+        let sent = false;
+        if (phone) {
+          const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
+          if (smsResult.sent) { sent = true; }
+          else if (vol.email) {
+            const emailResult = await EmailService.send('compliance_expiry_warning', {
               toEmail: vol.email,
               volunteerName: vol.name || vol.firstName || 'Volunteer',
-              eventName: `${itemName} Expiry Warning`,
+              eventName: `Compliance Expiry Warning (${expiringItems.length} item${expiringItems.length > 1 ? 's' : ''})`,
               userId: volDoc.id,
             });
-            result.sent++;
-          } else { result.skipped++; }
-        } catch (e) {
-          result.failed++;
+            if (emailResult?.sent !== false) sent = true;
+          }
+        } else if (vol.email) {
+          const emailResult = await EmailService.send('compliance_expiry_warning', {
+            toEmail: vol.email,
+            volunteerName: vol.name || vol.firstName || 'Volunteer',
+            eventName: `Compliance Expiry Warning (${expiringItems.length} item${expiringItems.length > 1 ? 's' : ''})`,
+            userId: volDoc.id,
+          });
+          if (emailResult?.sent !== false) sent = true;
         }
+
+        if (sent) {
+          result.sent++;
+          await w5DedupRef.set({ sentAt: new Date().toISOString(), items: expiringItems.length });
+        } else { result.skipped++; }
+      } catch (e) {
+        result.failed++;
       }
     }
   } catch (e) {
@@ -9918,8 +9960,28 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
   return result;
 }
 
+// Cron execution lock — prevents duplicate execution from multiple Cloud Run instances
+async function acquireCronLock(lockId: string, ttlMinutes = 5): Promise<boolean> {
+  const lockRef = db.collection('cron_locks').doc(lockId);
+  const lockDoc = await lockRef.get();
+  if (lockDoc.exists) {
+    const lockedAt = lockDoc.data()?.lockedAt;
+    if (lockedAt) {
+      const lockAge = Date.now() - new Date(lockedAt).getTime();
+      if (lockAge < ttlMinutes * 60 * 1000) {
+        console.log(`[CRON] Lock ${lockId} held (age ${Math.round(lockAge / 1000)}s), skipping`);
+        return false;
+      }
+    }
+  }
+  await lockRef.set({ lockedAt: new Date().toISOString(), instance: process.env.K_REVISION || 'local' });
+  return true;
+}
+
 // Scheduler runner functions
 async function runScheduledWorkflows() {
+  const todayStr = getPacificDate(0);
+  if (!await acquireCronLock(`scheduled_${todayStr}`)) return;
   console.log('[WORKFLOW] Running scheduled workflows (daily)');
   try {
     const configDoc = await db.collection('workflow_configs').doc('default').get();
@@ -9937,6 +9999,8 @@ async function runScheduledWorkflows() {
 
 // Runs every 3 hours for time-sensitive SMS (Stage 5: 3-hour reminder)
 async function runSMSCheckWorkflows() {
+  const hour = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
+  if (!await acquireCronLock(`sms_check_${getPacificDate(0)}_h${hour}`, 60)) return;
   console.log('[WORKFLOW] Running SMS check workflows (every 3h)');
   try {
     const configDoc = await db.collection('workflow_configs').doc('default').get();
@@ -9949,6 +10013,8 @@ async function runSMSCheckWorkflows() {
 }
 
 async function runDailyWorkflows() {
+  const todayStr = getPacificDate(0);
+  if (!await acquireCronLock(`daily_${todayStr}`)) return;
   console.log('[WORKFLOW] Running daily workflows (8am)');
   try {
     const configDoc = await db.collection('workflow_configs').doc('default').get();
@@ -10701,8 +10767,8 @@ app.get('/api/board/meetings', verifyToken, async (req: Request, res: Response) 
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
-      return res.status(403).json({ error: 'Board member access required' });
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role) && !COORDINATOR_AND_LEAD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Access required' });
     }
     const meetingsSnap = await db.collection('board_meetings').orderBy('date', 'asc').get();
     const meetings = meetingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -10710,13 +10776,13 @@ app.get('/api/board/meetings', verifyToken, async (req: Request, res: Response) 
   } catch (e) { console.error('[Board] Failed to fetch meetings:', e); res.status(500).json({ error: 'Failed to fetch meetings' }); }
 });
 
-// Create/update board meeting (admin/board chair only)
+// Create/update meeting (admins, board members, coordinators, leads)
 app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
-      return res.status(403).json({ error: 'Only admins and board members can manage board meetings' });
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role) && !COORDINATOR_AND_LEAD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins, board members, coordinators, and leads can manage meetings' });
     }
     const { id } = req.body;
     const meetingData = pickFields(req.body, ['title', 'description', 'date', 'time', 'location', 'type', 'agenda', 'meetingLink', 'status', 'notes', 'documents', 'minutesContent']);
@@ -10755,8 +10821,8 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
-      return res.status(403).json({ error: 'Board member access required' });
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role) && !COORDINATOR_AND_LEAD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Access required' });
     }
     const { reason } = req.body;
     await db.collection('board_meetings').add({
@@ -10788,13 +10854,13 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
-// Save/update meeting minutes (board members + admins only)
+// Save/update meeting minutes (board members, admins, coordinators, leads)
 app.put('/api/board/meetings/:meetingId/minutes', verifyToken, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
-    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role)) {
-      return res.status(403).json({ error: 'Only admins and board members can edit meeting minutes' });
+    if (!userData?.isAdmin && !BOARD_ROLES.includes(userData?.role) && !COORDINATOR_AND_LEAD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins, board members, coordinators, and leads can edit meeting minutes' });
     }
     const { minutesContent, minutesStatus } = req.body;
     await db.collection('board_meetings').doc(req.params.meetingId).update({ minutesContent, minutesStatus, minutesUpdatedAt: new Date().toISOString() });
@@ -10909,13 +10975,33 @@ app.post('/api/volunteer/credential-file', verifyToken, async (req: Request, res
     if (!field || !base64) return res.status(400).json({ error: 'field and base64 are required' });
     const ext = fileName?.split('.').pop() || 'pdf';
     const storagePath = `credentials/${user.uid}/${field}.${ext}`;
-    await uploadToStorage(base64, storagePath, contentType || 'application/pdf');
-    // Update volunteer doc with storage path instead of base64
     const volRef = db.collection('volunteers').doc(user.uid);
+
+    // Try Cloud Storage first, fall back to Firestore base64
+    if (bucket) {
+      try {
+        await uploadToStorage(base64, storagePath, contentType || 'application/pdf');
+        await volRef.update({
+          [`clinicalOnboarding.credentials.${field}`]: storagePath,
+        });
+        console.log(`[CREDENTIAL] Uploaded to Cloud Storage: ${storagePath}`);
+        return res.json({ storagePath });
+      } catch (uploadErr) {
+        console.warn('[CREDENTIAL] Cloud Storage upload failed, saving base64 to Firestore:', (uploadErr as Error).message);
+      }
+    }
+
+    // Fallback: store base64 directly in Firestore
     await volRef.update({
-      [`clinicalOnboarding.credentials.${field}`]: storagePath,
+      [`clinicalOnboarding.credentials.${field}`]: {
+        data: base64,
+        contentType: contentType || 'application/pdf',
+        fileName: fileName || `${field}.${ext}`,
+        uploadedAt: new Date().toISOString(),
+      },
     });
-    res.json({ storagePath });
+    console.log(`[CREDENTIAL] Saved base64 to Firestore for ${user.uid}/${field}`);
+    res.json({ storagePath: 'firestore-base64' });
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
@@ -10928,14 +11014,29 @@ app.get('/api/volunteer/:id/credential-file/:field', verifyToken, async (req: Re
     const volDoc = await db.collection('volunteers').doc(id).get();
     if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
     const creds = volDoc.data()?.clinicalOnboarding?.credentials || {};
-    const storagePath = creds[field];
-    if (!storagePath || typeof storagePath !== 'string' || !storagePath.startsWith('credentials/')) {
-      return res.status(404).json({ error: 'Credential file not found' });
+    const credData = creds[field];
+
+    // Try Cloud Storage first (storagePath is a string like "credentials/...")
+    if (credData && typeof credData === 'string' && credData.startsWith('credentials/') && bucket) {
+      try {
+        const { buffer, metadata } = await downloadFileBuffer(credData);
+        res.set('Content-Type', metadata.contentType || 'application/pdf');
+        res.set('Content-Disposition', `inline; filename="${field}.pdf"`);
+        return res.send(buffer);
+      } catch (storageErr) {
+        console.warn(`[CREDENTIAL] Cloud Storage download failed for ${id}/${field}, trying Firestore base64`);
+      }
     }
-    const { buffer, metadata } = await downloadFileBuffer(storagePath);
-    res.set('Content-Type', metadata.contentType || 'application/pdf');
-    res.set('Content-Disposition', `inline; filename="${field}.pdf"`);
-    res.send(buffer);
+
+    // Fall back to base64 data stored in Firestore
+    if (credData && typeof credData === 'object' && credData.data) {
+      const buffer = Buffer.from(credData.data, 'base64');
+      res.set('Content-Type', credData.contentType || 'application/pdf');
+      res.set('Content-Disposition', `inline; filename="${credData.fileName || field + '.pdf'}"`);
+      return res.send(buffer);
+    }
+
+    return res.status(404).json({ error: 'Credential file not found' });
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
@@ -11591,6 +11692,88 @@ app.get('/api/ops/screenings-today', verifyToken, async (req: Request, res: Resp
         // Sort newest first — no dedup so every screening is visible
         screenings.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         res.json(screenings);
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
+// Get flagged screenings — clients with abnormal BP/glucose that may need referrals
+app.get('/api/screenings/flagged', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { type, level, days } = req.query;
+        const daysBack = parseInt(days as string) || 90;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+        const cutoffISO = cutoffDate.toISOString();
+
+        // Query all screenings, filter in memory to avoid composite index requirement
+        const snap = await db.collection('screenings').get();
+        const flaggedScreenings: any[] = [];
+
+        for (const doc of snap.docs) {
+            const s = doc.data();
+            // Filter by date
+            if (s.createdAt && s.createdAt < cutoffISO) continue;
+
+            // Must have a flag or follow-up needed
+            const hasBPFlag = s.flags?.bloodPressure?.level && s.flags.bloodPressure.level !== 'normal';
+            const hasGlucoseFlag = s.flags?.glucose?.level && s.flags.glucose.level !== 'normal';
+            const hasFlagOrFollowUp = s.followUpNeeded || s.abnormalFlag || hasBPFlag || hasGlucoseFlag;
+            if (!hasFlagOrFollowUp) continue;
+
+            // Filter by type if specified
+            if (type === 'bloodPressure' && !hasBPFlag) continue;
+            if (type === 'glucose' && !hasGlucoseFlag) continue;
+
+            // Filter by level if specified
+            if (level) {
+                const bpMatch = s.flags?.bloodPressure?.level === level;
+                const glucoseMatch = s.flags?.glucose?.level === level;
+                if (!bpMatch && !glucoseMatch) continue;
+            }
+
+            flaggedScreenings.push({
+                id: doc.id,
+                clientId: s.clientId || null,
+                clientName: s.clientName || 'Unknown Client',
+                date: s.createdAt || s.date || null,
+                eventId: s.eventId || null,
+                flags: s.flags || {},
+                followUpNeeded: s.followUpNeeded || false,
+                abnormalFlag: s.abnormalFlag || false,
+                clinicalAction: s.clinicalAction || s.reviewNotes || null,
+                reviewedBy: s.reviewedBy || null,
+                vitals: {
+                    systolic: s.systolic || s.vitals?.systolic || null,
+                    diastolic: s.diastolic || s.vitals?.diastolic || null,
+                    glucose: s.glucose || s.vitals?.glucose || null,
+                },
+            });
+        }
+
+        // Sort newest first
+        flaggedScreenings.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        // Check which clients already have referrals
+        const clientIds = [...new Set(flaggedScreenings.map(s => s.clientId).filter(Boolean))];
+        const referralMap: Record<string, string> = {};
+        if (clientIds.length > 0) {
+            // Query referrals for these clients — batch in groups of 10 for Firestore 'in' limit
+            for (let i = 0; i < clientIds.length; i += 10) {
+                const batch = clientIds.slice(i, i + 10);
+                const refSnap = await db.collection('referrals').where('clientId', 'in', batch).get();
+                for (const rd of refSnap.docs) {
+                    const r = rd.data();
+                    referralMap[r.clientId] = r.status || 'Pending';
+                }
+            }
+        }
+
+        const results = flaggedScreenings.map(s => ({
+            ...s,
+            hasReferral: !!referralMap[s.clientId],
+            referralStatus: referralMap[s.clientId] || null,
+        }));
+
+        res.json({ screenings: results });
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 

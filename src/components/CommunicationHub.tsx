@@ -1,11 +1,12 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Announcement, Message, Volunteer, SupportTicket, TicketNote, TicketActivity, TicketCategory } from '../types';
+import { Announcement, Message, Volunteer, SupportTicket, TicketNote, TicketActivity, TicketCategory, TicketType } from '../types';
 import {
   Megaphone, MessageSquare, LifeBuoy, Send, Plus, Sparkles, Loader2, Clock,
   Trash2, CheckCircle, Search, ChevronDown, User, Filter, X, Check, Smartphone,
   Hash, Users, GripVertical, MoreHorizontal, AlertCircle, ArrowRight, FileText,
-  Tag, Flag, History, ChevronRight, MessageCircle, Bell, Eye, Pencil, Paperclip, Download
+  Tag, Flag, History, ChevronRight, MessageCircle, Bell, Eye, Pencil, Paperclip, Download,
+  Calendar, Target, FolderKanban, ListTodo
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
@@ -683,14 +684,15 @@ const BriefingView: React.FC<{
         </div>
 
         {/* Message Input */}
-        <div className="p-3 md:p-4 border-t border-zinc-100 bg-white">
-          <div className="flex items-center gap-2 md:gap-3 relative">
-            <MentionAutocomplete
-              text={newMessage}
-              onSelect={handleMentionSelect}
-              allVolunteers={allVolunteers.map(v => ({ id: v.id, name: v.name }))}
-              inputRef={messageInputRef}
-            />
+        <div className="p-3 md:p-4 border-t border-zinc-100 bg-white relative overflow-visible">
+          <MentionAutocomplete
+            text={newMessage}
+            onSelect={handleMentionSelect}
+            allVolunteers={allVolunteers.map(v => ({ id: v.id, name: v.name }))}
+            inputRef={messageInputRef}
+            dropDirection="up"
+          />
+          <div className="flex items-center gap-2 md:gap-3">
             <input
               ref={messageInputRef}
               type="text"
@@ -730,6 +732,12 @@ const TICKET_PRIORITIES: { value: 'low' | 'medium' | 'high' | 'urgent'; label: s
   { value: 'medium', label: 'Medium', color: 'bg-brand/10 text-brand' },
   { value: 'high', label: 'High', color: 'bg-amber-100 text-amber-600' },
   { value: 'urgent', label: 'Urgent', color: 'bg-rose-100 text-rose-600' },
+];
+
+const TICKET_TYPES: { value: TicketType; label: string; icon: string; color: string }[] = [
+  { value: 'support', label: 'Support Ticket', icon: '🎫', color: 'bg-purple-100 text-purple-700' },
+  { value: 'task', label: 'Task', icon: '✅', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'project', label: 'Project', icon: '📋', color: 'bg-brand/10 text-brand' },
 ];
 
 // --- TICKET DETAIL MODAL ---
@@ -1258,19 +1266,21 @@ const TicketDetailModal: React.FC<{
               {/* Add Note Form */}
               {canModify && ticket.status !== 'closed' && (
                 <div className="bg-zinc-50 p-4 rounded-3xl border border-zinc-100 relative overflow-visible">
-                  <MentionAutocomplete
-                    text={newNote}
-                    onSelect={handleNoteMentionSelect}
-                    allVolunteers={allVolunteers.map(v => ({ id: v.id, name: v.name }))}
-                    inputRef={noteTextareaRef}
-                  />
-                  <textarea
-                    ref={noteTextareaRef}
-                    value={newNote}
-                    onChange={e => setNewNote(e.target.value)}
-                    placeholder="Add a note or update..."
-                    className="w-full min-h-[100px] p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 resize-none font-bold text-sm"
-                  />
+                  <div className="relative">
+                    <textarea
+                      ref={noteTextareaRef}
+                      value={newNote}
+                      onChange={e => setNewNote(e.target.value)}
+                      placeholder="Add a note or update..."
+                      className="w-full min-h-[100px] p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 resize-none font-bold text-sm"
+                    />
+                    <MentionAutocomplete
+                      text={newNote}
+                      onSelect={handleNoteMentionSelect}
+                      allVolunteers={allVolunteers.map(v => ({ id: v.id, name: v.name }))}
+                      inputRef={noteTextareaRef}
+                    />
+                  </div>
                   <div className="flex items-center justify-between mt-3">
                     {userMode === 'admin' && (
                       <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
@@ -1390,10 +1400,13 @@ const OpsSupportView: React.FC<{
   const [newTicketCategory, setNewTicketCategory] = useState<TicketCategory>('technical');
   const [newTicketPriority, setNewTicketPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [newTicketVisibility, setNewTicketVisibility] = useState<'public' | 'team' | 'private'>('public');
+  const [newTicketType, setNewTicketType] = useState<TicketType>('support');
+  const [newTicketDueDate, setNewTicketDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedTicket, setDraggedTicket] = useState<string | null>(null);
   const [newTicketAttachments, setNewTicketAttachments] = useState<File[]>([]);
   const newTicketAttachmentRef = useRef<HTMLInputElement>(null);
+  const [typeFilter, setTypeFilter] = useState<TicketType | 'all'>('all');
 
   // Ticket visibility filtering
   const isCoordinatorOrLead = user.role.includes('Coordinator') || user.role.includes('Lead');
@@ -1408,28 +1421,35 @@ const OpsSupportView: React.FC<{
     });
   }, [supportTickets, user.id, userMode, isCoordinatorOrLead]);
 
+  const filteredTickets = useMemo(() => {
+    if (typeFilter === 'all') return myTickets;
+    return myTickets.filter(t => (t.type || 'support') === typeFilter);
+  }, [myTickets, typeFilter]);
+
   const ticketsByStatus = useMemo(() => ({
-    open: myTickets.filter(t => t.status === 'open'),
-    in_progress: myTickets.filter(t => t.status === 'in_progress'),
-    closed: myTickets.filter(t => t.status === 'closed')
-  }), [myTickets]);
+    open: filteredTickets.filter(t => t.status === 'open'),
+    in_progress: filteredTickets.filter(t => t.status === 'in_progress'),
+    closed: filteredTickets.filter(t => t.status === 'closed')
+  }), [filteredTickets]);
 
   const handleSubmitTicket = async () => {
     if (!newTicketSubject.trim() || !newTicketBody.trim()) return;
     setIsSubmitting(true);
 
-    const ticket = {
+    const ticket: any = {
       subject: newTicketSubject,
       description: newTicketBody,
       message: newTicketBody,
       category: newTicketCategory,
       priority: newTicketPriority,
       visibility: newTicketVisibility,
+      type: newTicketType,
       submittedBy: user.id,
       submitterName: user.name,
       submitterEmail: user.email,
       submitterRole: user.role,
     };
+    if (newTicketDueDate) ticket.dueDate = newTicketDueDate;
 
     try {
       const response = await apiService.post('/api/support_tickets', { ticket });
@@ -1443,6 +1463,7 @@ const OpsSupportView: React.FC<{
       };
       const savedTicket: SupportTicket = {
         id: response.id || `ticket-${Date.now()}`,
+        type: newTicketType,
         subject: newTicketSubject,
         description: newTicketBody,
         status: 'open',
@@ -1456,6 +1477,7 @@ const OpsSupportView: React.FC<{
         createdAt: new Date().toISOString(),
         notes: [],
         activity: [initialActivity],
+        ...(newTicketDueDate ? { dueDate: newTicketDueDate } : {}),
       };
       // Upload any pending attachments
       const uploadedAttachments: SupportTicket['attachments'] = [];
@@ -1488,6 +1510,8 @@ const OpsSupportView: React.FC<{
       setNewTicketCategory('technical');
       setNewTicketPriority('medium');
       setNewTicketVisibility('public');
+      setNewTicketType('support');
+      setNewTicketDueDate('');
       setNewTicketAttachments([]);
     } catch (error) {
       console.error('Failed to submit ticket:', error);
@@ -1602,6 +1626,9 @@ const OpsSupportView: React.FC<{
     const categoryInfo = getCategoryInfo(ticket.category);
     const priorityInfo = getPriorityInfo(ticket.priority);
     const noteCount = (ticket.notes || []).length;
+    const ticketType = ticket.type || 'support';
+    const typeInfo = TICKET_TYPES.find(t => t.value === ticketType) || TICKET_TYPES[0];
+    const isOverdue = ticket.dueDate && new Date(ticket.dueDate) < new Date() && ticket.status !== 'closed';
 
     return (
       <div
@@ -1610,11 +1637,16 @@ const OpsSupportView: React.FC<{
         onDragStart={(e) => handleDragStart(e, ticket.id)}
         onClick={() => setSelectedTicket(ticket)}
         className={`p-4 md:p-5 bg-white rounded-2xl md:rounded-3xl border shadow-sm hover:shadow-2xl transition-shadow cursor-pointer ${
-          isAssignedToMe ? 'border-brand border-2' : 'border-zinc-100'
+          isAssignedToMe ? 'border-brand border-2' : isOverdue ? 'border-red-300 border-2' : 'border-zinc-100'
         }`}
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 flex-wrap">
+            {ticketType !== 'support' && (
+              <span className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold ${typeInfo.color}`}>
+                {typeInfo.icon} {typeInfo.label}
+              </span>
+            )}
             <span className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase ${categoryInfo.color}`}>
               {categoryInfo.label}
             </span>
@@ -1629,9 +1661,16 @@ const OpsSupportView: React.FC<{
         <h4 className="font-bold text-zinc-900 text-sm leading-tight mb-2">{ticket.subject}</h4>
         <p className="text-xs text-zinc-500 line-clamp-3 md:line-clamp-2 mb-3">{ticket.description}</p>
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black text-zinc-400">
-            {new Date(ticket.createdAt).toLocaleDateString()}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-zinc-400">
+              {new Date(ticket.createdAt).toLocaleDateString()}
+            </span>
+            {ticket.dueDate && (
+              <span className={`text-[10px] font-bold flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>
+                <Calendar size={10} /> {isOverdue ? 'Overdue' : `Due ${new Date(ticket.dueDate).toLocaleDateString()}`}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             {noteCount > 0 && (
               <span className="flex items-center gap-1 text-[10px] text-zinc-400">
@@ -1658,17 +1697,40 @@ const OpsSupportView: React.FC<{
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between shrink-0 bg-white">
-        <div>
-          <h3 className="text-lg font-black text-zinc-900 tracking-tight">Ops Support</h3>
-          <p className="text-xs md:text-sm text-zinc-500 mt-1">Track and manage support tickets</p>
+      <div className="p-4 md:p-8 border-b border-zinc-100 shrink-0 bg-white space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-black text-zinc-900 tracking-tight">Work Board</h3>
+            <p className="text-xs md:text-sm text-zinc-500 mt-1">Track tickets, tasks, and projects</p>
+          </div>
+          <button
+            onClick={() => setShowNewTicket(true)}
+            className="px-4 py-2.5 md:px-6 md:py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2 whitespace-nowrap"
+          >
+            <Plus size={14} /> New
+          </button>
         </div>
-        <button
-          onClick={() => setShowNewTicket(true)}
-          className="px-4 py-2.5 md:px-6 md:py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 hover:scale-105 transition-transform shadow-elevation-2 whitespace-nowrap"
-        >
-          <Plus size={14} /> New Ticket
-        </button>
+        {/* Type Filter Chips */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          <button
+            onClick={() => setTypeFilter('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${typeFilter === 'all' ? 'bg-brand text-white shadow-sm' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-700'}`}
+          >
+            All ({myTickets.length})
+          </button>
+          {TICKET_TYPES.map(t => {
+            const count = myTickets.filter(tk => (tk.type || 'support') === t.value).length;
+            return (
+              <button
+                key={t.value}
+                onClick={() => setTypeFilter(t.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${typeFilter === t.value ? 'bg-brand text-white shadow-sm' : 'bg-zinc-100 text-zinc-500 hover:text-zinc-700'}`}
+              >
+                {t.icon} {t.label} ({count})
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -1756,12 +1818,31 @@ const OpsSupportView: React.FC<{
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-2 md:p-4">
           <div className="bg-white rounded-2xl md:rounded-modal max-w-xl w-full shadow-elevation-3 max-h-[95vh] md:max-h-[90vh] overflow-y-auto border border-zinc-100">
             <div className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-xl md:text-2xl font-black tracking-tight">New Support Ticket</h2>
+              <h2 className="text-xl md:text-2xl font-black tracking-tight">
+                {newTicketType === 'task' ? 'New Task' : newTicketType === 'project' ? 'New Project' : 'New Support Ticket'}
+              </h2>
               <button onClick={() => setShowNewTicket(false)} className="p-2 hover:bg-zinc-100 rounded-full">
                 <X size={20} className="text-zinc-400" />
               </button>
             </div>
             <div className="p-4 md:p-8 space-y-4 md:space-y-6">
+              {/* Type Selector */}
+              <div className="flex gap-2">
+                {TICKET_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => setNewTicketType(t.value)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all ${
+                      newTicketType === t.value
+                        ? 'bg-brand text-white shadow-sm'
+                        : 'bg-zinc-50 text-zinc-600 border border-zinc-200 hover:border-brand'
+                    }`}
+                  >
+                    <span>{t.icon}</span> {t.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Category & Priority Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -1809,13 +1890,30 @@ const OpsSupportView: React.FC<{
                 </select>
               </div>
 
+              {/* Due Date — shown for tasks and projects */}
+              {(newTicketType === 'task' || newTicketType === 'project') && (
+                <div>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
+                    <Calendar size={12} className="inline mr-1" /> Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newTicketDueDate}
+                    onChange={e => setNewTicketDueDate(e.target.value)}
+                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Subject</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">
+                  {newTicketType === 'task' ? 'Task Name' : newTicketType === 'project' ? 'Project Name' : 'Subject'}
+                </label>
                 <input
                   type="text"
                   value={newTicketSubject}
                   onChange={e => setNewTicketSubject(e.target.value)}
-                  placeholder="Brief description of the issue..."
+                  placeholder={newTicketType === 'task' ? 'What needs to be done...' : newTicketType === 'project' ? 'Project name...' : 'Brief description of the issue...'}
                   className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
                 />
               </div>
@@ -1875,18 +1973,20 @@ const OpsSupportView: React.FC<{
                 </button>
                 <p className="text-[10px] text-zinc-400 mt-1">Max 5MB per file. Images, PDFs, documents, or text files.</p>
               </div>
-              <div className="bg-brand/5 p-4 rounded-3xl border border-brand/10">
-                <p className="text-xs text-brand font-bold flex items-center gap-2">
-                  <Bell size={14} />
-                  Tech support will be notified via email at tech@healthmatters.clinic when you submit this ticket.
-                </p>
-              </div>
+              {newTicketType === 'support' && (
+                <div className="bg-brand/5 p-4 rounded-3xl border border-brand/10">
+                  <p className="text-xs text-brand font-bold flex items-center gap-2">
+                    <Bell size={14} />
+                    Tech support will be notified via email at tech@healthmatters.clinic when you submit this ticket.
+                  </p>
+                </div>
+              )}
               <button
                 onClick={handleSubmitTicket}
                 disabled={isSubmitting || !newTicketSubject.trim() || !newTicketBody.trim()}
                 className="w-full py-4 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50 shadow-elevation-2"
               >
-                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Submit Ticket</>}
+                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> {newTicketType === 'task' ? 'Create Task' : newTicketType === 'project' ? 'Create Project' : 'Submit Ticket'}</>}
               </button>
             </div>
           </div>
@@ -1914,7 +2014,8 @@ const MentionAutocomplete: React.FC<{
   onSelect: (volunteer: { id: string; name: string }) => void;
   allVolunteers: { id: string; name: string }[];
   inputRef: React.RefObject<HTMLElement>;
-}> = ({ text, onSelect, allVolunteers, inputRef }) => {
+  dropDirection?: 'up' | 'down';
+}> = ({ text, onSelect, allVolunteers, inputRef, dropDirection = 'down' }) => {
   const [matches, setMatches] = useState<{ id: string; name: string }[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string>('');
   const [replacementStart, setReplacementStart] = useState<number>(-1);
@@ -1955,7 +2056,7 @@ const MentionAutocomplete: React.FC<{
   if (matches.length === 0 || replacementStart === -1) return null;
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl border border-zinc-100 shadow-elevation-3 max-h-[200px] overflow-y-auto z-[100]">
+    <div className={`absolute left-0 right-0 bg-white rounded-2xl border border-zinc-100 shadow-elevation-3 max-h-[200px] overflow-y-auto z-[200] ${dropDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
       {matches.map(v => (
         <button
           key={v.id}

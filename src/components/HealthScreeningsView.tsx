@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ScreeningRecord, AuditLog } from '../types';
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
-import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, AlertTriangle, Activity, ClipboardList, Eye, Clock, Edit3, Save, Flag, BadgeCheck, FileDown, Footprints } from 'lucide-react';
+import { HeartPulse, Search, UserPlus, CheckCircle, Loader2, X, AlertTriangle, Activity, ClipboardList, Eye, Clock, Edit3, Save, Flag, BadgeCheck, FileDown, Footprints, Camera, Image } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
 // --- CLIENT HISTORY BADGES ---
@@ -1170,6 +1170,28 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
         glucose2: '',
     });
 
+    // Photo capture state
+    const [screeningPhoto, setScreeningPhoto] = useState<string | null>(null);
+    const [screeningPhotoName, setScreeningPhotoName] = useState<string>('');
+    const photoInputRef = useRef<HTMLInputElement>(null);
+
+    const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toastService.error('Photo too large. Maximum 5MB.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            setScreeningPhoto(base64);
+            setScreeningPhotoName(file.name);
+        };
+        reader.readAsDataURL(file);
+        if (photoInputRef.current) photoInputRef.current.value = '';
+    };
+
     const bpFlag = vitals.systolic && vitals.diastolic
         ? getBloodPressureFlag(Number(vitals.systolic), Number(vitals.diastolic))
         : null;
@@ -1248,7 +1270,8 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                     witness2Signature: refusalData.witness2Signature,
                     timestamp: new Date().toISOString(),
                 } : undefined,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                ...(screeningPhoto ? { photo: { data: screeningPhoto, fileName: screeningPhotoName, contentType: 'image/jpeg' } } : {}),
             };
 
             const saved = await apiService.post('/api/screenings/create', screening);
@@ -1574,6 +1597,54 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                         </div>
                     </div>
                 )}
+
+                {/* Photo Capture */}
+                <div className="p-4 md:p-8 bg-white border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow rounded-2xl md:rounded-[40px] space-y-4">
+                    <h4 className="text-base md:text-xl font-bold text-zinc-900 flex items-center gap-2">
+                        <Camera size={20} /> Photo Documentation
+                        <span className="text-xs font-normal text-zinc-400 ml-1">(optional)</span>
+                    </h4>
+                    <p className="text-xs text-zinc-500">Capture a photo of the screening interaction for documentation purposes.</p>
+                    {screeningPhoto ? (
+                        <div className="space-y-3">
+                            <div className="relative w-full max-w-sm mx-auto">
+                                <img
+                                    src={`data:image/jpeg;base64,${screeningPhoto}`}
+                                    alt="Screening photo"
+                                    className="w-full rounded-2xl border border-zinc-200 shadow-sm"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => { setScreeningPhoto(null); setScreeningPhotoName(''); }}
+                                    className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full shadow-sm hover:bg-red-50 transition-colors"
+                                >
+                                    <X size={14} className="text-red-500" />
+                                </button>
+                            </div>
+                            <p className="text-xs text-zinc-400 text-center flex items-center justify-center gap-1">
+                                <Image size={12} /> {screeningPhotoName}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="flex gap-3">
+                            <input
+                                ref={photoInputRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handlePhotoCapture}
+                                className="hidden"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => photoInputRef.current?.click()}
+                                className="flex-1 py-3 bg-zinc-50 border-2 border-dashed border-zinc-200 text-zinc-500 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all"
+                            >
+                                <Camera size={16} /> Take Photo
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex gap-4">

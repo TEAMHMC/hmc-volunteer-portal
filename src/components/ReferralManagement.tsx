@@ -5,7 +5,7 @@ import { apiService } from '../services/apiService';
 import {
   Users, FileText, Building2, Star, Clock, CheckCircle, AlertTriangle,
   Search, Plus, X, Loader2, ChevronRight, Filter, BarChart3, TrendingUp,
-  Phone, Mail, MapPin, Globe, Calendar, ArrowRight, RefreshCw
+  Phone, Mail, MapPin, Globe, Calendar, ArrowRight, RefreshCw, ShieldAlert, Activity
 } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
@@ -13,7 +13,23 @@ interface ReferralManagementProps {
   isAdmin: boolean;
 }
 
-type TabId = 'dashboard' | 'clients' | 'referrals' | 'resources' | 'partners' | 'feedback';
+type TabId = 'dashboard' | 'clients' | 'referrals' | 'resources' | 'partners' | 'feedback' | 'flaggedClients';
+
+interface FlaggedScreening {
+  id: string;
+  clientId: string | null;
+  clientName: string;
+  date: string | null;
+  eventId: string | null;
+  flags: { bloodPressure?: { label: string; level: string }; glucose?: { label: string; level: string } };
+  followUpNeeded: boolean;
+  abnormalFlag: boolean;
+  clinicalAction: string | null;
+  reviewedBy: string | null;
+  vitals: { systolic: number | null; diastolic: number | null; glucose: number | null };
+  hasReferral: boolean;
+  referralStatus: string | null;
+}
 
 const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
@@ -24,6 +40,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
   const [partners, setPartners] = useState<PartnerAgency[]>([]);
   const [feedback, setFeedback] = useState<ServiceFeedback[]>([]);
   const [slaReport, setSlaReport] = useState<any>(null);
+  const [flaggedClients, setFlaggedClients] = useState<FlaggedScreening[]>([]);
 
   useEffect(() => {
     fetchAllData();
@@ -32,13 +49,14 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [clientsData, referralsData, resourcesData, partnersData, feedbackData, slaData] = await Promise.all([
+      const [clientsData, referralsData, resourcesData, partnersData, feedbackData, slaData, flaggedData] = await Promise.all([
         apiService.get('/api/clients').catch(() => []),
         apiService.get('/api/referrals').catch(() => []),
         apiService.get('/api/resources').catch(() => []),
         apiService.get('/api/partners').catch(() => []),
         apiService.get('/api/feedback').catch(() => []),
         apiService.get('/api/referrals/sla-report').catch(() => null),
+        apiService.get('/api/screenings/flagged').catch(() => ({ screenings: [] })),
       ]);
       setClients(clientsData);
       setReferrals(referralsData);
@@ -46,6 +64,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       setPartners(partnersData);
       setFeedback(feedbackData);
       setSlaReport(slaData);
+      setFlaggedClients(flaggedData?.screenings || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -60,6 +79,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
     { id: 'resources', label: 'Resources', icon: <Globe size={18} />, count: resources.length },
     { id: 'partners', label: 'Partners', icon: <Building2 size={18} />, count: partners.length },
     { id: 'feedback', label: 'Feedback', icon: <Star size={18} />, count: feedback.length },
+    { id: 'flaggedClients', label: 'Flagged Clients', icon: <ShieldAlert size={18} />, count: flaggedClients.length },
   ];
 
   if (loading) {
@@ -135,6 +155,9 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
         )}
         {activeTab === 'feedback' && (
           <FeedbackView feedback={feedback} resources={resources} />
+        )}
+        {activeTab === 'flaggedClients' && (
+          <FlaggedClientsView flaggedScreenings={flaggedClients} resources={resources} onRefresh={fetchAllData} />
         )}
       </div>
     </div>
@@ -1211,6 +1234,218 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
           </div>
         </form>
       </div>
+    </div>
+  );
+};
+
+// Flagged Clients View — clinical alerts from screenings
+const FlaggedClientsView: React.FC<{
+  flaggedScreenings: FlaggedScreening[];
+  resources: ReferralResource[];
+  onRefresh: () => void;
+}> = ({ flaggedScreenings, resources, onRefresh }) => {
+  const [typeFilter, setTypeFilter] = useState<'all' | 'bloodPressure' | 'glucose'>('all');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high'>('all');
+  const [daysFilter, setDaysFilter] = useState<7 | 30 | 90>(90);
+  const [creatingReferralFor, setCreatingReferralFor] = useState<FlaggedScreening | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysFilter);
+  const cutoffISO = cutoff.toISOString();
+
+  const filtered = flaggedScreenings.filter(s => {
+    if (s.date && s.date < cutoffISO) return false;
+    if (typeFilter === 'bloodPressure' && !s.flags?.bloodPressure?.level) return false;
+    if (typeFilter === 'glucose' && !s.flags?.glucose?.level) return false;
+    if (severityFilter !== 'all') {
+      const bpMatch = s.flags?.bloodPressure?.level === severityFilter;
+      const gMatch = s.flags?.glucose?.level === severityFilter;
+      if (!bpMatch && !gMatch) return false;
+    }
+    return true;
+  });
+
+  const getSeverityColor = (level: string) => {
+    switch (level) {
+      case 'critical': return 'bg-red-100 text-red-700 border-red-200';
+      case 'high': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      default: return 'bg-zinc-100 text-zinc-600 border-zinc-200';
+    }
+  };
+
+  const getServiceNeeded = (s: FlaggedScreening) => {
+    if (s.flags?.bloodPressure?.level === 'critical') return 'Blood Pressure Management — Hypertensive Crisis';
+    if (s.flags?.bloodPressure?.level === 'high') return 'Blood Pressure Management — Elevated';
+    if (s.flags?.glucose?.level === 'critical') return 'Glucose Management — Critical';
+    if (s.flags?.glucose?.level === 'high') return 'Glucose Management — Elevated';
+    return 'Medical Follow-Up Needed';
+  };
+
+  const getUrgency = (s: FlaggedScreening) => {
+    const levels = [s.flags?.bloodPressure?.level, s.flags?.glucose?.level].filter(Boolean);
+    if (levels.includes('critical')) return 'Emergency';
+    if (levels.includes('high')) return 'Urgent';
+    return 'Standard';
+  };
+
+  const handleCreateReferral = async (screening: FlaggedScreening) => {
+    if (!screening.clientId) {
+      toastService.error('No client ID linked to this screening');
+      return;
+    }
+    setIsCreating(true);
+    try {
+      await apiService.post('/api/referrals/create', {
+        referral: {
+          clientId: screening.clientId,
+          clientName: screening.clientName,
+          serviceNeeded: getServiceNeeded(screening),
+          urgency: getUrgency(screening),
+          notes: `Auto-created from flagged screening. ${screening.clinicalAction ? 'Clinical action: ' + screening.clinicalAction : ''}`.trim(),
+          status: 'Pending',
+          referralDate: new Date().toISOString(),
+          screeningId: screening.id,
+          medicalFlagType: screening.flags?.bloodPressure ? 'bloodPressure' : 'glucose',
+        }
+      });
+      toastService.success('Referral created from screening!');
+      setCreatingReferralFor(null);
+      onRefresh();
+    } catch {
+      toastService.error('Failed to create referral');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-black tracking-tight uppercase">Flagged Clients</h2>
+          <p className="text-sm text-zinc-500 mt-1">Clients with abnormal screening results that may need medical referrals</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Activity size={16} className="text-red-500" />
+          <span className="font-bold text-red-600">{filtered.length}</span>
+          <span className="text-zinc-500">flagged screening{filtered.length !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-2">
+        <div className="flex gap-1 bg-zinc-50 rounded-full p-1 border border-zinc-100">
+          {(['all', 'bloodPressure', 'glucose'] as const).map(t => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${typeFilter === t ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              {t === 'all' ? 'All Types' : t === 'bloodPressure' ? 'BP' : 'Glucose'}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 bg-zinc-50 rounded-full p-1 border border-zinc-100">
+          {(['all', 'critical', 'high'] as const).map(l => (
+            <button key={l} onClick={() => setSeverityFilter(l)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${severityFilter === l ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              {l === 'all' ? 'All Severity' : l.charAt(0).toUpperCase() + l.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 bg-zinc-50 rounded-full p-1 border border-zinc-100">
+          {([7, 30, 90] as const).map(d => (
+            <button key={d} onClick={() => setDaysFilter(d)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${daysFilter === d ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-zinc-400">
+          <ShieldAlert size={48} className="mx-auto mb-4 opacity-40" />
+          <p className="font-bold">No flagged screenings found</p>
+          <p className="text-sm mt-1">Adjust filters or check back after screening events</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Client</th>
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Flag Type</th>
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Severity</th>
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Date</th>
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Vitals</th>
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Action</th>
+                <th className="text-left py-3 px-4 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Referral</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(s => {
+                const flagTypes: string[] = [];
+                const severities: string[] = [];
+                if (s.flags?.bloodPressure?.level && s.flags.bloodPressure.level !== 'normal') {
+                  flagTypes.push('BP');
+                  severities.push(s.flags.bloodPressure.level);
+                }
+                if (s.flags?.glucose?.level && s.flags.glucose.level !== 'normal') {
+                  flagTypes.push('Glucose');
+                  severities.push(s.flags.glucose.level);
+                }
+                const highestSeverity = severities.includes('critical') ? 'critical' : severities.includes('high') ? 'high' : severities[0] || 'medium';
+
+                return (
+                  <tr key={s.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                    <td className="py-3 px-4 font-bold text-zinc-800">{s.clientName}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex gap-1">
+                        {flagTypes.map(f => (
+                          <span key={f} className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600">{f}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getSeverityColor(highestSeverity)}`}>
+                        {highestSeverity.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-zinc-500 text-xs">
+                      {s.date ? new Date(s.date).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-zinc-600">
+                      {s.vitals.systolic && s.vitals.diastolic ? `${s.vitals.systolic}/${s.vitals.diastolic}` : ''}
+                      {s.vitals.systolic && s.vitals.glucose ? ' · ' : ''}
+                      {s.vitals.glucose ? `Gluc: ${s.vitals.glucose}` : ''}
+                      {!s.vitals.systolic && !s.vitals.glucose ? '—' : ''}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-zinc-500">
+                      {s.clinicalAction || (s.reviewedBy ? 'Reviewed' : 'Pending review')}
+                    </td>
+                    <td className="py-3 px-4">
+                      {s.hasReferral ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                          {s.referralStatus}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleCreateReferral(s)}
+                          disabled={isCreating || !s.clientId}
+                          className="px-3 py-1.5 bg-brand text-white rounded-full text-[10px] font-bold uppercase tracking-wide hover:scale-105 transition-transform disabled:opacity-50"
+                        >
+                          {isCreating ? <Loader2 size={12} className="animate-spin" /> : 'Create Referral'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

@@ -430,8 +430,13 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
             setIsComplete(true);
         }
       }
-    } catch (error) {
-      setSubmitError((error as Error).message || 'An unexpected error occurred. Please try again.');
+    } catch (error: any) {
+      const msg = error?.message || '';
+      if (msg.includes('already exists') || msg.includes('existingAccount')) {
+        setSubmitError('An account with this email already exists. Please go back and log in instead of creating a new account.');
+      } else {
+        setSubmitError(msg || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

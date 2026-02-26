@@ -445,7 +445,7 @@ export interface TicketNote {
 
 export interface TicketActivity {
     id: string;
-    type: 'created' | 'status_change' | 'assigned' | 'note_added' | 'priority_change';
+    type: 'created' | 'status_change' | 'assigned' | 'note_added' | 'priority_change' | 'due_date_set' | 'progress_updated';
     description: string;
     performedBy: string;
     performedByName: string;
@@ -463,8 +463,11 @@ export type TicketCategory =
     | 'feedback'
     | 'other';
 
+export type TicketType = 'support' | 'task' | 'project';
+
 export interface SupportTicket {
     id: string;
+    type?: TicketType;
     volunteerId?: string;
     submittedBy?: string;
     submitterName?: string;
@@ -494,6 +497,12 @@ export interface SupportTicket {
         uploadedBy: string;
         uploadedByName: string;
     }>;
+    // Task/Project fields
+    dueDate?: string;
+    progress?: number;
+    projectId?: string;
+    parentTicketId?: string;
+    subtaskIds?: string[];
 }
 
 export interface ChecklistItem {

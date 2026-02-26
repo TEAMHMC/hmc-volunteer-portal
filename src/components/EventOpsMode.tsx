@@ -3,7 +3,7 @@ import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck, MoreHorizontal, Camera
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -243,20 +243,21 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     }
   };
 
-  const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean; leadOnly?: boolean; logisticsOnly?: boolean }[] = [
-    { id: 'checkin', label: 'Check-In', icon: QrCode, leadOnly: true },
-    { id: 'overview', label: 'Brief', icon: BookUser },
-    { id: 'checklists', label: 'Tasks', icon: ListChecks, leadOnly: true },
+  const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean; leadOnly?: boolean; logisticsOnly?: boolean; coreTab?: boolean }[] = [
+    { id: 'checkin', label: 'Check-In', icon: QrCode, leadOnly: true, coreTab: true },
+    { id: 'overview', label: 'Brief', icon: BookUser, coreTab: true },
+    { id: 'checklists', label: 'Tasks', icon: ListChecks, leadOnly: true, coreTab: true },
+    { id: 'screenings', label: 'Health', icon: HeartPulse, coreTab: true },
+    { id: 'intake', label: 'Intake', icon: ClipboardPaste, coreTab: true },
+    { id: 'signoff', label: 'Finish', icon: UserCheck, coreTab: true },
     { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
     { id: 'survey', label: 'Survey', icon: FileText },
-    { id: 'intake', label: 'Intake', icon: ClipboardPaste },
-    { id: 'screenings', label: 'Health', icon: HeartPulse },
     { id: 'tracker', label: 'Tracker', icon: Package },
     { id: 'logistics', label: 'Loadout', icon: Truck, logisticsOnly: true },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
-    { id: 'signoff', label: 'Finish', icon: UserCheck },
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
   ];
+  const [showAllTabs, setShowAllTabs] = useState(isLead || user.isAdmin);
   
   // === OpsTour state ===
   const [showOpsTour, setShowOpsTour] = useState(false);
@@ -382,6 +383,8 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
               if (tab.adminOnly && !user.isAdmin) return false;
               if (tab.leadOnly && !isLead) return false;
               if (tab.logisticsOnly && !isLead && user.role !== 'Logistics') return false;
+              // In compact mode (volunteers), only show core tabs unless expanded
+              if (!showAllTabs && !tab.coreTab) return false;
               return true;
             }).map(tab => (
               <button
@@ -392,6 +395,15 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
                 <tab.icon size={16} /> <span className="whitespace-nowrap">{tab.label}</span>
               </button>
             ))}
+            {/* More/Less toggle for volunteers */}
+            {!isLead && !user.isAdmin && (
+              <button
+                onClick={() => setShowAllTabs(prev => !prev)}
+                className="flex-1 min-w-[72px] lg:min-w-[100px] lg:w-full flex flex-col lg:flex-row items-center gap-1.5 lg:gap-3 px-3 lg:px-6 py-3 lg:py-4 rounded-full text-[10px] lg:text-[13px] font-bold text-zinc-300 hover:text-zinc-500 transition-all"
+              >
+                <MoreHorizontal size={16} /> <span className="whitespace-nowrap">{showAllTabs ? 'Less' : 'More'}</span>
+              </button>
+            )}
         </div>
 
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[300px] md:min-h-[600px] relative">
