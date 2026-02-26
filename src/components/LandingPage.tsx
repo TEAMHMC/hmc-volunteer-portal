@@ -126,7 +126,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
           <div className="w-full max-w-[1200px] flex justify-center animate-in fade-in">
             <div className="max-w-md w-full bg-white p-4 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
               <div className="flex justify-between items-center mb-5 md:mb-8">
-                  <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin Portal' : 'Welcome Back'}</h2>
+                  <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin' : 'Welcome Back'}</h2>
                   <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>
               </div>
               <div className="space-y-4 md:space-y-6">
