@@ -564,42 +564,6 @@ const sendSMS = async (
   // EMERGENCY KILL SWITCH: All SMS disabled
   console.log('[SMS] ALL SMS DISABLED — emergency kill switch active');
   return { sent: false, reason: 'disabled' };
-
-  // Feature flag: check if Twilio is configured (prefer Messaging Service SID, fallback to phone number)
-  if (!twilioClient || (!TWILIO_MESSAGING_SERVICE_SID && !TWILIO_PHONE_NUMBER)) {
-    console.log('[SMS] Twilio not configured, skipping SMS');
-    return { sent: false, reason: 'not_configured' };
-  }
-
-  // Check user opt-out if userId provided (default: SMS enabled unless explicitly disabled)
-  if (userId) {
-    try {
-      const userDoc = await db.collection('volunteers').doc(userId).get();
-      const prefs = userDoc.data()?.notificationPrefs;
-      // Only block if user explicitly set smsAlerts to false
-      if (prefs?.smsAlerts === false) {
-        console.log(`[SMS] Skipped - user ${userId} has opted out of SMS`);
-        return { sent: false, reason: 'opted_out' };
-      }
-    } catch {
-      return { sent: false, reason: 'user_lookup_failed' };
-    }
-  }
-
-  try {
-    const messageParams: { body: string; to: string; messagingServiceSid?: string; from?: string } = { body, to };
-    if (TWILIO_MESSAGING_SERVICE_SID) {
-      messageParams.messagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
-    } else {
-      messageParams.from = TWILIO_PHONE_NUMBER;
-    }
-    await twilioClient.messages.create(messageParams);
-    console.log(`[SMS] Sent to ${to}`);
-    return { sent: true };
-  } catch (error) {
-    console.error('[SMS] Send failed:', error);
-    return { sent: false, reason: 'send_failed' };
-  }
 };
 
 // ═══════════════════════════════════════════════════════════════
