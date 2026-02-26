@@ -4479,6 +4479,114 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
     }
 });
 
+// POST /api/public/sync-event - Public endpoint for Event Finder Tool to sync events into portal
+app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
+    try {
+        const event = req.body;
+        if (!event || !event.title || !event.date) {
+            return res.status(400).json({ error: 'title and date are required' });
+        }
+
+        // Check for existing event by eventFinderId or title+date match
+        let existingId: string | null = null;
+        if (event.id) {
+            const byFinderId = await db.collection('opportunities')
+                .where('eventFinderId', '==', event.id)
+                .limit(1)
+                .get();
+            if (!byFinderId.empty) existingId = byFinderId.docs[0].id;
+        }
+        if (!existingId) {
+            const byTitleDate = await db.collection('opportunities')
+                .where('title', '==', event.title)
+                .where('date', '==', event.date)
+                .limit(1)
+                .get();
+            if (!byTitleDate.empty) existingId = byTitleDate.docs[0].id;
+        }
+
+        // Map Event Finder fields → Portal Opportunity fields
+        const opportunity: any = {
+            tenantId: 'hmc-health',
+            title: event.title,
+            description: event.description || '',
+            category: event.program || 'Health Fair',
+            serviceLocation: event.location || event.city || '',
+            address: event.address || '',
+            date: event.date,
+            dateDisplay: event.dateDisplay || '',
+            time: event.time || '',
+            staffingQuotas: [],
+            isPublic: true,
+            isPublicFacing: true,
+            urgency: 'medium' as const,
+            requiredSkills: [],
+            slotsTotal: 10,
+            slotsFilled: 0,
+            approvalStatus: 'approved',
+            approvedBy: 'event-finder-sync',
+            approvedAt: new Date().toISOString(),
+            eventFinderId: event.id || null,
+            source: 'event-finder',
+            syncedAt: new Date().toISOString(),
+        };
+        if (event.lat && event.lng) {
+            opportunity.locationCoordinates = { lat: event.lat, lng: event.lng };
+        }
+        if (event.flyerUrl) opportunity.flyerUrl = event.flyerUrl;
+        if (event.websiteUrl) opportunity.websiteUrl = event.websiteUrl;
+        if (event.saveTheDate) opportunity.saveTheDate = event.saveTheDate;
+        if (event.createdAt) opportunity.createdAt = event.createdAt;
+
+        if (existingId) {
+            // Update existing — only update fields that came from Event Finder, preserve portal-specific data
+            const { staffingQuotas, slotsTotal, slotsFilled, approvalStatus, approvedBy, approvedAt, ...updateFields } = opportunity;
+            await db.collection('opportunities').doc(existingId).update({ ...updateFields, syncedAt: new Date().toISOString() });
+            console.log(`[SYNC] Updated existing opportunity ${existingId} from Event Finder (${event.title})`);
+            return res.json({ id: existingId, action: 'updated' });
+        } else {
+            // Create new opportunity + default shift
+            opportunity.createdAt = opportunity.createdAt || new Date().toISOString();
+            const docRef = await db.collection('opportunities').add(opportunity);
+
+            // Parse time to create a shift (e.g. "9:00 AM - 2:00 PM")
+            let startTime = '09:00:00', endTime = '14:00:00';
+            if (event.time) {
+                const timeParts = event.time.split('-').map((t: string) => t.trim());
+                const parse12h = (t: string) => {
+                    const match = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                    if (!match) return null;
+                    let h = parseInt(match[1]);
+                    const m = match[2];
+                    if (match[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+                    if (match[3].toUpperCase() === 'AM' && h === 12) h = 0;
+                    return `${String(h).padStart(2, '0')}:${m}:00`;
+                };
+                if (timeParts[0]) startTime = parse12h(timeParts[0]) || startTime;
+                if (timeParts[1]) endTime = parse12h(timeParts[1]) || endTime;
+            }
+
+            const defaultShift = {
+                tenantId: 'hmc-health',
+                opportunityId: docRef.id,
+                roleType: 'Core Volunteer',
+                slotsTotal: 10,
+                slotsFilled: 0,
+                assignedVolunteerIds: [],
+                startTime: `${event.date}T${startTime}`,
+                endTime: `${event.date}T${endTime}`,
+            };
+            await db.collection('shifts').add(defaultShift);
+
+            console.log(`[SYNC] Created new opportunity ${docRef.id} from Event Finder (${event.title})`);
+            return res.json({ id: docRef.id, action: 'created' });
+        }
+    } catch (error: any) {
+        console.error('[SYNC] Failed to sync event from Event Finder:', error);
+        res.status(500).json({ error: 'Failed to sync event' });
+    }
+});
+
 // POST /api/public/checkin - Public endpoint for event check-in
 app.post('/api/public/checkin', rateLimit(20, 60000), async (req: Request, res: Response) => {
     try {
