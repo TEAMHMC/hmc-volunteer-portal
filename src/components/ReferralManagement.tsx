@@ -1247,8 +1247,10 @@ const FlaggedClientsView: React.FC<{
   const [typeFilter, setTypeFilter] = useState<'all' | 'bloodPressure' | 'glucose'>('all');
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high'>('all');
   const [daysFilter, setDaysFilter] = useState<7 | 30 | 90>(90);
-  const [creatingReferralFor, setCreatingReferralFor] = useState<FlaggedScreening | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [referralModal, setReferralModal] = useState<FlaggedScreening | null>(null);
+  const [creatingId, setCreatingId] = useState<string | null>(null);
+  const [selectedResource, setSelectedResource] = useState<ReferralResource | null>(null);
+  const [referralNotes, setReferralNotes] = useState('');
 
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - daysFilter);
@@ -1290,33 +1292,71 @@ const FlaggedClientsView: React.FC<{
     return 'Standard';
   };
 
-  const handleCreateReferral = async (screening: FlaggedScreening) => {
-    if (!screening.clientId) {
+  // Match resources by medical service category keywords
+  const getMatchedResources = (screening: FlaggedScreening) => {
+    const hasBP = screening.flags?.bloodPressure?.level && screening.flags.bloodPressure.level !== 'normal';
+    const hasGlucose = screening.flags?.glucose?.level && screening.flags.glucose.level !== 'normal';
+    const keywords = ['health', 'medical', 'clinic', 'care'];
+    if (hasBP) keywords.push('blood pressure', 'hypertension', 'cardio', 'heart', 'cardiovascular');
+    if (hasGlucose) keywords.push('diabetes', 'glucose', 'endocrin');
+
+    return resources.filter(r => {
+      if (r['Active / Inactive'] === 'unchecked') return false;
+      const text = `${r['Service Category']} ${r['Key Offerings']} ${r['Resource Name']}`.toLowerCase();
+      return keywords.some(kw => text.includes(kw));
+    });
+  };
+
+  const openReferralModal = (screening: FlaggedScreening) => {
+    setReferralModal(screening);
+    setSelectedResource(null);
+    setReferralNotes('');
+    // Auto-select first matched resource
+    const matched = getMatchedResources(screening);
+    if (matched.length > 0) setSelectedResource(matched[0]);
+  };
+
+  const handleCreateReferral = async () => {
+    if (!referralModal) return;
+    if (!referralModal.clientId) {
       toastService.error('No client ID linked to this screening');
       return;
     }
-    setIsCreating(true);
+    setCreatingId(referralModal.id);
     try {
       await apiService.post('/api/referrals/create', {
         referral: {
-          clientId: screening.clientId,
-          clientName: screening.clientName,
-          serviceNeeded: getServiceNeeded(screening),
-          urgency: getUrgency(screening),
-          notes: `Auto-created from flagged screening. ${screening.clinicalAction ? 'Clinical action: ' + screening.clinicalAction : ''}`.trim(),
+          clientId: referralModal.clientId,
+          clientName: referralModal.clientName,
+          serviceNeeded: getServiceNeeded(referralModal),
+          urgency: getUrgency(referralModal),
+          referredTo: selectedResource?.['Resource Name'] || 'Pending assignment',
+          referredToDetails: selectedResource ? {
+            resourceId: selectedResource.id,
+            name: selectedResource['Resource Name'],
+            category: selectedResource['Service Category'],
+            phone: selectedResource['Contact Phone'],
+            email: selectedResource['Contact Email'],
+            address: selectedResource['Address'],
+            intakeNotes: selectedResource['Intake / Referral Process Notes'] || '',
+          } : undefined,
+          matchReason: selectedResource
+            ? `Matched by service category: ${selectedResource['Service Category']}. Offerings: ${selectedResource['Key Offerings']?.substring(0, 120)}`
+            : 'No matching resource found — manual assignment needed',
+          notes: (referralNotes || `Auto-created from flagged screening. ${referralModal.clinicalAction ? 'Clinical action: ' + referralModal.clinicalAction : ''}`).trim(),
           status: 'Pending',
           referralDate: new Date().toISOString(),
-          screeningId: screening.id,
-          medicalFlagType: screening.flags?.bloodPressure ? 'bloodPressure' : 'glucose',
+          screeningId: referralModal.id,
+          medicalFlagType: referralModal.flags?.bloodPressure ? 'bloodPressure' : 'glucose',
         }
       });
-      toastService.success('Referral created from screening!');
-      setCreatingReferralFor(null);
+      toastService.success(`Referral created${selectedResource ? ` → ${selectedResource['Resource Name']}` : ''}`);
+      setReferralModal(null);
       onRefresh();
     } catch {
       toastService.error('Failed to create referral');
     } finally {
-      setIsCreating(false);
+      setCreatingId(null);
     }
   };
 
@@ -1330,7 +1370,7 @@ const FlaggedClientsView: React.FC<{
         <div className="flex items-center gap-2 text-sm">
           <Activity size={16} className="text-red-500" />
           <span className="font-bold text-red-600">{filtered.length}</span>
-          <span className="text-zinc-500">flagged screening{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="text-zinc-500">flagged client{filtered.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
@@ -1399,7 +1439,12 @@ const FlaggedClientsView: React.FC<{
 
                 return (
                   <tr key={s.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
-                    <td className="py-3 px-4 font-bold text-zinc-800">{s.clientName}</td>
+                    <td className="py-3 px-4">
+                      <span className="font-bold text-zinc-800">{s.clientName}</span>
+                      {(s as any).screeningCount > 1 && (
+                        <span className="ml-2 px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded text-[9px] font-bold">{(s as any).screeningCount} screenings</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="flex gap-1">
                         {flagTypes.map(f => (
@@ -1431,11 +1476,11 @@ const FlaggedClientsView: React.FC<{
                         </span>
                       ) : (
                         <button
-                          onClick={() => handleCreateReferral(s)}
-                          disabled={isCreating || !s.clientId}
+                          onClick={() => openReferralModal(s)}
+                          disabled={creatingId === s.id || !s.clientId}
                           className="px-3 py-1.5 bg-brand text-white rounded-full text-[10px] font-bold uppercase tracking-wide hover:scale-105 transition-transform disabled:opacity-50"
                         >
-                          {isCreating ? <Loader2 size={12} className="animate-spin" /> : 'Create Referral'}
+                          {creatingId === s.id ? <Loader2 size={12} className="animate-spin" /> : 'Create Referral'}
                         </button>
                       )}
                     </td>
@@ -1444,6 +1489,107 @@ const FlaggedClientsView: React.FC<{
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Referral Creation Modal */}
+      {referralModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setReferralModal(null)}>
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl border border-zinc-100 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-zinc-100">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black tracking-tight">Create Referral</h3>
+                <button onClick={() => setReferralModal(null)} className="p-2 hover:bg-zinc-100 rounded-xl"><X size={18} /></button>
+              </div>
+              <p className="text-sm text-zinc-500 mt-1">for <span className="font-bold text-zinc-700">{referralModal.clientName}</span></p>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Screening Summary */}
+              <div className="bg-zinc-50 rounded-xl p-4 space-y-2">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Screening Summary</p>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <span className="font-bold">{getServiceNeeded(referralModal)}</span>
+                </div>
+                <div className="flex gap-2 text-xs text-zinc-500">
+                  {referralModal.vitals.systolic && referralModal.vitals.diastolic && (
+                    <span>BP: {referralModal.vitals.systolic}/{referralModal.vitals.diastolic}</span>
+                  )}
+                  {referralModal.vitals.glucose && <span>Glucose: {referralModal.vitals.glucose}</span>}
+                  <span>Urgency: <span className="font-bold text-zinc-700">{getUrgency(referralModal)}</span></span>
+                </div>
+              </div>
+
+              {/* Matched Resources */}
+              <div>
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Refer To</p>
+                {(() => {
+                  const matched = getMatchedResources(referralModal);
+                  if (matched.length === 0) return (
+                    <div className="text-sm text-zinc-400 bg-zinc-50 rounded-xl p-4 text-center">
+                      No matching medical resources found. Referral will be created for manual assignment.
+                    </div>
+                  );
+                  return (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {matched.map(r => (
+                        <button
+                          key={r.id || r['Resource Name']}
+                          onClick={() => setSelectedResource(r)}
+                          className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                            selectedResource?.['Resource Name'] === r['Resource Name']
+                              ? 'border-brand bg-brand/5'
+                              : 'border-zinc-100 hover:border-zinc-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-sm text-zinc-800">{r['Resource Name']}</p>
+                              <p className="text-xs text-zinc-500 mt-0.5">{r['Service Category']}</p>
+                              {r['Key Offerings'] && (
+                                <p className="text-xs text-zinc-400 mt-1 line-clamp-1">{r['Key Offerings'].substring(0, 100)}</p>
+                              )}
+                            </div>
+                            {selectedResource?.['Resource Name'] === r['Resource Name'] && (
+                              <CheckCircle size={18} className="text-brand shrink-0 mt-0.5" />
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-zinc-400">
+                            {r['Contact Phone'] && <span>{r['Contact Phone']}</span>}
+                            {r['Address'] && <span>{r['Address'].substring(0, 40)}</span>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Notes (optional)</p>
+                <textarea
+                  value={referralNotes}
+                  onChange={e => setReferralNotes(e.target.value)}
+                  className="w-full p-3 bg-zinc-50 border-2 border-zinc-100 rounded-xl text-sm resize-none h-20 outline-none focus:border-brand/30"
+                  placeholder="Additional context for this referral..."
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setReferralModal(null)} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide text-sm">Cancel</button>
+                <button
+                  onClick={handleCreateReferral}
+                  disabled={creatingId === referralModal.id}
+                  className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide text-sm disabled:opacity-50 shadow-elevation-2 flex items-center justify-center gap-2"
+                >
+                  {creatingId === referralModal.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                  {selectedResource ? `Refer to ${selectedResource['Resource Name'].substring(0, 20)}` : 'Create Referral'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

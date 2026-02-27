@@ -23,7 +23,7 @@ interface BoardMeeting {
   title: string;
   date: string;
   time: string;
-  type: 'board' | 'committee' | 'cab' | 'emergency';
+  type: 'board' | 'committee' | 'cab' | 'emergency' | 'team' | 'standup' | 'planning';
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'pending_approval';
   googleMeetLink?: string;
   agenda?: string[];
@@ -320,10 +320,19 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     setShowDonationModal(null);
   };
 
+  const refetchMeetings = useCallback(async () => {
+    try {
+      const data = await apiService.get('/api/board/meetings');
+      if (Array.isArray(data)) setMeetings(data);
+    } catch { /* silent */ }
+  }, []);
+
   const handleCreateMeeting = async (meetingData: Partial<BoardMeeting>) => {
     try {
       const result = await apiService.post('/api/board/meetings', meetingData);
-      if (result?.id) setMeetings(prev => [...prev, result as BoardMeeting]);
+      if (result?.id) setMeetings(prev => [...prev, { ...result, rsvps: result.rsvps || [] } as BoardMeeting]);
+      // Re-fetch from server to confirm persistence
+      setTimeout(() => refetchMeetings(), 2000);
     } catch {
       toastService.error('Operation failed. Please try again.');
     }
@@ -344,6 +353,10 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
   const getUserRsvpStatus = (meeting: BoardMeeting) => {
     return meeting.rsvps.find(r => r.odId === user.id)?.status;
   };
+
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingMeetings = meetings.filter(m => m.status === 'scheduled' && m.date >= today);
+  const pastMeetings = meetings.filter(m => m.status === 'completed' || (m.status === 'scheduled' && m.date < today));
 
   if (loading) {
     return (
@@ -417,14 +430,14 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               <h3 className="text-base md:text-xl font-bold text-zinc-900">Upcoming Meetings</h3>
             </div>
             <div className="divide-y divide-zinc-100">
-              {meetings.filter(m => m.status === 'scheduled').length === 0 && (
+              {upcomingMeetings.length === 0 && (
                 <div className="p-4 md:p-8 text-center text-zinc-400">
                   <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No upcoming meetings scheduled</p>
                   <p className="text-sm text-zinc-600 mt-1">New meetings will appear here once scheduled.</p>
                 </div>
               )}
-              {meetings.filter(m => m.status === 'scheduled').map(meeting => (
+              {upcomingMeetings.map(meeting => (
                 <div key={meeting.id} className="p-6 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -527,17 +540,17 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           {/* Past Meetings with Minutes */}
           <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
             <div className="p-4 md:p-8 border-b border-zinc-100">
-              <h3 className="text-base md:text-xl font-bold text-zinc-900">Meeting Minutes</h3>
-              <p className="text-sm text-zinc-600 mt-1">Review and approve minutes from past meetings</p>
+              <h3 className="text-base md:text-xl font-bold text-zinc-900">Past Meetings</h3>
+              <p className="text-sm text-zinc-600 mt-1">Past and completed meetings — review and approve minutes</p>
             </div>
             <div className="divide-y divide-zinc-100">
-              {meetings.filter(m => m.status === 'completed').length === 0 && (
+              {pastMeetings.length === 0 && (
                 <div className="p-4 md:p-8 text-center text-zinc-400">
                   <FileText size={40} className="mx-auto mb-4 opacity-30" />
-                  <p className="text-zinc-400 font-bold text-sm">No completed meetings yet</p>
+                  <p className="text-zinc-400 font-bold text-sm">No past meetings yet</p>
                 </div>
               )}
-              {meetings.filter(m => m.status === 'completed').map(meeting => (
+              {pastMeetings.map(meeting => (
                 <div key={meeting.id} className="p-6 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -1168,7 +1181,7 @@ const MeetingFormModal: React.FC<{
   const [title, setTitle] = useState(meeting?.title || '');
   const [date, setDate] = useState(meeting?.date || '');
   const [time, setTime] = useState(meeting?.time || '5:30 PM PT');
-  const [type, setType] = useState<'board' | 'committee' | 'cab'>(meeting?.type === 'emergency' ? 'board' : (meeting?.type || 'board'));
+  const [type, setType] = useState<BoardMeeting['type']>(meeting?.type === 'emergency' ? 'board' : (meeting?.type || 'team'));
   const [meetLink, setMeetLink] = useState(meeting?.googleMeetLink || '');
   const [agendaText, setAgendaText] = useState(meeting?.agenda?.join('\n') || '');
 
@@ -1200,6 +1213,9 @@ const MeetingFormModal: React.FC<{
               <option value="board">Board Meeting</option>
               <option value="committee">Committee Meeting</option>
               <option value="cab">Community Advisory Board</option>
+              <option value="team">Team Meeting</option>
+              <option value="standup">Standup / Check-in</option>
+              <option value="planning">Planning Session</option>
             </select>
           </div>
           <div>

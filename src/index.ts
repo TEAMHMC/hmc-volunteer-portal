@@ -3462,7 +3462,7 @@ app.put('/api/referrals/:id', verifyToken, requireAdmin, async (req: Request, re
         if (!req.body.referral) return res.status(400).json({ error: 'Referral data required' });
         const doc = await db.collection('referrals').doc(req.params.id).get();
         if (!doc.exists) return res.status(404).json({ error: 'Referral not found' });
-        const referralUpdates = pickFields(req.body.referral, ['clientId', 'resourceId', 'status', 'notes', 'matchedDate', 'completedDate', 'rating', 'priority', 'assignedTo', 'outcome', 'screeningId', 'medicalFlagType', 'serviceNeeded', 'urgency']);
+        const referralUpdates = pickFields(req.body.referral, ['clientId', 'resourceId', 'status', 'notes', 'matchedDate', 'completedDate', 'rating', 'priority', 'assignedTo', 'outcome', 'screeningId', 'medicalFlagType', 'serviceNeeded', 'urgency', 'referredTo', 'referredToDetails', 'matchReason']);
         await db.collection('referrals').doc(req.params.id).update(referralUpdates);
         res.json({ id: req.params.id, ...referralUpdates });
     } catch (error: any) {
@@ -10771,7 +10771,10 @@ app.get('/api/board/meetings', verifyToken, async (req: Request, res: Response) 
       return res.status(403).json({ error: 'Access required' });
     }
     const meetingsSnap = await db.collection('board_meetings').orderBy('date', 'asc').get();
-    const meetings = meetingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const meetings = meetingsSnap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, ...data, rsvps: data.rsvps || [], googleMeetLink: data.googleMeetLink || data.meetingLink || undefined };
+    });
     res.json(meetings);
   } catch (e) { console.error('[Board] Failed to fetch meetings:', e); res.status(500).json({ error: 'Failed to fetch meetings' }); }
 });
@@ -10785,13 +10788,14 @@ app.post('/api/board/meetings', verifyToken, async (req: Request, res: Response)
       return res.status(403).json({ error: 'Only admins, board members, coordinators, and leads can manage meetings' });
     }
     const { id } = req.body;
-    const meetingData = pickFields(req.body, ['title', 'description', 'date', 'time', 'location', 'type', 'agenda', 'meetingLink', 'status', 'notes', 'documents', 'minutesContent']);
+    const meetingData = pickFields(req.body, ['title', 'description', 'date', 'time', 'location', 'type', 'agenda', 'meetingLink', 'googleMeetLink', 'status', 'notes', 'documents', 'minutesContent', 'rsvps']);
     if (id) {
       await db.collection('board_meetings').doc(id).set(meetingData, { merge: true });
       res.json({ id, ...meetingData });
     } else {
-      const ref = await db.collection('board_meetings').add({ ...meetingData, createdBy: user.uid, createdAt: new Date().toISOString() });
-      res.json({ id: ref.id, ...meetingData });
+      const fullData = { ...meetingData, rsvps: meetingData.rsvps || [], createdBy: user.uid, createdAt: new Date().toISOString() };
+      const ref = await db.collection('board_meetings').add(fullData);
+      res.json({ id: ref.id, ...fullData });
     }
   } catch (e: any) { console.error('[Board] Meeting save failed:', e); res.status(500).json({ error: 'Failed to save meeting' }); }
 });
@@ -11752,8 +11756,28 @@ app.get('/api/screenings/flagged', verifyToken, requireAdmin, async (req: Reques
         // Sort newest first
         flaggedScreenings.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
+        // Dedup by client — keep the most recent screening per client (highest severity wins on tie)
+        const severityRank: Record<string, number> = { critical: 3, high: 2, medium: 1, normal: 0 };
+        const clientMap = new Map<string, any>();
+        for (const s of flaggedScreenings) {
+            const key = s.clientId || s.clientName || s.id; // fall back to name or screening id
+            const existing = clientMap.get(key);
+            if (!existing) {
+                clientMap.set(key, { ...s, screeningCount: 1 });
+            } else {
+                existing.screeningCount += 1;
+                // Keep the one with higher severity
+                const existingSev = Math.max(severityRank[existing.flags?.bloodPressure?.level] || 0, severityRank[existing.flags?.glucose?.level] || 0);
+                const newSev = Math.max(severityRank[s.flags?.bloodPressure?.level] || 0, severityRank[s.flags?.glucose?.level] || 0);
+                if (newSev > existingSev || (newSev === existingSev && (s.date || '') > (existing.date || ''))) {
+                    clientMap.set(key, { ...s, screeningCount: existing.screeningCount });
+                }
+            }
+        }
+        const dedupedScreenings = Array.from(clientMap.values());
+
         // Check which clients already have referrals
-        const clientIds = [...new Set(flaggedScreenings.map(s => s.clientId).filter(Boolean))];
+        const clientIds = [...new Set(dedupedScreenings.map(s => s.clientId).filter(Boolean))];
         const referralMap: Record<string, string> = {};
         if (clientIds.length > 0) {
             // Query referrals for these clients — batch in groups of 10 for Firestore 'in' limit
@@ -11767,7 +11791,7 @@ app.get('/api/screenings/flagged', verifyToken, requireAdmin, async (req: Reques
             }
         }
 
-        const results = flaggedScreenings.map(s => ({
+        const results = dedupedScreenings.map(s => ({
             ...s,
             hasReferral: !!referralMap[s.clientId],
             referralStatus: referralMap[s.clientId] || null,

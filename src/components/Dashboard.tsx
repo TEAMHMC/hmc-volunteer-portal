@@ -430,7 +430,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     if (GOVERNANCE_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'governance', label: 'Governance', icon: Briefcase });
     }
-    if (canAccessOperationalTools && COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) {
+    if (COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role) || GOVERNANCE_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'meetings', label: 'Meetings', icon: Calendar });
     }
     if (canAccessOperationalTools && EVENT_MANAGEMENT_ROLES.includes(displayUser.role)) {
@@ -449,6 +449,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         label: 'ADMIN',
         items: [
           { id: 'event-management', label: 'Event Management', icon: CalendarDays },
+          { id: 'meetings', label: 'Meetings', icon: Calendar },
           { id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount },
           { id: 'referrals', label: 'Referrals', icon: Send },
           { id: 'resources', label: 'Resources', icon: Database },
