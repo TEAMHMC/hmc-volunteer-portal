@@ -157,6 +157,10 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
   const GOVERNANCE_ROLES = ['board_member', 'community_advisory_board'];
   const isGovernanceRole = GOVERNANCE_ROLES.includes(primarySlug) || GOVERNANCE_ROLES.includes(appliedSlug);
 
+  // Application must be approved before Tier 2+ trainings are shown
+  // HMC Champions with pending applications only see Tier 1 (orientation)
+  const isApplicationApproved = user.applicationStatus === 'approved' || user.appliedRoleStatus === 'approved' || (user.role !== 'HMC Champion' && user.role !== '');
+
   // Modules that require a typed legal signature (governance policies + clinical docs)
   const requiresSignature = (mod: TrainingModule) =>
     mod.format === 'read_ack' && (mod.id.startsWith('gov_') || mod.programAssociation === 'clinical');
@@ -628,7 +632,11 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           </div>
           <div>
             <h4 className="text-sm md:text-lg font-black text-brand">Orientation Complete!</h4>
-            <p className="text-brand font-bold">Welcome to HMC! Continue with Baseline Training below to unlock My Missions.</p>
+            <p className="text-brand font-bold">
+              {isApplicationApproved
+                ? 'Welcome to HMC! Continue with Baseline Training below to unlock My Missions.'
+                : 'Welcome to HMC! Your application is under review. Additional training will unlock once approved.'}
+            </p>
           </div>
         </div>
       )}
@@ -704,7 +712,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* ===== TIER 2: BASELINE OPERATIONAL ===== */}
       {/* For governance roles: optional collapsed section for field access */}
       {/* For operational roles: required section */}
-      {isGovernanceRole && tier1Complete && (
+      {isGovernanceRole && tier1Complete && isApplicationApproved && (
         <div className="pt-8 border-t border-zinc-100">
           <button
             onClick={() => setShowFieldAccess(!showFieldAccess)}
@@ -736,8 +744,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           )}
         </div>
       )}
-      {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete) ===== */}
-      {!isGovernanceRole && tier1Complete && (
+      {/* ===== TIER 2A: CORE BASELINE (hidden until Tier 1 complete AND application approved) ===== */}
+      {!isGovernanceRole && tier1Complete && isApplicationApproved && (
         <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier2')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
@@ -764,7 +772,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* ===== TIER 2B: FIELD READINESS (collapsed, shown after Core Baseline) ===== */}
-      {!isGovernanceRole && tier2CoreComplete && (
+      {!isGovernanceRole && tier2CoreComplete && isApplicationApproved && (
         <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button
             onClick={() => setShowFieldAccess(!showFieldAccess)}
@@ -798,7 +806,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* ===== TIER 3: PROGRAM-SPECIFIC CLEARANCE (hidden for governance roles) ===== */}
-      {tier2CoreComplete && !isGovernanceRole && (
+      {tier2CoreComplete && !isGovernanceRole && isApplicationApproved && (
         <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier3')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
@@ -845,7 +853,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* ===== ROLE-SPECIFIC TRAINING ===== */}
-      {roleModules.length > 0 && tier1Complete && (
+      {roleModules.length > 0 && tier1Complete && isApplicationApproved && (
         <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('role')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">
@@ -865,7 +873,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       )}
 
       {/* ===== TIER 4: RECOMMENDED (Non-blocking, 30-day deadline, hidden for governance) ===== */}
-      {tier2CoreComplete && !isGovernanceRole && (
+      {tier2CoreComplete && !isGovernanceRole && isApplicationApproved && (
         <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
           <button onClick={() => toggleTier('tier4')} className="w-full flex items-center gap-4 p-6 md:p-8 hover:bg-zinc-50/50 transition-colors">
             <div className="flex-1 text-left">

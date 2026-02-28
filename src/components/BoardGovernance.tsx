@@ -23,7 +23,7 @@ interface BoardMeeting {
   title: string;
   date: string;
   time: string;
-  type: 'board' | 'committee' | 'cab' | 'emergency' | 'team' | 'standup' | 'planning';
+  type: 'board' | 'committee' | 'cab' | 'emergency' | 'team' | 'standup' | 'planning' | 'all-hands';
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'pending_approval';
   googleMeetLink?: string;
   agenda?: string[];
@@ -154,6 +154,65 @@ Next meeting: [Date, Time]
 Respectfully submitted,
 [Secretary Name], Board Secretary
 Date approved: [Date]`;
+
+const TEAM_MINUTES_TEMPLATE = `HEALTH MATTERS CLINIC
+ALL-HANDS / TEAM MEETING NOTES
+
+Date: [DATE]
+Time: [TIME]
+Location: [LOCATION / Google Meet]
+Facilitator: [Name]
+
+─────────────────────────────────────
+ATTENDEES
+─────────────────────────────────────
+Present: [Names]
+Absent: [Names]
+
+─────────────────────────────────────
+WELCOME & OPENING
+─────────────────────────────────────
+[Opening remarks]
+
+─────────────────────────────────────
+ANNOUNCEMENTS
+─────────────────────────────────────
+[Announcements and updates]
+
+─────────────────────────────────────
+TEAM UPDATES
+─────────────────────────────────────
+[Team/department updates]
+
+─────────────────────────────────────
+DISCUSSION ITEMS
+─────────────────────────────────────
+[Topic — discussion — outcome]
+
+─────────────────────────────────────
+Q & A
+─────────────────────────────────────
+[Questions and answers from the group]
+
+─────────────────────────────────────
+ACTION ITEMS
+─────────────────────────────────────
+[ ] [Action item] — Owner: [Name] — Due: [Date]
+[ ] [Action item] — Owner: [Name] — Due: [Date]
+
+─────────────────────────────────────
+NEXT MEETING
+─────────────────────────────────────
+Date: [Next meeting date]
+Notes by: [Name]`;
+
+const getMinutesTemplate = (meeting: BoardMeeting) => {
+  const isFormal = meeting.type === 'board' || meeting.type === 'committee' || meeting.type === 'cab' || meeting.type === 'emergency';
+  const template = isFormal ? MINUTES_TEMPLATE : TEAM_MINUTES_TEMPLATE;
+  return template
+    .replace('[DATE]', new Date(meeting.date + 'T00:00:00').toLocaleDateString())
+    .replace('[TIME]', meeting.time || '');
+};
 
 const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly }) => {
   const [activeTab, setActiveTab] = useState<'meetings' | 'forms' | 'documents' | 'give-or-get'>('meetings');
@@ -1065,7 +1124,7 @@ const MinutesReviewModal: React.FC<{
   const [revisionNote, setRevisionNote] = useState('');
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [editing, setEditing] = useState(!meeting.minutesContent);
-  const [editContent, setEditContent] = useState(meeting.minutesContent || MINUTES_TEMPLATE.replace('[DATE]', new Date(meeting.date + 'T00:00:00').toLocaleDateString()).replace('[TIME]', meeting.time || ''));
+  const [editContent, setEditContent] = useState(meeting.minutesContent || getMinutesTemplate(meeting));
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
@@ -1213,6 +1272,7 @@ const MeetingFormModal: React.FC<{
               <option value="board">Board Meeting</option>
               <option value="committee">Committee Meeting</option>
               <option value="cab">Community Advisory Board</option>
+              <option value="all-hands">All-Hands Meeting</option>
               <option value="team">Team Meeting</option>
               <option value="standup">Standup / Check-in</option>
               <option value="planning">Planning Session</option>
@@ -1220,18 +1280,8 @@ const MeetingFormModal: React.FC<{
           </div>
           <div>
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Google Meet Link</label>
-            <div className="flex gap-2 mt-1">
-              <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="flex-1 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="https://meet.google.com/..." />
-              <button
-                onClick={() => window.open('https://meet.google.com/new', '_blank')}
-                className="px-4 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors flex items-center gap-2 shrink-0"
-                title="Opens Google Meet — create a meeting, copy the link, paste it here"
-              >
-                <ExternalLink size={14} />
-                Create
-              </button>
-            </div>
-            <p className="text-xs text-zinc-400 mt-1.5">Click "Create" to open Google Meet, then copy the link back here.</p>
+            <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="Paste a Google Meet link here..." />
+            <p className="text-xs text-zinc-400 mt-1.5">Paste an existing Google Meet or Zoom link, or leave blank to add later.</p>
           </div>
           <div>
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Agenda Items (one per line)</label>

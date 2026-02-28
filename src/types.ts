@@ -461,6 +461,8 @@ export type TicketCategory =
     | 'scheduling'
     | 'compliance'
     | 'feedback'
+    | 'task'
+    | 'project'
     | 'other';
 
 export type TicketType = 'support' | 'task' | 'project';

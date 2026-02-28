@@ -12107,39 +12107,6 @@ app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res
   res.sendStatus(200);
 });
 
-// --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
-const buildPath = path.resolve(process.cwd(), 'dist/client');
-// Serve public/documents directly (clinical onboarding HTML files) — ensures they're available
-// even before a fresh build copies them to dist/client
-const publicDocsPath = path.resolve(process.cwd(), 'public/documents');
-app.use('/documents', express.static(publicDocsPath));
-app.use(express.static(buildPath, { index: false }));
-
-app.get('*', (req: Request, res: Response) => {
-    const indexPath = path.join(buildPath, 'index.html');
-    fs.readFile(indexPath, 'utf8', (err, htmlData) => {
-        if (err) {
-            console.error('[SERVER] Error reading index.html:', err);
-            return res.status(500).send('Error loading application.');
-        }
-
-        // Robustly find environment variables, checking common naming conventions.
-        const envConfig = {
-            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
-            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
-        };
-        
-        console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
-        
-        const injectedHtml = htmlData.replace(
-            '<!--__ENV_CONFIG__-->',
-            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
-        );
-
-        res.send(injectedHtml);
-    });
-});
-
 // --- ADMIN SETUP ENDPOINT (One-time setup) ---
 app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Response) => {
   const { email, setupKey } = req.body;
@@ -12468,6 +12435,40 @@ app.post('/api/org-calendar/:eventId/rsvp', verifyToken, async (req: Request, re
   } catch (e: any) {
     console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// --- SERVE FRONTEND & INJECT RUNTIME CONFIG ---
+// IMPORTANT: This MUST come after all API routes so the catch-all doesn't intercept API requests
+const buildPath = path.resolve(process.cwd(), 'dist/client');
+// Serve public/documents directly (clinical onboarding HTML files) — ensures they're available
+// even before a fresh build copies them to dist/client
+const publicDocsPath = path.resolve(process.cwd(), 'public/documents');
+app.use('/documents', express.static(publicDocsPath));
+app.use(express.static(buildPath, { index: false }));
+
+app.get('*', (req: Request, res: Response) => {
+    const indexPath = path.join(buildPath, 'index.html');
+    fs.readFile(indexPath, 'utf8', (err, htmlData) => {
+        if (err) {
+            console.error('[SERVER] Error reading index.html:', err);
+            return res.status(500).send('Error loading application.');
+        }
+
+        // Robustly find environment variables, checking common naming conventions.
+        const envConfig = {
+            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
+            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
+        };
+
+        console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
+
+        const injectedHtml = htmlData.replace(
+            '<!--__ENV_CONFIG__-->',
+            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
+        );
+
+        res.send(injectedHtml);
+    });
 });
 
 // --- ADMIN BOOTSTRAP ---

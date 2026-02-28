@@ -3362,9 +3362,14 @@ const SidewalkLayoutCanvas: React.FC<{
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
+    // Defensive: guard against null/undefined data from server
+    const safeStations = stations || [];
+    const safeRotationSlots = rotationSlots || [];
+    const safeRovingTeam = rovingTeam || { status: 'inactive' as const, assignedPairIds: [] };
+
     const getCurrentPairForStation = (stationId: string): BuddyPair | undefined => {
         const now = new Date();
-        const currentSlot = rotationSlots.find(slot => {
+        const currentSlot = safeRotationSlots.find(slot => {
             const [sh, sm] = slot.startTime.split(':').map(Number);
             const [eh, em] = slot.endTime.split(':').map(Number);
             const slotStart = new Date(); slotStart.setHours(sh, sm, 0, 0);
@@ -3372,13 +3377,13 @@ const SidewalkLayoutCanvas: React.FC<{
             return now >= slotStart && now < slotEnd;
         });
         if (!currentSlot) return undefined;
-        const assignment = currentSlot.assignments.find(a => a.stationId === stationId);
+        const assignment = (currentSlot.assignments || []).find(a => a.stationId === stationId);
         if (!assignment) return undefined;
         return buddyPairs.find(p => p.id === assignment.pairId);
     };
 
     const applyTemplate = (template: string) => {
-        const updated = stations.map((s, i) => {
+        const updated = safeStations.map((s, i) => {
             const st = { ...s };
             switch (template) {
                 case 'linear':
@@ -3410,13 +3415,16 @@ const SidewalkLayoutCanvas: React.FC<{
             position: { x: 20, y: 200 },
             width: 110,
             height: 70,
+            roleA: 'Role A',
+            roleB: 'Role B',
+            swapRoles: false,
         };
-        onUpdateStations([...stations, newStation]);
+        onUpdateStations([...safeStations, newStation]);
         setSelectedStationId(newId); // Auto-select for immediate renaming
     };
 
     const handleRemoveStation = (id: string) => {
-        onUpdateStations(stations.filter(s => s.id !== id));
+        onUpdateStations(safeStations.filter(s => s.id !== id));
     };
 
     // Desktop drag-and-drop
@@ -3428,14 +3436,14 @@ const SidewalkLayoutCanvas: React.FC<{
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         if (!draggingId || !canvasRef.current) return;
-        const draggingStation = stations.find(s => s.id === draggingId);
+        const draggingStation = safeStations.find(s => s.id === draggingId);
         if (!draggingStation) return;
         const w = draggingStation.rotation === 90 ? draggingStation.height : draggingStation.width;
         const h = draggingStation.rotation === 90 ? draggingStation.width : draggingStation.height;
         const rect = canvasRef.current.getBoundingClientRect();
         const x = Math.max(0, Math.min(canvasWidth - w, e.clientX - rect.left - w / 2));
         const y = Math.max(0, Math.min(canvasHeight - h, e.clientY - rect.top - h / 2));
-        const updated = stations.map(s =>
+        const updated = safeStations.map(s =>
             s.id === draggingId ? { ...s, position: { x: Math.round(x), y: Math.round(y) } } : s
         );
         onUpdateStations(updated);
@@ -3445,14 +3453,14 @@ const SidewalkLayoutCanvas: React.FC<{
     // Mobile tap-to-move
     const handleCanvasTap = (e: React.MouseEvent) => {
         if (!selectedStationId || !canvasRef.current) return;
-        const selStation = stations.find(s => s.id === selectedStationId);
+        const selStation = safeStations.find(s => s.id === selectedStationId);
         if (!selStation) return;
         const w = selStation.rotation === 90 ? selStation.height : selStation.width;
         const h = selStation.rotation === 90 ? selStation.width : selStation.height;
         const rect = canvasRef.current.getBoundingClientRect();
         const x = Math.max(0, Math.min(canvasWidth - w, e.clientX - rect.left - w / 2));
         const y = Math.max(0, Math.min(canvasHeight - h, e.clientY - rect.top - h / 2));
-        const updated = stations.map(s =>
+        const updated = safeStations.map(s =>
             s.id === selectedStationId ? { ...s, position: { x: Math.round(x), y: Math.round(y) } } : s
         );
         onUpdateStations(updated);
@@ -3504,7 +3512,7 @@ const SidewalkLayoutCanvas: React.FC<{
 
             {selectedStationId && (
                 <p className="text-xs text-brand font-bold animate-pulse">
-                    Tap on the canvas to move {stations.find(s => s.id === selectedStationId)?.shortName}
+                    Tap on the canvas to move {safeStations.find(s => s.id === selectedStationId)?.shortName}
                 </p>
             )}
 
@@ -3538,7 +3546,7 @@ const SidewalkLayoutCanvas: React.FC<{
                             <polygon points="0 0, 8 3, 0 6" fill="#a1a1aa" />
                         </marker>
                     </defs>
-                    {(flowDirection === 'rtl' ? [...stations].reverse() : stations).slice(0, -1).map((from, i, arr) => {
+                    {(flowDirection === 'rtl' ? [...safeStations].reverse() : safeStations).slice(0, -1).map((from, i, arr) => {
                         const to = arr[i + 1];
                         const fromW = from.rotation === 90 ? from.height : from.width;
                         const fromH = from.rotation === 90 ? from.width : from.height;
@@ -3563,10 +3571,10 @@ const SidewalkLayoutCanvas: React.FC<{
                 </svg>
 
                 {/* Station blocks */}
-                {stations.map(station => {
+                {safeStations.map(station => {
                     const pair = getCurrentPairForStation(station.id);
-                    const isRoving = rovingTeam.status === 'active' && rovingTeam.assignedPairIds.some(pid =>
-                        rotationSlots.some(sl => sl.assignments.some(a => a.pairId === pid && a.stationId === station.id))
+                    const isRoving = safeRovingTeam.status === 'active' && (safeRovingTeam.assignedPairIds || []).some(pid =>
+                        safeRotationSlots.some(sl => (sl.assignments || []).some(a => a.pairId === pid && a.stationId === station.id))
                     );
                     const renderW = station.rotation === 90 ? station.height : station.width;
                     const renderH = station.rotation === 90 ? station.width : station.height;
@@ -3614,7 +3622,7 @@ const SidewalkLayoutCanvas: React.FC<{
                                     </button>
                                     <button
                                         onClick={e => { e.stopPropagation();
-                                            onUpdateStations(stations.map(s => s.id === station.id
+                                            onUpdateStations(safeStations.map(s => s.id === station.id
                                                 ? { ...s, rotation: s.rotation === 90 ? 0 : 90 } : s));
                                         }}
                                         className="absolute -top-2 -left-2 w-5 h-5 bg-brand text-white rounded-full flex items-center justify-center"
@@ -3632,7 +3640,7 @@ const SidewalkLayoutCanvas: React.FC<{
                                         onChange={e => {
                                             const name = e.target.value;
                                             const shortName = name.length > 10 ? name.slice(0, 8) + '..' : name;
-                                            onUpdateStations(stations.map(s => s.id === station.id ? { ...s, name, shortName } : s));
+                                            onUpdateStations(safeStations.map(s => s.id === station.id ? { ...s, name, shortName } : s));
                                         }}
                                         className="flex-1 px-2 py-1 text-[10px] font-bold bg-white border border-brand rounded-lg outline-none shadow-md"
                                         onClick={e => e.stopPropagation()}
@@ -4149,7 +4157,18 @@ const StationRotationPlanner: React.FC<{
             try {
                 const res = await apiService.get(`/api/ops/station-rotation/${eventId}`);
                 if (res.config) {
-                    setConfig(prev => ({ ...prev, ...res.config }));
+                    setConfig(prev => ({
+                        ...prev,
+                        ...res.config,
+                        // Ensure arrays/objects never become null/undefined from server data
+                        stations: Array.isArray(res.config.stations) ? res.config.stations : prev.stations,
+                        buddyPairs: Array.isArray(res.config.buddyPairs) ? res.config.buddyPairs : prev.buddyPairs,
+                        rotationSlots: Array.isArray(res.config.rotationSlots) ? res.config.rotationSlots : prev.rotationSlots,
+                        reallocationLog: Array.isArray(res.config.reallocationLog) ? res.config.reallocationLog : prev.reallocationLog,
+                        rovingTeam: res.config.rovingTeam && typeof res.config.rovingTeam === 'object'
+                            ? { status: res.config.rovingTeam.status || 'inactive', assignedPairIds: Array.isArray(res.config.rovingTeam.assignedPairIds) ? res.config.rovingTeam.assignedPairIds : [] }
+                            : prev.rovingTeam,
+                    }));
                 }
             } catch { /* No config yet, use defaults */ }
             setIsLoading(false);
