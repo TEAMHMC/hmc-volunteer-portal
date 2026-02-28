@@ -95,7 +95,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ isAdmin }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Referral Management</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter uppercase italic">Referral Management</h1>
           <p className="text-sm md:text-lg font-medium text-zinc-500 mt-2">Client intake, referrals, and service coordination</p>
         </div>
         <button
@@ -188,7 +188,7 @@ const DashboardView: React.FC<{
   ];
 
   return (
-    <div className="p-4 md:p-8 space-y-4 md:space-y-8">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-8">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {kpis.map((kpi, i) => (
@@ -353,7 +353,7 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; referrals: ReferralRecord
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-3 sm:p-4 md:p-6">
       {selectedClient ? (
         // Client Detail View
         <div className="space-y-6 animate-in fade-in">
@@ -630,7 +630,7 @@ const ReferralsView: React.FC<{
   });
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-3 sm:p-4 md:p-6">
       <div className="flex items-center gap-4 mb-6">
         <div className="flex gap-2">
           {['all', 'pending', 'urgent'].map(f => (
@@ -691,7 +691,7 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
   const isOverdue = referral.status === 'Pending' && now > deadline;
 
   return (
-    <div className={`p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
+    <div className={`p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow ${isOverdue ? 'bg-rose-50 border-rose-200' : 'bg-white border-zinc-100'}`}>
       <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-2">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -751,16 +751,23 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
 // Resources View
 const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRecord[]; onRefresh: () => void; onSwitchToClients: (resourceName: string) => void }> = ({ resources, clients, onRefresh, onSwitchToClients }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [medicalSubFilter, setMedicalSubFilter] = useState('');
   const [selectedResource, setSelectedResource] = useState<ReferralResource | null>(null);
   const [showMatchClient, setShowMatchClient] = useState(false);
   const [matchClientId, setMatchClientId] = useState('');
   const [matchServiceNeeded, setMatchServiceNeeded] = useState('');
   const [isSavingMatch, setIsSavingMatch] = useState(false);
 
-  const filteredResources = resources.filter(r =>
-    r['Resource Name'].toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r['Service Category']?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const categories = Array.from(new Set(resources.map(r => r['Service Category']).filter(Boolean))).sort();
+  const medicalSubcategories = Array.from(new Set(resources.filter(r => r['Service Category'] === 'Medical' && r['Medical Subcategory']).map(r => r['Medical Subcategory']!).filter(Boolean))).sort();
+
+  const filteredResources = resources.filter(r => {
+    const matchesSearch = !searchQuery || r['Resource Name'].toLowerCase().includes(searchQuery.toLowerCase()) || r['Service Category']?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !categoryFilter || r['Service Category'] === categoryFilter;
+    const matchesMedSub = !medicalSubFilter || r['Medical Subcategory'] === medicalSubFilter;
+    return matchesSearch && matchesCategory && matchesMedSub;
+  });
 
   const handleMatchToClient = async () => {
     if (!selectedResource || !matchClientId) return;
@@ -793,8 +800,8 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRe
   };
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-3 sm:p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
@@ -805,6 +812,16 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRe
             className="w-full pl-12 pr-4 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
           />
         </div>
+        <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setMedicalSubFilter(''); }} className="p-3 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm text-zinc-700 outline-none focus:border-brand/30">
+          <option value="">All Categories</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {categoryFilter === 'Medical' && medicalSubcategories.length > 0 && (
+          <select value={medicalSubFilter} onChange={e => setMedicalSubFilter(e.target.value)} className="p-3 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm text-zinc-700 outline-none focus:border-brand/30">
+            <option value="">All Specialties</option>
+            {medicalSubcategories.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -819,14 +836,34 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRe
                 </div>
               )}
             </div>
-            <p className="text-sm text-brand font-bold mb-2">{resource['Service Category']}</p>
-            <p className="text-sm text-zinc-500 mb-4 line-clamp-2">{resource['Key Offerings']}</p>
+            <p className="text-sm text-brand font-bold mb-1">{resource['Service Category']}</p>
+            {resource['Medical Subcategory'] && (
+              <span className="inline-block text-[10px] font-black uppercase tracking-wide bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mb-2">{resource['Medical Subcategory']}</span>
+            )}
+            <p className="text-sm text-zinc-500 mb-3 line-clamp-2">{resource['Key Offerings']}</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {resource['Insurance Accepted'] && (
+                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">{resource['Insurance Accepted']}</span>
+              )}
+              {resource['Telehealth Available'] && (
+                <span className="text-[10px] font-bold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">Telehealth</span>
+              )}
+              {resource['Walk-In Accepted'] && (
+                <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Walk-In</span>
+              )}
+              {resource['Accepting New Patients'] && (
+                <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Accepting Patients</span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
               {resource['Contact Phone'] && (
                 <span className="flex items-center gap-1"><Phone size={12} /> {resource['Contact Phone']}</span>
               )}
               {resource['SPA'] && (
                 <span className="flex items-center gap-1"><MapPin size={12} /> SPA {resource['SPA']}</span>
+              )}
+              {resource['Provider Credentials'] && (
+                <span className="flex items-center gap-1 text-blue-600 font-bold">{resource['Provider Credentials']}</span>
               )}
             </div>
           </div>
@@ -893,7 +930,7 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
   const [showNewPartner, setShowNewPartner] = useState(false);
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-3 sm:p-4 md:p-6">
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowNewPartner(true)}
@@ -962,7 +999,7 @@ const FeedbackView: React.FC<{ feedback: ServiceFeedback[]; resources: ReferralR
     : 'N/A';
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-3 sm:p-4 md:p-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-8">
         <div className="p-4 md:p-6 bg-amber-50 rounded-3xl border border-amber-100 shadow-elevation-1 text-center">
           <Star size={32} className="mx-auto text-amber-500 mb-2" />
@@ -1361,7 +1398,7 @@ const FlaggedClientsView: React.FC<{
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black tracking-tight uppercase">Flagged Clients</h2>

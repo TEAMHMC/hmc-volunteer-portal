@@ -252,7 +252,7 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
 
     return (
         <div className="animate-in fade-in duration-500">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic mb-8">Client Intake & Referrals</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter uppercase italic mb-8">Client Intake & Referrals</h2>
 
             {view === 'search' && (
                 <div className="max-w-xl mx-auto space-y-6">
@@ -291,12 +291,12 @@ const IntakeReferralsView: React.FC<IntakeReferralsViewProps> = ({ user, shift, 
 
                     {/* Not Found */}
                     {searchResult === 'not_found' && (
-                        <div className="text-center p-4 md:p-8 bg-amber-50 rounded-3xl border border-amber-200 shadow-elevation-1"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto min-h-[44px]"><UserPlus size={14} /> Register New Client</button></div>
+                        <div className="text-center p-3 sm:p-4 md:p-6 bg-amber-50 rounded-3xl border border-amber-200 shadow-elevation-1"><p className="font-bold text-amber-800">Client not found.</p><button onClick={() => setView('new_client')} className="mt-4 px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 mx-auto min-h-[44px]"><UserPlus size={14} /> Register New Client</button></div>
                     )}
 
                     {/* Single Result */}
                     {searchResult && searchResult !== 'not_found' && (
-                        <div className="p-4 md:p-8 bg-emerald-50 rounded-3xl border border-emerald-200 shadow-elevation-1">
+                        <div className="p-3 sm:p-4 md:p-6 bg-emerald-50 rounded-3xl border border-emerald-200 shadow-elevation-1">
                             <p className="text-xs font-bold text-emerald-800">Client Found</p>
                             <p className="text-base md:text-xl font-bold text-emerald-900">{searchResult.firstName} {searchResult.lastName}</p>
                             <ClientHistoryBadges clientId={searchResult.id} />
@@ -672,7 +672,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
         }
     };
 
-    if (isSent) { return ( <div className="text-center p-4 md:p-8 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500" /><h3 className="text-base md:text-xl font-bold text-zinc-900 mt-4">Referral Sent!</h3></div>); }
+    if (isSent) { return ( <div className="text-center p-3 sm:p-4 md:p-6 animate-in fade-in"><CheckCircle size={48} className="mx-auto text-emerald-500" /><h3 className="text-base md:text-xl font-bold text-zinc-900 mt-4">Referral Sent!</h3></div>); }
     if (selectedResource) {
         const intakeMethod = detectIntakeMethod(selectedResource);
         const intakeNotes = selectedResource['Intake / Referral Process Notes'];
@@ -740,13 +740,33 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
                          const resource = resources.find(r => r.id === rec.resourceId);
                          if (!resource) return null;
                          return (
-                             <div key={i} className="p-4 md:p-8 bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
+                             <div key={i} className="p-3 sm:p-4 md:p-6 bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
                                  <div className="flex items-center justify-between gap-2">
                                      <h4 className="font-black text-sm md:text-lg text-zinc-900">{rec.resourceName}</h4>
                                      {rec.matchScore && <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">{rec.matchScore}% match</span>}
                                  </div>
                                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{resource["Service Category"]}</p>
+                                 {resource['Medical Subcategory'] && (
+                                   <span className="inline-block text-[10px] font-black uppercase tracking-wide bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mt-1">{resource['Medical Subcategory']}</span>
+                                 )}
                                  <p className="text-sm italic text-zinc-600 my-4">"{rec.matchReason}"</p>
+                                 <div className="flex flex-wrap gap-1.5 mb-3">
+                                   {resource['Insurance Accepted'] && (
+                                     <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">{resource['Insurance Accepted']}</span>
+                                   )}
+                                   {resource['Telehealth Available'] && (
+                                     <span className="text-[10px] font-bold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-200">Telehealth</span>
+                                   )}
+                                   {resource['Walk-In Accepted'] && (
+                                     <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Walk-In</span>
+                                   )}
+                                   {resource['Accepting New Patients'] && (
+                                     <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Accepting Patients</span>
+                                   )}
+                                   {resource['Provider Credentials'] && (
+                                     <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">{resource['Provider Credentials']}</span>
+                                   )}
+                                 </div>
                                  <div className="flex justify-end">
                                      <button onClick={() => setSelectedResource(resource)} className="px-4 py-2 bg-zinc-800 border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide min-h-[44px] w-full sm:w-auto">Select & Create</button>
                                  </div>
@@ -760,7 +780,7 @@ const ReferralAssistant: React.FC<{client: ClientRecord, user: Volunteer, shift:
 };
 
 const AccessGate: React.FC<{ requiredTraining: string }> = ({ requiredTraining }) => (
-    <div className="flex flex-col items-center justify-center text-center p-4 md:p-8">
+    <div className="flex flex-col items-center justify-center text-center p-3 sm:p-4 md:p-6">
         <div className="p-4 md:p-6 bg-rose-100 rounded-full text-rose-600 mb-6 border-2 border-rose-200"><ClipboardPaste size={48} /></div>
         <h3 className="text-base md:text-xl font-black text-zinc-900 tracking-tight uppercase">Access Denied</h3>
         <p className="text-zinc-500 max-w-sm mt-2">Your current profile does not have the required training clearances for this station. Please complete the "{requiredTraining}" module in the Training Academy.</p>

@@ -1035,7 +1035,7 @@ const TicketDetailModal: React.FC<{
         </div>
 
         {/* Tabs */}
-        <div className="px-4 md:px-6 border-b border-zinc-100 flex gap-1 shrink-0 overflow-x-auto no-scrollbar">
+        <div className="px-4 md:px-6 border-b border-zinc-100 flex gap-1 shrink-0 overflow-x-auto">
           {[
             { id: 'details', label: 'Details', icon: FileText },
             { id: 'notes', label: `Notes (${visibleNotes.length})`, icon: MessageCircle },
@@ -2094,7 +2094,7 @@ const CommunicationHub: React.FC<CommunicationHubProps> = (props) => {
             Your command center for team communication and support.
           </p>
         </div>
-        <div className="flex bg-white border border-zinc-100 p-1.5 rounded-2xl shadow-sm hover:shadow-2xl transition-shadow overflow-x-auto no-scrollbar shrink-0">
+        <div className="flex bg-white border border-zinc-100 p-1.5 rounded-2xl shadow-sm hover:shadow-2xl transition-shadow overflow-x-auto shrink-0">
           {tabs.map(tab => (
             <button
               key={tab.id}

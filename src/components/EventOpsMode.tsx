@@ -301,7 +301,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <span className="px-3 py-1 bg-brand text-white rounded-lg text-[9px] font-bold uppercase tracking-wider">{opportunity.category}</span>
-            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic mt-3">{opportunity.title}</h1>
+            <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black tracking-tighter uppercase italic mt-3">{opportunity.title}</h1>
             <p className="text-zinc-500 mt-2 md:mt-4 font-medium text-sm md:text-lg leading-relaxed">{opportunity.date} • {opportunity.serviceLocation}</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -378,7 +378,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
       )}
 
       <div className="flex flex-col lg:flex-row gap-4 md:gap-8 items-start">
-        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-2 rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto no-scrollbar sticky top-4 z-[100] shrink-0">
+        <div className="w-full lg:w-72 bg-white border border-zinc-100 p-2 rounded-2xl lg:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex lg:flex-col overflow-x-auto sticky top-0 lg:top-4 z-[40] lg:z-[100] shrink-0">
             {TABS.filter(tab => {
               if (tab.adminOnly && !user.isAdmin) return false;
               if (tab.leadOnly && !isLead) return false;
@@ -406,7 +406,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
             )}
         </div>
 
-        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-4 md:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[300px] md:min-h-[600px] relative">
+        <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-3 sm:p-6 md:p-10 lg:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[300px] md:min-h-[600px] relative">
           <TabHelper tabId={activeTab} helpers={TAB_HELPERS} />
           {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
@@ -539,22 +539,22 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
         <div className="space-y-4">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-2">Goals & Targets</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-2xl md:rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-2xl md:rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <Target size={18} className="mx-auto text-blue-500 mb-1.5" />
                     <p className="text-2xl md:text-3xl font-black text-zinc-900">{opportunity.estimatedAttendees ?? 'TBD'}</p>
                     <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Target</p>
                 </div>
-                <div className="p-4 md:p-8 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl md:rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-2xl md:rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <Users size={18} className="mx-auto text-emerald-500 mb-1.5" />
                     <p className="text-2xl md:text-3xl font-black text-zinc-900">{eventShifts ? eventShifts.reduce((sum, s) => sum + (s.assignedVolunteerIds?.length || 0), 0) : (opportunity.slotsFilled || 0)}<span className="text-zinc-300 text-base md:text-lg">/{opportunity.slotsTotal}</span></p>
                     <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Volunteers</p>
                 </div>
-                <div className="p-4 md:p-8 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-2xl md:rounded-3xl border border-violet-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-violet-50/80 to-purple-50/50 rounded-2xl md:rounded-3xl border border-violet-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <HeartPulse size={18} className="mx-auto text-violet-500 mb-1.5" />
                     <p className="text-2xl md:text-3xl font-black text-zinc-900">{services.length}</p>
                     <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Services</p>
                 </div>
-                <div className="p-4 md:p-8 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-2xl md:rounded-3xl border border-amber-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
+                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 rounded-2xl md:rounded-3xl border border-amber-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <Shield size={18} className={`mx-auto mb-1.5 ${hasClinicalLead ? 'text-amber-500' : 'text-zinc-300'}`} />
                     <p className="text-2xl md:text-3xl font-black text-zinc-900">{hasClinicalLead ? 'Yes' : 'No'}</p>
                     <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1">Clinical Lead</p>
@@ -2271,7 +2271,7 @@ const DistributionTrackerView: React.FC<{
                 <div className="p-8 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 shadow-sm">
                     <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-4">Total Clients Served</p>
                     <div className="flex items-center justify-center">
-                        <span className="text-5xl font-black text-zinc-900 tabular-nums min-w-[80px] text-center">{participantsServed}</span>
+                        <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 tabular-nums min-w-[80px] text-center">{participantsServed}</span>
                     </div>
                     <p className="text-[10px] text-zinc-400 font-bold text-center mt-2">Auto-increments when a client is logged</p>
                 </div>
@@ -3759,7 +3759,7 @@ const RotationScheduleView: React.FC<{
             {/* Schedule Grid */}
             {rotationSlots.length > 0 && (
                 <div className="overflow-x-auto -mx-2 px-2">
-                    <table className="w-full text-xs border-collapse min-w-[400px]">
+                    <table className="w-full text-xs border-collapse min-w-[300px]">
                         <thead>
                             <tr>
                                 <th className="p-2 text-left text-[10px] font-black text-zinc-400 uppercase tracking-wide border-b border-zinc-100">Time</th>

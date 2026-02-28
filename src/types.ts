@@ -816,6 +816,10 @@ export interface ReferralRecord {
     partnerResponseDate?: string;
     partnerNotes?: string;
 
+    // Medical referral fields
+    medicalSubcategory?: string;
+    insuranceType?: string;
+
     updatedAt?: string;
 }
 
@@ -937,6 +941,15 @@ export interface ReferralResource {
     "Date Added"?: string;
     "Last Updated"?: string;
     partnerAgencyId?: string;
+
+    // Medical Provider Fields
+    "Medical Subcategory"?: 'Primary Care' | 'Urgent Care' | 'Dental' | 'Vision' | 'Pharmacy' | 'Pediatrics' | 'OB/GYN' | 'Cardiology' | 'Dermatology' | 'Orthopedics' | 'Neurology' | 'Physical Therapy' | 'Wound Care' | 'HIV/STI Services' | 'Community Health Center/FQHC' | 'Mobile/Street Medicine';
+    "Provider Credentials"?: string; // MD, DO, NP, PA, etc.
+    "Insurance Accepted"?: string; // Medi-Cal, Medicare, Private, Sliding Scale, Free
+    "Telehealth Available"?: boolean;
+    "Accepting New Patients"?: boolean;
+    "Walk-In Accepted"?: boolean;
+    "NPI Number"?: string;
 
     createdAt?: string;
     updatedAt?: string;

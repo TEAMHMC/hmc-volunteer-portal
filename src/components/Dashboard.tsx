@@ -501,7 +501,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
       
       {showBetaBanner && (
-        <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-bold z-[101] md:pl-[320px] gap-4 px-4">
+        <div className="fixed top-10 left-0 right-0 h-12 bg-amber-100 border-b border-amber-200 text-amber-900 flex items-center justify-center text-xs font-bold z-[101] md:pl-[260px] lg:pl-[320px] gap-4 px-4">
             <ShieldAlert size={16} className="text-amber-600 shrink-0" />
             <span className="text-center">This is a beta release. Please report any issues to <a href="mailto:dev@healthmatters.clinic" className="underline font-black">dev@healthmatters.clinic</a>.</span>
             <button onClick={handleDismissBetaBanner} className="p-2 rounded-full hover:bg-amber-200/50 absolute right-4 md:static">
@@ -511,18 +511,18 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       )}
 
       {viewingAsRole && (
-          <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] z-[101] md:pl-[320px] shadow-elevation-2`}>
+          <div className={`fixed ${showBetaBanner ? 'top-[88px]' : 'top-10'} left-0 right-0 h-12 bg-amber-400 text-zinc-900 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.2em] z-[101] md:pl-[260px] lg:pl-[320px] shadow-elevation-2`}>
              <Eye size={16} className="mr-3"/> Viewing as {viewingAsRole}
              <button onClick={() => setViewingAsRole(null)} className="ml-6 bg-brand text-white px-4 py-1 rounded-full text-[9px] hover:opacity-80">Return to Admin View</button>
           </div>
       )}
       
-      <div className={`absolute top-0 left-0 right-0 h-10 bg-zinc-900 text-white flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] z-[100] md:pl-[320px]`}>
+      <div className={`absolute top-0 left-0 right-0 h-10 bg-zinc-900 text-white flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] z-[100] md:pl-[260px] lg:pl-[320px]`}>
          HMC Volunteer Platform v{APP_CONFIG.VERSION} • <span className="text-amber-400 ml-2">Release Environment</span>
       </div>
 
       {/* Mobile top header */}
-      <div className={`fixed top-10 left-0 right-0 h-14 bg-white/90 backdrop-blur-xl border-b border-zinc-200/50 flex md:hidden items-center justify-between px-4 z-[98] ${showBetaBanner ? (viewingAsRole ? 'mt-24' : 'mt-12') : (viewingAsRole ? 'mt-12' : '')}`}>
+      <div className="fixed left-0 right-0 h-14 bg-white/90 backdrop-blur-xl border-b border-zinc-200/50 flex md:hidden items-center justify-between px-4 z-[98]" style={{ top: `${40 + (showBetaBanner ? 48 : 0) + (viewingAsRole ? 48 : 0)}px` }}>
         <button onClick={() => setShowMobileMenu(true)} className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center">
           <Menu size={20} className="text-zinc-700" />
         </button>
@@ -616,7 +616,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       </div>
 
       {/* Desktop sidebar - hidden on mobile */}
-      <aside className={`hidden md:flex w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
+      <aside className={`hidden md:flex w-[260px] lg:w-[320px] bg-gradient-to-b from-white to-zinc-50/50 border-r border-zinc-100 p-8 flex-col gap-10 sticky top-0 h-screen overflow-y-auto no-scrollbar ${showBetaBanner ? (viewingAsRole ? 'pt-36' : 'pt-32') : (viewingAsRole ? 'pt-24' : 'pt-20')}`}>
          <div className="flex items-center gap-4 px-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-indigo-600 flex items-center justify-center shadow-elevation-2">
               <img src={APP_CONFIG.BRAND.logoUrl} className="w-8 h-8" alt="HMC" />

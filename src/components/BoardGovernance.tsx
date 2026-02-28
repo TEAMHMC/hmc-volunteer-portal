@@ -429,7 +429,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Header */}
       <header>
-        <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter uppercase italic">{meetingsOnly ? 'Team Meetings' : 'Board Governance Center'}</h1>
         <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">
           {meetingsOnly ? 'Schedule and manage team meetings.' : `${isBoardMember ? 'Board of Directors' : 'Community Advisory Board'} Portal.`}
         </p>
@@ -485,12 +485,12 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Upcoming Meetings */}
           <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-4 md:p-8 border-b border-zinc-100">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-zinc-100">
               <h3 className="text-base md:text-xl font-bold text-zinc-900">Upcoming Meetings</h3>
             </div>
             <div className="divide-y divide-zinc-100">
               {upcomingMeetings.length === 0 && (
-                <div className="p-4 md:p-8 text-center text-zinc-400">
+                <div className="p-3 sm:p-4 md:p-6 text-center text-zinc-400">
                   <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No upcoming meetings scheduled</p>
                   <p className="text-sm text-zinc-600 mt-1">New meetings will appear here once scheduled.</p>
@@ -598,13 +598,13 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Past Meetings with Minutes */}
           <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-4 md:p-8 border-b border-zinc-100">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-zinc-100">
               <h3 className="text-base md:text-xl font-bold text-zinc-900">Past Meetings</h3>
               <p className="text-sm text-zinc-600 mt-1">Past and completed meetings — review and approve minutes</p>
             </div>
             <div className="divide-y divide-zinc-100">
               {pastMeetings.length === 0 && (
-                <div className="p-4 md:p-8 text-center text-zinc-400">
+                <div className="p-3 sm:p-4 md:p-6 text-center text-zinc-400">
                   <FileText size={40} className="mx-auto mb-4 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No past meetings yet</p>
                 </div>
@@ -653,7 +653,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             return (
               <div
                 key={form.id}
-                className={`p-4 md:p-8 rounded-2xl md:rounded-[40px] border-2 shadow-sm hover:shadow-2xl transition-shadow transition-all ${
+                className={`p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] border-2 shadow-sm hover:shadow-2xl transition-shadow transition-all ${
                   isSigned ? 'border-emerald-200 bg-emerald-50/30' :
                   form.required ? 'border-rose-200 bg-rose-50/30' : 'border-zinc-100 bg-white'
                 }`}
@@ -712,7 +712,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             <div
               key={doc.id}
               onClick={() => setShowDocViewer(doc.id)}
-              className="p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 bg-white shadow-sm hover:shadow-2xl transition-shadow hover:border-zinc-200 cursor-pointer group"
+              className="p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] border border-zinc-100 bg-white shadow-sm hover:shadow-2xl transition-shadow hover:border-zinc-200 cursor-pointer group"
             >
               <div className="w-12 h-12 rounded-3xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-4 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
                 <FileText size={24} />
@@ -732,7 +732,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
         <div className="space-y-4 md:space-y-8">
           {/* Goal Setting */}
           {giveOrGet.goal === 0 && (
-            <div className="bg-brand/5 border border-brand/20 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
+            <div className="bg-brand/5 border border-brand/20 p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow">
               <h4 className="text-base md:text-xl font-bold text-zinc-900 mb-2">Set Your Annual Commitment</h4>
               <p className="text-sm text-zinc-600 mb-4">Enter your annual Give or Get goal to start tracking your progress.</p>
               <div className="flex gap-3">
@@ -763,7 +763,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Progress Overview */}
           {giveOrGet.goal > 0 && (
-            <div className="bg-gradient-to-br from-brand to-brand-hover p-4 md:p-8 rounded-2xl md:rounded-[40px] text-white">
+            <div className="bg-gradient-to-br from-brand to-brand-hover p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-2xl font-black tracking-tight">Your Give or Get Progress</h3>
@@ -783,7 +783,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+            <div className="bg-white p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-3xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <Gift size={24} />
@@ -813,7 +813,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
               </div>
             </div>
 
-            <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+            <div className="bg-white p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-3xl bg-brand/10 flex items-center justify-center text-brand">
                   <TrendingUp size={24} />
@@ -835,7 +835,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
 
           {/* Prospects */}
           <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-            <div className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between">
               <div>
                 <h4 className="text-base md:text-xl font-bold text-zinc-900">Fundraising Prospects</h4>
                 <p className="text-sm text-zinc-600 mt-1">Track potential donors and outreach</p>
@@ -850,7 +850,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
             </div>
             <div className="divide-y divide-zinc-100">
               {giveOrGet.prospects.length === 0 && (
-                <div className="p-4 md:p-8 text-center text-zinc-400">
+                <div className="p-3 sm:p-4 md:p-6 text-center text-zinc-400">
                   <Target size={32} className="mx-auto mb-3 opacity-30" />
                   <p className="text-zinc-400 font-bold text-sm">No prospects yet</p>
                   <p className="text-sm text-zinc-600 mt-1">Add potential donors to track your outreach</p>
@@ -926,7 +926,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
           {/* Donation History */}
           {(giveOrGet.donationLog?.length ?? 0) > 0 && (
             <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow overflow-hidden">
-              <div className="p-4 md:p-8 border-b border-zinc-100">
+              <div className="p-3 sm:p-4 md:p-6 border-b border-zinc-100">
                 <h4 className="text-base md:text-xl font-bold text-zinc-900">Donation Log</h4>
               </div>
               <div className="divide-y divide-zinc-100">
@@ -1617,7 +1617,7 @@ const DocumentViewerModal: React.FC<{
               </div>
             </div>
           ) : (
-            <div className="bg-zinc-50 p-4 md:p-8 rounded-3xl min-h-[400px] flex items-center justify-center">
+            <div className="bg-zinc-50 p-3 sm:p-4 md:p-6 rounded-3xl min-h-[400px] flex items-center justify-center">
               <div className="text-center text-zinc-400">
                 <FileText size={64} className="mx-auto mb-4" />
                 <p className="text-zinc-400 font-bold text-sm">Document Unavailable</p>

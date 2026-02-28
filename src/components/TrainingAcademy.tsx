@@ -413,7 +413,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
     const isLocked = tierLocked;
 
     return (
-      <div key={m.id} className={`p-4 md:p-8 rounded-3xl border-dashed border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-emerald-50/40 border-emerald-200' : isLocked ? 'bg-zinc-50/50 border-zinc-200' : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md'}`}>
+      <div key={m.id} className={`p-3 sm:p-4 md:p-6 rounded-3xl border-dashed border flex flex-col justify-between group transition-all ${isCompleted ? 'bg-emerald-50/40 border-emerald-200' : isLocked ? 'bg-zinc-50/50 border-zinc-200' : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md'}`}>
         <div>
           <div className="flex items-center justify-between mb-5">
             <div className={`relative w-11 h-11 rounded-full flex items-center justify-center ${isCompleted ? 'bg-emerald-100 text-emerald-600' : isLocked ? 'bg-zinc-100 text-zinc-300' : 'bg-zinc-100 text-zinc-500 group-hover:bg-brand/10 group-hover:text-brand'}`}>
@@ -661,7 +661,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
       {/* Header with progress */}
       <div className="bg-white border border-zinc-100 p-4 md:p-10 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="max-w-xl relative z-10">
-          <h2 className="text-3xl md:text-5xl font-black tracking-tighter italic text-zinc-900">Growth Hub.</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter italic text-zinc-900">Growth Hub.</h2>
           <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">
             Review completed orientation modules and undertake advanced training to expand your impact.
             {user.role && user.role !== 'HMC Champion' && (

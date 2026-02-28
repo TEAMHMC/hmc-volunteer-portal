@@ -3290,6 +3290,20 @@ function normalizeResourceRow(row: Record<string, string>): Record<string, strin
     normalized['Contact Person Name'] = get('Contact Person Name', 'Primary Contact Name');
     normalized['Intake / Referral Process Notes'] = get('Intake / Referral Process Notes', 'Intake / Referral Channel', 'Referral Process');
 
+    // Medical provider fields
+    normalized['Medical Subcategory'] = get('Medical Subcategory', 'Medical Specialty', 'Specialty', 'Subcategory (Medical)');
+    normalized['Provider Credentials'] = get('Provider Credentials', 'Credentials', 'Provider Type');
+    normalized['Insurance Accepted'] = get('Insurance Accepted', 'Insurance', 'Accepted Insurance', 'Insurance Types');
+    normalized['NPI Number'] = get('NPI Number', 'NPI', 'National Provider Identifier');
+
+    // Boolean medical fields
+    const telehealthVal = get('Telehealth Available', 'Telehealth', 'Virtual Visits');
+    if (telehealthVal) normalized['Telehealth Available'] = ['yes', 'true', '1', 'checked'].includes(telehealthVal.toLowerCase()) ? 'true' : 'false';
+    const newPatientsVal = get('Accepting New Patients', 'New Patients', 'Accepting Patients');
+    if (newPatientsVal) normalized['Accepting New Patients'] = ['yes', 'true', '1', 'checked'].includes(newPatientsVal.toLowerCase()) ? 'true' : 'false';
+    const walkInVal = get('Walk-In Accepted', 'Walk-In', 'Walk-Ins', 'Walk In');
+    if (walkInVal) normalized['Walk-In Accepted'] = ['yes', 'true', '1', 'checked'].includes(walkInVal.toLowerCase()) ? 'true' : 'false';
+
     // Pass through any other fields that don't need mapping
     const passThrough = [
         'Resource Type', 'Data type', 'Contact Info Notes',
@@ -5354,7 +5368,7 @@ app.post('/api/ai/match-resources', verifyToken, rateLimit(10, 60000), async (re
             // Fallback: simple keyword matching
             const matches = resources
                 .filter((r: any) => {
-                    const searchText = `${r['Service Category']} ${r['Key Offerings']}`.toLowerCase();
+                    const searchText = `${r['Service Category']} ${r['Key Offerings']} ${r['Medical Subcategory'] || ''} ${r['Provider Credentials'] || ''}`.toLowerCase();
                     return serviceNeeded.toLowerCase().split(' ').some((word: string) => searchText.includes(word));
                 })
                 .slice(0, 5)
@@ -5374,7 +5388,7 @@ CLIENT NEED: ${serviceNeeded}
 ${clientData ? `CLIENT INFO: Language: ${clientData.primaryLanguage || 'English'}, Location: SPA ${clientData.spa || 'Unknown'}, Demographics: ${JSON.stringify(clientData.needs || {})}` : ''}
 
 AVAILABLE RESOURCES:
-${resources.slice(0, 20).map((r: any, i: number) => `${i + 1}. ${r['Resource Name']} - ${r['Service Category']} - ${r['Key Offerings']} - Languages: ${r['Languages Spoken']} - SPA: ${r['SPA']}`).join('\n')}
+${resources.slice(0, 20).map((r: any, i: number) => `${i + 1}. ${r['Resource Name']} - ${r['Service Category']}${r['Medical Subcategory'] ? ` (${r['Medical Subcategory']})` : ''} - ${r['Key Offerings']}${r['Provider Credentials'] ? ` - Credentials: ${r['Provider Credentials']}` : ''}${r['Insurance Accepted'] ? ` - Insurance: ${r['Insurance Accepted']}` : ''} - Languages: ${r['Languages Spoken']} - SPA: ${r['SPA']}${r['Telehealth Available'] ? ' - Telehealth Available' : ''}${r['Walk-In Accepted'] ? ' - Walk-Ins Accepted' : ''}`).join('\n')}
 
 Return JSON array of top 3-5 matches with format:
 [{"index": 1, "score": 95, "reason": "Best match because..."}]
@@ -5425,7 +5439,7 @@ app.post('/api/resources/ai-search', verifyToken, rateLimit(10, 60000), async (r
         const resourcesSnap = await db.collection('referral_resources').get();
         const allResources = resourcesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const localMatches = allResources.filter((r: any) => {
-            const searchText = `${r['Resource Name'] || ''} ${r['Service Category'] || ''} ${r['Key Offerings'] || ''} ${r['Target Population'] || ''}`.toLowerCase();
+            const searchText = `${r['Resource Name'] || ''} ${r['Service Category'] || ''} ${r['Key Offerings'] || ''} ${r['Target Population'] || ''} ${r['Medical Subcategory'] || ''} ${r['Provider Credentials'] || ''}`.toLowerCase();
             return query.toLowerCase().split(' ').every((word: string) => searchText.includes(word));
         }).slice(0, 5);
 
@@ -5451,6 +5465,11 @@ Return a JSON array where each object uses these EXACT field names (matching our
     "Website": "Full URL",
     "SPA": "Service Planning Area number (1-8) based on LA County location, or empty string if unsure",
     "Intake / Referral Process Notes": "How to access services — walk-in, appointment, referral needed, etc.",
+    "Medical Subcategory": "If medical: Primary Care, Urgent Care, Dental, Vision, Pharmacy, Pediatrics, OB/GYN, Cardiology, Dermatology, Orthopedics, Neurology, Physical Therapy, Wound Care, HIV/STI Services, Community Health Center/FQHC, or Mobile/Street Medicine. Empty string if not medical.",
+    "Provider Credentials": "If medical: provider credential types (MD, DO, NP, PA, etc.). Empty string if not medical.",
+    "Insurance Accepted": "If medical: Medi-Cal, Medicare, Private, Sliding Scale, Free — comma-separated. Empty string if not medical.",
+    "Telehealth Available": "true or false if known, empty string if unknown",
+    "Walk-In Accepted": "true or false if known, empty string if unknown",
     "notes": "Any important additional info — wait times, capacity, special instructions"
   }
 ]
