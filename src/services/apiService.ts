@@ -3,6 +3,33 @@
 
 const BASE_URL = ''; // We are on the same origin
 
+// Track whether a session refresh is already in-flight (prevents cascading retries)
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * Attempt to refresh the session. Returns true if refresh succeeded, false otherwise.
+ * Deduplicates concurrent calls so only one refresh request fires at a time.
+ */
+const tryRefreshSession = async (): Promise<boolean> => {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return false;
+      const res = await fetch('/api/auth/refresh-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+};
+
 const request = async (method: string, endpoint: string, body?: any, timeout = 30000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -50,10 +77,19 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
         // role gates, ticket auth) should NOT trigger logout.
         const isSessionError = /^Unauthorized:/i.test(errorMessage);
         if (isSessionError) {
+          // Don't immediately logout — try to refresh the session first.
+          // Skip retry if the failing request IS the refresh endpoint (avoids infinite loop).
+          if (endpoint !== '/api/auth/refresh-session') {
+            const refreshed = await tryRefreshSession();
+            if (refreshed) {
+              // Session refreshed — retry the original request once
+              console.info(`[Session] Refreshed session, retrying ${method} ${endpoint}`);
+              return request(method, endpoint, body, timeout);
+            }
+          }
           console.error(`[Session] 403 on ${endpoint} — session expired or invalid.`);
           localStorage.removeItem('authToken');
           // Dispatch event so App.tsx can handle navigation cleanly
-          // (don't use window.location.reload — it prevents callers' try/catch from working)
           window.dispatchEvent(new CustomEvent('session-expired'));
           throw new Error('Your session has expired. Please log in again.');
         }
@@ -100,7 +136,7 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
   }
 };
 
-// Session heartbeat: keeps active sessions alive by pinging the server every 30 min.
+// Session heartbeat: keeps active sessions alive by pinging the server every 15 min.
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 function startSessionHeartbeat() {
@@ -116,7 +152,7 @@ function startSessionHeartbeat() {
     } catch {
       // Session refresh failed — the 403 handler in request() will handle redirect
     }
-  }, 30 * 60 * 1000); // 30 minutes
+  }, 15 * 60 * 1000); // 15 minutes (matches the session extension window)
 }
 
 function stopSessionHeartbeat() {

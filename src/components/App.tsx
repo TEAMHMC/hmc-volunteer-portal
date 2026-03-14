@@ -29,6 +29,13 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal'>('landing');
   const [loading, setLoading] = useState(true);
 
+  // Capture ?ref= referral code from URL on mount
+  const [referralCode] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('ref') || null;
+  });
+
   const setAppData = (data: any) => {
       setCurrentUser(data.user);
       setAllVolunteers(data.volunteers || []);
@@ -62,7 +69,12 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     const checkAuth = async () => {
       if (typeof window === 'undefined') { setLoading(false); return; }
       const token = localStorage.getItem('authToken');
-      if (!token) { setLoading(false); return; }
+      if (!token) {
+        // Auto-start onboarding if referral link was used
+        if (referralCode) setView('onboarding');
+        setLoading(false);
+        return;
+      }
       try {
         const data = await apiService.get('/auth/me');
         if (data.user) {
@@ -77,7 +89,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
           }
         }
       } catch (error) {
-        // No active session — clear stale token
+        // Auth check failed — clear the stale token so the user sees the landing page cleanly.
+        // The apiService retry logic (tryRefreshSession) already attempted recovery before throwing.
         localStorage.removeItem('authToken');
       } finally {
         setLoading(false);
@@ -86,21 +99,14 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     checkAuth();
   }, []);
 
-  // Periodic session revalidation every 15 minutes
+  // Keep heartbeat alive on ALL authenticated views (dashboard, onboarding, etc.)
+  // so sessions don't silently expire while a user is actively working.
   useEffect(() => {
-    if (view !== 'dashboard') return;
-    const interval = setInterval(async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) { handleLogout(); return; }
-      try {
-        await apiService.get('/auth/me');
-      } catch {
-        localStorage.removeItem('authToken');
-        setCurrentUser(null);
-        setView('landing');
-      }
-    }, 15 * 60 * 1000);
-    return () => clearInterval(interval);
+    if (view === 'landing' || view === 'clientPortal') return;
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    apiService.startSessionHeartbeat();
+    return () => apiService.stopSessionHeartbeat();
   }, [view]);
 
   const handleLogin = async (email: string, password: string, isAdmin: boolean) => {
@@ -185,7 +191,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     </div>
   );
 
-  if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} />;
+  if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} referralCode={referralCode || undefined} />;
 
   if (view === 'clientPortal') return <ClientPortal onBackToLanding={handleReturnToLanding} />;
 

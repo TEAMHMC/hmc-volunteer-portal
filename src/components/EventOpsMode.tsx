@@ -3370,10 +3370,12 @@ const SidewalkLayoutCanvas: React.FC<{
     const getCurrentPairForStation = (stationId: string): BuddyPair | undefined => {
         const now = new Date();
         const currentSlot = safeRotationSlots.find(slot => {
+            if (!slot.startTime || !slot.endTime) return false;
             const [sh, sm] = slot.startTime.split(':').map(Number);
             const [eh, em] = slot.endTime.split(':').map(Number);
-            const slotStart = new Date(); slotStart.setHours(sh, sm, 0, 0);
-            const slotEnd = new Date(); slotEnd.setHours(eh, em, 0, 0);
+            if (isNaN(sh) || isNaN(eh)) return false;
+            const slotStart = new Date(); slotStart.setHours(sh, sm || 0, 0, 0);
+            const slotEnd = new Date(); slotEnd.setHours(eh, em || 0, 0, 0);
             return now >= slotStart && now < slotEnd;
         });
         if (!currentSlot) return undefined;
@@ -3777,7 +3779,7 @@ const RotationScheduleView: React.FC<{
                                         {slot.startTime}–{slot.endTime}
                                     </td>
                                     {corePairs.map(pair => {
-                                        const assignment = slot.assignments.find(a => a.pairId === pair.id);
+                                        const assignment = (slot.assignments || []).find(a => a.pairId === pair.id);
                                         if (!assignment) return <td key={pair.id} className="p-2 text-center text-zinc-300">—</td>;
                                         const stId = assignment.stationId;
                                         return (
@@ -3830,11 +3832,13 @@ const LiveOpsControls: React.FC<{
     // Current rotation slot based on time
     const currentSlotIndex = useMemo(() => {
         const now = new Date();
-        const idx = rotationSlots.findIndex(slot => {
+        const idx = (rotationSlots || []).findIndex(slot => {
+            if (!slot.startTime || !slot.endTime) return false;
             const [sh, sm] = slot.startTime.split(':').map(Number);
             const [eh, em] = slot.endTime.split(':').map(Number);
-            const start = new Date(); start.setHours(sh, sm, 0, 0);
-            const end = new Date(); end.setHours(eh, em, 0, 0);
+            if (isNaN(sh) || isNaN(eh)) return false;
+            const start = new Date(); start.setHours(sh, sm || 0, 0, 0);
+            const end = new Date(); end.setHours(eh, em || 0, 0, 0);
             return now >= start && now < end;
         });
         return idx;
@@ -3850,12 +3854,12 @@ const LiveOpsControls: React.FC<{
 
         // Find pair at this station and suggest reallocation
         if (currentSlot) {
-            const assignment = currentSlot.assignments.find(a => a.stationId === stationId);
+            const assignment = (currentSlot.assignments || []).find(a => a.stationId === stationId);
             if (assignment) {
                 const activeStations = updated.filter(s => s.status === 'active');
                 // Score by priority + understaffing
                 const assignedCounts: Record<string, number> = {};
-                currentSlot.assignments.forEach(a => {
+                (currentSlot.assignments || []).forEach(a => {
                     if (updated.find(s => s.id === a.stationId)?.status === 'active') {
                         assignedCounts[a.stationId] = (assignedCounts[a.stationId] || 0) + 1;
                     }
@@ -3945,7 +3949,7 @@ const LiveOpsControls: React.FC<{
                 </div>
                 {currentSlot && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                        {currentSlot.assignments.map(a => (
+                        {(currentSlot.assignments || []).map(a => (
                             <div key={a.pairId} className="flex items-center gap-1 px-2 py-1 bg-white border border-zinc-100 rounded-lg text-[10px] font-bold">
                                 <span className="text-zinc-500">{getPairLabel(a.pairId)}</span>
                                 <ArrowRight size={8} className="text-zinc-300" />
@@ -3957,7 +3961,7 @@ const LiveOpsControls: React.FC<{
                 {currentSlot && (
                     <button
                         onClick={async () => {
-                            const assignmentSummary = currentSlot.assignments.map(a =>
+                            const assignmentSummary = (currentSlot.assignments || []).map(a =>
                                 `${getPairLabel(a.pairId)} → ${getStationName(a.stationId)}`
                             ).join(', ');
                             try {
@@ -4227,20 +4231,22 @@ const StationRotationPlanner: React.FC<{
 
     // Simplified view for regular volunteers — just show assignment + schedule
     if (!isLeadUser) {
-        const myPair = config.buddyPairs.find(p => p.volunteerId1 === user.id || p.volunteerId2 === user.id);
+        const myPair = (config.buddyPairs || []).find(p => p.volunteerId1 === user.id || p.volunteerId2 === user.id);
         const now = new Date();
-        const currentSlot = config.rotationSlots.find(slot => {
+        const currentSlot = (config.rotationSlots || []).find(slot => {
+            if (!slot.startTime || !slot.endTime) return false;
             const [sh, sm] = slot.startTime.split(':').map(Number);
             const [eh, em] = slot.endTime.split(':').map(Number);
-            const s = new Date(); s.setHours(sh, sm, 0, 0);
-            const e = new Date(); e.setHours(eh, em, 0, 0);
+            if (isNaN(sh) || isNaN(eh)) return false;
+            const s = new Date(); s.setHours(sh, sm || 0, 0, 0);
+            const e = new Date(); e.setHours(eh, em || 0, 0, 0);
             return now >= s && now < e;
         });
-        const myAssignment = currentSlot?.assignments.find(a => a.pairId === myPair?.id);
-        const myStation = myAssignment ? config.stations.find(s => s.id === myAssignment.stationId) : null;
+        const myAssignment = (currentSlot?.assignments || []).find(a => a.pairId === myPair?.id);
+        const myStation = myAssignment ? (config.stations || []).find(s => s.id === myAssignment.stationId) : null;
         const nextSlotIdx = currentSlot ? currentSlot.slotIndex + 1 : 0;
-        const nextSlot = config.rotationSlots.find(s => s.slotIndex === nextSlotIdx);
-        const nextAssignment = nextSlot?.assignments.find(a => a.pairId === myPair?.id);
+        const nextSlot = (config.rotationSlots || []).find(s => s.slotIndex === nextSlotIdx);
+        const nextAssignment = (nextSlot?.assignments || []).find(a => a.pairId === myPair?.id);
         const nextStation = nextAssignment ? config.stations.find(s => s.id === nextAssignment.stationId) : null;
         const buddyName = myPair
             ? registeredVolunteers.find(v => v.id === (myPair.volunteerId1 === user.id ? myPair.volunteerId2 : myPair.volunteerId1))?.name

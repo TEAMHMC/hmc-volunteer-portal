@@ -20,6 +20,7 @@ interface OnboardingFlowProps {
   googleClientId?: string;
   recaptchaSiteKey?: string;
   preAuthUser?: { id: string; email: string; name: string };
+  referralCode?: string;
 }
 
 type StepId = 'account' | 'personal' | 'background' | 'availability' | 'role' | 'details' | 'compliance' | 'orientation';
@@ -115,7 +116,7 @@ const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (token: string | null) => 
 
 const STORAGE_KEY = 'hmc_onboarding_progress';
 
-const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey, preAuthUser }) => {
+const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey, preAuthUser, referralCode }) => {
   // Load saved progress from localStorage
   const loadSavedProgress = () => {
     // Pre-authenticated users (Google OAuth returning) skip account step
@@ -161,9 +162,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   };
 
   const savedProgress = loadSavedProgress();
+  const isReturningUser = savedProgress.step !== 'account' && savedProgress.formData?.email;
   const [step, setStep] = useState<StepId>(savedProgress.step);
   const [formData, setFormData] = useState<any>(savedProgress.formData);
   const [formErrors, setFormErrors] = useState<any>({});
+  const [showWelcomeBack, setShowWelcomeBack] = useState(isReturningUser);
 
   const [isComplete, setIsComplete] = useState(false);
   const [isStepLoading, setIsStepLoading] = useState(false);
@@ -198,12 +201,17 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
 
   const handleDataChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
-  // Handle return to landing - ask if they want to save progress
+  // Handle return to landing — progress is auto-saved, just confirm they want to leave
   const handleBackToLanding = () => {
     if (step !== 'account' && formData.email) {
-      const shouldClear = window.confirm('Your application progress will be saved. Click OK to continue, or Cancel to stay on this page.');
-      if (!shouldClear) return;
+      if (!window.confirm('Your progress has been saved automatically. You can return anytime to pick up where you left off.\n\nLeave now?')) return;
     }
+    onBackToLanding();
+  };
+
+  // Explicit save & exit — same as back to landing but with a toast confirmation
+  const handleSaveAndExit = () => {
+    toastService.success('Progress saved! Return anytime to continue your application.');
     onBackToLanding();
   };
 
@@ -420,8 +428,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
       } else {
         // New user signup
         const authPayload = formData.authProvider === 'google'
-          ? { user: v, googleCredential: formData.googleCredential }
-          : { user: v, password: formData.password };
+          ? { user: v, googleCredential: formData.googleCredential, ...(referralCode ? { referralCode } : {}) }
+          : { user: v, password: formData.password, ...(referralCode ? { referralCode } : {}) };
         const response = await apiService.post('/auth/signup', authPayload, 90000);
         clearSavedProgress();
         if (response && response.token && onSuccess) {
@@ -478,10 +486,40 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6 md:p-8 font-['Inter']">
        <div className="w-full max-w-4xl my-4 flex items-center justify-between">
          <button onClick={handleBackToLanding} className="text-sm font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-2">← Return to Welcome Page</button>
-         {step !== 'account' && savedProgress.step !== 'account' && (
-           <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
-         )}
+         <div className="flex items-center gap-4">
+           {step !== 'account' && formData.email && (
+             <button onClick={handleSaveAndExit} className="text-sm font-bold text-brand hover:text-brand-hover flex items-center gap-1.5">
+               <CheckCircle size={14} /> Save & Return Later
+             </button>
+           )}
+           {step !== 'account' && savedProgress.step !== 'account' && (
+             <button onClick={handleStartOver} className="text-xs font-bold text-zinc-400 hover:text-rose-500">Start Over</button>
+           )}
+         </div>
        </div>
+       {referralCode && (
+         <div className="w-full max-w-4xl mb-3 p-4 bg-brand/5 border border-brand/20 rounded-2xl flex items-center gap-3 animate-in fade-in">
+           <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+             <span className="text-lg">🤝</span>
+           </div>
+           <div>
+             <p className="text-sm font-bold text-zinc-900">You were referred by an HMC Champion!</p>
+             <p className="text-xs text-zinc-500 mt-0.5">Complete your application to join our volunteer community.</p>
+           </div>
+         </div>
+       )}
+       {showWelcomeBack && (
+         <div className="w-full max-w-4xl mb-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between animate-in fade-in">
+           <div className="flex items-center gap-3">
+             <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+             <div>
+               <p className="text-sm font-bold text-emerald-900">Welcome back! Your progress has been restored.</p>
+               <p className="text-xs text-emerald-700 mt-0.5">You're on step {currentStepIndex + 1} of {STEPS.length} — pick up right where you left off.</p>
+             </div>
+           </div>
+           <button onClick={() => setShowWelcomeBack(false)} className="text-emerald-400 hover:text-emerald-600 shrink-0"><X size={16} /></button>
+         </div>
+       )}
        <div className={`max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-4 md:p-8' : 'p-4 md:p-8'} relative overflow-hidden`}>
         {renderStepContent()}
         {step !== 'account' && (

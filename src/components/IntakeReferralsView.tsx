@@ -350,7 +350,7 @@ const NEED_OPTIONS: { key: string; label: string }[] = [
 ];
 
 const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onLog: Function, contactMethod?: string, user: Volunteer}> = ({ setView, setActiveClient, onLog, contactMethod, user }) => {
-    const [client, setClient] = useState<Partial<ClientRecord & { contactMethod?: string; identifyingInfo?: string }>>({});
+    const [client, setClient] = useState<Partial<ClientRecord>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [consentChecked, setConsentChecked] = useState(false);
     const [createdClient, setCreatedClient] = useState<any>(null);
@@ -487,7 +487,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                                 <option value="">Select...</option>
                                 <option value="phone">Phone</option>
                                 <option value="email">Email</option>
-                                <option value="name">Text</option>
+                                <option value="text">Text</option>
                             </select>
                         </div>
                     </div>

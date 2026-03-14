@@ -6,7 +6,7 @@ import {
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
-  Bell, Menu, CalendarDays, Megaphone
+  Bell, Menu, CalendarDays, Megaphone, Share2
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -36,6 +36,7 @@ import BoardGovernance from './BoardGovernance';
 import LiveChatDashboard from './LiveChatDashboard';
 import OrgCalendar from './OrgCalendar';
 import EventBuilder from './EventBuilder';
+import ReferralHub from './ReferralHub';
 import VolunteerSurveyModal from './VolunteerSurveyModal';
 
 interface DashboardProps {
@@ -178,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
@@ -414,7 +415,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     groups.push({ label: 'COMMUNICATE', items: commItems });
 
     // COMMUNITY
-    groups.push({ label: 'COMMUNITY', items: [{ id: 'impact', label: 'Impact Hub', icon: DollarSign }] });
+    groups.push({ label: 'COMMUNITY', items: [
+      { id: 'impact', label: 'Impact Hub', icon: DollarSign },
+      { id: 'referral-hub', label: 'Referral Hub', icon: Share2 },
+    ] });
 
     // ROLE-SPECIFIC
     const roleItems: NavItem[] = [];
@@ -960,6 +964,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} />}
          {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
+         {activeTab === 'referral-hub' && <ReferralHub user={displayUser} />}
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}

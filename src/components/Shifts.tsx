@@ -10,7 +10,50 @@ import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
 import { apiService } from '../services/apiService';
 import { toastService } from '../services/toastService';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RotateCcw, ArrowLeft } from 'lucide-react';
+
+// Error boundary that offers "Back to Events" instead of a useless reload loop
+class EventOpsErrorBoundary extends React.Component<
+  { children: React.ReactNode; onBack: () => void },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error, info: React.ErrorInfo) { console.error('[EventOps] Crash:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center p-8">
+          <div className="max-w-md text-center space-y-6">
+            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle className="text-rose-500" size={28} />
+            </div>
+            <h2 className="text-xl font-black text-zinc-900 tracking-tight">Event Ops hit a snag</h2>
+            <p className="text-sm text-zinc-500">Something went wrong loading this event's operations view. This is usually caused by missing or incomplete event data.</p>
+            <p className="text-xs font-mono text-zinc-400 bg-zinc-50 p-3 rounded-xl border border-zinc-100 break-all">
+              {this.state.error?.message || 'Unknown error'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={this.props.onBack}
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                <ArrowLeft size={14} /> Back to Events
+              </button>
+              <button
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="flex items-center justify-center gap-2 px-6 py-4 bg-zinc-50 border border-zinc-200 text-zinc-600 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-100 transition-all"
+              >
+                <RotateCcw size={14} /> Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Map event category to program training requirement key
 const getCategoryProgram = (category: string): string | null => {
@@ -1188,7 +1231,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     const eventShifts = shifts.filter(s => s.opportunityId === selectedOpp.id);
     return (
       <>
-        <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
+        <EventOpsErrorBoundary onBack={() => setSelectedShiftId(null)}>
+          <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
+        </EventOpsErrorBoundary>
         {editingEvent && <EditEventModal event={editingEvent} shifts={shifts} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
       </>
     );

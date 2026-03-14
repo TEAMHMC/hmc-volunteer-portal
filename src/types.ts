@@ -583,7 +583,7 @@ export interface ClientRecord {
     dob?: string;
     phone?: string;
     email?: string;
-    contactMethod?: 'phone' | 'email' | 'name' | 'walk-in';
+    contactMethod?: 'phone' | 'email' | 'text' | 'walk-in';
 
     // Demographics (for matching & grant reporting)
     gender?: string;
@@ -630,6 +630,9 @@ export interface ClientRecord {
     // Insurance (expanded)
     insuranceMemberId?: string;
     insuranceGroupNumber?: string;
+
+    // Walk-in / identifying info
+    identifyingInfo?: string;
 
     // Consent & Privacy
     consentToShare?: boolean;

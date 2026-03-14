@@ -696,7 +696,7 @@ const NEED_OPTIONS: { key: string; label: string }[] = [
 ];
 
 const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onLog: Function, contactMethod?: string, user: Volunteer}> = ({ setView, setActiveClient, onLog, contactMethod, user }) => {
-    const [client, setClient] = useState<Partial<ClientRecord & { contactMethod?: string; identifyingInfo?: string }>>({});
+    const [client, setClient] = useState<Partial<ClientRecord>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [consentChecked, setConsentChecked] = useState(false);
     const isWalkIn = contactMethod === 'walk-in';
@@ -812,7 +812,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                                 <option value="">Select...</option>
                                 <option value="phone">Phone</option>
                                 <option value="email">Email</option>
-                                <option value="name">Text</option>
+                                <option value="text">Text</option>
                             </select>
                         </div>
                     </div>
@@ -908,7 +908,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
 };
 
 const ClientProfileCompletion: React.FC<{client: ClientRecord, user: Volunteer, setActiveClient: Function, setView: Function, onLog: Function}> = ({ client, user, setActiveClient, setView, onLog }) => {
-    const [fields, setFields] = useState<Partial<ClientRecord & { identifyingInfo?: string }>>({
+    const [fields, setFields] = useState<Partial<ClientRecord>>({
         gender: client.gender || '',
         pronouns: client.pronouns || '',
         primaryLanguage: client.primaryLanguage || '',
@@ -1010,7 +1010,7 @@ const ClientProfileCompletion: React.FC<{client: ClientRecord, user: Volunteer, 
                                 <option value="">Select...</option>
                                 <option value="phone">Phone</option>
                                 <option value="email">Email</option>
-                                <option value="name">Text</option>
+                                <option value="text">Text</option>
                             </select>
                         </div>
                     </div>

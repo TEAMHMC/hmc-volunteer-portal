@@ -816,7 +816,9 @@ function escAttr(str) {
 var TEST_EMAIL = "tech@healthmatters.clinic"; // ← Change to your email
 
 // Helper: simulate doPost and optionally send
+// Do NOT run this directly — use testAllTemplates() or individual test functions instead.
 function _runTest(type, data, sendReal) {
+  if (!type || !data) { Logger.log("ERROR: _runTest requires (type, data). Use testAllTemplates() instead."); return null; }
   data.type = type;
   data.toEmail = TEST_EMAIL;
   var mockEvent = { postData: { contents: JSON.stringify(data) } };

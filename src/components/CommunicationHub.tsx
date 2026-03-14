@@ -78,6 +78,17 @@ const BroadcastsView: React.FC<{
       });
       setAnnouncements(prev => [newAnnouncement, ...prev]);
       setIsSent(true);
+      // Show SMS results if broadcast included SMS
+      if (sendAsSms && newAnnouncement.smsResults) {
+        const r = newAnnouncement.smsResults;
+        if (r.error) {
+          toastService.error(`Broadcast posted but SMS failed: ${r.error}`);
+        } else if (r.attempted === 0) {
+          toastService.info('Broadcast posted. No volunteers with phone numbers found for SMS.');
+        } else {
+          toastService.success(`Broadcast posted. SMS sent to ${r.sent}/${r.attempted} volunteers.${r.failed > 0 ? ` ${r.failed} failed.` : ''}`);
+        }
+      }
       setTimeout(() => {
         setIsSent(false);
         handleCloseComposer();

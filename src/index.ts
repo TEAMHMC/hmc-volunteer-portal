@@ -1754,7 +1754,17 @@ Learn more: [ORG_WEBSITE]
   youtube: `I volunteer with Health Matters Clinic, a nonprofit providing mobile health services in LA.
 
 Want to volunteer? → [VOLUNTEER_LINK]
-Donate → [DONATION_LINK]`
+Donate → [DONATION_LINK]`,
+  twitter: `I volunteer with @HealthMattersCl, a 501(c)(3) nonprofit bringing mobile health services to underserved communities in LA.
+
+Join me: [VOLUNTEER_LINK]
+
+#HealthEquity #Volunteering #HealthMatters`,
+  facebook: `I'm proud to volunteer with Health Matters Clinic, a nonprofit dedicated to health equity in Los Angeles.
+
+I've contributed [HOURS] hours helping people access healthcare. Want to make a difference too?
+
+Sign up: [VOLUNTEER_LINK]`
 };
 
 const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
@@ -4565,6 +4575,36 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
     } catch (error: any) {
         console.error('[SYNC] Failed to sync event from Event Finder:', error);
         res.status(500).json({ error: 'Failed to sync event' });
+    }
+});
+
+// POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
+app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
+    try {
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+        if (!APPS_SCRIPT_URL) {
+            return res.status(500).json({ success: false, error: 'APPS_SCRIPT_URL not configured' });
+        }
+        const { action, event, id } = req.body;
+        if (!action) {
+            return res.status(400).json({ success: false, error: 'action is required' });
+        }
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body),
+            redirect: 'follow',
+        });
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            res.json(data);
+        } catch {
+            res.json({ success: true });
+        }
+    } catch (error: any) {
+        console.error('[SAVE-EVENT PROXY] Error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -8067,8 +8107,12 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
   }
 });
 
-app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response) => {
     try {
+        const callerProfile = (req as any).user?.profile;
+        if (!callerProfile?.isAdmin && !BROADCAST_ROLES.includes(callerProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and coordinators/leads can send broadcasts.' });
+        }
         const { title, content, category = 'General', sendAsSms = false, targetRoles } = req.body;
         const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved', ...(targetRoles ? { targetRoles } : {}) };
         const docRef = await db.collection('announcements').add(announcement);
@@ -8077,29 +8121,30 @@ app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request,
 
         // Send SMS to all opted-in volunteers if requested
         if (sendAsSms) {
-            // EMERGENCY KILL SWITCH: All SMS disabled
-            console.log('[BROADCAST] SMS BLOCKED — emergency kill switch active');
-            if (false) {
-                // Fetch all volunteers who have opted in to SMS
-                const volunteersSnap = await db.collection('volunteers')
-                    .where('notificationPrefs.smsAlerts', '==', true)
-                    .get();
-
-                console.log(`[BROADCAST] Found ${volunteersSnap.size} volunteers opted in to SMS`);
-
-                // Also check volunteers without explicit prefs who have phone numbers
+            if (!twilioClient) {
+                console.warn('[BROADCAST] Twilio not configured — skipping SMS. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN env vars.');
+                smsResults = { attempted: 0, sent: 0, failed: 0, error: 'Twilio not configured on server' } as any;
+            } else if (!TWILIO_MESSAGING_SERVICE_SID && !TWILIO_PHONE_NUMBER) {
+                console.warn('[BROADCAST] No Messaging Service SID or phone number — cannot send SMS');
+                smsResults = { attempted: 0, sent: 0, failed: 0, error: 'No Twilio Messaging Service SID or phone number configured' } as any;
+            } else {
+                // Fetch all volunteers with phone numbers
                 const allVolunteersSnap = await db.collection('volunteers').get();
                 const eligibleVolunteers: { id: string; phone: string }[] = [];
 
                 allVolunteersSnap.docs.forEach(doc => {
                     const data = doc.data();
-                    const phone = data.phone || data.phoneNumber;
+                    let phone = data.phone || data.phoneNumber;
+                    if (!phone) return;
                     const smsOptIn = data.notificationPrefs?.smsAlerts;
-
-                    // Include if they have a phone and haven't explicitly opted out
-                    if (phone && smsOptIn !== false) {
-                        eligibleVolunteers.push({ id: doc.id, phone });
-                    }
+                    // Skip if explicitly opted out
+                    if (smsOptIn === false) return;
+                    // Normalize phone to E.164: strip non-digits, prepend +1 if needed
+                    phone = phone.replace(/[^\d+]/g, '');
+                    if (phone.length === 10) phone = '+1' + phone;
+                    else if (phone.length === 11 && phone.startsWith('1')) phone = '+' + phone;
+                    else if (!phone.startsWith('+')) phone = '+' + phone;
+                    eligibleVolunteers.push({ id: doc.id, phone });
                 });
 
                 console.log(`[BROADCAST] ${eligibleVolunteers.length} volunteers eligible for SMS`);
@@ -8117,7 +8162,7 @@ app.post('/api/broadcasts/send', verifyToken, requireAdmin, async (req: Request,
                         } else {
                             msgParams.from = TWILIO_PHONE_NUMBER;
                         }
-                        await twilioClient!.messages.create(msgParams);
+                        await twilioClient.messages.create(msgParams);
                         console.log(`[BROADCAST] SMS sent to ${maskPhone(vol.phone)}`);
                         return { success: true };
                     } catch (error: any) {
@@ -10508,7 +10553,7 @@ app.get('/api/referral/templates', verifyToken, async (req: Request, res: Respon
     for (const [key, template] of Object.entries(REFERRAL_TEMPLATES)) {
       let body = template.body
         .replace(/\[Your Name\]/g, volData?.name || volData?.firstName || 'A Health Matters Volunteer')
-        .replace(/\[VOLUNTEER_LINK\]/g, `${portalUrl}/join?ref=${profile.referralCode}`)
+        .replace(/\[VOLUNTEER_LINK\]/g, `${portalUrl}?ref=${profile.referralCode}`)
         .replace(/\[DONATION_LINK\]/g, 'https://healthmatters.clinic/donate')
         .replace(/\[HOURS\]/g, String(volData?.hoursContributed || 0))
         .replace(/\[PEOPLE_HELPED\]/g, String((volData?.hoursContributed || 0) * 5));
@@ -10519,7 +10564,7 @@ app.get('/api/referral/templates', verifyToken, async (req: Request, res: Respon
     res.json({
       templates,
       referralCode: profile.referralCode,
-      referralLink: `${portalUrl}/join?ref=${profile.referralCode}`,
+      referralLink: `${portalUrl}?ref=${profile.referralCode}`,
     });
   } catch (error: any) {
     console.error('[ERROR]', error.message); res.status(500).json({ error: 'Internal server error' });
@@ -10549,7 +10594,7 @@ app.post('/api/referral/send-email', verifyToken, async (req: Request, res: Resp
     let body = customMessage || template.body
       .replace(/\[Friend Name\]/g, recipientName || 'Friend')
       .replace(/\[Your Name\]/g, volData?.name || volData?.firstName || 'A Health Matters Volunteer')
-      .replace(/\[VOLUNTEER_LINK\]/g, `${portalUrl}/join?ref=${profile.referralCode}`)
+      .replace(/\[VOLUNTEER_LINK\]/g, `${portalUrl}?ref=${profile.referralCode}`)
       .replace(/\[DONATION_LINK\]/g, 'https://healthmatters.clinic/donate')
       .replace(/\[HOURS\]/g, String(volData?.hoursContributed || 0))
       .replace(/\[PEOPLE_HELPED\]/g, String((volData?.hoursContributed || 0) * 5));
@@ -10565,7 +10610,7 @@ app.post('/api/referral/send-email', verifyToken, async (req: Request, res: Resp
           subject: template.subject,
           body: body,
           volunteerName: volData?.firstName,
-          referralLink: `${portalUrl}/join?ref=${profile.referralCode}`,
+          referralLink: `${portalUrl}?ref=${profile.referralCode}`,
         })
       });
     }
@@ -10612,7 +10657,7 @@ app.get('/api/referral/dashboard', verifyToken, async (req: Request, res: Respon
 
     res.json({
       referralCode: profile.referralCode,
-      referralLink: `${portalUrl}/join?ref=${profile.referralCode}`,
+      referralLink: `${portalUrl}?ref=${profile.referralCode}`,
       totalReferrals: profile.referralCount || 0,
       activeReferrals: referralsSnapshot.size,
       sharesThisMonth: sharesSnapshot.size,
@@ -10631,7 +10676,7 @@ app.get('/api/referral/dashboard', verifyToken, async (req: Request, res: Respon
 app.get('/api/share/content/:platform', verifyToken, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.profile.id;
-    const platform = req.params.platform as 'instagram' | 'linkedin' | 'youtube';
+    const platform = req.params.platform as 'instagram' | 'linkedin' | 'youtube' | 'twitter' | 'facebook';
 
     if (!SOCIAL_TEMPLATES[platform]) {
       return res.status(400).json({ error: 'Invalid platform' });
@@ -10646,7 +10691,7 @@ app.get('/api/share/content/:platform', verifyToken, async (req: Request, res: R
       .replace(/\[HOURS\]/g, String(volData?.hoursContributed || 0))
       .replace(/\[ROLE\]/g, volData?.role || 'Volunteer')
       .replace(/\[PEOPLE_HELPED\]/g, String((volData?.hoursContributed || 0) * 5))
-      .replace(/\[VOLUNTEER_LINK\]/g, `${portalUrl}/join?ref=${profile.referralCode}`)
+      .replace(/\[VOLUNTEER_LINK\]/g, `${portalUrl}?ref=${profile.referralCode}`)
       .replace(/\[DONATION_LINK\]/g, 'https://healthmatters.clinic/donate')
       .replace(/\[ORG_WEBSITE\]/g, 'https://healthmatters.clinic');
 
