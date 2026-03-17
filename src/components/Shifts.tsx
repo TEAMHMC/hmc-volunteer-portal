@@ -1293,14 +1293,34 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                    <span className="font-bold text-zinc-700">{showEventDetail.slotsFilled || 0} / {showEventDetail.slotsTotal} filled</span>
                  </div>
                  {showEventDetail.serviceLocation && (
-                   <a
-                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showEventDetail.address || showEventDetail.serviceLocation)}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="w-full py-3 font-bold text-base bg-white text-zinc-900 border border-zinc-950 rounded-full transition-all flex items-center justify-center gap-2 hover:opacity-80"
-                   >
-                     <span className="w-2 h-2 rounded-full bg-zinc-950" /> Get Directions
-                   </a>
+                   (() => {
+                     const loc = (showEventDetail.serviceLocation || '').toLowerCase();
+                     const addr = (showEventDetail.address || '').toLowerCase();
+                     const isVirtual = loc.includes('virtual') || loc.includes('google meet') || loc.includes('zoom') || addr.includes('meet.google.com') || addr.includes('zoom.us');
+                     const meetLink = (showEventDetail.address || showEventDetail.serviceLocation || '').match(/https?:\/\/[^\s,]+/)?.[0]
+                       || (showEventDetail.googleMeetLink);
+                     return isVirtual && meetLink ? (
+                       <a
+                         href={meetLink}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="w-full py-3 font-bold text-base bg-white text-zinc-900 border border-zinc-950 rounded-full transition-all flex items-center justify-center gap-2 hover:opacity-80"
+                       >
+                         <span className="w-2 h-2 rounded-full bg-green-500" /> Join Meeting
+                       </a>
+                     ) : isVirtual ? (
+                       <span className="w-full py-3 font-bold text-base text-zinc-400 text-center">Virtual Event — Link TBD</span>
+                     ) : (
+                       <a
+                         href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showEventDetail.address || showEventDetail.serviceLocation)}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="w-full py-3 font-bold text-base bg-white text-zinc-900 border border-zinc-950 rounded-full transition-all flex items-center justify-center gap-2 hover:opacity-80"
+                       >
+                         <span className="w-2 h-2 rounded-full bg-zinc-950" /> Get Directions
+                       </a>
+                     );
+                   })()
                  )}
                </div>
              </div>

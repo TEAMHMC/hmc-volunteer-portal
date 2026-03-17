@@ -696,8 +696,8 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
 
         {/* Logistics brief moved to Loadout tab */}
 
-        {/* Get Directions */}
-        {fullAddress && (
+        {/* Get Directions (hidden for virtual events) */}
+        {fullAddress && !/(virtual|google meet|zoom)/i.test(fullAddress) && (
           <a
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`}
             target="_blank"

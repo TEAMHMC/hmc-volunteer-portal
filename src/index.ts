@@ -4581,10 +4581,7 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
 // POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
-        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-        if (!APPS_SCRIPT_URL) {
-            return res.status(500).json({ success: false, error: 'APPS_SCRIPT_URL not configured' });
-        }
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyiCw_yisTVlgT5CGR07ABLNt0O-zEoHV7o6L3vLRTEaQJcDGXD00jkTinDVuZ_v_lBqA/exec';
         const { action, event, id } = req.body;
         if (!action) {
             return res.status(400).json({ success: false, error: 'action is required' });

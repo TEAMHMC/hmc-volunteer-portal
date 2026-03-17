@@ -561,7 +561,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     <span className="w-2 h-2 rounded-full bg-white" /> <Video size={16} /> Join Meeting
                   </a>
                 )}
-                {showDetailEvent.location && (
+                {showDetailEvent.location && !/(virtual|google meet|zoom)/i.test(showDetailEvent.location) && (
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(showDetailEvent.location)}`}
                     target="_blank"
