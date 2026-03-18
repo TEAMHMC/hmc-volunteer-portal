@@ -355,6 +355,13 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         } catch (e) {
             console.error('Failed to fetch notifications:', e);
         }
+        // Admins: refresh volunteer list to pick up new applicants
+        if (displayUser.isAdmin) {
+            try {
+                const meData = await apiService.get('/auth/me');
+                if (meData.volunteers) setAllVolunteers(meData.volunteers);
+            } catch {}
+        }
     };
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // Poll every 30s

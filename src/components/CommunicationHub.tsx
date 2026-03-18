@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Announcement, Message, Volunteer, SupportTicket, TicketNote, TicketActivity, TicketCategory, TicketType } from '../types';
 import {
   Megaphone, MessageSquare, LifeBuoy, Send, Plus, Sparkles, Loader2, Clock,
-  Trash2, CheckCircle, Search, ChevronDown, User, Filter, X, Check, Smartphone,
+  Trash2, CheckCircle, Search, ChevronDown, User, Filter, X, Check, Smartphone, Mail,
   Hash, Users, GripVertical, MoreHorizontal, AlertCircle, ArrowRight, FileText,
   Tag, Flag, History, ChevronRight, MessageCircle, Bell, Eye, Pencil, Paperclip, Download,
   Calendar, Target, FolderKanban, ListTodo
@@ -38,6 +38,7 @@ const BroadcastsView: React.FC<{
   const [newAnnounceBody, setNewAnnounceBody] = useState('');
   const [newAnnounceTitle, setNewAnnounceTitle] = useState('');
   const [sendAsSms, setSendAsSms] = useState(false);
+  const [sendAsEmail, setSendAsEmail] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [filters, setFilters] = useState({ role: 'All', status: 'All', skill: '' });
@@ -62,6 +63,7 @@ const BroadcastsView: React.FC<{
     setNewAnnounceTitle('');
     setNewAnnounceBody('');
     setSendAsSms(false);
+    setSendAsEmail(false);
   };
 
   const postAnnouncement = async () => {
@@ -75,19 +77,25 @@ const BroadcastsView: React.FC<{
         filters,
         targetRoles,
         sendAsSms,
+        sendAsEmail,
       });
       setAnnouncements(prev => [newAnnouncement, ...prev]);
       setIsSent(true);
-      // Show SMS results if broadcast included SMS
+      // Show delivery results
+      const parts: string[] = [];
       if (sendAsSms && newAnnouncement.smsResults) {
         const r = newAnnouncement.smsResults;
-        if (r.error) {
-          toastService.error(`Broadcast posted but SMS failed: ${r.error}`);
-        } else if (r.attempted === 0) {
-          toastService.info('Broadcast posted. No volunteers with phone numbers found for SMS.');
-        } else {
-          toastService.success(`Broadcast posted. SMS sent to ${r.sent}/${r.attempted} volunteers.${r.failed > 0 ? ` ${r.failed} failed.` : ''}`);
-        }
+        if (r.error) parts.push(`SMS failed: ${r.error}`);
+        else if (r.attempted === 0) parts.push('No volunteers with phone numbers for SMS');
+        else parts.push(`SMS: ${r.sent}/${r.attempted} sent${r.failed > 0 ? ` (${r.failed} failed)` : ''}`);
+      }
+      if (sendAsEmail && newAnnouncement.emailResults) {
+        const r = newAnnouncement.emailResults;
+        if (r.attempted === 0) parts.push('No volunteers with emails found');
+        else parts.push(`Email: ${r.sent}/${r.attempted} sent${r.failed > 0 ? ` (${r.failed} failed)` : ''}`);
+      }
+      if (parts.length > 0) {
+        toastService.success(`Broadcast posted. ${parts.join(' · ')}`);
       }
       setTimeout(() => {
         setIsSent(false);
@@ -179,7 +187,11 @@ const BroadcastsView: React.FC<{
             <div className="flex items-center gap-4 pt-4 border-t border-zinc-100">
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50">
                 <input type="checkbox" checked={sendAsSms} onChange={e => setSendAsSms(e.target.checked)} className="w-5 h-5 rounded border-zinc-300 text-brand focus:ring-brand" />
-                <span className="text-xs font-bold text-zinc-600 flex items-center gap-2"><Smartphone size={14} /> Send as SMS alert</span>
+                <span className="text-xs font-bold text-zinc-600 flex items-center gap-2"><Smartphone size={14} /> SMS</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-zinc-50">
+                <input type="checkbox" checked={sendAsEmail} onChange={e => setSendAsEmail(e.target.checked)} className="w-5 h-5 rounded border-zinc-300 text-brand focus:ring-brand" />
+                <span className="text-xs font-bold text-zinc-600 flex items-center gap-2"><Mail size={14} /> Email</span>
               </label>
               <button
                 onClick={postAnnouncement}

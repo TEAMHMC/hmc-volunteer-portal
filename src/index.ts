@@ -1361,6 +1361,16 @@ const EmailTemplates = {
     ${emailFooter()}`,
     text: `Hi ${data.volunteerName}, your volunteer account has been deactivated. Contact ${EMAIL_CONFIG.SUPPORT_EMAIL} for assistance.`
   }),
+
+  broadcast: (data: EmailTemplateData) => ({
+    subject: `[HMC] ${data.title || 'Announcement'}`,
+    html: `${emailHeader(data.title || 'Announcement')}
+      <p>Hi ${data.volunteerName},</p>
+      <div style="white-space: pre-line; line-height: 1.6;">${data.content}</div>
+      ${actionButton('View in Portal', `${EMAIL_CONFIG.WEBSITE_URL}`)}
+    ${emailFooter()}`,
+    text: `[HMC] ${data.title}\n\n${data.content}`
+  }),
 };
 
 // Email Service Class - Uses Google Apps Script
@@ -1369,17 +1379,6 @@ class EmailService {
     templateName: keyof typeof EmailTemplates,
     data: EmailTemplateData
   ): Promise<{ sent: boolean; reason?: string }> {
-    // EMERGENCY KILL SWITCH: Block non-essential emails (workflow spam prevention)
-    // Allow transactional + critical operational emails through
-    const allowedTypes = [
-      'email_verification', 'password_reset', 'login_confirmation',
-      'admin_new_applicant', 'application_received', 'welcome_volunteer',
-    ];
-    if (!allowedTypes.includes(templateName)) {
-      console.log(`[EMAIL] BLOCKED by kill switch — ${templateName} to ${data.toEmail || 'unknown'}`);
-      return { sent: false, reason: 'disabled' };
-    }
-
     // Check opt-in for non-transactional emails
     const transactionalTypes = ['email_verification', 'password_reset', 'login_confirmation'];
     if (!transactionalTypes.includes(templateName) && data.userId) {
@@ -8115,11 +8114,12 @@ app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response
         if (!callerProfile?.isAdmin && !BROADCAST_ROLES.includes(callerProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and coordinators/leads can send broadcasts.' });
         }
-        const { title, content, category = 'General', sendAsSms = false, targetRoles } = req.body;
+        const { title, content, category = 'General', sendAsSms = false, sendAsEmail = false, targetRoles } = req.body;
         const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved', ...(targetRoles ? { targetRoles } : {}) };
         const docRef = await db.collection('announcements').add(announcement);
 
         let smsResults = { attempted: 0, sent: 0, failed: 0 };
+        let emailResults = { attempted: 0, sent: 0, failed: 0 };
 
         // Send SMS to all opted-in volunteers if requested
         if (sendAsSms) {
@@ -8186,10 +8186,57 @@ app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response
             }
         }
 
+        // Send email to all volunteers if requested
+        if (sendAsEmail) {
+            const allVolunteersSnap = sendAsSms
+                ? null // Already fetched above — reuse isn't possible since it was scoped, so re-fetch
+                : null;
+            const volSnap = await db.collection('volunteers').get();
+            const eligibleEmails: { id: string; email: string; name: string }[] = [];
+
+            volSnap.docs.forEach(doc => {
+                const data = doc.data();
+                const email = data.email;
+                if (!email) return;
+                // Skip if explicitly opted out of email alerts
+                if (data.notificationPrefs?.emailAlerts === false) return;
+                eligibleEmails.push({ id: doc.id, email, name: data.name || data.firstName || 'Volunteer' });
+            });
+
+            console.log(`[BROADCAST] ${eligibleEmails.length} volunteers eligible for email`);
+            emailResults.attempted = eligibleEmails.length;
+
+            // Send emails in parallel (batches of 10 to avoid overwhelming the email service)
+            for (let i = 0; i < eligibleEmails.length; i += 10) {
+                const batch = eligibleEmails.slice(i, i + 10);
+                const emailPromises = batch.map(async (vol) => {
+                    try {
+                        await EmailService.send('broadcast', {
+                            toEmail: vol.email,
+                            volunteerName: vol.name.split(' ')[0],
+                            title,
+                            content,
+                        });
+                        return { success: true };
+                    } catch (error: any) {
+                        console.error(`[BROADCAST] Email failed for ${maskEmail(vol.email)}:`, error.message);
+                        return { success: false };
+                    }
+                });
+                const results = await Promise.allSettled(emailPromises);
+                results.forEach(result => {
+                    if (result.status === 'fulfilled' && result.value.success) emailResults.sent++;
+                    else emailResults.failed++;
+                });
+            }
+            console.log(`[BROADCAST] Email results: ${emailResults.sent} sent, ${emailResults.failed} failed`);
+        }
+
         res.json({
             id: docRef.id,
             ...announcement,
-            smsResults: sendAsSms ? smsResults : undefined
+            smsResults: sendAsSms ? smsResults : undefined,
+            emailResults: sendAsEmail ? emailResults : undefined,
         });
     } catch (error: any) {
         console.error('[BROADCAST] Failed to send broadcast:', error);
