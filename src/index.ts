@@ -1369,14 +1369,19 @@ class EmailService {
     templateName: keyof typeof EmailTemplates,
     data: EmailTemplateData
   ): Promise<{ sent: boolean; reason?: string }> {
-    // EMERGENCY KILL SWITCH: Block all non-transactional emails (workflow spam prevention)
-    const transactionalTypes = ['email_verification', 'password_reset', 'login_confirmation'];
-    if (!transactionalTypes.includes(templateName)) {
+    // EMERGENCY KILL SWITCH: Block non-essential emails (workflow spam prevention)
+    // Allow transactional + critical operational emails through
+    const allowedTypes = [
+      'email_verification', 'password_reset', 'login_confirmation',
+      'admin_new_applicant', 'application_received', 'welcome_volunteer',
+    ];
+    if (!allowedTypes.includes(templateName)) {
       console.log(`[EMAIL] BLOCKED by kill switch — ${templateName} to ${data.toEmail || 'unknown'}`);
       return { sent: false, reason: 'disabled' };
     }
 
     // Check opt-in for non-transactional emails
+    const transactionalTypes = ['email_verification', 'password_reset', 'login_confirmation'];
     if (!transactionalTypes.includes(templateName) && data.userId) {
       const canSend = await canSendEmail(data.userId, 'alerts');
       if (!canSend) {

@@ -4247,7 +4247,7 @@ const StationRotationPlanner: React.FC<{
         const nextSlotIdx = currentSlot ? currentSlot.slotIndex + 1 : 0;
         const nextSlot = (config.rotationSlots || []).find(s => s.slotIndex === nextSlotIdx);
         const nextAssignment = (nextSlot?.assignments || []).find(a => a.pairId === myPair?.id);
-        const nextStation = nextAssignment ? config.stations.find(s => s.id === nextAssignment.stationId) : null;
+        const nextStation = nextAssignment ? (config.stations || []).find(s => s.id === nextAssignment.stationId) : null;
         const buddyName = myPair
             ? registeredVolunteers.find(v => v.id === (myPair.volunteerId1 === user.id ? myPair.volunteerId2 : myPair.volunteerId1))?.name
             : null;
