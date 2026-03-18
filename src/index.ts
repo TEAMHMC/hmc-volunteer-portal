@@ -4582,6 +4582,32 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
     }
 });
 
+// GET /api/admin/volunteers-missing-phone - Diagnostic: list volunteers without phone numbers
+app.get('/api/admin/volunteers-missing-phone', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const callerProfile = (req as any).user?.profile;
+        if (!callerProfile?.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        const snap = await db.collection('volunteers').get();
+        const missing: { name: string; email: string; status: string; signedUp: string }[] = [];
+        const hasPhone: number[] = [];
+        snap.docs.forEach(doc => {
+            const d = doc.data();
+            const phone = d.phone || d.phoneNumber;
+            if (!phone) {
+                missing.push({
+                    name: d.name || d.firstName || 'Unknown',
+                    email: d.email || '',
+                    status: d.status || d.applicationStatus || 'unknown',
+                    signedUp: d.createdAt || d.applicationDate || '',
+                });
+            }
+        });
+        res.json({ total: snap.size, withPhone: snap.size - missing.length, missingPhone: missing.length, volunteers: missing });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
