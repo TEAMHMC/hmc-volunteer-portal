@@ -97,6 +97,11 @@ export interface Opportunity {
   createdAt?: string;
   approvedBy?: string;
   approvedAt?: string;
+  // Cancellation
+  status?: 'active' | 'cancelled';
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
 }
 
 export interface Shift {

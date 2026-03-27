@@ -1052,6 +1052,25 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     }
   };
 
+  const handleCancelEvent = async (oppId: string) => {
+    const reason = prompt('Reason for cancellation (volunteers will be notified):');
+    if (reason === null) return;
+    try {
+      const result = await apiService.post(`/api/opportunities/${oppId}/cancel`, { reason });
+      setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, status: 'cancelled', cancellationReason: reason } : o));
+      setToastMsg(`Event cancelled. ${result.notifiedCount || 0} volunteer(s) notified.`);
+      setToastError(false);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (e) {
+      console.error('Failed to cancel event', e);
+      setToastMsg('Failed to cancel event.');
+      setToastError(true);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
   const handleUpdateEvent = async (updates: Partial<Opportunity> & { startTime?: string; endTime?: string }) => {
     if (!editingEvent) return;
     try {
@@ -1101,7 +1120,8 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     ? shifts.filter(s => {
         const opp = getOpp(s.opportunityId);
         return !user.assignedShiftIds?.includes(s.id) && opp && !isPastEvent(opp.date)
-          && (opp.approvalStatus === 'approved' || !opp.approvalStatus);
+          && (opp.approvalStatus === 'approved' || !opp.approvalStatus)
+          && opp.status !== 'cancelled';
       })
     : shifts.filter(s => user.assignedShiftIds?.includes(s.id));
 
@@ -1419,7 +1439,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                 const dateB = new Date(b.date + 'T00:00:00').getTime();
                 return dateA - dateB;
               }).map(opp => (
-                 <div key={opp.id} className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow flex flex-col ${opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
+                 <div key={opp.id} className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow flex flex-col ${opp.status === 'cancelled' ? 'border-rose-200 opacity-60' : opp.approvalStatus === 'rejected' ? 'border-rose-200 opacity-60' : 'border-zinc-100'}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <h3 className="font-bold truncate">{opp.title}</h3>
@@ -1427,11 +1447,12 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         <p className="text-[11px] text-zinc-300 font-black mt-1">{normalizeCategory(opp.category)}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase shrink-0 ${
+                        opp.status === 'cancelled' ? 'bg-rose-100 text-rose-600' :
                         opp.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
                         opp.approvalStatus === 'rejected' ? 'bg-rose-100 text-rose-600' :
                         'bg-zinc-100 text-zinc-500'
                       }`}>
-                        {opp.approvalStatus || 'Published'}
+                        {opp.status === 'cancelled' ? 'Cancelled' : opp.approvalStatus || 'Published'}
                       </span>
                     </div>
                     <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3 flex-1">
@@ -1524,9 +1545,16 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                     {/* Event Day Check-in Panel */}
                     <EventDayCheckin eventId={opp.id} eventDate={opp.date} />
                     <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center gap-2">
-                      <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-black rounded-full text-xs font-bold uppercase tracking-wide transition-colors">
-                        <Pencil size={12} /> Edit
-                      </button>
+                      {opp.status !== 'cancelled' && (
+                        <button onClick={() => setEditingEvent(opp)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-black rounded-full text-xs font-bold uppercase tracking-wide transition-colors">
+                          <Pencil size={12} /> Edit
+                        </button>
+                      )}
+                      {opp.status !== 'cancelled' && (
+                        <button onClick={() => handleCancelEvent(opp.id)} className="flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-black rounded-full text-xs font-bold uppercase tracking-wide transition-colors">
+                          <XCircle size={12} /> Cancel
+                        </button>
+                      )}
                       <button onClick={() => handleDeleteEvent(opp.id)} className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-500 border border-black rounded-full text-xs font-bold uppercase tracking-wide transition-colors">
                         <Trash2 size={12} /> Delete
                       </button>

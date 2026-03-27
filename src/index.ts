@@ -7363,6 +7363,73 @@ app.delete('/api/opportunities/:id', verifyToken, async (req: Request, res: Resp
     }
 });
 
+// Cancel an event (soft-cancel) and notify assigned volunteers
+app.post('/api/opportunities/:id/cancel', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userProfile = (req as any).user?.profile;
+        if (!userProfile?.isAdmin && !EVENT_MANAGEMENT_ROLES.includes(userProfile?.role)) {
+            return res.status(403).json({ error: 'Only admins and event management roles can cancel events' });
+        }
+
+        const { reason } = req.body || {};
+
+        // Fetch the opportunity
+        const oppDoc = await db.collection('opportunities').doc(id).get();
+        if (!oppDoc.exists) {
+            return res.status(404).json({ error: 'Event not found' });
+        }
+        const oppData = oppDoc.data()!;
+        if (oppData.status === 'cancelled') {
+            return res.status(400).json({ error: 'Event is already cancelled' });
+        }
+
+        // Mark as cancelled
+        await db.collection('opportunities').doc(id).update({
+            status: 'cancelled',
+            cancelledAt: new Date().toISOString(),
+            cancelledBy: userProfile.id || userProfile.email || 'unknown',
+            cancellationReason: reason || '',
+        });
+
+        // Find all shifts and collect assigned volunteer IDs
+        const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', id).get();
+        const volunteerIds = new Set<string>();
+        shiftsSnap.docs.forEach(doc => {
+            const data = doc.data();
+            (data.assignedVolunteerIds || []).forEach((vid: string) => volunteerIds.add(vid));
+        });
+
+        // Notify each volunteer
+        let notifiedCount = 0;
+        for (const vid of volunteerIds) {
+            try {
+                const volDoc = await db.collection('volunteers').doc(vid).get();
+                if (!volDoc.exists) continue;
+                const vol = volDoc.data()!;
+                if (!vol.email) continue;
+                await EmailService.send('shift_cancellation', {
+                    volunteerName: vol.name,
+                    eventName: oppData.title,
+                    eventDate: oppData.date,
+                    reason: reason || 'No additional details provided',
+                    toEmail: vol.email,
+                    userId: vid,
+                });
+                notifiedCount++;
+            } catch (emailErr) {
+                console.warn(`[EVENTS] Failed to notify volunteer ${vid}:`, emailErr);
+            }
+        }
+
+        console.log(`[EVENTS] Cancelled opportunity ${id}, notified ${notifiedCount} volunteer(s)`);
+        res.json({ success: true, notifiedCount });
+    } catch (error) {
+        console.error('[EVENTS] Failed to cancel opportunity:', error);
+        res.status(500).json({ error: 'Failed to cancel event' });
+    }
+});
+
 // Bulk import events from CSV
 app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Response) => {
     try {
