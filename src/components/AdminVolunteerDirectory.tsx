@@ -293,6 +293,22 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
     }
   };
 
+  const handleToggleActive = async () => {
+    if (!selectedVolunteer) return;
+    const newStatus = selectedVolunteer.status === 'inactive' ? 'active' : 'inactive';
+    const action = newStatus === 'inactive' ? 'deactivate' : 'reactivate';
+    if (!confirm(`Are you sure you want to ${action} ${selectedVolunteer.name}? ${newStatus === 'inactive' ? 'They will no longer appear in shift assignments or available volunteers, but all their data will be preserved.' : 'They will be restored to active status.'}`)) return;
+    try {
+      await apiService.post('/api/admin/update-volunteer-profile', { volunteer: { id: selectedVolunteer.id, status: newStatus } });
+      const updated = { ...selectedVolunteer, status: newStatus as Volunteer['status'] };
+      setVolunteers(prev => prev.map(v => v.id === selectedVolunteer.id ? { ...v, status: newStatus as Volunteer['status'] } : v));
+      setSelectedVolunteer(updated);
+      toastService.success(`${selectedVolunteer.name} has been ${newStatus === 'inactive' ? 'deactivated' : 'reactivated'}.`);
+    } catch (error) {
+      toastService.error(`Failed to ${action} volunteer: ${(error as Error).message}`);
+    }
+  };
+
   const handleDeleteVolunteer = async () => {
     if (!selectedVolunteer) return;
     setIsDeleting(true);
@@ -445,7 +461,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
             <div 
               key={v.id} 
               onClick={() => { setSelectedVolunteer(v); setShowFullApplication(false); }}
-              className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+              className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow hover:-translate-y-2 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden ${v.status === 'inactive' ? 'border-zinc-200 opacity-50' : 'border-zinc-100'}`}
             >
                <div className="flex justify-between items-start mb-4 md:mb-8 relative z-10">
                   <div className="flex items-center gap-5">
@@ -456,6 +472,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                         <h3 className="text-lg font-black text-zinc-900 leading-tight group-hover:text-brand transition-colors">{v.name}</h3>
                         <p className="text-[11px] font-black text-zinc-300 uppercase tracking-[0.15em] mt-1">{v.applicationStatus === 'pendingReview' ? `Applied for: ${v.appliedRole}` : v.role}</p>
                         <div className="flex flex-wrap gap-1.5 mt-2">
+                          {v.status === 'inactive' && (
+                            <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-[11px] font-black uppercase tracking-wider rounded-full">Inactive</span>
+                          )}
                           {v.isReturningVolunteer && (
                             <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[11px] font-black uppercase tracking-wider rounded-full">Returning</span>
                           )}
@@ -533,13 +552,23 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                        {selectedVolunteer.avatarUrl ? <img src={selectedVolunteer.avatarUrl} className="w-full h-full object-cover" /> : selectedVolunteer.name.charAt(0)}
                     </div>
                     <div>
-                       <h2 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight">{selectedVolunteer.name}</h2>
+                       <div className="flex items-center gap-3">
+                         <h2 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight">{selectedVolunteer.name}</h2>
+                         {selectedVolunteer.status === 'inactive' && (
+                           <span className="px-3 py-1 bg-rose-100 text-rose-600 text-[11px] font-black uppercase tracking-wider rounded-full">Inactive</span>
+                         )}
+                       </div>
                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs mt-1">{selectedVolunteer.applicationStatus === 'pendingReview' ? `Applied for: ${selectedVolunteer.appliedRole}` : selectedVolunteer.role}</p>
                     </div>
                  </div>
                  <div className="flex items-center gap-2">
                    {currentUser.isAdmin && (
                      <button onClick={handleStartEditProfile} className="p-4 bg-brand/10 rounded-full text-brand hover:bg-brand/20 transition-colors" title="Edit profile"><Pencil size={20} /></button>
+                   )}
+                   {currentUser.isAdmin && selectedVolunteer.id !== currentUser.id && (
+                     <button onClick={handleToggleActive} className={`p-4 rounded-full transition-colors ${selectedVolunteer.status === 'inactive' ? 'bg-emerald-50 text-emerald-400 hover:text-emerald-600' : 'bg-amber-50 text-amber-300 hover:text-amber-600'}`} title={selectedVolunteer.status === 'inactive' ? 'Reactivate volunteer' : 'Deactivate volunteer'}>
+                       {selectedVolunteer.status === 'inactive' ? <CheckCircle size={20} /> : <XCircle size={20} />}
+                     </button>
                    )}
                    {currentUser.isAdmin && selectedVolunteer.id !== currentUser.id && (
                      <button onClick={() => setShowDeleteConfirm(true)} className="p-4 bg-rose-50 rounded-full text-rose-300 hover:text-rose-600 transition-colors" title="Delete volunteer"><Trash2 size={20} /></button>
