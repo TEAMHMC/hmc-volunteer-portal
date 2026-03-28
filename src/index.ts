@@ -555,15 +555,72 @@ const normalizePhone = (phone: string | undefined | null): string | null => {
   return digits.length === 10 ? digits : null;
 };
 
-// --- SMS OPT-IN HELPER ---
+// --- SMS WITH DEDUP + OPT-IN ---
 const sendSMS = async (
   userId: string | null,
   to: string,
   body: string
 ): Promise<{ sent: boolean; reason?: string }> => {
-  // EMERGENCY KILL SWITCH: All SMS disabled
-  console.log('[SMS] ALL SMS DISABLED — emergency kill switch active');
-  return { sent: false, reason: 'disabled' };
+  if (!twilioClient) {
+    return { sent: false, reason: 'not_configured' };
+  }
+
+  // Check opt-in if we have a userId
+  if (userId) {
+    try {
+      const volDoc = await db.collection('volunteers').doc(userId).get();
+      if (volDoc.exists) {
+        const prefs = volDoc.data()?.notificationPrefs;
+        if (prefs?.smsAlerts === false) {
+          console.log(`[SMS] Skipped — user ${userId} opted out of SMS`);
+          return { sent: false, reason: 'opted_out' };
+        }
+      }
+    } catch (e) {
+      console.warn(`[SMS] Could not check opt-in for ${userId}:`, e);
+    }
+  }
+
+  // Dedup: hash the recipient + message body, skip if sent in last 24h
+  const dedupHash = crypto.createHash('sha256').update(`${to}:${body}`).digest('hex').substring(0, 16);
+  const dedupRef = db.collection('sms_dedup').doc(dedupHash);
+  try {
+    const dedupDoc = await dedupRef.get();
+    if (dedupDoc.exists) {
+      const sentAt = dedupDoc.data()?.sentAt;
+      if (sentAt) {
+        const hoursSince = (Date.now() - new Date(sentAt).getTime()) / (1000 * 60 * 60);
+        if (hoursSince < 24) {
+          console.log(`[SMS] Dedup — identical message to ${to} sent ${hoursSince.toFixed(1)}h ago, skipping`);
+          return { sent: false, reason: 'dedup' };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[SMS] Dedup check failed, proceeding:', e);
+  }
+
+  // Send via Twilio
+  try {
+    const msgParams: any = { body, to };
+    if (TWILIO_MESSAGING_SERVICE_SID) {
+      msgParams.messagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+    } else if (TWILIO_PHONE_NUMBER) {
+      msgParams.from = TWILIO_PHONE_NUMBER;
+    } else {
+      return { sent: false, reason: 'no_sender' };
+    }
+
+    await twilioClient.messages.create(msgParams);
+
+    // Record for dedup
+    await dedupRef.set({ to, userId, sentAt: new Date().toISOString(), bodyPreview: body.substring(0, 80) });
+    console.log(`[SMS] Sent to ${to}${userId ? ` (user ${userId})` : ''}`);
+    return { sent: true };
+  } catch (err: any) {
+    console.error(`[SMS] Failed to send to ${to}:`, err.message);
+    return { sent: false, reason: err.message };
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1370,6 +1427,37 @@ const EmailTemplates = {
       ${actionButton('View in Portal', `${EMAIL_CONFIG.WEBSITE_URL}`)}
     ${emailFooter()}`,
     text: `[HMC] ${data.title}\n\n${data.content}`
+  }),
+
+  weekly_digest: (data: EmailTemplateData) => ({
+    subject: `Your Weekly Wellness & Volunteer Update`,
+    html: `${emailHeader('Your Week Ahead')}
+      <p>Hi ${data.volunteerName},</p>
+      <p style="font-size: 16px; color: #1f2937;">Here's what's coming up this week — and a few ways your time and heart can make a difference.</p>
+
+      ${data.motivationalQuote ? `
+      <div style="background: linear-gradient(135deg, #f0f4ff 0%, #e8f5e9 100%); border-radius: 16px; padding: 24px; margin: 24px 0; text-align: center;">
+        <p style="font-size: 18px; font-style: italic; color: #1f2937; margin: 0; line-height: 1.5;">"${data.motivationalQuote}"</p>
+      </div>
+      ` : ''}
+
+      ${data.eventsHtml || '<p style="color: #6b7280;">No upcoming events this week — but stay tuned!</p>'}
+
+      <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin: 24px 0;">
+        <p style="font-weight: 600; color: #1f2937; margin: 0 0 8px 0;">Ways to Stay Involved</p>
+        <ul style="color: #4b5563; margin: 0; padding-left: 20px; line-height: 2;">
+          <li>Sign up for an upcoming shift</li>
+          <li>Invite a friend to volunteer with you</li>
+          <li>Complete any open training modules</li>
+          <li>Share our events on social media</li>
+        </ul>
+      </div>
+
+      <p style="color: #6b7280; font-size: 14px;">Remember — your health matters too. Take care of yourself this week.</p>
+
+      ${actionButton('View All Opportunities', `${EMAIL_CONFIG.WEBSITE_URL}/shifts`)}
+    ${emailFooter()}`,
+    text: `Hi ${data.volunteerName}, here's your weekly update from Health Matters Clinic.\n\n${data.motivationalQuote ? `"${data.motivationalQuote}"\n\n` : ''}${data.eventsText || 'No upcoming events this week.'}\n\nYour health matters too — take care of yourself.`
   }),
 };
 
@@ -12788,6 +12876,139 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[CRON-ENDPOINT] Workflow error:', e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// WEEKLY DIGEST (Email) + WELLNESS TEXT (SMS)
+// Schedule via Cloud Scheduler: POST /api/cron/weekly-digest every Monday 9am PT
+// ═══════════════════════════════════════════════════════════════
+
+const WELLNESS_MESSAGES = [
+  `Your presence at our events changes lives — including your own. Take a deep breath today. You're making a difference.`,
+  `Small acts of kindness ripple outward. Thank you for being part of something bigger. Don't forget to pour into yourself too.`,
+  `You showed up for your community, and that matters more than you know. This week, do one thing just for YOU.`,
+  `Health isn't just physical — it's feeling connected, valued, and purposeful. You bring that to every event. We're grateful for you.`,
+  `Rest is productive. Recovery is strength. If you need a week off, take it. We'll be here when you're ready.`,
+  `Every hour you volunteer gives someone hope. But remember — your wellness fuels your impact. Take care of yourself first.`,
+  `You are not just a volunteer. You're a healer, a neighbor, a friend. Your community sees you. We see you.`,
+  `Burnout is real, even when the work feels meaningful. Check in with yourself today: How are YOU doing?`,
+  `Fun fact: volunteering is linked to lower stress and better heart health. You're literally healing yourself while healing others.`,
+  `You don't have to do everything. Showing up once, sharing a post, or sending an encouraging text — it all counts.`,
+  `Wellness check: Have you eaten today? Hydrated? Taken a moment to breathe? Your health matters too.`,
+  `Community isn't built overnight — it's built by people like you showing up, week after week. Thank you for being consistent.`,
+  `This week's reminder: You are enough. Your time is valuable. And what you give to this community comes back tenfold.`,
+  `Movement heals. Whether it's a community walk, stretching at home, or dancing in your kitchen — move your body this week.`,
+  `Gratitude moment: Someone out there is healthier, safer, or more hopeful because of YOU. Let that sink in.`,
+  `Your mental health is just as important as the communities you serve. It's okay to say no. It's okay to rest.`,
+];
+
+app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
+  // Auth: cron secret or admin
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (cronSecret && providedSecret !== cronSecret) {
+    return res.status(403).json({ error: 'Invalid cron secret' });
+  }
+
+  console.log('[WEEKLY DIGEST] Starting...');
+  const results = { emailsSent: 0, emailsSkipped: 0, textsSent: 0, textsSkipped: 0, errors: 0 };
+
+  try {
+    // 1. Get upcoming events for the next 7 days
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const todayStr = today.toISOString().split('T')[0];
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+    const oppsSnap = await db.collection('opportunities')
+      .where('date', '>=', todayStr)
+      .where('date', '<=', nextWeekStr)
+      .get();
+
+    const upcomingEvents = oppsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter((e: any) => e.status !== 'cancelled' && (e.approvalStatus === 'approved' || !e.approvalStatus))
+      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+
+    // 2. Build event HTML + text for email
+    let eventsHtml = '';
+    let eventsText = '';
+    if (upcomingEvents.length > 0) {
+      eventsHtml = `
+        <p style="font-weight: 600; color: #1f2937; font-size: 16px; margin-bottom: 16px;">This Week's Opportunities</p>
+        ${upcomingEvents.map((e: any) => {
+          const dateObj = new Date(e.date + 'T00:00:00');
+          const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          return `
+          <div style="background: #f9fafb; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; padding: 16px; margin: 12px 0; border-radius: 4px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #1f2937;">${e.title}</p>
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">${dateStr}${e.time ? ` • ${e.time}` : ''} • ${e.serviceLocation || e.address || 'TBD'}</p>
+          </div>`;
+        }).join('')}
+      `;
+      eventsText = 'This week:\n' + upcomingEvents.map((e: any) => {
+        const dateObj = new Date(e.date + 'T00:00:00');
+        const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return `• ${e.title} — ${dateStr}${e.time ? `, ${e.time}` : ''}, ${e.serviceLocation || 'TBD'}`;
+      }).join('\n');
+    }
+
+    // 3. Pick motivational quote (rotate weekly by week number)
+    const weekNum = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const motivationalQuote = WELLNESS_MESSAGES[weekNum % WELLNESS_MESSAGES.length];
+
+    // 4. Fetch all active volunteers
+    const volsSnap = await db.collection('volunteers').get();
+    const activeVols = volsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter((v: any) => v.status !== 'inactive' && v.applicationStatus !== 'pendingReview');
+
+    // 5. Send weekly digest email to each volunteer
+    for (const vol of activeVols as any[]) {
+      // Email digest
+      if (vol.email && vol.notificationPrefs?.emailAlerts !== false) {
+        try {
+          await EmailService.send('weekly_digest', {
+            toEmail: vol.email,
+            volunteerName: (vol.name || vol.firstName || 'Volunteer').split(' ')[0],
+            motivationalQuote,
+            eventsHtml,
+            eventsText,
+            userId: vol.id,
+          });
+          results.emailsSent++;
+        } catch (e) {
+          console.warn(`[WEEKLY DIGEST] Email failed for ${vol.id}:`, e);
+          results.errors++;
+        }
+      } else {
+        results.emailsSkipped++;
+      }
+
+      // SMS wellness text
+      const phone = normalizePhone(vol.phone || vol.phoneNumber);
+      if (phone && vol.notificationPrefs?.smsAlerts !== false) {
+        const smsBody = `HMC Wellness 💙\n\n${motivationalQuote}\n\n${upcomingEvents.length > 0 ? `${upcomingEvents.length} opportunity${upcomingEvents.length > 1 ? 's' : ''} this week — check your email or the portal for details!` : 'No events this week — rest up and recharge.'}\n\nReply STOP to opt out.`;
+        try {
+          const smsResult = await sendSMS(vol.id, `+1${phone}`, smsBody);
+          if (smsResult.sent) results.textsSent++;
+          else results.textsSkipped++;
+        } catch (e) {
+          console.warn(`[WEEKLY DIGEST] SMS failed for ${vol.id}:`, e);
+          results.errors++;
+        }
+      } else {
+        results.textsSkipped++;
+      }
+    }
+
+    console.log(`[WEEKLY DIGEST] Complete:`, results);
+    res.json({ success: true, results });
+  } catch (error: any) {
+    console.error('[WEEKLY DIGEST] Failed:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
