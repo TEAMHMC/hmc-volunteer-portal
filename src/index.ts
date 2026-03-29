@@ -1455,9 +1455,9 @@ const EmailTemplates = {
 
       <p style="color: #6b7280; font-size: 14px;">Remember — your health matters too. Take care of yourself this week.</p>
 
-      ${actionButton('View All Opportunities', `${EMAIL_CONFIG.WEBSITE_URL}/shifts`)}
+      ${actionButton('View All Opportunities', `${EMAIL_CONFIG.WEBSITE_URL}`)}
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, here's your weekly update from Health Matters Clinic.\n\n${data.motivationalQuote ? `"${data.motivationalQuote}"\n\n` : ''}${data.eventsText || 'No upcoming events this week.'}\n\nYour health matters too — take care of yourself.`
+    text: `Hi ${data.volunteerName}, here's your weekly update from Health Matters Clinic.\n\n${data.motivationalQuote ? `"${data.motivationalQuote}"\n\n` : ''}${data.eventsText || 'No upcoming events right now.'}\n\nYour health matters too — take care of yourself.`
   }),
 };
 
@@ -12915,44 +12915,68 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
   const results = { emailsSent: 0, emailsSkipped: 0, textsSent: 0, textsSkipped: 0, errors: 0 };
 
   try {
-    // 1. Get upcoming events for the next 7 days
+    // 1. Get upcoming events for the next 30 days, split into "this week" and "coming up"
     const today = new Date();
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextMonth = new Date(today);
+    nextMonth.setDate(nextMonth.getDate() + 30);
     const todayStr = today.toISOString().split('T')[0];
     const nextWeekStr = nextWeek.toISOString().split('T')[0];
+    const nextMonthStr = nextMonth.toISOString().split('T')[0];
 
     const oppsSnap = await db.collection('opportunities')
       .where('date', '>=', todayStr)
-      .where('date', '<=', nextWeekStr)
+      .where('date', '<=', nextMonthStr)
       .get();
 
-    const upcomingEvents = oppsSnap.docs
+    const allUpcoming = oppsSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .filter((e: any) => e.status !== 'cancelled' && (e.approvalStatus === 'approved' || !e.approvalStatus))
       .sort((a: any, b: any) => a.date.localeCompare(b.date));
 
+    const thisWeekEvents = allUpcoming.filter((e: any) => e.date <= nextWeekStr);
+    const comingUpEvents = allUpcoming.filter((e: any) => e.date > nextWeekStr);
+
+    // Helper to format event block
+    const formatEventHtml = (e: any) => {
+      const dateObj = new Date(e.date + 'T00:00:00');
+      const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return `
+      <div style="background: #f9fafb; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; padding: 16px; margin: 12px 0; border-radius: 4px;">
+        <p style="margin: 0 0 4px 0; font-weight: 600; color: #1f2937;">${e.title}</p>
+        <p style="margin: 0; color: #6b7280; font-size: 14px;">${dateStr}${e.time ? ` • ${e.time}` : ''} • ${e.serviceLocation || e.address || 'TBD'}</p>
+      </div>`;
+    };
+    const formatEventText = (e: any) => {
+      const dateObj = new Date(e.date + 'T00:00:00');
+      const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return `• ${e.title} — ${dateStr}${e.time ? `, ${e.time}` : ''}, ${e.serviceLocation || 'TBD'}`;
+    };
+
     // 2. Build event HTML + text for email
     let eventsHtml = '';
     let eventsText = '';
-    if (upcomingEvents.length > 0) {
-      eventsHtml = `
-        <p style="font-weight: 600; color: #1f2937; font-size: 16px; margin-bottom: 16px;">This Week's Opportunities</p>
-        ${upcomingEvents.map((e: any) => {
-          const dateObj = new Date(e.date + 'T00:00:00');
-          const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-          return `
-          <div style="background: #f9fafb; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR}; padding: 16px; margin: 12px 0; border-radius: 4px;">
-            <p style="margin: 0 0 4px 0; font-weight: 600; color: #1f2937;">${e.title}</p>
-            <p style="margin: 0; color: #6b7280; font-size: 14px;">${dateStr}${e.time ? ` • ${e.time}` : ''} • ${e.serviceLocation || e.address || 'TBD'}</p>
-          </div>`;
-        }).join('')}
+
+    if (thisWeekEvents.length > 0) {
+      eventsHtml += `
+        <p style="font-weight: 600; color: #1f2937; font-size: 16px; margin-bottom: 16px;">This Week</p>
+        ${thisWeekEvents.map(formatEventHtml).join('')}
       `;
-      eventsText = 'This week:\n' + upcomingEvents.map((e: any) => {
-        const dateObj = new Date(e.date + 'T00:00:00');
-        const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        return `• ${e.title} — ${dateStr}${e.time ? `, ${e.time}` : ''}, ${e.serviceLocation || 'TBD'}`;
-      }).join('\n');
+      eventsText += 'This week:\n' + thisWeekEvents.map(formatEventText).join('\n');
+    }
+
+    if (comingUpEvents.length > 0) {
+      eventsHtml += `
+        <p style="font-weight: 600; color: #1f2937; font-size: 16px; margin: 24px 0 16px 0;">Coming Up</p>
+        ${comingUpEvents.map(formatEventHtml).join('')}
+      `;
+      eventsText += (eventsText ? '\n\n' : '') + 'Coming up:\n' + comingUpEvents.map(formatEventText).join('\n');
+    }
+
+    if (!eventsHtml) {
+      eventsHtml = '<p style="color: #6b7280;">No upcoming events in the next few weeks — but stay tuned!</p>';
+      eventsText = 'No upcoming events right now — stay tuned!';
     }
 
     // 3. Pick motivational quote (rotate weekly by week number)
@@ -12990,7 +13014,7 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
       // SMS wellness text
       const phone = normalizePhone(vol.phone || vol.phoneNumber);
       if (phone && vol.notificationPrefs?.smsAlerts !== false) {
-        const smsBody = `HMC Wellness 💙\n\n${motivationalQuote}\n\n${upcomingEvents.length > 0 ? `${upcomingEvents.length} opportunity${upcomingEvents.length > 1 ? 's' : ''} this week — check your email or the portal for details!` : 'No events this week — rest up and recharge.'}\n\nReply STOP to opt out.`;
+        const smsBody = `HMC Wellness 💙\n\n${motivationalQuote}\n\n${allUpcoming.length > 0 ? `${allUpcoming.length} upcoming opportunity${allUpcoming.length > 1 ? 's' : ''} — check your email or the portal for details!` : 'No events coming up — rest up and recharge.'}\n\nReply STOP to opt out.`;
         try {
           const smsResult = await sendSMS(vol.id, `+1${phone}`, smsBody);
           if (smsResult.sent) results.textsSent++;
