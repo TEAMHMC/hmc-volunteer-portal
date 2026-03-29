@@ -12903,6 +12903,85 @@ const WELLNESS_MESSAGES = [
   `Your mental health is just as important as the communities you serve. It's okay to say no. It's okay to rest.`,
 ];
 
+// One-off scheduled broadcast — send a custom message to all active volunteers
+// Body: { title, body, email?: boolean, sms?: boolean }
+app.post('/api/cron/broadcast', async (req: Request, res: Response) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (cronSecret && providedSecret !== cronSecret) {
+    return res.status(403).json({ error: 'Invalid cron secret' });
+  }
+
+  const { title, body: msgBody, email: sendEmail = true, sms: sendSms = true } = req.body || {};
+  if (!title || !msgBody) {
+    return res.status(400).json({ error: 'title and body are required' });
+  }
+
+  console.log(`[BROADCAST] Sending: "${title}"`);
+  const results = { emailsSent: 0, emailsSkipped: 0, textsSent: 0, textsSkipped: 0, errors: 0 };
+
+  try {
+    const volsSnap = await db.collection('volunteers').get();
+    const activeVols = volsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter((v: any) => v.status !== 'inactive' && v.applicationStatus !== 'pendingReview');
+
+    for (const vol of activeVols as any[]) {
+      // Email
+      if (sendEmail && vol.email && vol.notificationPrefs?.emailAlerts !== false) {
+        try {
+          await EmailService.send('broadcast', {
+            toEmail: vol.email,
+            volunteerName: (vol.name || vol.firstName || 'Volunteer').split(' ')[0],
+            title,
+            content: msgBody,
+            userId: vol.id,
+          });
+          results.emailsSent++;
+        } catch (e) {
+          console.warn(`[BROADCAST] Email failed for ${vol.id}:`, e);
+          results.errors++;
+        }
+      } else {
+        results.emailsSkipped++;
+      }
+
+      // SMS
+      if (sendSms) {
+        const phone = normalizePhone(vol.phone || vol.phoneNumber);
+        if (phone && vol.notificationPrefs?.smsAlerts !== false) {
+          const smsBody = `HMC: ${title}\n\n${msgBody}`.substring(0, 1500) + '\n\nReply STOP to opt out.';
+          try {
+            const smsResult = await sendSMS(vol.id, `+1${phone}`, smsBody);
+            if (smsResult.sent) results.textsSent++;
+            else results.textsSkipped++;
+          } catch (e) {
+            results.errors++;
+          }
+        } else {
+          results.textsSkipped++;
+        }
+      }
+    }
+
+    // Log the broadcast
+    await db.collection('announcements').add({
+      title,
+      content: msgBody,
+      createdAt: new Date().toISOString(),
+      createdBy: 'scheduled-broadcast',
+      emailsSent: results.emailsSent,
+      textsSent: results.textsSent,
+    });
+
+    console.log(`[BROADCAST] Complete:`, results);
+    res.json({ success: true, results });
+  } catch (error: any) {
+    console.error('[BROADCAST] Failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
   // Auth: cron secret or admin
   const cronSecret = process.env.CRON_SECRET;
