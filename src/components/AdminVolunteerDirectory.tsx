@@ -6,7 +6,7 @@ import { apiService } from '../services/apiService';
 import {
   Search, MoreVertical, ShieldCheck,
   X, Award, Mail, Phone, FileCheck, Fingerprint, Star,
-  Filter, UserPlus, ChevronRight, ChevronDown, ClipboardList, CheckCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck, User, MapPin, AlertCircle, Clock, Briefcase, FileText, Calendar, Globe, Pencil, Save
+  Filter, UserPlus, ChevronRight, ChevronDown, ClipboardList, CheckCircle, XCircle, Tag, Loader2, MessageSquare, Send, Check, UploadCloud, Trash2, Download, ClipboardCheck, User, MapPin, AlertCircle, Clock, Briefcase, FileText, Calendar, Globe, Pencil, Save
 } from 'lucide-react';
 import { GOVERNANCE_ROLES } from '../constants';
 import { toastService } from '../services/toastService';
