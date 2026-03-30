@@ -176,6 +176,20 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   };
 
   const getDefaultTab = (_role: string) => {
+    // Support deep links: /shifts → missions, /calendar → calendar, etc.
+    const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
+    const pathMap: Record<string, string> = {
+      'shifts': 'missions',
+      'missions': 'missions',
+      'calendar': 'calendar',
+      'academy': 'academy',
+      'directory': 'directory',
+      'profile': 'profile',
+      'meetings': 'meetings',
+      'analytics': 'analytics',
+      'impact': 'impact',
+    };
+    if (pathMap[path]) return pathMap[path];
     return 'overview';
   };
 
