@@ -13133,6 +13133,129 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// WEBFLOW CMS INTEGRATION
+// ═══════════════════════════════════════════════════════════════
+
+const WEBFLOW_API = 'https://api.webflow.com/v2';
+const WEBFLOW_SITE_ID = '67359e6040140078962e8a54';
+const WEBFLOW_COLLECTIONS: Record<string, string> = {
+  'blog-posts': '67359e6040140078962e8ad4',
+  'products': '67359e6040140078962e8adc',
+  'events': '67359e6040140078962e8ada',
+  'programs': '67359e6040140078962e8ad8',
+  'initiatives': '67359e6040140078962e8ad6',
+  'podcasts': '6910d6778326a32e3ac38856',
+  'resources': '694355d4a546aa912c5fba97',
+};
+
+const webflowFetch = async (path: string, options: any = {}) => {
+  const token = process.env.WEBFLOW_API_TOKEN;
+  if (!token) throw new Error('WEBFLOW_API_TOKEN not configured');
+  const res = await fetch(`${WEBFLOW_API}${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  const data: any = await res.json();
+  if (!res.ok) throw new Error(data?.message || data?.msg || `Webflow API error ${res.status}`);
+  return data;
+};
+
+// List items in a collection
+app.get('/api/admin/webflow/collections', verifyToken, requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    res.json({ success: true, collections: WEBFLOW_COLLECTIONS });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/webflow/collections/:slug/items', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const collectionId = WEBFLOW_COLLECTIONS[req.params.slug];
+    if (!collectionId) return res.status(404).json({ error: 'Collection not found' });
+    const data = await webflowFetch(`/collections/${collectionId}/items?limit=100`);
+    res.json({ success: true, items: data.items || [] });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create item in a collection
+app.post('/api/admin/webflow/collections/:slug/items', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const collectionId = WEBFLOW_COLLECTIONS[req.params.slug];
+    if (!collectionId) return res.status(404).json({ error: 'Collection not found' });
+    const { fieldData, isDraft } = req.body;
+    if (!fieldData) return res.status(400).json({ error: 'fieldData is required' });
+
+    // Auto-generate slug if not provided
+    if (!fieldData.slug && fieldData.name) {
+      fieldData.slug = fieldData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    const data = await webflowFetch(`/collections/${collectionId}/items${isDraft === false ? '?live=true' : ''}`, {
+      method: 'POST',
+      body: JSON.stringify({ fieldData, isDraft: isDraft !== false }),
+    });
+    console.log(`[WEBFLOW] Created item in ${req.params.slug}: ${fieldData.name}`);
+    res.json({ success: true, item: data });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update item in a collection
+app.put('/api/admin/webflow/collections/:slug/items/:itemId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const collectionId = WEBFLOW_COLLECTIONS[req.params.slug];
+    if (!collectionId) return res.status(404).json({ error: 'Collection not found' });
+    const { fieldData } = req.body;
+    if (!fieldData) return res.status(400).json({ error: 'fieldData is required' });
+
+    const data = await webflowFetch(`/collections/${collectionId}/items/${req.params.itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ fieldData }),
+    });
+    console.log(`[WEBFLOW] Updated item ${req.params.itemId} in ${req.params.slug}`);
+    res.json({ success: true, item: data });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete item
+app.delete('/api/admin/webflow/collections/:slug/items/:itemId', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const collectionId = WEBFLOW_COLLECTIONS[req.params.slug];
+    if (!collectionId) return res.status(404).json({ error: 'Collection not found' });
+
+    await webflowFetch(`/collections/${collectionId}/items/${req.params.itemId}`, { method: 'DELETE' });
+    console.log(`[WEBFLOW] Deleted item ${req.params.itemId} from ${req.params.slug}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Publish site
+app.post('/api/admin/webflow/publish', verifyToken, requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const data = await webflowFetch(`/sites/${WEBFLOW_SITE_ID}/publish`, {
+      method: 'POST',
+      body: JSON.stringify({ publishToWebflowSubdomain: false }),
+    });
+    console.log('[WEBFLOW] Site published');
+    res.json({ success: true, published: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // REWARDS REDEMPTION
 // ═══════════════════════════════════════════════════════════════
 
