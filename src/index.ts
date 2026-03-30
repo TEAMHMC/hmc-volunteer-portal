@@ -13136,6 +13136,8 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
 // WEBFLOW CMS INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 
+import sharp from 'sharp';
+
 const WEBFLOW_API = 'https://api.webflow.com/v2';
 const WEBFLOW_SITE_ID = '67359e6040140078962e8a54';
 const WEBFLOW_COLLECTIONS: Record<string, string> = {
@@ -13251,6 +13253,126 @@ app.post('/api/admin/webflow/publish', verifyToken, requireAdmin, async (_req: R
     console.log('[WEBFLOW] Site published');
     res.json({ success: true, published: true });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate branded blog cover image
+app.post('/api/admin/webflow/generate-cover', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { title, subtitle, category } = req.body;
+    if (!title) return res.status(400).json({ error: 'title is required' });
+
+    // Word-wrap title into lines (~30 chars per line max)
+    const wrapText = (text: string, maxChars: number): string[] => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let current = '';
+      for (const word of words) {
+        if ((current + ' ' + word).trim().length > maxChars && current) {
+          lines.push(current.trim());
+          current = word;
+        } else {
+          current = (current + ' ' + word).trim();
+        }
+      }
+      if (current) lines.push(current.trim());
+      return lines;
+    };
+
+    const titleLines = wrapText(title, 28);
+    const lineHeight = 64;
+    const titleStartY = 220 - (titleLines.length * lineHeight) / 2;
+
+    // Build SVG with HMC branded cover
+    const svg = `
+      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="50%" style="stop-color:#16213e"/>
+            <stop offset="100%" style="stop-color:#233DFF"/>
+          </linearGradient>
+          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#233DFF"/>
+            <stop offset="100%" style="stop-color:#6366f1"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="630" fill="url(#bg)"/>
+        <!-- Decorative circles -->
+        <circle cx="1100" cy="80" r="200" fill="rgba(35,61,255,0.15)"/>
+        <circle cx="100" cy="550" r="150" fill="rgba(99,102,241,0.1)"/>
+        <!-- Category pill -->
+        ${category ? `
+        <rect x="80" y="${titleStartY - 60}" width="${category.length * 12 + 40}" height="36" rx="18" fill="rgba(255,255,255,0.15)"/>
+        <text x="100" y="${titleStartY - 37}" font-family="Inter,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="3">${category.toUpperCase()}</text>
+        ` : ''}
+        <!-- Title -->
+        ${titleLines.map((line, i) => `
+        <text x="80" y="${titleStartY + i * lineHeight}" font-family="Inter,Helvetica,Arial,sans-serif" font-size="52" font-weight="900" fill="white" letter-spacing="-1">${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
+        `).join('')}
+        <!-- Subtitle / Author -->
+        ${subtitle ? `
+        <text x="80" y="${titleStartY + titleLines.length * lineHeight + 20}" font-family="Inter,Helvetica,Arial,sans-serif" font-size="20" font-weight="500" fill="rgba(255,255,255,0.6)">${subtitle.replace(/&/g, '&amp;')}</text>
+        ` : ''}
+        <!-- Bottom bar -->
+        <rect x="0" y="590" width="1200" height="40" fill="rgba(0,0,0,0.3)"/>
+        <text x="80" y="616" font-family="Inter,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="rgba(255,255,255,0.7)" letter-spacing="2">HEALTH MATTERS CLINIC</text>
+        <text x="1120" y="616" font-family="Inter,Helvetica,Arial,sans-serif" font-size="14" font-weight="500" fill="rgba(255,255,255,0.4)" text-anchor="end">healthmatters.clinic</text>
+        <!-- Accent line -->
+        <rect x="80" y="${titleStartY + titleLines.length * lineHeight + 40}" width="60" height="4" rx="2" fill="url(#accent)"/>
+      </svg>`;
+
+    // Convert SVG to PNG with sharp
+    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+
+    // Upload to Webflow
+    const token = process.env.WEBFLOW_API_TOKEN;
+    if (!token) return res.status(500).json({ error: 'WEBFLOW_API_TOKEN not configured' });
+
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').substring(0, 50);
+    const fileName = `cover-${slug}.png`;
+
+    // Step 1: Get upload URL
+    const uploadRes = await fetch(`${WEBFLOW_API}/sites/${WEBFLOW_SITE_ID}/assets`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName, fileHash: crypto.randomBytes(8).toString('hex') }),
+    });
+    const uploadData: any = await uploadRes.json();
+
+    if (!uploadData.uploadUrl || !uploadData.uploadDetails) {
+      return res.status(500).json({ error: 'Failed to get Webflow upload URL', details: uploadData });
+    }
+
+    // Step 2: Upload to S3
+    const FormData = (await import('form-data')).default;
+    const form = new FormData();
+    const details = uploadData.uploadDetails;
+    Object.entries(details).forEach(([key, value]) => {
+      form.append(key, value as string);
+    });
+    form.append('file', pngBuffer, { filename: fileName, contentType: 'image/png' });
+
+    const s3Res = await fetch(uploadData.uploadUrl, {
+      method: 'POST',
+      body: form as any,
+      headers: form.getHeaders(),
+    });
+
+    if (s3Res.status !== 201) {
+      return res.status(500).json({ error: `S3 upload failed: ${s3Res.status}` });
+    }
+
+    console.log(`[WEBFLOW] Generated cover for "${title}": ${uploadData.hostedUrl}`);
+    res.json({
+      success: true,
+      assetId: uploadData.id,
+      hostedUrl: uploadData.hostedUrl,
+      assetUrl: uploadData.assetUrl,
+    });
+  } catch (error: any) {
+    console.error('[WEBFLOW] Cover generation failed:', error);
     res.status(500).json({ error: error.message });
   }
 });
