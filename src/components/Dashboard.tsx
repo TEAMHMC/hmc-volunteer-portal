@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import {
   ArrowRight, Activity, Calendar, Clock, MapPin,
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
@@ -15,29 +15,35 @@ import { hasCompletedModule, hasCompletedAllModules, TIER_2_IDS, TIER_2_CORE_IDS
 import { computeLevel } from '../utils/xpLevels';
 import { generateQuests, completeQuest, getAllQuestsComplete, DAILY_QUEST_BONUS_XP, DailyQuest } from '../utils/dailyQuests';
 import { toastService } from '../services/toastService';
-import TrainingAcademy from './TrainingAcademy';
-import ShiftsComponent from './Shifts';
-import CommunicationHub from './CommunicationHub';
-import MyProfile from './MyProfile';
-import AdminVolunteerDirectory from './AdminVolunteerDirectory';
-import ImpactHub from './ImpactHub';
-import AnalyticsDashboard from './AnalyticsDashboard';
-import AutomatedWorkflows from './AutomatedWorkflows';
-import FormBuilder from './FormBuilder';
-import ReferralManagement from './ReferralManagement';
-import ResourceDashboard from './ResourceDashboard';
-import CoordinatorView from './CoordinatorView';
-import SystemTour from './SystemTour';
-import DocumentationHub from './DocumentationHub';
-// EventExplorer is accessed via My Missions tab (Shifts component)
-import HealthScreeningsView from './HealthScreeningsView';
-import IntakeReferralsView from './IntakeReferralsView';
-import BoardGovernance from './BoardGovernance';
-import LiveChatDashboard from './LiveChatDashboard';
-import OrgCalendar from './OrgCalendar';
-import EventBuilder from './EventBuilder';
-import ReferralHub from './ReferralHub';
-import VolunteerSurveyModal from './VolunteerSurveyModal';
+// Lazy-loaded tab components for code splitting
+const TrainingAcademy = lazy(() => import('./TrainingAcademy'));
+const ShiftsComponent = lazy(() => import('./Shifts'));
+const CommunicationHub = lazy(() => import('./CommunicationHub'));
+const MyProfile = lazy(() => import('./MyProfile'));
+const AdminVolunteerDirectory = lazy(() => import('./AdminVolunteerDirectory'));
+const ImpactHub = lazy(() => import('./ImpactHub'));
+const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
+const AutomatedWorkflows = lazy(() => import('./AutomatedWorkflows'));
+const FormBuilder = lazy(() => import('./FormBuilder'));
+const ReferralManagement = lazy(() => import('./ReferralManagement'));
+const ResourceDashboard = lazy(() => import('./ResourceDashboard'));
+const CoordinatorView = lazy(() => import('./CoordinatorView'));
+const SystemTour = lazy(() => import('./SystemTour'));
+const DocumentationHub = lazy(() => import('./DocumentationHub'));
+const HealthScreeningsView = lazy(() => import('./HealthScreeningsView'));
+const IntakeReferralsView = lazy(() => import('./IntakeReferralsView'));
+const BoardGovernance = lazy(() => import('./BoardGovernance'));
+const LiveChatDashboard = lazy(() => import('./LiveChatDashboard'));
+const OrgCalendar = lazy(() => import('./OrgCalendar'));
+const EventBuilder = lazy(() => import('./EventBuilder'));
+const ReferralHub = lazy(() => import('./ReferralHub'));
+const VolunteerSurveyModal = lazy(() => import('./VolunteerSurveyModal'));
+
+const LazyFallback = () => (
+  <div className="flex items-center justify-center py-32">
+    <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
+  </div>
+);
 
 interface DashboardProps {
   user: Volunteer;
@@ -628,10 +634,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-zinc-200/50 flex md:hidden items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-[98]">
         {[
           { id: 'overview', label: 'Home', icon: Activity },
+          { id: 'missions', label: 'Missions', icon: Calendar },
           { id: 'academy', label: 'Training', icon: GraduationCap },
           { id: 'calendar', label: 'Calendar', icon: CalendarDays },
           { id: 'briefing', label: 'Comms', icon: MessageSquare },
-          { id: 'docs', label: 'Docs', icon: BookOpen },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-full transition-all min-w-0 ${activeTab === tab.id ? 'text-brand' : 'text-zinc-400'}`}>
             <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 1.5} />
@@ -980,6 +986,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            </>
          )}
 
+         <Suspense fallback={<LazyFallback />}>
          {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
 
@@ -1029,6 +1036,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
              onUpdateUser={handleUpdateUser}
            />
          )}
+         </Suspense>
 
       </main>
     </div>

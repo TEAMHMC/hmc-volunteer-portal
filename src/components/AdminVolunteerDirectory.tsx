@@ -466,7 +466,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                <div className="flex justify-between items-start mb-4 md:mb-8 relative z-10">
                   <div className="flex items-center gap-5">
                      <div className="w-16 h-16 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-xl shadow-elevation-2 overflow-hidden border border-black/10">
-                        {v.avatarUrl ? <img src={v.avatarUrl} className="w-full h-full object-cover" /> : v.name.charAt(0)}
+                        {v.avatarUrl ? <img src={v.avatarUrl} className="w-full h-full object-cover" loading="lazy" alt="" /> : v.name.charAt(0)}
                      </div>
                      <div>
                         <h3 className="text-lg font-black text-zinc-900 leading-tight group-hover:text-brand transition-colors">{v.name}</h3>

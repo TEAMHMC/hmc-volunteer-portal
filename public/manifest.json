@@ -1,0 +1,28 @@
+{
+  "name": "HMC Volunteer Portal",
+  "short_name": "HMC Volunteer",
+  "description": "Health Matters Clinic Volunteer Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFEFE",
+  "theme_color": "#233DFF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

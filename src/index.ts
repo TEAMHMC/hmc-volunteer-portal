@@ -21,8 +21,12 @@ dotenv.config();
 
 // --- SSN ENCRYPTION (AES-256-GCM) ---
 const SSN_KEY = process.env.SSN_ENCRYPTION_KEY || '';
+if (!SSN_KEY) {
+  console.error('[CRITICAL] SSN_ENCRYPTION_KEY is not set — SSN data will NOT be encrypted. Set this environment variable immediately.');
+}
 function encryptSSN(ssn: string): string {
-    if (!SSN_KEY || !ssn) return ssn;
+    if (!SSN_KEY) throw new Error('SSN_ENCRYPTION_KEY is not configured — cannot store SSN');
+    if (!ssn) return ssn;
     const key = crypto.createHash('sha256').update(SSN_KEY).digest();
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -299,7 +303,7 @@ app.use(cors({
       return;
     }
     // Allow same-origin requests and Cloud Run URLs
-    if (ALLOWED_ORIGINS.includes(origin) || (origin.endsWith('.run.app') && origin.includes('hmc-volunteer-portal')) || origin.startsWith('http://localhost') || origin.includes('healthmatters.clinic') || origin.includes('teamhmc.github.io')) {
+    if (ALLOWED_ORIGINS.includes(origin) || (origin.endsWith('.run.app') && origin.includes('hmc-volunteer-portal')) || (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) || origin.endsWith('.healthmatters.clinic') || origin === 'https://healthmatters.clinic' || origin.includes('teamhmc.github.io')) {
       callback(null, true);
     } else {
       console.warn(`[SECURITY] Blocked CORS request from: ${origin}`);
@@ -379,6 +383,9 @@ const sanitizeForPrompt = (input: string, maxLen = 500): string => {
     .trim();
 };
 
+// In-memory fallback for rate limiting when Firestore is unavailable
+const inMemoryRateLimits = new Map<string, { count: number; resetAt: number }>();
+
 // Firestore-backed rate limiter — works across Cloud Run instances
 const rateLimit = (limit: number, timeframeMs: number) => async (req: Request, res: Response, next: NextFunction) => {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
@@ -404,8 +411,18 @@ const rateLimit = (limit: number, timeframeMs: number) => async (req: Request, r
     }
     return next();
   } catch (err) {
-    // If Firestore rate limit fails, allow the request (fail-open)
-    console.warn('[RATE-LIMIT] Firestore check failed, allowing request:', (err as any)?.message);
+    // In-memory fallback when Firestore is unavailable (fail-closed)
+    console.warn('[RATE-LIMIT] Firestore check failed, using in-memory fallback:', (err as any)?.message);
+    const memKey = `${key}_${ip}`;
+    const memEntry = inMemoryRateLimits.get(memKey);
+    if (memEntry && now < memEntry.resetAt) {
+      if (memEntry.count >= limit) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      }
+      memEntry.count++;
+    } else {
+      inMemoryRateLimits.set(memKey, { count: 1, resetAt: now + timeframeMs });
+    }
     return next();
   }
 };

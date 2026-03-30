@@ -52,10 +52,11 @@ service cloud.firestore {
     }
 
     // ============ VOLUNTEERS ============
-    // Volunteer profiles
+    // Volunteer profiles — users can edit their own profile but cannot escalate privileges
     match /volunteers/{volunteerId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || request.auth.uid == volunteerId;
+      allow write: if isAdmin() || (request.auth.uid == volunteerId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'role', 'status', 'coreVolunteerStatus']));
     }
 
     // ============ EVENTS ============
