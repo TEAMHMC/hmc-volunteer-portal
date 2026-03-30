@@ -1757,9 +1757,28 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                       {new Date(opp.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </p>
                                     {userMode === 'volunteer' && isRsvped && (
-                                      <span className="px-6 py-3 rounded-full font-bold text-sm bg-white text-zinc-900 border border-zinc-950 flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-zinc-950" /> Registered
-                                      </span>
+                                      <button
+                                        onClick={async () => {
+                                          if (!confirm('Cancel your registration for this event?')) return;
+                                          try {
+                                            await apiService.post('/api/events/unregister', { volunteerId: user.id, eventId: opp.id });
+                                            onUpdate({ ...user, rsvpedEventIds: (user.rsvpedEventIds || []).filter(id => id !== opp.id) });
+                                            setToastMsg('Registration cancelled.');
+                                            setToastError(false);
+                                            setShowToast(true);
+                                            setTimeout(() => setShowToast(false), 3000);
+                                          } catch (e) {
+                                            console.error('Failed to unregister:', e);
+                                            setToastMsg('Failed to cancel registration.');
+                                            setToastError(true);
+                                            setShowToast(true);
+                                            setTimeout(() => setShowToast(false), 3000);
+                                          }
+                                        }}
+                                        className="px-6 py-3 rounded-full font-bold text-sm bg-white text-zinc-900 border border-zinc-950 flex items-center gap-2 hover:bg-zinc-50 active:scale-95 transition-all"
+                                      >
+                                        <span className="w-2 h-2 rounded-full bg-zinc-950" /> Cancel
+                                      </button>
                                     )}
                                   </div>
                                 </div>
