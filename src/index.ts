@@ -13257,6 +13257,108 @@ app.post('/api/admin/webflow/publish', verifyToken, requireAdmin, async (_req: R
   }
 });
 
+// Sync HMC events to Webflow CMS (excludes Partner/Community events)
+app.post('/api/cron/sync-events-to-webflow', async (req: Request, res: Response) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (cronSecret && providedSecret !== cronSecret) {
+    return res.status(403).json({ error: 'Invalid cron secret' });
+  }
+
+  const EVENTS_COLLECTION_ID = WEBFLOW_COLLECTIONS['events'];
+  if (!EVENTS_COLLECTION_ID) return res.status(500).json({ error: 'Events collection not configured' });
+
+  console.log('[WEBFLOW SYNC] Syncing HMC events...');
+  const results = { created: 0, skipped: 0, errors: 0 };
+
+  try {
+    // Excluded programs — partner/community events don't go on the website
+    const EXCLUDED_PROGRAMS = ['Partner Event'];
+
+    // Get upcoming events from Firestore
+    const todayStr = new Date().toISOString().split('T')[0];
+    const oppsSnap = await db.collection('opportunities')
+      .where('date', '>=', todayStr)
+      .get();
+
+    const hmcEvents = oppsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter((e: any) => {
+        if (e.status === 'cancelled') return false;
+        if (EXCLUDED_PROGRAMS.includes(e.category || e.program)) return false;
+        return true;
+      });
+
+    // Get existing Webflow events to avoid duplicates
+    const existingData = await webflowFetch(`/collections/${EVENTS_COLLECTION_ID}/items?limit=100`);
+    const existingSlugs = new Set((existingData.items || []).map((i: any) => i.fieldData?.slug));
+
+    // Image map for known event types
+    const imageMap: Record<string, { fileId: string; url: string; alt: string }> = {
+      'street medicine': { fileId: '690eb640f851c84db76796d3', url: 'https://cdn.prod.website-files.com/67359e6040140078962e8ad2/690eb640f851c84db76796d3_SMO%20Flyer.jpg', alt: 'Street Medicine Outreach' },
+      'unstoppable workshop': { fileId: '69a9266fde1c09ebf3c71344', url: 'https://cdn.prod.website-files.com/67359e6040140078962e8ad2/69a9266fde1c09ebf3c71344_Unstoppable%20Workshop%20-%20Mar-Palmdale.png', alt: 'Unstoppable Workshop' },
+      'walk': { fileId: '6984189bd623c02afa7393c8', url: 'https://cdn.prod.website-files.com/67359e6040140078962e8ad2/6984189bd623c02afa7393c8_Mar.png', alt: 'Wellness Walk' },
+    };
+
+    const getImage = (title: string, category: string) => {
+      const key = (title + ' ' + category).toLowerCase();
+      for (const [kw, img] of Object.entries(imageMap)) {
+        if (key.includes(kw)) return img;
+      }
+      return null;
+    };
+
+    for (const event of hmcEvents as any[]) {
+      const slug = event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').substring(0, 50).replace(/-$/, '') + '-' + (event.date || '').substring(0, 7).replace('-', '');
+
+      if (existingSlugs.has(slug)) {
+        results.skipped++;
+        continue;
+      }
+
+      const fieldData: any = {
+        name: event.title,
+        slug,
+        'start-date-time': event.date + 'T00:00:00.000Z',
+        location: event.serviceLocation || event.address || 'TBD',
+        'event-time': event.time || 'TBD',
+        'short-description': event.description || '',
+        rsvp: event.id ? `https://www.healthmatters.clinic/resources/eventfinder?event=${event.id}&rsvp=true` : undefined,
+      };
+
+      const img = getImage(event.title, event.category || '');
+      if (img) fieldData['featured-image'] = img;
+
+      try {
+        await webflowFetch(`/collections/${EVENTS_COLLECTION_ID}/items`, {
+          method: 'POST',
+          body: JSON.stringify({ fieldData, isDraft: false }),
+        });
+        results.created++;
+      } catch (e: any) {
+        console.warn(`[WEBFLOW SYNC] Failed to create ${event.title}:`, e.message);
+        results.errors++;
+      }
+    }
+
+    // Publish if we created anything
+    if (results.created > 0) {
+      try {
+        await webflowFetch(`/sites/${WEBFLOW_SITE_ID}/publish`, {
+          method: 'POST',
+          body: JSON.stringify({ customDomains: ['697d034d14e2bebac1de17f6', '697d034c14e2bebac1de17f0'] }),
+        });
+      } catch { /* publish may rate limit — that's ok */ }
+    }
+
+    console.log(`[WEBFLOW SYNC] Complete:`, results);
+    res.json({ success: true, results });
+  } catch (error: any) {
+    console.error('[WEBFLOW SYNC] Failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Generate branded blog cover image
 app.post('/api/admin/webflow/generate-cover', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
