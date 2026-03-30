@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Volunteer } from '../types';
 import { APP_CONFIG } from '../config';
+import { apiService } from '../services/apiService';
 import { geminiService } from '../services/geminiService';
 import {
   DollarSign, BarChart3, Gift, Sparkles, Loader2, Copy, Check,
-  Trophy, Award as AwardIcon, User as UserIcon, Instagram, Linkedin, Youtube
+  Trophy, Award as AwardIcon, User as UserIcon, Instagram, Linkedin, Youtube, ShoppingBag, X
 } from 'lucide-react';
 
 interface ImpactHubProps {
@@ -216,12 +217,60 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
       </div>
 
       {/* Rewards Store */}
+      <RewardsStore user={user} onUpdate={onUpdate} />
+   </div>
+  );
+};
+
+
+// Rewards Store with redemption flow
+const SHOP_URLS: Record<string, string> = {
+  'rew1': 'https://www.healthmatters.clinic/product/unstoppable-tee',
+  'rew2': 'https://www.healthmatters.clinic/shop',
+  'rew3': 'https://www.healthmatters.clinic/shop',
+  'rew4': '', // Letter of rec — no shop link
+};
+
+const RewardsStore: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void }> = ({ user, onUpdate }) => {
+  const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [couponResult, setCouponResult] = useState<{ code: string; rewardTitle: string; shopUrl: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleRedeem = async (reward: { id: string; title: string; points: number }) => {
+    if (!confirm(`Redeem ${reward.points} XP for "${reward.title}"? This will deduct ${reward.points} XP from your balance.`)) return;
+    setRedeeming(reward.id);
+    setError('');
+    try {
+      const result = await apiService.post('/api/rewards/redeem', {
+        rewardId: reward.id,
+        rewardTitle: reward.title,
+        rewardPoints: reward.points,
+      });
+      onUpdate({ ...user, points: result.remainingPoints });
+      setCouponResult({
+        code: result.couponCode,
+        rewardTitle: reward.title,
+        shopUrl: SHOP_URLS[reward.id] || 'https://www.healthmatters.clinic/shop',
+      });
+    } catch (e: any) {
+      setError(e?.message || 'Failed to redeem. Please try again.');
+    } finally {
+      setRedeeming(null);
+    }
+  };
+
+  return (
+    <>
       <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <h3 className="text-base md:text-xl font-bold text-zinc-900 uppercase mb-2">Rewards Store</h3>
-        <p className="text-sm text-zinc-600 mb-8">Redeem your Impact XP for exclusive HMC merchandise.</p>
+        <p className="text-sm text-zinc-600 mb-2">Redeem your Impact XP for exclusive HMC merchandise.</p>
+        <p className="text-xs text-zinc-400 mb-8">Your balance: <span className="font-black text-zinc-900">{user.points} XP</span></p>
+        {error && <p className="text-sm text-rose-500 font-bold mb-4">{error}</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
           {APP_CONFIG.GAMIFICATION.rewards.map(reward => {
-            const canAfford = user.points >= reward.points;
+            const canAfford = (user.points || 0) >= reward.points;
+            const isRedeeming = redeeming === reward.id;
             return (
               <div key={reward.id} className={`p-4 md:p-8 rounded-3xl border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow text-center flex flex-col items-center transition-all ${canAfford ? 'bg-white' : 'bg-zinc-50 opacity-60'}`}>
                 <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border-2 ${canAfford ? 'bg-brand/5 border-brand/10 text-brand' : 'bg-zinc-100 border-zinc-200 text-zinc-300'}`}>
@@ -229,17 +278,64 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
                 </div>
                 <p className="text-base font-black text-zinc-900 flex-1">{reward.title}</p>
                 <p className="text-2xl font-black text-zinc-900 my-4">{reward.points} <span className="text-xs font-bold text-zinc-300">XP</span></p>
-                <button disabled={!canAfford} className="w-full py-3 bg-brand border border-black text-white rounded-full font-black text-[11px] uppercase tracking-[0.2em] disabled:opacity-30 disabled:cursor-not-allowed">
-                  Redeem
+                <button
+                  disabled={!canAfford || isRedeeming}
+                  onClick={() => handleRedeem(reward)}
+                  className="w-full py-3 min-h-[44px] bg-brand border border-black text-white rounded-full font-black text-[11px] uppercase tracking-[0.2em] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
+                >
+                  {isRedeeming ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
+                  {isRedeeming ? 'Redeeming...' : 'Redeem'}
                 </button>
               </div>
-            )
+            );
           })}
         </div>
       </div>
-   </div>
+
+      {/* Coupon Code Modal */}
+      {couponResult && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setCouponResult(null)}>
+          <div className="bg-white rounded-[40px] max-w-md w-full p-8 text-center shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setCouponResult(null)} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Gift size={36} className="text-emerald-600" />
+            </div>
+            <h3 className="text-2xl font-black text-zinc-900 mb-2">Reward Redeemed!</h3>
+            <p className="text-sm text-zinc-500 mb-6">{couponResult.rewardTitle}</p>
+
+            <div className="bg-zinc-50 rounded-2xl p-6 mb-6">
+              <p className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Your Coupon Code</p>
+              <div className="flex items-center justify-center gap-3">
+                <code className="text-2xl font-black text-brand tracking-wider">{couponResult.code}</code>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(couponResult.code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                  className="p-2 rounded-full hover:bg-zinc-200 transition-colors"
+                  title="Copy code"
+                >
+                  {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} className="text-zinc-400" />}
+                </button>
+              </div>
+            </div>
+
+            <p className="text-sm text-zinc-500 mb-6">
+              Use this code at checkout on our shop to get your item for free.
+            </p>
+
+            {couponResult.shopUrl && (
+              <a
+                href={couponResult.shopUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-brand text-white border border-black rounded-full font-black text-sm uppercase tracking-wide hover:opacity-90 active:scale-95 transition-all"
+              >
+                <ShoppingBag size={16} /> Shop Now
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
-
 
 export default ImpactHub;

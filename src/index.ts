@@ -13132,6 +13132,76 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// REWARDS REDEMPTION
+// ═══════════════════════════════════════════════════════════════
+
+app.post('/api/rewards/redeem', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userProfile = (req as any).user?.profile;
+    const userId = (req as any).user?.uid;
+    if (!userId || !userProfile) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { rewardId, rewardTitle, rewardPoints } = req.body;
+    if (!rewardId || !rewardPoints) return res.status(400).json({ error: 'rewardId and rewardPoints are required' });
+
+    // Verify volunteer has enough points
+    const volDoc = await db.collection('volunteers').doc(userId).get();
+    if (!volDoc.exists) return res.status(404).json({ error: 'Volunteer not found' });
+    const vol = volDoc.data()!;
+    const currentPoints = vol.points || 0;
+
+    if (currentPoints < rewardPoints) {
+      return res.status(400).json({ error: 'Not enough XP to redeem this reward' });
+    }
+
+    // Generate unique coupon code: HMC-XXXX-XXXX
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const part = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const couponCode = `HMC-${part()}-${part()}`;
+
+    // Deduct points
+    await db.collection('volunteers').doc(userId).update({
+      points: currentPoints - rewardPoints,
+    });
+
+    // Create redemption record
+    const redemption = {
+      volunteerId: userId,
+      volunteerName: vol.name || 'Unknown',
+      volunteerEmail: vol.email || '',
+      rewardId,
+      rewardTitle: rewardTitle || rewardId,
+      pointsSpent: rewardPoints,
+      couponCode,
+      status: 'pending', // pending → fulfilled
+      createdAt: new Date().toISOString(),
+    };
+    await db.collection('reward_redemptions').add(redemption);
+
+    // Notify admins
+    try {
+      for (const adminEmail of EMAIL_CONFIG.ADMIN_EMAILS) {
+        await EmailService.send('broadcast', {
+          toEmail: adminEmail,
+          volunteerName: 'Admin',
+          title: `Reward Redeemed: ${rewardTitle}`,
+          content: `${vol.name} (${vol.email}) redeemed "${rewardTitle}" for ${rewardPoints} XP.\n\nCoupon code: ${couponCode}\n\nPlease ensure this coupon is active in the shop.`,
+          userId: 'system',
+        });
+      }
+    } catch (emailErr) {
+      console.warn('[REWARDS] Failed to notify admins:', emailErr);
+    }
+
+    console.log(`[REWARDS] ${vol.name} redeemed ${rewardTitle} for ${rewardPoints} XP, coupon: ${couponCode}`);
+    res.json({ success: true, couponCode, remainingPoints: currentPoints - rewardPoints });
+  } catch (error: any) {
+    console.error('[REWARDS] Redemption failed:', error);
+    res.status(500).json({ error: 'Failed to redeem reward' });
+  }
+});
+
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---
 process.on('SIGTERM', () => {
   console.log('[SERVER] SIGTERM received, shutting down gracefully...');
