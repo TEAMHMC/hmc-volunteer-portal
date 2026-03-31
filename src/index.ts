@@ -4721,15 +4721,26 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
         if (!action) {
             return res.status(400).json({ success: false, error: 'action is required' });
         }
-        // Use GET with URL params — POST to Apps Script fails due to 302 redirect not forwarding body
-        const params = new URLSearchParams();
-        params.set('action', action);
-        if (event) params.set('event', JSON.stringify(event));
-        if (id) params.set('id', id);
-        const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
-            method: 'GET',
-            redirect: 'follow',
+        // POST to Apps Script — follow 302 redirect manually since fetch drops body on redirect
+        const bodyStr = JSON.stringify(req.body);
+        let response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: bodyStr,
+            redirect: 'manual',
         });
+        // Follow redirect with body intact
+        if (response.status === 302 || response.status === 301) {
+            const redirectUrl = response.headers.get('location');
+            if (redirectUrl) {
+                response = await fetch(redirectUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: bodyStr,
+                    redirect: 'follow',
+                });
+            }
+        }
         const text = await response.text();
         try {
             const data = JSON.parse(text);
