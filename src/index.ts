@@ -4500,10 +4500,30 @@ const handleVolunteerMatch = async (
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
 app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Response) => {
     try {
-        const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source, contactPreference } = req.body;
+        const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source, contactPreference, recaptchaToken } = req.body;
 
         if (!eventId || !name || !email) {
             return res.status(400).json({ error: 'eventId, name, and email are required' });
+        }
+
+        // reCAPTCHA verification (soft — log failures but don't block to avoid breaking existing integrations)
+        if (recaptchaToken && process.env.RECAPTCHA_SECRET_KEY) {
+            try {
+                const captchaRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ secret: process.env.RECAPTCHA_SECRET_KEY, response: recaptchaToken }).toString(),
+                });
+                const captchaResult = await captchaRes.json() as { success: boolean; score?: number };
+                if (!captchaResult.success || (captchaResult.score !== undefined && captchaResult.score < 0.3)) {
+                    console.warn(`[PUBLIC RSVP] reCAPTCHA failed for ${email}: score=${captchaResult.score}, success=${captchaResult.success}`);
+                    return res.status(403).json({ error: 'Bot detection failed. Please try again.' });
+                }
+                console.log(`[PUBLIC RSVP] reCAPTCHA passed for ${email}: score=${captchaResult.score}`);
+            } catch (captchaErr) {
+                console.warn('[PUBLIC RSVP] reCAPTCHA verification error:', captchaErr);
+                // Continue anyway — don't block on captcha service failure
+            }
         }
 
         // Generate a unique check-in token
