@@ -51,6 +51,42 @@ export interface Task {
   dueDate?: string;
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'active' | 'completed' | 'archived';
+  createdBy: string;
+  createdAt: string;
+  dueDate?: string;
+  milestones?: ProjectMilestone[];
+  teamMemberIds: string[];
+}
+
+export interface ProjectMilestone {
+  id: string;
+  title: string;
+  dueDate?: string;
+  completed: boolean;
+}
+
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string;
+  status: 'todo' | 'in_progress' | 'review' | 'done';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  assigneeId?: string;
+  assigneeName?: string;
+  createdBy: string;
+  createdAt: string;
+  dueDate?: string;
+  completedAt?: string;
+  milestoneId?: string;
+  labels?: string[];
+}
+
 export interface Achievement {
   id: string;
   title: string;

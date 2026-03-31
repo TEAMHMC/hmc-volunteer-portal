@@ -13133,6 +13133,150 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// PROJECT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+// List projects
+app.get('/api/projects', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userProfile = (req as any).user?.profile;
+    const userId = (req as any).user?.uid;
+    const snap = await db.collection('projects').orderBy('createdAt', 'desc').get();
+    const projects = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter((p: any) => p.status !== 'archived' || userProfile?.isAdmin)
+      .filter((p: any) => userProfile?.isAdmin || (p.teamMemberIds || []).includes(userId));
+    res.json({ success: true, projects });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create project
+app.post('/api/projects', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.uid;
+    const userProfile = (req as any).user?.profile;
+    if (!userProfile?.isAdmin && !COORDINATOR_AND_LEAD_ROLES.includes(userProfile?.role)) {
+      return res.status(403).json({ error: 'Only admins and coordinators can create projects' });
+    }
+    const { title, description, dueDate, teamMemberIds, milestones } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+
+    const project = {
+      title,
+      description: description || '',
+      status: 'active',
+      createdBy: userId,
+      createdAt: new Date().toISOString(),
+      dueDate: dueDate || null,
+      milestones: milestones || [],
+      teamMemberIds: teamMemberIds || [userId],
+    };
+    const ref = await db.collection('projects').add(project);
+    res.json({ success: true, id: ref.id, ...project });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update project
+app.put('/api/projects/:id', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    await db.collection('projects').doc(id).update(updates);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete project
+app.delete('/api/projects/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // Delete all tasks in the project
+    const tasksSnap = await db.collection('project_tasks').where('projectId', '==', id).get();
+    const batch = db.batch();
+    tasksSnap.docs.forEach(doc => batch.delete(doc.ref));
+    batch.delete(db.collection('projects').doc(id));
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List tasks for a project
+app.get('/api/projects/:id/tasks', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const snap = await db.collection('project_tasks').where('projectId', '==', id).get();
+    const tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ success: true, tasks });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create task
+app.post('/api/projects/:id/tasks', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.uid;
+    const { title, description, assigneeId, assigneeName, dueDate, priority, milestoneId, labels } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+
+    const task = {
+      projectId: id,
+      title,
+      description: description || '',
+      status: 'todo',
+      priority: priority || 'medium',
+      assigneeId: assigneeId || null,
+      assigneeName: assigneeName || null,
+      createdBy: userId,
+      createdAt: new Date().toISOString(),
+      dueDate: dueDate || null,
+      completedAt: null,
+      milestoneId: milestoneId || null,
+      labels: labels || [],
+    };
+    const ref = await db.collection('project_tasks').add(task);
+    res.json({ success: true, id: ref.id, ...task });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update task (status, assignment, etc.)
+app.put('/api/projects/:projectId/tasks/:taskId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const updates = req.body;
+    if (updates.status === 'done' && !updates.completedAt) {
+      updates.completedAt = new Date().toISOString();
+    }
+    await db.collection('project_tasks').doc(taskId).update(updates);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete task
+app.delete('/api/projects/:projectId/tasks/:taskId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    await db.collection('project_tasks').doc(taskId).delete();
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // WEBFLOW CMS INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 
