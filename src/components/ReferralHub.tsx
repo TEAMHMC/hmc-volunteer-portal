@@ -4,7 +4,7 @@ import { apiService } from '../services/apiService';
 import { toastService } from '../services/toastService';
 import {
   Copy, Check, Send, Linkedin, Share2, Users, Zap, Trophy,
-  Loader2, Mail, ChevronDown, ExternalLink, Award
+  Loader2, Mail, ChevronDown, ExternalLink, Award, Calendar, Link2
 } from 'lucide-react';
 
 interface ReferralHubProps {
@@ -33,7 +33,9 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'share' | 'leaderboard'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'share' | 'leaderboard' | 'events'>('overview');
+  const [events, setEvents] = useState<any[]>([]);
+  const [copiedEventId, setCopiedEventId] = useState<string | null>(null);
 
   // Email invite state
   const [friendName, setFriendName] = useState('');
@@ -58,6 +60,15 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
         ]);
         setDashboard(dashData);
         setLeaderboard(lbData.leaderboard || []);
+
+        // Fetch upcoming events for ambassador links
+        apiService.get('/api/opportunities').then((data: any) => {
+          const now = new Date();
+          const upcoming = (data.opportunities || [])
+            .filter((evt: any) => new Date(evt.date || evt.startDate) >= now)
+            .sort((a: any, b: any) => new Date(a.date || a.startDate).getTime() - new Date(b.date || b.startDate).getTime());
+          setEvents(upcoming);
+        }).catch(() => {});
       } catch (err) {
         console.error('[ReferralHub] Failed to load data:', err);
       } finally {
@@ -132,6 +143,28 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
     }
   };
 
+  const getEventAmbassadorLink = (eventId: string) => {
+    const code = dashboard?.referralCode || '';
+    return `https://www.healthmatters.clinic/resources/eventfinder?event=${eventId}&ref=${code}&rsvp=true`;
+  };
+
+  const handleCopyEventLink = async (eventId: string) => {
+    const link = getEventAmbassadorLink(eventId);
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const input = document.createElement('input');
+      input.value = link;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+    setCopiedEventId(eventId);
+    toastService.success('Event ambassador link copied!');
+    setTimeout(() => setCopiedEventId(null), 2000);
+  };
+
   const userRank = leaderboard.findIndex(e => e.volunteerId === user.id) + 1;
 
   if (loading) {
@@ -151,7 +184,7 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
           <p className="text-zinc-400 font-bold mt-2 text-sm md:text-base">Share your unique link to invite volunteers and earn XP rewards.</p>
         </div>
         <div className="flex gap-2">
-          {(['overview', 'share', 'leaderboard'] as const).map(tab => (
+          {(['overview', 'share', 'events', 'leaderboard'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -161,7 +194,7 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
                   : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
               }`}
             >
-              {tab === 'overview' ? 'Overview' : tab === 'share' ? 'Share & Invite' : 'Leaderboard'}
+              {tab === 'overview' ? 'Overview' : tab === 'share' ? 'Share & Invite' : tab === 'events' ? 'Event Links' : 'Leaderboard'}
             </button>
           ))}
         </div>
@@ -354,6 +387,78 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
                 {sendingEmail ? <Loader2 size={16} className="animate-spin" /> : <><Send size={14} /> Send Invitation</>}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Links Tab */}
+      {activeTab === 'events' && dashboard && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar size={22} className="text-brand" />
+              <h3 className="text-lg md:text-xl font-black text-zinc-900 uppercase">Ambassador Event Links</h3>
+            </div>
+            <p className="text-sm text-zinc-500 mb-6">Generate unique ambassador links for upcoming events. When someone RSVPs through your link, you earn referral credit.</p>
+
+            {events.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar size={40} className="mx-auto text-zinc-300 mb-4" />
+                <p className="text-zinc-400 font-bold">No upcoming events right now</p>
+                <p className="text-zinc-300 text-sm mt-1">Check back soon for new volunteer opportunities.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {events.map((evt: any) => {
+                  const eventId = evt.id || evt._id;
+                  const eventDate = new Date(evt.date || evt.startDate);
+                  const isCopied = copiedEventId === eventId;
+                  const ambassadorLink = getEventAmbassadorLink(eventId);
+
+                  return (
+                    <div
+                      key={eventId}
+                      className="p-4 md:p-5 rounded-2xl md:rounded-3xl border border-zinc-100 hover:border-zinc-200 transition-all"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-zinc-900 text-sm md:text-base truncate">{evt.title || evt.name}</p>
+                            {evt.referralCount != null && evt.referralCount > 0 && (
+                              <span className="shrink-0 px-2 py-0.5 rounded-full bg-brand/10 text-brand text-[10px] font-bold uppercase">
+                                {evt.referralCount} referral{evt.referralCount !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-zinc-400 font-bold">
+                            <span>{eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            {evt.location && <span>· {evt.location}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleCopyEventLink(eventId)}
+                            className={`min-h-[44px] px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 transition-all ${
+                              isCopied
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-zinc-900 text-white hover:scale-105 active:scale-95'
+                            }`}
+                          >
+                            {isCopied ? <><Check size={14} /> Copied!</> : <><Link2 size={14} /> Get My Link</>}
+                          </button>
+                        </div>
+                      </div>
+                      {isCopied && (
+                        <div className="mt-3 pt-3 border-t border-zinc-100">
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Your Ambassador Link</p>
+                          <p className="text-xs font-mono text-zinc-500 break-all">{ambassadorLink}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

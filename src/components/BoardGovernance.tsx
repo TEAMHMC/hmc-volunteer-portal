@@ -1230,42 +1230,120 @@ const EmergencyMeetingModal: React.FC<{
   );
 };
 
-// Meeting Form Modal — handles both create and edit
+// Meeting Form Modal — handles both create and edit, with Start Now / Schedule for Later toggle
 const MeetingFormModal: React.FC<{
   meeting?: BoardMeeting;
   onClose: () => void;
   onSubmit: (data: Partial<BoardMeeting>) => void;
 }> = ({ meeting, onClose, onSubmit }) => {
   const isEdit = !!meeting;
+  const [mode, setMode] = useState<'now' | 'later'>(isEdit ? 'later' : 'later');
   const [title, setTitle] = useState(meeting?.title || '');
   const [date, setDate] = useState(meeting?.date || '');
   const [time, setTime] = useState(meeting?.time || '5:30 PM PT');
   const [type, setType] = useState<BoardMeeting['type']>(meeting?.type === 'emergency' ? 'board' : (meeting?.type || 'team'));
   const [meetLink, setMeetLink] = useState(meeting?.googleMeetLink || '');
   const [agendaText, setAgendaText] = useState(meeting?.agenda?.join('\n') || '');
+  const [meetLinkOpened, setMeetLinkOpened] = useState(false);
+  const meetLinkInputRef = useRef<HTMLInputElement>(null);
+
+  const isValidMeetLink = (link: string) => {
+    if (!link) return true; // empty is fine
+    try {
+      const url = new URL(link);
+      return url.hostname === 'meet.google.com' || url.hostname === 'zoom.us' || url.hostname.endsWith('.zoom.us');
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCreateMeetLink = () => {
+    window.open('https://meet.google.com/new', '_blank');
+    setMeetLinkOpened(true);
+    // Auto-focus the link input after a short delay so the user can paste
+    setTimeout(() => {
+      meetLinkInputRef.current?.focus();
+    }, 500);
+  };
+
+  const handleStartNowSubmit = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' });
+    onSubmit({
+      title: title || 'Instant Meeting',
+      date: todayStr,
+      time: timeStr,
+      type,
+      status: 'in_progress',
+      rsvps: [],
+      googleMeetLink: meetLink || undefined,
+      agenda: agendaText.split('\n').filter(a => a.trim()),
+    });
+  };
+
+  const handleScheduleSubmit = () => {
+    onSubmit({
+      title, date, time, type,
+      ...(isEdit ? {} : { status: 'scheduled', rsvps: [] }),
+      googleMeetLink: meetLink || undefined,
+      agenda: agendaText.split('\n').filter(a => a.trim()),
+    });
+  };
+
+  const linkValid = isValidMeetLink(meetLink);
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white max-w-lg w-full rounded-modal shadow-elevation-3 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="text-base md:text-xl font-bold text-zinc-900">{isEdit ? 'Edit Meeting' : 'Schedule Meeting'}</h3>
+          <h3 className="text-base md:text-xl font-bold text-zinc-900">{isEdit ? 'Edit Meeting' : 'New Meeting'}</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Start Now / Schedule for Later toggle — only shown on create */}
+          {!isEdit && (
+            <div className="flex bg-zinc-100 rounded-2xl p-1 gap-1">
+              <button
+                onClick={() => setMode('now')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  mode === 'now' ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                <Play size={14} />
+                Start Now
+              </button>
+              <button
+                onClick={() => setMode('later')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  mode === 'later' ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                <Calendar size={14} />
+                Schedule for Later
+              </button>
+            </div>
+          )}
+
           <div>
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="e.g. Q2 Board Meeting" />
+            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder={mode === 'now' ? 'e.g. Quick Team Sync' : 'e.g. Q2 Board Meeting'} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+
+          {/* Date/Time — only for Schedule for Later mode and Edit */}
+          {(mode === 'later' || isEdit) && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Date</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Time</label>
+                <input value={time} onChange={e => setTime(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
+              </div>
             </div>
-            <div>
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Time</label>
-              <input value={time} onChange={e => setTime(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" />
-            </div>
-          </div>
+          )}
+
           <div>
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Type</label>
             <select value={type} onChange={e => setType(e.target.value as any)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm">
@@ -1278,29 +1356,118 @@ const MeetingFormModal: React.FC<{
               <option value="planning">Planning Session</option>
             </select>
           </div>
-          <div>
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Google Meet Link</label>
-            <input value={meetLink} onChange={e => setMeetLink(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-brand/30" placeholder="Paste a Google Meet link here..." />
-            <p className="text-xs text-zinc-400 mt-1.5">Paste an existing Google Meet or Zoom link, or leave blank to add later.</p>
+
+          {/* Google Meet Link — enhanced section */}
+          <div className="border-2 border-zinc-100 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                <Video size={12} />
+                Google Meet Link
+              </label>
+              {meetLink && linkValid && (
+                <span className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                  <CheckCircle size={12} />
+                  Link added
+                </span>
+              )}
+              {meetLink && !linkValid && (
+                <span className="flex items-center gap-1 text-rose-500 text-xs font-bold">
+                  <AlertCircle size={12} />
+                  Invalid link
+                </span>
+              )}
+            </div>
+
+            {/* Create Meet Link button */}
+            <button
+              type="button"
+              onClick={handleCreateMeetLink}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 border-dashed rounded-xl text-blue-700 font-bold text-sm transition-colors"
+            >
+              <ExternalLink size={14} />
+              {meetLinkOpened ? 'Open Google Meet Again' : 'Create Google Meet Link'}
+            </button>
+
+            {meetLinkOpened && !meetLink && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs text-amber-800 font-semibold flex items-start gap-2">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  Google Meet opened in a new tab. Copy the meeting link from the address bar, then paste it below.
+                </p>
+              </div>
+            )}
+
+            <div className="relative">
+              <input
+                ref={meetLinkInputRef}
+                value={meetLink}
+                onChange={e => setMeetLink(e.target.value)}
+                className={`w-full p-4 pr-12 bg-zinc-50 border-2 rounded-2xl font-bold text-sm outline-none transition-colors ${
+                  meetLink && !linkValid ? 'border-rose-200 focus:border-rose-400' :
+                  meetLink && linkValid ? 'border-emerald-200 focus:border-emerald-400' :
+                  'border-zinc-100 focus:border-brand/30'
+                }`}
+                placeholder="https://meet.google.com/abc-defg-hij"
+              />
+              {meetLink && (
+                <button
+                  type="button"
+                  onClick={() => { setMeetLink(''); setMeetLinkOpened(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-zinc-200 rounded-full text-zinc-400 hover:text-zinc-600 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Link preview */}
+            {meetLink && linkValid && (
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                <Video size={14} className="text-emerald-600 shrink-0" />
+                <a href={meetLink} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-700 font-bold truncate hover:underline">
+                  {meetLink}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard.writeText(meetLink); toastService.success('Link copied!'); }}
+                  className="ml-auto shrink-0 p-1 hover:bg-emerald-100 rounded text-emerald-600"
+                >
+                  <Copy size={12} />
+                </button>
+              </div>
+            )}
+
+            {!meetLink && !meetLinkOpened && (
+              <p className="text-xs text-zinc-400">Click the button above to generate a new Google Meet, or paste an existing meeting link.</p>
+            )}
           </div>
+
           <div>
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Agenda Items (one per line)</label>
             <textarea value={agendaText} onChange={e => setAgendaText(e.target.value)} className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm resize-none h-24 outline-none focus:border-brand/30" placeholder="Call to Order&#10;Financial Report&#10;New Business" />
           </div>
+
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
-            <button
-              onClick={() => onSubmit({
-                title, date, time, type,
-                ...(isEdit ? {} : { status: 'scheduled', rsvps: [] }),
-                googleMeetLink: meetLink || undefined,
-                agenda: agendaText.split('\n').filter(a => a.trim()),
-              })}
-              disabled={!title || !date}
-              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2"
-            >
-              {isEdit ? 'Save Changes' : 'Create Meeting'}
-            </button>
+            {mode === 'now' && !isEdit ? (
+              <button
+                onClick={handleStartNowSubmit}
+                disabled={!title && !meetLink}
+                className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2"
+              >
+                <Play size={14} />
+                Start Meeting
+              </button>
+            ) : (
+              <button
+                onClick={handleScheduleSubmit}
+                disabled={!title || !date}
+                className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2"
+              >
+                <Calendar size={14} />
+                {isEdit ? 'Save Changes' : 'Schedule Meeting'}
+              </button>
+            )}
           </div>
         </div>
       </div>
