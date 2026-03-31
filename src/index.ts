@@ -4549,6 +4549,26 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
 
         console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
 
+        // Notify admins for Take Action LA / Speaker submissions
+        if (source && (source.includes('Take Action') || source.includes('Speaker'))) {
+            // Email notification to clinic team
+            EmailService.send('broadcast', {
+                toEmail: 'unstoppable@healthmatters.clinic',
+                volunteerName: 'Team',
+                title: source.includes('Speaker') ? 'New Speaker Application' : 'New Landing Page Signup',
+                content: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nNeeds: ${needs || 'N/A'}\nSource: ${source}`,
+            }).catch(err => console.error('[PUBLIC RSVP] Take Action LA email notification failed:', err));
+
+            // In-app notification for admins
+            db.collection('announcements').add({
+                title: source.includes('Speaker') ? `Speaker Application: ${name}` : `Take Action LA Signup: ${name}`,
+                content: `${name} (${email}) submitted via ${source}`,
+                createdAt: new Date().toISOString(),
+                createdBy: 'system',
+                type: 'notification',
+            }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
+        }
+
         // Send SMS confirmation if phone provided and contact preference is text
         if (phone && (contactPreference === 'text' || contactPreference === 'sms')) {
             const smsBody = `Hi ${name}! You're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. We'll send you a reminder before the event. See you there! - Health Matters Clinic`;
