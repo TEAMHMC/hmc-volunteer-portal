@@ -4290,7 +4290,7 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
 // --- VOLUNTEER MATCH FOR PUBLIC RSVPS ---
 const processVolunteerMatch = async (
   rsvpId: string,
-  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string; eventType?: string }
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string; eventType?: string; source?: string }
 ): Promise<void> => {
   try {
     const { eventId, eventTitle, eventDate, name, email, phone } = rsvpData;
@@ -4387,7 +4387,7 @@ const processVolunteerMatch = async (
       }
     }
 
-    // 4. No match — send volunteer invite email
+    // 4. No match — send volunteer invite email (skip for speaker apps and landing page signups)
     await rsvpRef.update({
       volunteerMatch: {
         matchType: 'none',
@@ -4397,14 +4397,18 @@ const processVolunteerMatch = async (
       }
     });
 
-    await EmailService.send('public_rsvp_volunteer_invite', {
-      toEmail: email,
-      rsvpName: name,
-      eventTitle,
-      eventDate: formatEventDate(eventDate)
-    });
-
-    console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${maskEmail(email)}`);
+    const src = rsvpData.source || '';
+    if (src.includes('Speaker') || src.includes('Take Action LA Landing Page') || src.includes('Newsletter')) {
+      console.log(`[PUBLIC RSVP] No match: skipped volunteer invite for ${maskEmail(email)} (source: ${src})`);
+    } else {
+      await EmailService.send('public_rsvp_volunteer_invite', {
+        toEmail: email,
+        rsvpName: name,
+        eventTitle,
+        eventDate: formatEventDate(eventDate)
+      });
+      console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${maskEmail(email)}`);
+    }
   } catch (error) {
     console.error(`[PUBLIC RSVP] processVolunteerMatch failed for RSVP ${rsvpId}:`, error);
   }
@@ -4605,6 +4609,7 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
             email,
             phone: phone || '',
             eventType: oppType,
+            source: source || '',
         }).catch(err => console.error(`[PUBLIC RSVP] Background match failed for ${rsvpRef.id}:`, err));
 
         res.json({
