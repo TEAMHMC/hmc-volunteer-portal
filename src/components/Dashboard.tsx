@@ -872,11 +872,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {/* Announcement Banner */}
          {(() => {
            const now = new Date();
-           const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+           const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
            const visibleAnnouncements = announcements
              .filter(a =>
                a.status === 'approved'
-               && new Date(a.date) >= sevenDaysAgo
+               && new Date(a.date) >= threeDaysAgo
                && (!a.targetRoles || a.targetRoles.length === 0 || a.targetRoles.includes(displayUser.role))
                && !dismissedAnnouncementIds.includes(a.id)
              )
