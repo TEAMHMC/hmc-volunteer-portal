@@ -13249,37 +13249,76 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
 };
 
 const sendMonitorAlert = async (failures: MonitorResult[]) => {
-  if (!twilioClient || failures.length === 0) return;
+  if (failures.length === 0) return;
   const failList = failures.map(f => `❌ ${f.name}: ${f.error}`).join('\n');
-  const msg = `🚨 HMC ALERT\n${failures.length} service(s) DOWN:\n${failList}\n\nChecked: ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`;
+  const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+
+  // URGENT: SMS to Erica
+  if (twilioClient) {
+    try {
+      await twilioClient.messages.create({
+        body: `🚨 HMC ALERT\n${failures.length} service(s) DOWN:\n${failList}\n\n${timestamp}`,
+        to: ALERT_PHONE,
+        ...(TWILIO_MESSAGING_SERVICE_SID ? { messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID } : { from: TWILIO_PHONE_NUMBER }),
+      });
+      console.log(`[MONITOR] Alert SMS sent to ${ALERT_PHONE}`);
+    } catch (e: any) {
+      console.error('[MONITOR] SMS alert failed:', e.message);
+    }
+  }
+
+  // URGENT: Email to erica@healthmatters.clinic
   try {
-    await twilioClient.messages.create({
-      body: msg,
-      to: ALERT_PHONE,
-      ...(TWILIO_MESSAGING_SERVICE_SID ? { messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID } : { from: TWILIO_PHONE_NUMBER }),
+    await EmailService.send('broadcast', {
+      toEmail: 'erica@healthmatters.clinic',
+      volunteerName: 'HMC Monitor',
+      title: `🚨 ALERT: ${failures.length} HMC Service(s) Down`,
+      content: `The following services failed their health check at ${timestamp}:\n\n${failList}\n\nCheck https://volunteer.healthmatters.clinic/api/monitor/status for details.`,
     });
-    console.log(`[MONITOR] Alert SMS sent to ${ALERT_PHONE}: ${failures.length} failures`);
+    console.log('[MONITOR] Alert email sent to erica@healthmatters.clinic');
   } catch (e: any) {
-    console.error('[MONITOR] Failed to send alert SMS:', e.message);
+    console.error('[MONITOR] Alert email failed:', e.message);
   }
 };
 
 const sendDailyReport = async (results: MonitorResult[]) => {
-  if (!twilioClient) return;
   const passed = results.filter(r => r.status === 'pass').length;
   const failed = results.filter(r => r.status === 'fail').length;
   const avgTime = Math.round(results.reduce((sum, r) => sum + r.responseTime, 0) / results.length);
   const lines = results.map(r => `${r.status === 'pass' ? '✅' : '❌'} ${r.name} (${r.responseTime}ms)`).join('\n');
-  const msg = `📊 HMC Daily Report\n${passed} pass, ${failed} fail\nAvg response: ${avgTime}ms\n\n${lines}\n\n${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`;
+  const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+
+  // SMS daily summary to Erica
+  if (twilioClient) {
+    try {
+      await twilioClient.messages.create({
+        body: `📊 HMC Daily Report\n${passed} pass, ${failed} fail\nAvg: ${avgTime}ms\n\n${lines}\n\n${timestamp}`,
+        to: ALERT_PHONE,
+        ...(TWILIO_MESSAGING_SERVICE_SID ? { messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID } : { from: TWILIO_PHONE_NUMBER }),
+      });
+    } catch (e: any) {
+      console.error('[MONITOR] Daily SMS failed:', e.message);
+    }
+  }
+
+  // Email daily report to test@healthmatters.clinic, CC erica
   try {
-    await twilioClient.messages.create({
-      body: msg,
-      to: ALERT_PHONE,
-      ...(TWILIO_MESSAGING_SERVICE_SID ? { messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID } : { from: TWILIO_PHONE_NUMBER }),
+    await EmailService.send('broadcast', {
+      toEmail: 'test@healthmatters.clinic',
+      volunteerName: 'HMC Monitor',
+      title: `📊 HMC Daily Health Report — ${passed} pass, ${failed} fail`,
+      content: `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`,
     });
-    console.log('[MONITOR] Daily report SMS sent');
+    // CC erica
+    await EmailService.send('broadcast', {
+      toEmail: 'erica@healthmatters.clinic',
+      volunteerName: 'HMC Monitor',
+      title: `📊 HMC Daily Health Report — ${passed} pass, ${failed} fail`,
+      content: `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`,
+    });
+    console.log('[MONITOR] Daily report emails sent');
   } catch (e: any) {
-    console.error('[MONITOR] Failed to send daily report:', e.message);
+    console.error('[MONITOR] Daily email failed:', e.message);
   }
 };
 
