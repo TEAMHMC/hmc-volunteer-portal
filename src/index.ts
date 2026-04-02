@@ -3341,49 +3341,44 @@ app.post('/api/calmkit/meditation', async (req: Request, res: Response) => {
     }
 });
 
-// CalmKit: Generate walk narration segment
-app.post('/api/calmkit/narration', async (req: Request, res: Response) => {
+// CalmKit: Generate full movement narrative (structured JSON with segments)
+app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: 'AI not configured' });
-        const { mode, lang, stats, isIntro, isFirstSegment, destinationName } = req.body;
+        const { mode, activity, lang, destinationName, etaMinutes } = req.body;
         const langText = lang === 'es' ? 'Spanish' : 'English';
-        const PERSONA_PROMPTS: Record<string, string> = {
-            HYPE: 'HIGH-ENERGY CBT COACH. Behavioral activation — movement IS therapy. Punchy, rhythmic tone.',
-            BREAKTHROUGH: 'DIRECT CBT THERAPIST. Cognitive restructuring — challenge distorted thoughts. Honest, investigative tone.',
-            HOPE: 'WARM GROUNDING GUIDE. Mindfulness-based CBT — present-moment awareness. Gentle, safe tone.',
-            STRATEGY: 'PRACTICAL CBT PLANNER. Problem-solving therapy — break overwhelm into steps. Calm, logical tone.',
+        const modeSpecs: Record<string, any> = {
+            HYPE: { voice: 'Zephyr', cadence: 'Staccato, punchy verbs, high rhythmic pressure.', posture: 'Rhythmic, commanding, and energizing activation.', rules: 'Use short motivational bursts. Focus on momentum.' },
+            BREAKTHROUGH: { voice: 'Puck', cadence: 'Resonant, medium pace, emotionally intelligent.', posture: 'Direct, firm, investigative clarity.', rules: 'Use clarifying questions and truth statements. Focus on reframing.' },
+            HOPE: { voice: 'Kore', cadence: 'Legato, flowing sentences, slow-to-medium pace.', posture: 'Warm, steady, emotionally holding reassurance.', rules: 'Use soft affirmations and grounding. Focus on safety and presence.' },
+            STRATEGY: { voice: 'Charon', cadence: 'Measured, composed, steady pacing.', posture: 'Calm, confident, grounded practical guidance.', rules: 'Use structured guidance. Focus on organization and perspective.' },
         };
-        const persona = PERSONA_PROMPTS[mode] || PERSONA_PROMPTS.HOPE;
-        const mins = Math.floor((stats?.time || 0) / 60);
-        const dist = (stats?.distance || 0).toFixed(2);
-        const sponsorLine = isFirstSegment ? "Include naturally: 'This guided walk is supported by L.A. Care Health Plan.'" : '';
-        const prompt = `You are a CBT-trained wellness coach. Language: ${langText}. Persona: ${persona}
-            Stats: ${dist} miles, ${mins} min, pace ${stats?.pace || '0:00'}/mile.
-            ${destinationName ? `Walking toward: ${destinationName}` : 'Free walk'}
-            TYPE: ${isIntro ? 'INTRO (8-12 seconds). Welcome, set tone.' : 'GUIDANCE (45-60 seconds). Apply CBT technique.'}
-            ${sponsorLine}
-            Raw spoken text only. No markdown. 6th-grade level.`;
-        const text = await generateAIContent(GEMINI_MODEL, prompt);
-        res.json({ success: true, narration: text });
-    } catch (e) {
-        res.status(500).json({ error: 'Narration generation failed' });
-    }
-});
+        const spec = modeSpecs[mode] || modeSpecs.HOPE;
+        const context = destinationName ? `Walking towards ${destinationName}. ETA ${etaMinutes} mins.` : 'Free walk, no specific target.';
 
-// CalmKit: Generate ending message for walk
-app.post('/api/calmkit/ending', async (req: Request, res: Response) => {
-    try {
-        if (!ai) return res.status(503).json({ error: 'AI not configured' });
-        const { mode, lang, stats } = req.body;
-        const langText = lang === 'es' ? 'Spanish' : 'English';
-        const mins = Math.floor((stats?.time || 0) / 60);
-        const dist = (stats?.distance || 0).toFixed(2);
-        const text = await generateAIContent(GEMINI_MODEL,
-            `You are a CBT wellness coach. Walk just ended. Language: ${langText}. Stats: ${dist} miles in ${mins} min.
-            Celebrate, give ONE CBT takeaway, end with warmth. 15-20 seconds spoken. Raw text only.`);
-        res.json({ success: true, message: text });
+        const prompt = `Generate a movement guidance script for a wellness walk session.
+            Language: ${langText}. Cadence: ${spec.cadence}. Posture: ${spec.posture}. Rules: ${spec.rules}
+            Context: ${context}
+            NEVER identify yourself by name. NO clichés. NO clinical language. NO performance metrics.
+            Structure: Pre-Start Intro (15-20s), 3 segments (Beginning/Middle/End), sponsorship line, closing beat.
+            Sponsorship: "This space is supported by partners who believe in access to care for everyone."
+            Output JSON: { "preStartIntro": "...", "segments": [{"minuteIndex": 1, "scriptBeats": ["...", "...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
+
+        const text = await generateAIContent(GEMINI_MODEL, prompt, true);
+        try {
+            const parsed = JSON.parse(text);
+            res.json({ success: true, ...parsed });
+        } catch {
+            res.json({
+                success: true,
+                preStartIntro: langText === 'Spanish' ? 'Comienza cuando estés listo. Siente el suelo bajo tus pies.' : 'Begin when you are ready. Focus on the ground beneath you.',
+                segments: [{ minuteIndex: 1, scriptBeats: [langText === 'Spanish' ? 'El camino está claro.' : 'The path is clear.', langText === 'Spanish' ? 'Nota tu respiración.' : 'Notice your breathing.'] }],
+                spokenSponsorMoment: 'This space is supported by partners who believe in access to care for everyone.',
+                closingTemplate: langText === 'Spanish' ? 'Llegada. Quédate en este momento.' : 'Arrival. Stay in this moment.'
+            });
+        }
     } catch (e) {
-        res.status(500).json({ error: 'Ending generation failed' });
+        res.status(500).json({ error: 'Movement narrative generation failed' });
     }
 });
 
@@ -13085,6 +13080,169 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// SITE MONITORING — Hourly health checks + instant SMS alerts
+// ═══════════════════════════════════════════════════════════════
+const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+14049046355';
+const MONITOR_TARGETS = [
+  { name: 'Event Finder', url: 'https://teamhmc.github.io/Event-Finder-Tool/', expectInBody: 'Event-Finder-Tool' },
+  { name: 'Take Action LA', url: 'https://teamhmc.github.io/take-action-la/', expectInBody: 'take-action-la' },
+  { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
+  { name: 'Take Action LA (Webflow)', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
+  { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
+  { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
+];
+const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
+
+interface MonitorResult {
+  name: string;
+  status: 'pass' | 'fail';
+  responseTime: number;
+  error?: string;
+}
+
+const runMonitorChecks = async (): Promise<MonitorResult[]> => {
+  const results: MonitorResult[] = [];
+
+  // Check each target
+  for (const target of MONITOR_TARGETS) {
+    const start = Date.now();
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(target.url, { signal: controller.signal, redirect: 'follow' });
+      clearTimeout(timeout);
+      const body = await res.text();
+      const responseTime = Date.now() - start;
+
+      if (target.expectStatus && res.status !== target.expectStatus) {
+        results.push({ name: target.name, status: 'fail', responseTime, error: `HTTP ${res.status}` });
+      } else if (target.expectInBody && !body.includes(target.expectInBody)) {
+        results.push({ name: target.name, status: 'fail', responseTime, error: 'Expected content missing' });
+      } else {
+        results.push({ name: target.name, status: 'pass', responseTime });
+      }
+    } catch (e: any) {
+      results.push({ name: target.name, status: 'fail', responseTime: Date.now() - start, error: e.message || 'Request failed' });
+    }
+  }
+
+  // Check Events API returns data
+  try {
+    const start = Date.now();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, { signal: controller.signal, redirect: 'follow' });
+    clearTimeout(timeout);
+    const data: any = await res.json();
+    const responseTime = Date.now() - start;
+    if (data.success && Array.isArray(data.events) && data.events.length > 0) {
+      results.push({ name: `Events API (${data.events.length} events)`, status: 'pass', responseTime });
+    } else {
+      results.push({ name: 'Events API', status: 'fail', responseTime, error: 'No events returned' });
+    }
+  } catch (e: any) {
+    results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
+  }
+
+  // Test RSVP endpoint is reachable (don't submit a real RSVP, just verify the endpoint responds)
+  try {
+    const start = Date.now();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=healthcheck`, { signal: controller.signal, redirect: 'follow' });
+    clearTimeout(timeout);
+    const responseTime = Date.now() - start;
+    // Even if healthcheck isn't a real action, a 200 means the script is responding
+    results.push({ name: 'RSVP Endpoint', status: res.ok ? 'pass' : 'fail', responseTime, error: res.ok ? undefined : `HTTP ${res.status}` });
+  } catch (e: any) {
+    results.push({ name: 'RSVP Endpoint', status: 'fail', responseTime: 0, error: e.message });
+  }
+
+  return results;
+};
+
+const sendMonitorAlert = async (failures: MonitorResult[]) => {
+  if (!twilioClient || failures.length === 0) return;
+  const failList = failures.map(f => `❌ ${f.name}: ${f.error}`).join('\n');
+  const msg = `🚨 HMC ALERT\n${failures.length} service(s) DOWN:\n${failList}\n\nChecked: ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`;
+  try {
+    await twilioClient.messages.create({
+      body: msg,
+      to: ALERT_PHONE,
+      ...(TWILIO_MESSAGING_SERVICE_SID ? { messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID } : { from: TWILIO_PHONE_NUMBER }),
+    });
+    console.log(`[MONITOR] Alert SMS sent to ${ALERT_PHONE}: ${failures.length} failures`);
+  } catch (e: any) {
+    console.error('[MONITOR] Failed to send alert SMS:', e.message);
+  }
+};
+
+const sendDailyReport = async (results: MonitorResult[]) => {
+  if (!twilioClient) return;
+  const passed = results.filter(r => r.status === 'pass').length;
+  const failed = results.filter(r => r.status === 'fail').length;
+  const avgTime = Math.round(results.reduce((sum, r) => sum + r.responseTime, 0) / results.length);
+  const lines = results.map(r => `${r.status === 'pass' ? '✅' : '❌'} ${r.name} (${r.responseTime}ms)`).join('\n');
+  const msg = `📊 HMC Daily Report\n${passed} pass, ${failed} fail\nAvg response: ${avgTime}ms\n\n${lines}\n\n${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}`;
+  try {
+    await twilioClient.messages.create({
+      body: msg,
+      to: ALERT_PHONE,
+      ...(TWILIO_MESSAGING_SERVICE_SID ? { messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID } : { from: TWILIO_PHONE_NUMBER }),
+    });
+    console.log('[MONITOR] Daily report SMS sent');
+  } catch (e: any) {
+    console.error('[MONITOR] Failed to send daily report:', e.message);
+  }
+};
+
+// Hourly monitoring check
+cron.schedule('0 * * * *', async () => {
+  console.log('[MONITOR] Running hourly health checks...');
+  try {
+    const results = await runMonitorChecks();
+    const failures = results.filter(r => r.status === 'fail');
+    console.log(`[MONITOR] ${results.length} checks: ${results.length - failures.length} pass, ${failures.length} fail`);
+    if (failures.length > 0) {
+      await sendMonitorAlert(failures);
+    }
+  } catch (e: any) {
+    console.error('[MONITOR] Check failed:', e.message);
+  }
+});
+
+// Daily report at 8am Pacific (3pm UTC)
+cron.schedule('0 15 * * *', async () => {
+  console.log('[MONITOR] Sending daily report...');
+  try {
+    const results = await runMonitorChecks();
+    await sendDailyReport(results);
+  } catch (e: any) {
+    console.error('[MONITOR] Daily report failed:', e.message);
+  }
+});
+
+// Manual trigger endpoint (for testing)
+app.post('/api/monitor/run', async (req: Request, res: Response) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (cronSecret && providedSecret !== cronSecret) {
+    return res.status(403).json({ error: 'Invalid secret' });
+  }
+  const results = await runMonitorChecks();
+  const failures = results.filter(r => r.status === 'fail');
+  if (failures.length > 0) await sendMonitorAlert(failures);
+  res.json({ results, failures: failures.length });
+});
+
+app.get('/api/monitor/status', async (req: Request, res: Response) => {
+  const results = await runMonitorChecks();
+  res.json({ checked: new Date().toISOString(), results });
+});
+
+console.log(`[MONITOR] Site monitoring active — hourly checks, daily report at 8am PT, alerts to ${ALERT_PHONE}`);
 
 // ═══════════════════════════════════════════════════════════════
 // WEEKLY DIGEST (Email) + WELLNESS TEXT (SMS)
