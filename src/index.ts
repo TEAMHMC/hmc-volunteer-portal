@@ -3349,28 +3349,28 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         const langText = lang === 'es' ? 'Spanish' : 'English';
         const modeSpecs: Record<string, any> = {
             HYPE: {
-                voice: 'Zephyr',
+                voice: 'Charon',
                 persona: 'Inspired by Eric Thomas. HIGH-ENERGY CBT COACH using Behavioral Activation.',
                 technique: 'Behavioral Activation — getting people moving IS the therapy. Action precedes motivation. Movement breaks rumination. Energy creates clarity.',
                 tone: 'Punchy, rhythmic, like a trainer who GETS IT. Short powerful sentences. "Your legs are moving. That means your brain is resetting. That\'s not just a walk — that\'s therapy."',
                 greeting: 'You didn\'t wake up to be mediocre! I don\'t care where you\'re going, I care that you\'re MOVING. Let\'s get it!',
             },
             HOPE: {
-                voice: 'Kore',
-                persona: 'Inspired by Joel Osteen. WARM GROUNDING GUIDE using Mindfulness-based CBT.',
-                technique: 'Mindfulness-based CBT — present-moment awareness through senses. 5-4-3-2-1 grounding while walking. Body scan in motion.',
-                tone: 'Gentle, safe, like a trusted friend walking beside you. Flowing sentences, slow pace. "Feel your feet on the ground. What do you hear right now? Stay here with me."',
-                greeting: 'It\'s a beautiful day to start fresh. No destination needed, just you and this moment. There\'s a path for you right here.',
+                voice: 'Orus',
+                persona: 'Inspired by Joel Osteen. WARM SPIRITUAL GROUNDING GUIDE using Acceptance and Commitment Therapy (ACT).',
+                technique: 'Acceptance and Commitment Therapy — accepting what is, committing to values-driven action. Present-moment awareness with faith-based encouragement. "You were made for this moment. Accept where you are, and walk toward where you\'re going."',
+                tone: 'Pastoral, warm, uplifting. Like a spiritual leader walking beside you. Flowing sentences, slow steady pace. Hope-centered, never preachy. "This is your day. Every step is a declaration that you believe in something bigger."',
+                greeting: 'It\'s a beautiful day to start fresh. No destination needed, just you and this moment. There\'s a path laid out for you right here.',
             },
             BREAKTHROUGH: {
-                voice: 'Puck',
+                voice: 'Kore',
                 persona: 'Inspired by Lisa Nichols. DIRECT CBT THERAPIST using Cognitive Restructuring.',
                 technique: 'Cognitive Restructuring — challenging distorted thoughts in real-time. Identify the thought. Challenge the evidence. Reframe it.',
                 tone: 'Honest, investigative, pattern-interrupting. No fluff. "What\'s the thought? Is it a fact or a feeling? Let\'s look at the evidence."',
                 greeting: 'Take a breath. You\'re not just walking; you\'re stepping into a new version of yourself. What are we leaving behind on this path today?',
             },
             STRATEGY: {
-                voice: 'Charon',
+                voice: 'Aoede',
                 persona: 'Inspired by Iyanla Vanzant. PRACTICAL CBT PLANNER using Problem-Solving Therapy.',
                 technique: 'Problem-Solving Therapy — breaking overwhelm into next steps. Define the problem. List options. Pick ONE next step.',
                 tone: 'Calm, logical, structured. Like a wise mentor. "You don\'t need to solve everything. What\'s the smallest thing you can do today?"',
@@ -4608,13 +4608,9 @@ const processVolunteerMatch = async (
     if (src.includes('Speaker') || src.includes('Take Action LA Landing Page') || src.includes('Newsletter')) {
       console.log(`[PUBLIC RSVP] No match: skipped volunteer invite for ${maskEmail(email)} (source: ${src})`);
     } else {
-      await EmailService.send('public_rsvp_volunteer_invite', {
-        toEmail: email,
-        rsvpName: name,
-        eventTitle,
-        eventDate: formatEventDate(eventDate)
-      });
-      console.log(`[PUBLIC RSVP] No match: sent volunteer invite to ${maskEmail(email)}`);
+      // Don't send volunteer recruitment on RSVP — too aggressive
+      // Just log it, the RSVP confirmation email (from Apps Script) already has check-in info
+      console.log(`[PUBLIC RSVP] No match: skipped volunteer invite for ${maskEmail(email)} (attendee, not volunteer)`);
     }
   } catch (error) {
     console.error(`[PUBLIC RSVP] processVolunteerMatch failed for RSVP ${rsvpId}:`, error);
