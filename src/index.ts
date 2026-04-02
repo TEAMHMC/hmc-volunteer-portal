@@ -3503,7 +3503,7 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: lang === 'es' ? `Habla muy lento, con calma: ${text}` : `Speak very slowly and calmly: ${text}` }] }],
+                contents: [{ parts: [{ text }] }],
                 generationConfig: {
                     responseModalities: ['AUDIO'],
                     speechConfig: {
