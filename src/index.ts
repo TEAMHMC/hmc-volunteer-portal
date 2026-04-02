@@ -3382,6 +3382,39 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
     }
 });
 
+// CalmKit: Generate narration segment (alias for movement-narrative for backwards compat)
+app.post('/api/calmkit/narration', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const { mode, lang, stats, isIntro, destinationName } = req.body;
+        const langText = lang === 'es' ? 'Spanish' : 'English';
+        const text = await generateAIContent(GEMINI_MODEL,
+            `You are a CBT-trained wellness coach on a guided walk. Language: ${langText}. Mode: ${mode || 'HOPE'}.
+            ${isIntro ? 'Give a 15-second welcome intro.' : 'Give 45-60 seconds of CBT guidance.'}
+            ${destinationName ? `Walking toward: ${destinationName}` : 'Free walk.'}
+            Raw spoken text only. No markdown.`);
+        res.json({ success: true, narration: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Narration failed' });
+    }
+});
+
+// CalmKit: Generate ending message
+app.post('/api/calmkit/ending', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const { lang, stats } = req.body;
+        const langText = lang === 'es' ? 'Spanish' : 'English';
+        const mins = Math.floor((stats?.time || 0) / 60);
+        const dist = (stats?.distance || 0).toFixed(2);
+        const text = await generateAIContent(GEMINI_MODEL,
+            `CBT wellness coach. Walk ended. Language: ${langText}. ${dist} miles in ${mins} min. Celebrate, one takeaway, warmth. 15-20s. Raw text.`);
+        res.json({ success: true, message: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Ending failed' });
+    }
+});
+
 // CalmKit: Generate journal prompt
 app.post('/api/calmkit/journal-prompt', async (req: Request, res: Response) => {
     try {
