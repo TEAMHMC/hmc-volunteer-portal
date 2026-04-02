@@ -871,12 +871,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       <main className={`flex-1 p-6 md:p-8 space-y-8 overflow-y-auto h-screen no-scrollbar pb-20 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {/* Announcement Banner */}
          {(() => {
-           const now = new Date();
-           const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
            const visibleAnnouncements = announcements
              .filter(a =>
                a.status === 'approved'
-               && new Date(a.date) >= threeDaysAgo
                && (!a.targetRoles || a.targetRoles.length === 0 || a.targetRoles.includes(displayUser.role))
                && !dismissedAnnouncementIds.includes(a.id)
              )
