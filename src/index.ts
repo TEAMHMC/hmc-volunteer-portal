@@ -3323,6 +3323,137 @@ app.post('/api/gemini/draft-announcement', verifyToken, async (req: Request, res
     }
 });
 
+// --- CALMKIT PROXY ENDPOINTS ---
+// Public (no auth) but rate-limited. API key stays server-side.
+const calmkitRateLimit = rateLimit(15, 60000); // 15 req/min per IP
+app.use('/api/calmkit', calmkitRateLimit);
+
+// CalmKit: Generate meditation script
+app.post('/api/calmkit/meditation', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const lang = req.body.lang === 'es' ? 'Spanish' : 'English';
+        const text = await generateAIContent(GEMINI_MODEL,
+            `Generate a short (2-3 sentences) guided meditation script focused on presence and grounding in ${lang}. No Markdown.`);
+        res.json({ success: true, script: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Meditation generation failed' });
+    }
+});
+
+// CalmKit: Generate walk narration segment
+app.post('/api/calmkit/narration', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const { mode, lang, stats, isIntro, isFirstSegment, destinationName } = req.body;
+        const langText = lang === 'es' ? 'Spanish' : 'English';
+        const PERSONA_PROMPTS: Record<string, string> = {
+            HYPE: 'HIGH-ENERGY CBT COACH. Behavioral activation — movement IS therapy. Punchy, rhythmic tone.',
+            BREAKTHROUGH: 'DIRECT CBT THERAPIST. Cognitive restructuring — challenge distorted thoughts. Honest, investigative tone.',
+            HOPE: 'WARM GROUNDING GUIDE. Mindfulness-based CBT — present-moment awareness. Gentle, safe tone.',
+            STRATEGY: 'PRACTICAL CBT PLANNER. Problem-solving therapy — break overwhelm into steps. Calm, logical tone.',
+        };
+        const persona = PERSONA_PROMPTS[mode] || PERSONA_PROMPTS.HOPE;
+        const mins = Math.floor((stats?.time || 0) / 60);
+        const dist = (stats?.distance || 0).toFixed(2);
+        const sponsorLine = isFirstSegment ? "Include naturally: 'This guided walk is supported by L.A. Care Health Plan.'" : '';
+        const prompt = `You are a CBT-trained wellness coach. Language: ${langText}. Persona: ${persona}
+            Stats: ${dist} miles, ${mins} min, pace ${stats?.pace || '0:00'}/mile.
+            ${destinationName ? `Walking toward: ${destinationName}` : 'Free walk'}
+            TYPE: ${isIntro ? 'INTRO (8-12 seconds). Welcome, set tone.' : 'GUIDANCE (45-60 seconds). Apply CBT technique.'}
+            ${sponsorLine}
+            Raw spoken text only. No markdown. 6th-grade level.`;
+        const text = await generateAIContent(GEMINI_MODEL, prompt);
+        res.json({ success: true, narration: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Narration generation failed' });
+    }
+});
+
+// CalmKit: Generate ending message for walk
+app.post('/api/calmkit/ending', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const { mode, lang, stats } = req.body;
+        const langText = lang === 'es' ? 'Spanish' : 'English';
+        const mins = Math.floor((stats?.time || 0) / 60);
+        const dist = (stats?.distance || 0).toFixed(2);
+        const text = await generateAIContent(GEMINI_MODEL,
+            `You are a CBT wellness coach. Walk just ended. Language: ${langText}. Stats: ${dist} miles in ${mins} min.
+            Celebrate, give ONE CBT takeaway, end with warmth. 15-20 seconds spoken. Raw text only.`);
+        res.json({ success: true, message: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Ending generation failed' });
+    }
+});
+
+// CalmKit: Generate journal prompt
+app.post('/api/calmkit/journal-prompt', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const lang = req.body.lang === 'es' ? 'Spanish' : 'English';
+        const text = await generateAIContent(GEMINI_MODEL,
+            `Generate a single, deep, introspective journal prompt for self-reflection in ${lang}. One sentence only. No Markdown.`);
+        res.json({ success: true, prompt: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Journal prompt generation failed' });
+    }
+});
+
+// CalmKit: Generate daily affirmation
+app.post('/api/calmkit/affirmation', async (req: Request, res: Response) => {
+    try {
+        if (!ai) return res.status(503).json({ error: 'AI not configured' });
+        const lang = req.body.lang === 'es' ? 'Spanish' : 'English';
+        const text = await generateAIContent(GEMINI_MODEL,
+            `One short affirmation in ${lang}.`);
+        res.json({ success: true, affirmation: text });
+    } catch (e) {
+        res.status(500).json({ error: 'Affirmation generation failed' });
+    }
+});
+
+// CalmKit: TTS proxy — generates audio from text via Gemini TTS
+app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
+    try {
+        const CALMKIT_KEY = process.env.CALMKIT_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
+        if (!CALMKIT_KEY) return res.status(503).json({ error: 'TTS not configured' });
+
+        const { text, lang, voice } = req.body;
+        if (!text) return res.status(400).json({ error: 'text is required' });
+
+        // Use @google/genai for TTS (different from @google/generative-ai used elsewhere)
+        const ttsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${CALMKIT_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: lang === 'es' ? `Habla muy lento, con calma: ${text}` : `Speak very slowly and calmly: ${text}` }] }],
+                generationConfig: {
+                    responseModalities: ['AUDIO'],
+                    speechConfig: {
+                        voiceConfig: { prebuiltVoiceConfig: { voiceName: voice || 'Kore' } },
+                    },
+                },
+            }),
+        });
+
+        if (!ttsRes.ok) {
+            const err = await ttsRes.text();
+            console.error('[CALMKIT TTS] API error:', err);
+            return res.status(502).json({ error: 'TTS API failed' });
+        }
+
+        const data = await ttsRes.json();
+        const audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!audio) return res.status(502).json({ error: 'No audio in response' });
+
+        res.json({ success: true, audio });
+    } catch (e: any) {
+        console.error('[CALMKIT TTS] Failed:', e.message);
+        res.status(500).json({ error: 'TTS failed' });
+    }
+});
+
 // --- DATA & OPS ROUTES ---
 app.get('/api/resources', verifyToken, async (req: Request, res: Response) => {
     try {
