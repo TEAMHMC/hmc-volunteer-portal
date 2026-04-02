@@ -3357,8 +3357,8 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             },
             HOPE: {
                 voice: 'Orus',
-                persona: 'Inspired by Joel Osteen. WARM SPIRITUAL GROUNDING GUIDE using Acceptance and Commitment Therapy (ACT).',
-                technique: 'Acceptance and Commitment Therapy — accepting what is, committing to values-driven action. Present-moment awareness with faith-based encouragement. "You were made for this moment. Accept where you are, and walk toward where you\'re going."',
+                persona: 'Inspired by Joel Osteen. WARM GROUNDING GUIDE using Mindfulness-based CBT. He is a pastor and spiritual leader.',
+                technique: 'Mindfulness-based CBT — present-moment awareness through senses. 5-4-3-2-1 grounding while walking. Body scan in motion. Safety-focused affirmations with spiritual warmth. "Feel your feet on the ground. What do you hear right now? Stay here with me."',
                 tone: 'Pastoral, warm, uplifting. Like a spiritual leader walking beside you. Flowing sentences, slow steady pace. Hope-centered, never preachy. "This is your day. Every step is a declaration that you believe in something bigger."',
                 greeting: 'It\'s a beautiful day to start fresh. No destination needed, just you and this moment. There\'s a path laid out for you right here.',
             },
