@@ -3400,7 +3400,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             STRUCTURE (plan for 20 minutes):
             - preStartIntro: 15-20 seconds, immediate guidance in the persona's voice. Set the tone from the first word.
             - segments: 5-8 distinct beats at different minute marks (1, 3, 5, 8, 12, 15, 18, 20). Each with 2-3 scriptBeats applying the CBT technique.
-            - spokenSponsorMoment: Naturally integrate at minute 10: "This space is supported by partners who believe in access to care for everyone."
+            - spokenSponsorMoment: Naturally integrate at minute 10: "This guided walk is supported by L.A. Care Health Plan — making wellness accessible for everyone."
             - closingTemplate: Brief completion that avoids "Good job." Stay in character.
 
             Output JSON: { "preStartIntro": "...", "segments": [{"minuteIndex": N, "scriptBeats": ["...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
@@ -3414,7 +3414,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
                 success: true,
                 preStartIntro: langText === 'Spanish' ? 'Comienza cuando estés listo. Siente el suelo bajo tus pies.' : 'Begin when you are ready. Focus on the ground beneath you.',
                 segments: [{ minuteIndex: 1, scriptBeats: [langText === 'Spanish' ? 'El camino está claro.' : 'The path is clear.', langText === 'Spanish' ? 'Nota tu respiración.' : 'Notice your breathing.'] }],
-                spokenSponsorMoment: 'This space is supported by partners who believe in access to care for everyone.',
+                spokenSponsorMoment: 'This guided walk is supported by L.A. Care Health Plan — making wellness accessible for everyone.',
                 closingTemplate: langText === 'Spanish' ? 'Llegada. Quédate en este momento.' : 'Arrival. Stay in this moment.'
             });
         }
