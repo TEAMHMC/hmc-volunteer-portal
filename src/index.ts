@@ -3467,8 +3467,8 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
 
         if (!ttsRes.ok) {
             const err = await ttsRes.text();
-            console.error('[CALMKIT TTS] API error:', err);
-            return res.status(502).json({ error: 'TTS API failed' });
+            console.error('[CALMKIT TTS] API error:', ttsRes.status, err);
+            return res.status(502).json({ error: 'TTS API failed', status: ttsRes.status, details: err.slice(0, 500) });
         }
 
         const data: any = await ttsRes.json();
