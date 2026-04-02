@@ -13301,22 +13301,25 @@ const sendDailyReport = async (results: MonitorResult[]) => {
     }
   }
 
-  // Email daily report to test@healthmatters.clinic, CC erica
+  // Email daily report to test@healthmatters.clinic always, CC erica only if failures
   try {
+    const reportContent = `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`;
+    const reportTitle = `📊 HMC Daily Health Report — ${passed} pass, ${failed} fail`;
     await EmailService.send('broadcast', {
       toEmail: 'test@healthmatters.clinic',
       volunteerName: 'HMC Monitor',
-      title: `📊 HMC Daily Health Report — ${passed} pass, ${failed} fail`,
-      content: `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`,
+      title: reportTitle,
+      content: reportContent,
     });
-    // CC erica
-    await EmailService.send('broadcast', {
-      toEmail: 'erica@healthmatters.clinic',
-      volunteerName: 'HMC Monitor',
-      title: `📊 HMC Daily Health Report — ${passed} pass, ${failed} fail`,
-      content: `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`,
-    });
-    console.log('[MONITOR] Daily report emails sent');
+    if (failed > 0) {
+      await EmailService.send('broadcast', {
+        toEmail: 'erica@healthmatters.clinic',
+        volunteerName: 'HMC Monitor',
+        title: reportTitle,
+        content: reportContent,
+      });
+    }
+    console.log(`[MONITOR] Daily report sent — test@ always, erica@ ${failed > 0 ? 'yes (failures)' : 'skipped (all pass)'}`);
   } catch (e: any) {
     console.error('[MONITOR] Daily email failed:', e.message);
   }
