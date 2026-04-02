@@ -13204,7 +13204,7 @@ app.get('/api/projects', verifyToken, async (req: Request, res: Response) => {
     const projects = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .filter((p: any) => p.status !== 'archived' || userProfile?.isAdmin)
-      .filter((p: any) => userProfile?.isAdmin || (p.teamMemberIds || []).includes(userId));
+      .filter((p: any) => userProfile?.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(userProfile?.role) || (p.teamMemberIds || []).includes(userId) || p.createdBy === userId);
     res.json({ success: true, projects });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
