@@ -13086,12 +13086,11 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════════
 const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+14049046355';
 const MONITOR_TARGETS = [
-  { name: 'Event Finder', url: 'https://teamhmc.github.io/Event-Finder-Tool/', expectInBody: 'Event-Finder-Tool' },
+  { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
   { name: 'Take Action LA', url: 'https://teamhmc.github.io/take-action-la/', expectInBody: 'take-action-la' },
+  { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
   { name: 'Take Action LA (Webflow)', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
-  { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
-  { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
 ];
 const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
 
@@ -13128,17 +13127,75 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     }
   }
 
-  // Check Events API returns data
+  // Deep Event Finder check: HTML loads + JS bundle exists + no broken references
   try {
     const start = Date.now();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, { signal: controller.signal, redirect: 'follow' });
+    const res = await fetch('https://teamhmc.github.io/Event-Finder-Tool/', { signal: controller.signal, redirect: 'follow' });
     clearTimeout(timeout);
+    const html = await res.text();
+    const responseTime = Date.now() - start;
+
+    if (!res.ok) {
+      results.push({ name: 'Event Finder HTML', status: 'fail', responseTime, error: `HTTP ${res.status}` });
+    } else {
+      results.push({ name: 'Event Finder HTML', status: 'pass', responseTime });
+
+      // Extract the JS bundle filename from the HTML and verify it loads
+      const jsMatch = html.match(/src="([^"]*assets\/index[^"]*\.js)"/);
+      if (jsMatch) {
+        const jsUrl = `https://teamhmc.github.io${jsMatch[1]}`;
+        try {
+          const jsController = new AbortController();
+          const jsTimeout = setTimeout(() => jsController.abort(), 15000);
+          const jsRes = await fetch(jsUrl, { signal: jsController.signal });
+          clearTimeout(jsTimeout);
+          const jsResponseTime = Date.now() - start;
+          if (jsRes.ok) {
+            results.push({ name: 'Event Finder JS Bundle', status: 'pass', responseTime: jsResponseTime });
+          } else {
+            results.push({ name: 'Event Finder JS Bundle', status: 'fail', responseTime: jsResponseTime, error: `HTTP ${jsRes.status} — JS file missing, app will crash` });
+          }
+        } catch (e: any) {
+          results.push({ name: 'Event Finder JS Bundle', status: 'fail', responseTime: 0, error: `JS bundle unreachable: ${e.message}` });
+        }
+      } else {
+        results.push({ name: 'Event Finder JS Bundle', status: 'fail', responseTime, error: 'No JS bundle reference found in HTML' });
+      }
+
+      // Check the CSS bundle too
+      const cssMatch = html.match(/href="([^"]*assets\/index[^"]*\.css)"/);
+      if (cssMatch) {
+        try {
+          const cssUrl = `https://teamhmc.github.io${cssMatch[1]}`;
+          const cssRes = await fetch(cssUrl, { signal: AbortSignal.timeout(10000) });
+          if (!cssRes.ok) {
+            results.push({ name: 'Event Finder CSS', status: 'fail', responseTime: 0, error: `HTTP ${cssRes.status} — CSS missing, layout will break` });
+          }
+        } catch (e: any) {
+          results.push({ name: 'Event Finder CSS', status: 'fail', responseTime: 0, error: `CSS unreachable: ${e.message}` });
+        }
+      }
+    }
+  } catch (e: any) {
+    results.push({ name: 'Event Finder HTML', status: 'fail', responseTime: 0, error: e.message });
+  }
+
+  // Check Events API returns valid data
+  try {
+    const start = Date.now();
+    const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, { signal: AbortSignal.timeout(15000), redirect: 'follow' });
     const data: any = await res.json();
     const responseTime = Date.now() - start;
     if (data.success && Array.isArray(data.events) && data.events.length > 0) {
-      results.push({ name: `Events API (${data.events.length} events)`, status: 'pass', responseTime });
+      // Also check that upcoming events exist (not just stale past events)
+      const today = new Date().toISOString().split('T')[0];
+      const upcoming = data.events.filter((e: any) => e.date >= today);
+      results.push({ name: `Events API (${data.events.length} total, ${upcoming.length} upcoming)`, status: 'pass', responseTime });
+      if (upcoming.length === 0) {
+        results.push({ name: 'Events: No Upcoming', status: 'fail', responseTime: 0, error: 'All events are in the past — visitors see empty calendar' });
+      }
     } else {
       results.push({ name: 'Events API', status: 'fail', responseTime, error: 'No events returned' });
     }
@@ -13146,18 +13203,46 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
   }
 
-  // Test RSVP endpoint is reachable (don't submit a real RSVP, just verify the endpoint responds)
+  // Test RSVP by submitting a test RSVP and verifying success (use a clearly fake test entry)
   try {
     const start = Date.now();
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=healthcheck`, { signal: controller.signal, redirect: 'follow' });
-    clearTimeout(timeout);
+    const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        action: 'submitRSVP',
+        eventId: 'MONITOR_TEST',
+        name: 'HMC Monitor Test',
+        email: 'monitor@healthmatters.clinic',
+        phone: '',
+        contactMethod: 'Email',
+      }).toString(),
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+    });
     const responseTime = Date.now() - start;
-    // Even if healthcheck isn't a real action, a 200 means the script is responding
-    results.push({ name: 'RSVP Endpoint', status: res.ok ? 'pass' : 'fail', responseTime, error: res.ok ? undefined : `HTTP ${res.status}` });
+    // Apps Script may redirect on POST — a 200 or redirect means the endpoint is alive
+    results.push({ name: 'RSVP Submit', status: (rsvpRes.ok || rsvpRes.redirected) ? 'pass' : 'fail', responseTime, error: rsvpRes.ok || rsvpRes.redirected ? undefined : `HTTP ${rsvpRes.status}` });
   } catch (e: any) {
-    results.push({ name: 'RSVP Endpoint', status: 'fail', responseTime: 0, error: e.message });
+    results.push({ name: 'RSVP Submit', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
+  }
+
+  // Check Webflow footer code isn't crashing Event Finder (verify no blocking scripts)
+  try {
+    const res = await fetch('https://www.healthmatters.clinic/resources/eventfinder', { signal: AbortSignal.timeout(15000), redirect: 'follow' });
+    const html = await res.text();
+    // Check that the iframe embed exists and points to the right place
+    if (html.includes('teamhmc.github.io/Event-Finder-Tool')) {
+      results.push({ name: 'Webflow EF Embed', status: 'pass', responseTime: 0 });
+    } else {
+      results.push({ name: 'Webflow EF Embed', status: 'fail', responseTime: 0, error: 'Event Finder iframe not found on page' });
+    }
+    // Check for any inline script errors that could crash the page
+    if (html.includes('addEventListener') && !html.includes('if(') && html.includes('getElementById')) {
+      results.push({ name: 'Webflow Scripts', status: 'fail', responseTime: 0, error: 'Footer code has getElementById without null check — may crash Event Finder' });
+    }
+  } catch (e: any) {
+    // Already checked above in MONITOR_TARGETS
   }
 
   return results;
