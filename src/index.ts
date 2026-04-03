@@ -4925,6 +4925,16 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
                 content: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nNeeds: ${needs || 'N/A'}\nSource: ${source}`,
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA email notification failed:', err));
 
+            // Confirmation email to the speaker applicant
+            if (source.includes('Speaker') && email) {
+                EmailService.send('broadcast', {
+                    toEmail: email,
+                    volunteerName: name,
+                    title: 'We received your speaker application',
+                    content: `Hi ${name},\n\nThank you for applying to speak at the Unstoppable Experience! We've received your application and our team will review it shortly.\n\nIf we think you're a great fit, we'll be in touch with next steps.\n\nTopic submitted: ${needs?.replace('Speaker Application: ', '') || 'N/A'}\n\nThank you for wanting to be part of this community.\n\n— Health Matters Clinic`,
+                }).catch(err => console.error('[PUBLIC RSVP] Speaker confirmation email failed:', err));
+            }
+
             // In-app notification for admins
             db.collection('announcements').add({
                 title: source.includes('Speaker') ? `Speaker Application: ${name}` : `Take Action LA Signup: ${name}`,
