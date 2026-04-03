@@ -3345,7 +3345,9 @@ app.post('/api/calmkit/meditation', async (req: Request, res: Response) => {
 app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: 'AI not configured' });
-        const { mode, activity, lang, destinationName, etaMinutes } = req.body;
+        const { mode, activity, lang, destinationName, etaMinutes,
+                weatherCondition, temperature, windSpeed, airQualityIndex, airQualityCategory,
+                elevationGain, elevationDelta, speed, timeOfDay, targetThought } = req.body;
         const langText = lang === 'es' ? 'Spanish' : 'English';
         const modeSpecs: Record<string, any> = {
             HYPE: {
@@ -3380,13 +3382,32 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         const spec = modeSpecs[mode] || modeSpecs.HOPE;
         const context = destinationName ? `Walking towards ${destinationName}. ETA ${etaMinutes} mins.` : 'Open exploration, no fixed destination. Plan for a 20-minute journey.';
 
+        // Build environmental context string — only include what we actually have
+        const envParts: string[] = [];
+        if (timeOfDay) envParts.push(`Time of day: ${timeOfDay}`);
+        if (temperature !== undefined && temperature !== null) {
+            const tempF = Math.round(temperature * 9/5 + 32);
+            envParts.push(`Temperature: ${tempF}°F`);
+        }
+        if (weatherCondition) envParts.push(`Conditions: ${weatherCondition}`);
+        if (windSpeed !== undefined && windSpeed !== null && windSpeed > 2) {
+            const windMph = Math.round(windSpeed * 2.237);
+            envParts.push(`Wind: ${windMph} mph${windMph > 15 ? ' (notably windy)' : ''}`);
+        }
+        if (airQualityCategory) envParts.push(`Air quality: ${airQualityCategory}${airQualityIndex ? ` (AQI ${airQualityIndex})` : ''}`);
+        if (elevationGain !== undefined && elevationGain > 3) envParts.push(`Elevation gained so far: ${elevationGain}m (uphill)`);
+        if (elevationDelta !== undefined && elevationDelta < -3) envParts.push(`Currently descending`);
+        if (targetThought) envParts.push(`User's focus thought: "${targetThought}"`);
+        if (speed !== undefined && speed !== null && speed > 0) envParts.push(`Current pace: ${speed.toFixed(1)} mph`);
+        const envContext = envParts.length > 0 ? `\nEnvironmental & session context: ${envParts.join('. ')}.` : '';
+
         const prompt = `Generate a CBT-informed movement coaching script for a wellness walk.
             Language: ${langText}.
             PERSONA: ${spec.persona}
             CBT TECHNIQUE: ${spec.technique}
             TONE & CADENCE: ${spec.tone}
             EXAMPLE GREETING: "${spec.greeting}"
-            Context: ${context}
+            Context: ${context}${envContext}
 
             CRITICAL RULES:
             1. NEVER identify yourself by name. Do NOT say "I am Hope" or "I'm your Hype coach."
@@ -3527,6 +3548,116 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
     } catch (e: any) {
         console.error('[CALMKIT TTS] Failed:', e.message);
         res.status(500).json({ error: 'TTS failed' });
+    }
+});
+
+// CalmKit: Google Maps tile proxy — keeps API key server-side
+const _gmapSession: { token: string; expiry: number } = { token: '', expiry: 0 };
+
+async function getGMapsSession(apiKey: string): Promise<string> {
+    if (_gmapSession.token && Date.now() < _gmapSession.expiry) return _gmapSession.token;
+    const res = await fetch(`https://tile.googleapis.com/v1/createSession?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mapType: 'roadmap', language: 'en-US', region: 'US', layerTypes: [], overlay: false, scale: 'scaleFactor1x' })
+    });
+    if (!res.ok) throw new Error(`Maps session create failed: ${res.status}`);
+    const data: any = await res.json();
+    _gmapSession.token = data.session;
+    _gmapSession.expiry = (data.expiry - 60) * 1000; // expiry is unix epoch seconds
+    return _gmapSession.token;
+}
+
+app.get('/api/calmkit/maptiles/:z/:x/:y', async (req: Request, res: Response) => {
+    try {
+        const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
+        if (!MAPS_KEY) return res.status(503).send('Maps not configured');
+        const { z, x, y } = req.params;
+        const fetchTile = async (session: string) =>
+            fetch(`https://tile.googleapis.com/v1/2dtiles/${z}/${x}/${y}?session=${session}&key=${MAPS_KEY}`);
+        let session = await getGMapsSession(MAPS_KEY);
+        let tileRes = await fetchTile(session);
+        if (!tileRes.ok && tileRes.status === 401) {
+            // Session expired — force refresh and retry once
+            _gmapSession.expiry = 0;
+            session = await getGMapsSession(MAPS_KEY);
+            tileRes = await fetchTile(session);
+        }
+        if (!tileRes.ok) return res.status(502).send('Tile fetch failed');
+        const buf = Buffer.from(await tileRes.arrayBuffer());
+        res.set('Content-Type', tileRes.headers.get('content-type') || 'image/png');
+        res.set('Cache-Control', 'public, max-age=86400');
+        res.send(buf);
+    } catch (e: any) {
+        console.error('[CALMKIT TILES]', e.message);
+        res.status(500).send('Tile error');
+    }
+});
+
+// CalmKit: Elevation proxy — Google Elevation API
+app.get('/api/calmkit/elevation', async (req: Request, res: Response) => {
+    try {
+        const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
+        if (!MAPS_KEY) return res.status(503).json({ error: 'Maps not configured' });
+        const { lat, lng } = req.query;
+        if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
+        const r = await fetch(`https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${MAPS_KEY}`);
+        const data: any = await r.json();
+        const elevation = data.results?.[0]?.elevation;
+        res.json({ elevation: elevation ?? null });
+    } catch (e: any) {
+        console.error('[CALMKIT ELEVATION]', e.message);
+        res.status(500).json({ error: 'Elevation fetch failed' });
+    }
+});
+
+// CalmKit: Weather proxy — Google Weather API
+app.get('/api/calmkit/weather', async (req: Request, res: Response) => {
+    try {
+        const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
+        if (!MAPS_KEY) return res.status(503).json({ error: 'Maps not configured' });
+        const { lat, lng } = req.query;
+        if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
+        const r = await fetch(`https://weather.googleapis.com/v1/currentConditions:lookup?key=${MAPS_KEY}&location.latitude=${lat}&location.longitude=${lng}`);
+        if (!r.ok) return res.status(502).json({ error: 'Weather API failed', status: r.status });
+        const data: any = await r.json();
+        res.json({
+            condition: data.weatherCondition?.description?.text || null,
+            temperature: data.temperature?.degrees ?? null,        // Celsius
+            feelsLike: data.feelsLikeTemperature?.degrees ?? null,
+            windSpeed: data.wind?.speed?.value ?? null,            // m/s
+            humidity: data.relativeHumidity ?? null,
+            isDaytime: data.isDaytime ?? null,
+        });
+    } catch (e: any) {
+        console.error('[CALMKIT WEATHER]', e.message);
+        res.status(500).json({ error: 'Weather fetch failed' });
+    }
+});
+
+// CalmKit: Air quality proxy — Google Air Quality API
+app.get('/api/calmkit/airquality', async (req: Request, res: Response) => {
+    try {
+        const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
+        if (!MAPS_KEY) return res.status(503).json({ error: 'Maps not configured' });
+        const { lat, lng } = req.query;
+        if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
+        const r = await fetch(`https://airquality.googleapis.com/v1/currentConditions:lookup?key=${MAPS_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: { latitude: Number(lat), longitude: Number(lng) } }),
+        });
+        if (!r.ok) return res.status(502).json({ error: 'Air Quality API failed', status: r.status });
+        const data: any = await r.json();
+        const idx = data.indexes?.[0];
+        res.json({
+            aqi: idx?.aqi ?? null,
+            category: idx?.category ?? null,
+            dominantPollutant: idx?.dominantPollutant ?? null,
+        });
+    } catch (e: any) {
+        console.error('[CALMKIT AIRQUALITY]', e.message);
+        res.status(500).json({ error: 'Air quality fetch failed' });
     }
 });
 
