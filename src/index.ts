@@ -13159,6 +13159,10 @@ app.use('/documents', express.static(publicDocsPath));
 app.use(express.static(buildPath, { index: false }));
 
 app.get('*', (req: Request, res: Response) => {
+    // API routes that didn't match any handler should return 404 JSON, not the SPA
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found', path: req.path });
+    }
     const indexPath = path.join(buildPath, 'index.html');
     fs.readFile(indexPath, 'utf8', (err, htmlData) => {
         if (err) {
@@ -13453,9 +13457,11 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     } else {
       results.push({ name: 'Webflow EF Embed', status: 'fail', responseTime: 0, error: 'Event Finder iframe not found on page' });
     }
-    // Check for any inline script errors that could crash the page
-    if (html.includes('addEventListener') && !html.includes('if(') && html.includes('getElementById')) {
-      results.push({ name: 'Webflow Scripts', status: 'fail', responseTime: 0, error: 'Footer code has getElementById without null check — may crash Event Finder' });
+    // Check that HMC footer code is present and has null checks on getElementById calls
+    const hasHmcFooter = html.includes('hmcBar') || html.includes('hmcOverlay') || html.includes('hmcPopup');
+    const hasNullChecks = html.includes('if(bar)') || html.includes('if (bar)') || html.includes('if(overlay)') || html.includes('if (overlay)');
+    if (hasHmcFooter && !hasNullChecks) {
+      results.push({ name: 'Webflow Scripts', status: 'fail', responseTime: 0, error: 'HMC footer code missing getElementById null checks — may crash Event Finder' });
     }
   } catch (e: any) {
     // Already checked above in MONITOR_TARGETS
