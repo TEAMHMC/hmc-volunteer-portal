@@ -29,6 +29,10 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal'>('landing');
   const [loading, setLoading] = useState(true);
 
+  // PWA Install Prompt
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
   // Capture ?ref= referral code from URL on mount
   const [referralCode] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -98,6 +102,49 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     };
     checkAuth();
   }, []);
+
+  // PWA Install Detection
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone;
+    // Don't show if already installed or if user dismissed it this session
+    if (isStandalone || sessionStorage.getItem('pwa-install-dismissed')) return;
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // On iOS, there's no beforeinstallprompt event — show banner anyway with manual instructions
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS && !isStandalone) {
+      setShowInstallBanner(true);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const result = await (installPrompt as any).userChoice;
+      if (result.outcome === 'accepted') {
+        setShowInstallBanner(false);
+        setInstallPrompt(null);
+      }
+    } else {
+      // iOS — show instructions
+      alert('Tap the Share button (□↑) at the bottom of Safari, then tap "Add to Home Screen"');
+    }
+  };
+
+  const dismissInstallBanner = () => {
+    setShowInstallBanner(false);
+    sessionStorage.setItem('pwa-install-dismissed', '1');
+  };
 
   // Keep heartbeat alive on ALL authenticated views (dashboard, onboarding, etc.)
   // so sessions don't silently expire while a user is actively working.
@@ -201,7 +248,44 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
         announcements, setAnnouncements, messages, setMessages, gamification
     };
-    return <Dashboard {...dashboardProps} />;
+    return (
+      <>
+        <Dashboard {...dashboardProps} />
+        {showInstallBanner && (
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
+            background: '#233dff', color: '#fff', padding: '14px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+            fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '14px', fontWeight: 600,
+            boxShadow: '0 -4px 20px rgba(0,0,0,.15)', flexWrap: 'wrap' as const
+          }}>
+            <span style={{ textAlign: 'center' }}>
+              📱 Install the HMC Portal as an app for quick access
+            </span>
+            <button
+              onClick={handleInstallApp}
+              style={{
+                background: '#fff', color: '#233dff', border: 'none', borderRadius: '100px',
+                padding: '8px 20px', fontSize: '12px', fontWeight: 700, letterSpacing: '.04em',
+                textTransform: 'uppercase' as const, cursor: 'pointer', whiteSpace: 'nowrap' as const
+              }}
+            >
+              Install
+            </button>
+            <button
+              onClick={dismissInstallBanner}
+              style={{
+                background: 'none', border: 'none', color: 'rgba(255,255,255,.5)',
+                fontSize: '20px', cursor: 'pointer', padding: '4px 8px'
+              }}
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
