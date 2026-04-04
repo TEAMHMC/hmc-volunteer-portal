@@ -4953,7 +4953,9 @@ const handleVolunteerMatch = async (
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
 app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Response) => {
     try {
-        const { eventId, eventTitle, eventDate, name, email, phone, guests, needs, source, contactPreference, recaptchaToken } = req.body;
+        const { eventId, eventTitle, eventDate, email, phone, guests, needs, source, contactPreference, recaptchaToken } = req.body;
+        // Accept firstName+lastName (new) or name (legacy)
+        const name: string = req.body.name || [req.body.firstName, req.body.lastName].filter(Boolean).join(' ');
 
         if (!eventId || !name || !email) {
             return res.status(400).json({ error: 'eventId, name, and email are required' });
