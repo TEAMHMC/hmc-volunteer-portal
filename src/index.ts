@@ -4590,18 +4590,50 @@ app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Re
 
 // --- PUBLIC EVENT ENDPOINTS (for Event-Finder-Tool integration) ---
 
-// GET /api/public/events - Public endpoint to get approved, public-facing events
+// Server-side GAS events cache — avoids Event Finder hitting GAS directly (GAS has cold-start latency)
+let _gasEventsCache: { events: any[]; fetchedAt: number } | null = null;
+const GAS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const fetchGASEventsCached = async (): Promise<any[]> => {
+    const now = Date.now();
+    if (_gasEventsCache && (now - _gasEventsCache.fetchedAt) < GAS_CACHE_TTL_MS) {
+        return _gasEventsCache.events;
+    }
+    try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 20000);
+        const response = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(tid);
+        if (response.ok) {
+            const data = await response.json() as any;
+            if (data.success && Array.isArray(data.events) && data.events.length > 0) {
+                _gasEventsCache = { events: data.events, fetchedAt: now };
+                console.log(`[PUBLIC EVENTS] GAS cache refreshed: ${data.events.length} events`);
+                return data.events;
+            }
+        }
+    } catch (err: any) {
+        console.warn('[PUBLIC EVENTS] GAS fetch failed (serving stale cache):', err.name === 'AbortError' ? 'timed out' : err.message);
+    }
+    return _gasEventsCache?.events || [];
+};
+
+// GET /api/public/events - Primary event source for Event-Finder-Tool
+// Merges Firestore events (portal-managed) + GAS events (sheet-managed), deduped by eventFinderId or title+date
 app.get('/api/public/events', async (req: Request, res: Response) => {
     try {
         const today = getPacificDate();
-        const includeAll = req.query.all === 'true'; // ?all=true to get all approved (for internal tools)
+        const includeAll = req.query.all === 'true';
 
-        // Single where clause, filter date in memory to avoid composite index
+        // 1. Firestore events (portal-native, always fast)
         const snapshot = await db.collection('opportunities')
             .where('approvalStatus', '==', 'approved')
             .get();
 
-        const events = snapshot.docs
+        const firestoreEvents = snapshot.docs
             .filter(doc => doc.data().date >= today)
             .filter(doc => includeAll || doc.data().isPublicFacing !== false)
             .map(doc => {
@@ -4621,12 +4653,68 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
                     description: data.description || '',
                     saveTheDate: data.saveTheDate || false,
                     flyerUrl: data.flyerUrl || undefined,
+                    websiteUrl: data.websiteUrl || undefined,
+                    isPromoted: data.isPromoted || false,
+                    isSponsored: data.isSponsored || false,
+                    promotedUntil: data.promotedUntil || undefined,
+                    createdAt: data.createdAt || undefined,
+                    title_es: data.title_es || undefined,
+                    description_es: data.description_es || undefined,
+                    rsvpCount: data.rsvpCount || 0,
+                    sessions: data.sessions || undefined,
+                    _eventFinderId: data.eventFinderId || null, // used for dedup
                 };
             });
 
-        events.sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
-        console.log(`[PUBLIC EVENTS] Returned ${events.length} approved events (includeAll=${includeAll})`);
-        res.json(events);
+        // 2. GAS events (sheet-managed, served from server-side cache — no browser cold-start penalty)
+        // Run in parallel with Firestore fetch for speed; don't await failure
+        const gasEvents = await fetchGASEventsCached().catch(() => []);
+
+        // 3. Merge: add GAS events not already in Firestore (by eventFinderId or title+date)
+        const firestoreKeys = new Set([
+            ...firestoreEvents.map(e => e._eventFinderId).filter(Boolean),
+            ...firestoreEvents.map(e => `${e.title}|${e.date}`),
+        ]);
+
+        const gasOnlyEvents = gasEvents
+            .filter((ge: any) => ge.date >= today)
+            .filter((ge: any) => {
+                const byId = ge.id && firestoreKeys.has(ge.id);
+                const byTitleDate = firestoreKeys.has(`${ge.title}|${ge.date}`);
+                return !byId && !byTitleDate;
+            })
+            .map((ge: any) => ({
+                id: ge.id,
+                title: ge.title,
+                date: ge.date,
+                dateDisplay: ge.dateDisplay || ge.date,
+                time: ge.time || 'TBD',
+                location: ge.location || ge.city || 'TBD',
+                city: ge.city || 'Los Angeles',
+                address: ge.address || ge.location || '',
+                program: ge.program || 'Community Health',
+                lat: ge.lat || 34.0522,
+                lng: ge.lng || -118.2437,
+                description: ge.description || '',
+                saveTheDate: ge.saveTheDate || false,
+                flyerUrl: ge.flyerUrl || undefined,
+                websiteUrl: ge.websiteUrl || undefined,
+                isPromoted: ge.isPromoted || false,
+                isSponsored: ge.isSponsored || false,
+                title_es: ge.title_es || undefined,
+                description_es: ge.description_es || undefined,
+                rsvpCount: ge.rsvpCount || 0,
+                sessions: ge.sessions || undefined,
+            }));
+
+        // Remove internal dedup key before sending
+        const merged = [
+            ...firestoreEvents.map(({ _eventFinderId, ...rest }) => rest),
+            ...gasOnlyEvents,
+        ].sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
+
+        console.log(`[PUBLIC EVENTS] ${merged.length} total (${firestoreEvents.length} Firestore + ${gasOnlyEvents.length} GAS-only)`);
+        res.json(merged);
     } catch (error: any) {
         console.error('[PUBLIC EVENTS] Failed to fetch events:', error);
         res.status(500).json({ error: 'Failed to fetch public events' });
