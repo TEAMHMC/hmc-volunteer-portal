@@ -4636,10 +4636,12 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
 // --- VOLUNTEER MATCH FOR PUBLIC RSVPS ---
 const processVolunteerMatch = async (
   rsvpId: string,
-  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string; eventType?: string; source?: string }
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; phone?: string; eventType?: string; source?: string; needs?: string }
 ): Promise<void> => {
   try {
     const { eventId, eventTitle, eventDate, name, email, phone } = rsvpData;
+    // Only treat as a volunteer registration if they explicitly selected 'Volunteer' as a need
+    const isVolunteering = (rsvpData.needs || '').toLowerCase().includes('volunteer');
     const rsvpRef = db.collection('public_rsvps').doc(rsvpId);
 
     // 1. Email match (strongest) — case-insensitive
@@ -4652,7 +4654,7 @@ const processVolunteerMatch = async (
     if (!emailSnap.empty) {
       const vol = emailSnap.docs[0];
       const volData = vol.data();
-      await handleVolunteerMatch(rsvpRef, vol.id, volData, 'email', rsvpData);
+      await handleVolunteerMatch(rsvpRef, vol.id, volData, 'email', rsvpData, isVolunteering);
       return;
     }
 
@@ -4668,7 +4670,7 @@ const processVolunteerMatch = async (
           (normalizedVolPhone && normalizedVolPhone === normalizedRsvpPhone) ||
           (normalizedVolHome && normalizedVolHome === normalizedRsvpPhone)
         ) {
-          await handleVolunteerMatch(rsvpRef, vol.id, volData, 'phone', rsvpData);
+          await handleVolunteerMatch(rsvpRef, vol.id, volData, 'phone', rsvpData, isVolunteering);
           return;
         }
       }
@@ -4756,15 +4758,32 @@ const processVolunteerMatch = async (
   }
 };
 
-// Helper: handle email/phone volunteer match (auto-register if trained, nudge if not)
+// Helper: handle email/phone volunteer match (auto-register if trained AND registering as volunteer, nudge if not)
 const handleVolunteerMatch = async (
   rsvpRef: FirebaseFirestore.DocumentReference,
   volunteerId: string,
   volData: FirebaseFirestore.DocumentData,
   matchType: 'email' | 'phone',
-  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; eventType?: string }
+  rsvpData: { eventId: string; eventTitle: string; eventDate: string; name: string; email: string; eventType?: string },
+  isVolunteering: boolean = false
 ): Promise<void> => {
   const isTrained = volData.status === 'active' && (volData.onboardingProgress >= 100 || volData.coreVolunteerStatus === true);
+
+  // If the person didn't select "Volunteer" as a need, they're attending as a community member —
+  // record the link internally for analytics but don't auto-register for the shift or send volunteer emails.
+  if (!isVolunteering) {
+    await rsvpRef.update({
+      volunteerMatch: {
+        matchType,
+        volunteerId,
+        autoRegistered: false,
+        flaggedForReview: false,
+        attendingAsPublic: true
+      }
+    });
+    console.log(`[PUBLIC RSVP] ${matchType} match: volunteer ${volunteerId} attending as community member (no volunteer need selected) — skipping volunteer flow`);
+    return;
+  }
 
   if (isTrained) {
     // Auto-register: add eventId to rsvpedEventIds, update slotsFilled, send confirmation, award XP
@@ -4786,7 +4805,7 @@ const handleVolunteerMatch = async (
       await oppRef.update({ slotsFilled: (oppData.slotsFilled || 0) + 1 });
     }
 
-    // Send confirmation email
+    // Send volunteer confirmation email
     const volunteerName = volData.name || volData.legalFirstName || 'Volunteer';
     const volunteerEmail = volData.email;
     if (volunteerEmail) {
@@ -4818,7 +4837,7 @@ const handleVolunteerMatch = async (
 
     console.log(`[PUBLIC RSVP] ${matchType} match: auto-registered volunteer ${volunteerId} for event ${rsvpData.eventId}`);
   } else {
-    // Untrained / onboarding — send training nudge
+    // Trained volunteer match but onboarding incomplete — send training nudge
     await rsvpRef.update({
       volunteerMatch: {
         matchType,
@@ -4962,6 +4981,7 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
             phone: phone || '',
             eventType: oppType,
             source: source || '',
+            needs: Array.isArray(needs) ? needs.join(', ') : (needs || ''),
         }).catch(err => console.error(`[PUBLIC RSVP] Background match failed for ${rsvpRef.id}:`, err));
 
         res.json({
