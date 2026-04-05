@@ -13417,34 +13417,7 @@ const publicDocsPath = path.resolve(process.cwd(), 'public/documents');
 app.use('/documents', express.static(publicDocsPath));
 app.use(express.static(buildPath, { index: false }));
 
-app.get('*', (req: Request, res: Response) => {
-    // API routes that didn't match any handler should return 404 JSON, not the SPA
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API endpoint not found', path: req.path });
-    }
-    const indexPath = path.join(buildPath, 'index.html');
-    fs.readFile(indexPath, 'utf8', (err, htmlData) => {
-        if (err) {
-            console.error('[SERVER] Error reading index.html:', err);
-            return res.status(500).send('Error loading application.');
-        }
-
-        // Robustly find environment variables, checking common naming conventions.
-        const envConfig = {
-            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
-            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
-        };
-
-        console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
-
-        const injectedHtml = htmlData.replace(
-            '<!--__ENV_CONFIG__-->',
-            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
-        );
-
-        res.send(injectedHtml);
-    });
-});
+// NOTE: SPA catch-all moved to end of file so all API routes register before it
 
 // --- ADMIN BOOTSTRAP ---
 const bootstrapAdmin = async () => {
@@ -14873,6 +14846,30 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     console.error('[SUNNY] Chat error:', error.message);
     res.status(500).json({ error: 'Chat failed', fallback: 'I\'m having trouble right now. You can reach us at healthmatters.clinic or call 988 if you need immediate support.' });
   }
+});
+
+// --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
+app.get('*', (req: Request, res: Response) => {
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found', path: req.path });
+    }
+    const indexPath = path.join(buildPath, 'index.html');
+    fs.readFile(indexPath, 'utf8', (err, htmlData) => {
+        if (err) {
+            console.error('[SERVER] Error reading index.html:', err);
+            return res.status(500).send('Error loading application.');
+        }
+        const envConfig = {
+            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
+            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
+        };
+        console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
+        const injectedHtml = htmlData.replace(
+            '<!--__ENV_CONFIG__-->',
+            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
+        );
+        res.send(injectedHtml);
+    });
 });
 
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---
