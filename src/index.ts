@@ -3524,8 +3524,13 @@ app.post('/api/calmkit/affirmation', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: 'AI not configured' });
         const lang = req.body.lang === 'es' ? 'Spanish' : 'English';
+        const themes = ['resilience','self-worth','momentum','presence','courage','rest','growth','community','clarity','possibility'];
+        const theme = themes[Math.floor(Math.random() * themes.length)];
         const text = await generateAIContent(GEMINI_MODEL,
-            `One short affirmation in ${lang}.`);
+            `Write one powerful, human affirmation in ${lang} on the theme of "${theme}". ` +
+            `It should sound like something a real person would say to themselves — direct, clear, emotionally resonant. ` +
+            `No fluff. No rhymes. 1-2 sentences max. Do not include quotes or attribution. ` +
+            `Make it fresh and different from generic affirmations.`);
         res.json({ success: true, affirmation: text });
     } catch (e) {
         res.status(500).json({ error: 'Affirmation generation failed' });
