@@ -3453,7 +3453,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             STRUCTURE (20-minute indoor session):
             - preStartIntro: 10-15 seconds. Unexpected. Drops them into the session from word one.
             - segments: 5-7 beats at minute marks (1, 3, 6, 9, 12, 16, 19). Each with 2-3 scriptBeats advancing the arc.
-            - spokenSponsorMoment: Weave naturally — "This session is supported by L.A. Care Health Plan, making wellness accessible for everyone in our community."
+            - spokenSponsorMoment: Plays immediately after the opening greeting — write it to flow naturally from the intro. Warm, brief, in character. Example: "This session is brought to you by L.A. Care Health Plan — making wellness like this accessible for our whole community." Under 2 sentences.
             - closingTemplate: 15-20 seconds. In character. No "well done." Leave them changed.
 
             Output JSON only: { "preStartIntro": "...", "segments": [{"minuteIndex": N, "scriptBeats": ["...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
@@ -3497,7 +3497,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             STRUCTURE (20 minutes):
             - preStartIntro: 15-20 seconds. Unexpected opening. Sets tone from word one. No warmup.
             - segments: 5-8 beats at minute marks (1, 3, 5, 8, 12, 15, 18, 20). Each with 2-3 scriptBeats. Each beat must be fresh and advance the arc.
-            - spokenSponsorMoment: Weave naturally at minute 10 — "This walk is supported by L.A. Care Health Plan, making wellness accessible for everyone in our community."
+            - spokenSponsorMoment: Plays immediately after the opening greeting — write it so it flows naturally from the intro without breaking the mood. Warm, brief. Example: "This walk is brought to you by L.A. Care Health Plan — making wellness like this possible for everyone in our community." Keep it under 2 sentences.
             - closingTemplate: 15-20 seconds. Powerful, in character. No "good job." No "well done." Leave them changed.
 
             Output JSON only: { "preStartIntro": "...", "segments": [{"minuteIndex": N, "scriptBeats": ["...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
