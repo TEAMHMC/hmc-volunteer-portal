@@ -4951,7 +4951,7 @@ const handleVolunteerMatch = async (
 };
 
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
-app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Response) => {
+app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Response) => {
     try {
         const { eventId, eventTitle, eventDate, email, phone, guests, needs, source, contactPreference, recaptchaToken } = req.body;
         // Accept firstName+lastName (new) or name (legacy)
@@ -5273,7 +5273,7 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
 });
 
 // POST /api/public/checkin - Public endpoint for event check-in
-app.post('/api/public/checkin', rateLimit(20, 60000), async (req: Request, res: Response) => {
+app.post('/api/public/checkin', rateLimit(200, 60000), async (req: Request, res: Response) => {
     try {
         const { checkinToken } = req.body;
 
