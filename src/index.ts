@@ -1531,17 +1531,31 @@ class EmailService {
       // Use type='prerendered' to bypass Apps Script's own templates (which would
       // try to use data fields that are no longer sent) and force the fallback
       // path that uses our server-rendered subject/html directly.
-      const response = await fetch(EMAIL_SERVICE_URL, {
+      // Must follow 302 redirect manually — fetch drops POST body on redirect.
+      const emailBody = JSON.stringify({
+        type: 'prerendered',
+        toEmail: data.toEmail,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+      });
+      let response = await fetch(EMAIL_SERVICE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'prerendered',
-          toEmail: data.toEmail,
-          subject: rendered.subject,
-          html: rendered.html,
-          text: rendered.text,
-        })
+        body: emailBody,
+        redirect: 'manual',
       });
+      if (response.status === 301 || response.status === 302) {
+        const redirectUrl = response.headers.get('location');
+        if (redirectUrl) {
+          response = await fetch(redirectUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: emailBody,
+            redirect: 'follow',
+          });
+        }
+      }
 
       const result = await response.json() as { success?: boolean; error?: string };
 
