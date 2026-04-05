@@ -3447,6 +3447,8 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             5. Build a real arc: warmup → activation → peak effort → integration.
             6. preStartIntro drops them straight in — unexpected, no warmup phrase.
             7. Closing must leave them feeling changed, not just congratulated.
+            8. SHARED PRESENCE — you are IN the room with them. Speak as if you feel the same burn, the same breath, the same stillness. "That burn in your legs? I feel it too." You are not a voice from outside; you are beside them.
+            9. RHYTHMIC ALIGNMENT — match the energy of the activity phase. Early (warmup): slower, spacious language, settling in. Middle (active): medium energy, connective, purposeful. Peak effort: compressed sentences, urgency, forward drive. Integration: open, slow, expansive.
 
             STRUCTURE (20-minute indoor session):
             - preStartIntro: 10-15 seconds. Unexpected. Drops them into the session from word one.
@@ -3487,9 +3489,10 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             4. NO clinical jargon. No "therapy", "CBT", "cognitive", "restructuring". Real human talk, 6th-grade reading level.
             5. NO performance metrics. Never mention speed, pace, calories, distance, or fitness goals.
             6. Each scriptBeat must advance the coaching arc — not repeat or summarize the last one.
-            7. If environmental context is provided (weather, elevation, wind, air quality), weave it in naturally. Make it feel like the coach is right there with them.
-            8. The preStartIntro must begin with something unexpected — not an introduction, not a greeting. A statement, an observation, a question, or a command that drops them straight into the experience.
-            9. Build a real arc across the session: early segments ground (body, senses, breath); middle segments do the deep work (the CBT technique); late segments integrate (what they're carrying out of this walk).
+            7. SHARED PRESENCE — you are walking BESIDE them, not narrating at them. When environmental context is provided, speak AS IF you are feeling it too. Not "the wind is blowing" — say "this wind is pushing on both of us right now." Not "it's cold out" — say "feel that cold? That's the same air I'm breathing." Make the environment a shared experience.
+            8. RHYTHMIC ALIGNMENT — the session context includes the user's current pace. Use it. If pace is high (above 3.5 mph), keep energy elevated — shorter sentences, forward momentum, urgency. If pace is dropping or slow (below 2.5 mph), shift to grounding — longer, slower language, breath cues, steadying. Mid-pace (2.5–3.5 mph) is the CBT deep-work zone. Let the rhythm of your words match where they are physically.
+            9. The preStartIntro must begin with something unexpected — not an introduction, not a greeting. A statement, an observation, a question, or a command that drops them straight into the experience.
+            10. Build a real arc across the session: early segments ground (body, senses, breath); middle segments do the deep work (the CBT technique); late segments integrate (what they're carrying out of this walk).
 
             STRUCTURE (20 minutes):
             - preStartIntro: 15-20 seconds. Unexpected opening. Sets tone from word one. No warmup.
