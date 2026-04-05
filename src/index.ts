@@ -14678,7 +14678,7 @@ THIS IS YOUR #1 PRIORITY RIGHT NOW. HMC was selected as a contractor by LACDMH/C
 - HEAL: May 20, 5:45 PM, 123 W Manchester Blvd, Inglewood (Curtis Tucker Center) — Wellness Meetup (music, movement, self-care)
   RSVP: healthmatters.clinic/resources/eventfinder?event=event-1772064063990&rsvp=true
 
-- TRANSFORM: May 27, 6:00-7:00 PM, Virtual on Zoom — Interactive session. Win a MacBook.
+- TRANSFORM: May 27, 7:00-8:00 PM, Virtual on Zoom — Interactive session. Win a MacBook.
   RSVP: healthmatters.clinic/resources/eventfinder?event=event-1773943614235&rsvp=true
 
 Landing page: healthmatters.clinic/takeactionla
