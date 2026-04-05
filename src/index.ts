@@ -3470,20 +3470,57 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
 app.post('/api/calmkit/narration', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: 'AI not configured' });
-        const { mode, lang, stats, isIntro, destinationName } = req.body;
+        const { mode, lang, stats, isIntro, destinationName, activity, indoorActivity } = req.body;
         const langText = lang === 'es' ? 'Spanish' : 'English';
-        const personas: Record<string, string> = {
+        const isIndoor = activity && activity !== 'WALK';
+        const elapsed = Math.floor((stats?.time || 0) / 60);
+        const indoorPhase = elapsed < 3 ? 'WARMUP' : elapsed < 10 ? 'ACTIVE' : elapsed < 20 ? 'PEAK' : 'COOLDOWN';
+
+        // Outdoor personas (walking/movement)
+        const outdoorPersonas: Record<string, string> = {
             HYPE: 'Inspired by Eric Thomas. Behavioral Activation coach. Punchy, high-energy. Movement IS therapy. "Your legs are moving. That means your brain is resetting."',
             HOPE: 'Inspired by Joel Osteen. Mindfulness-based CBT. Warm, grounding. "Feel your feet on the ground. What do you hear right now? Stay here with me."',
             BREAKTHROUGH: 'Inspired by Lisa Nichols. Cognitive Restructuring. Direct, pattern-interrupting. "What\'s the thought? Is it a fact or a feeling?"',
             STRATEGY: 'Inspired by Iyanla Vanzant. Problem-Solving Therapy. Calm, structured. "What\'s the smallest thing you can do today?"',
         };
-        const persona = personas[mode] || personas.HOPE;
+
+        // Indoor personas — shift from navigating the world to navigating the self
+        const indoorFocus: Record<string, Record<string, string>> = {
+            SWEAT: {
+                HYPE: 'Virtual Spotter. Behavioral Activation. Punchy, rhythmic cues. Push through the mental wall. "That weight is not heavy — your doubt is. This is where the change happens. Push through."',
+                HOPE: 'Grounding through effort. Safety in the body. "Notice your breath. Notice your strength. Each rep is proof that you showed up for yourself today."',
+                BREAKTHROUGH: 'Pattern-interrupt during high intensity. "What are you proving with this set? What belief are you burning through right now?"',
+                STRATEGY: 'Technical precision under pressure. "Controlled form, controlled mind. Breathe into the movement. Every rep is intentional."',
+            },
+            FLOW: {
+                HYPE: 'Momentum through flow. "Keep the energy moving. Let the breath lead. Flow is just controlled momentum — stay with it."',
+                HOPE: 'Safety and softness. "You do not have to fight your body. Let it open. Breathe into wherever you feel tight."',
+                BREAKTHROUGH: 'Somatic reframe. Cognitive Restructuring through the body. "Notice the tension. What are you holding onto from today? Use this movement to create space for a new truth."',
+                STRATEGY: 'Mindful architecture. "Check your foundation. Is your core engaged? Are you breathing into the work or fighting it? Find the strategy in this movement."',
+            },
+            STRETCH: {
+                HYPE: 'Active recovery energy. "Flexibility is strength. Hold it. This is where your body rebuilds. Do not rush — earn this rest."',
+                HOPE: 'Deep compassion for the body. "Your body has been carrying you. Let this be a gift back to it. No judgment — just presence."',
+                BREAKTHROUGH: 'Insight in stillness. "As you hold this stretch, what thought keeps returning? Notice it. Name it. Let it move through."',
+                STRATEGY: 'Iyanla Vanzant energy. Technical Architect. Beloved, composed, steady. "Check your alignment. Is your foundation solid? Are you breathing into the work or resisting it?"',
+            },
+        };
+
+        const activityKey = (indoorActivity || 'STRETCH') as keyof typeof indoorFocus;
+        const modeKey = (mode || 'HOPE') as string;
+        const persona = isIndoor
+            ? (indoorFocus[activityKey]?.[modeKey] || indoorFocus['STRETCH']['HOPE'])
+            : (outdoorPersonas[modeKey] || outdoorPersonas.HOPE);
+
+        const phaseContext = isIndoor
+            ? `Phase: ${indoorPhase}. ${indoorPhase === 'WARMUP' ? 'Set the tone, ease them in.' : indoorPhase === 'ACTIVE' ? 'They are in it — sustain the work.' : indoorPhase === 'PEAK' ? 'Peak intensity. Push or hold. Most critical moment.' : 'Cool-down. Celebrate. Reflect.'}`
+            : `${destinationName ? `Walking toward: ${destinationName}` : 'Open walk, no destination.'}`;
+
         const text = await generateAIContent(GEMINI_MODEL,
             `You are a CBT-trained wellness coach. ${persona} Language: ${langText}.
-            ${isIntro ? 'Give a 15-second welcome in character. Set the tone immediately.' : 'Give 45-60 seconds of CBT-informed guidance. Apply a specific technique. Reference their movement.'}
-            ${destinationName ? `Walking toward: ${destinationName}` : 'Open exploration, no destination.'}
-            NEVER say your name. Real talk, 6th grade level. Raw spoken text only. No markdown.`);
+            ${isIntro ? 'Give a 10-15 second welcome in character. Set the tone immediately.' : 'Give 30-50 seconds of CBT-informed guidance. Apply one specific technique. Be direct.'}
+            ${phaseContext}
+            NEVER say your name. Real talk, 6th grade level. Raw spoken text only. No markdown. No filler.`);
         res.json({ success: true, narration: text });
     } catch (e) {
         res.status(500).json({ error: 'Narration failed' });
