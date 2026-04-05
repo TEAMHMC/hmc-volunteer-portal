@@ -5054,9 +5054,20 @@ app.post('/api/public/rsvp', rateLimit(10, 60000), async (req: Request, res: Res
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
         }
 
-        // Send SMS confirmation if phone provided and contact preference is text
-        if (phone && (contactPreference === 'text' || contactPreference === 'sms')) {
-            const smsBody = `Hi ${name}! You're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. We'll send you a reminder before the event. See you there! - Health Matters Clinic`;
+        // Send confirmation email to registrant
+        if (email) {
+            EmailService.send('broadcast', {
+                toEmail: email,
+                volunteerName: name,
+                title: `You're registered for ${eventTitle || 'an HMC event'}!`,
+                content: `Hi ${name},\n\nYou're confirmed! We can't wait to see you at ${eventTitle || 'our upcoming event'}${eventDate ? ` on ${eventDate}` : ''}.\n\nCheck-in will be at the event — no need to print anything, just give your name at the door.\n\nQuestions? Reply to this email or reach us at unstoppable@healthmatters.clinic.\n\nSee you there!\n— Health Matters Clinic`,
+            }).catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
+        }
+
+        // Send SMS confirmation if phone provided and opt-in given
+        const smsOptIn = req.body.smsOptIn;
+        if (phone && (smsOptIn || contactPreference === 'text' || contactPreference === 'sms')) {
+            const smsBody = `Hi ${name}! You're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. We'll send a reminder before the event. See you there! - Health Matters Clinic`;
             sendSMS(null, phone, smsBody).catch(err => console.error(`[PUBLIC RSVP] SMS confirmation failed:`, err));
         }
 
