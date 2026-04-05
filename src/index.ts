@@ -3541,29 +3541,47 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
         const { text, lang, voice } = req.body;
         if (!text) return res.status(400).json({ error: 'text is required' });
 
-        // Use @google/genai for TTS (different from @google/generative-ai used elsewhere)
-        const ttsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${CALMKIT_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: req.body.calm ? (lang === 'es' ? `Habla lento y con calma: ${text}` : `Speak slowly and calmly: ${text}`) : text }] }],
-                generationConfig: {
-                    responseModalities: ['AUDIO'],
-                    speechConfig: {
-                        voiceConfig: { prebuiltVoiceConfig: { voiceName: voice || 'Kore' } },
-                    },
+        // Try TTS models in order — fall through on failure
+        const TTS_MODELS = [
+            'gemini-2.5-flash-preview-tts',
+            'gemini-2.0-flash-exp',
+            'gemini-2.0-flash',
+        ];
+        const ttsBody = JSON.stringify({
+            contents: [{ parts: [{ text: req.body.calm ? (lang === 'es' ? `Habla lento y con calma: ${text}` : `Speak slowly and calmly: ${text}`) : text }] }],
+            generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                    voiceConfig: { prebuiltVoiceConfig: { voiceName: voice || 'Kore' } },
                 },
-            }),
+            },
         });
 
-        if (!ttsRes.ok) {
-            const err = await ttsRes.text();
-            console.error('[CALMKIT TTS] API error:', ttsRes.status, err);
-            return res.status(502).json({ error: 'TTS API failed', status: ttsRes.status, details: err.slice(0, 500) });
+        let ttsRes: any = null;
+        let data: any = null;
+        let audio: string | undefined;
+
+        for (const model of TTS_MODELS) {
+            ttsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${CALMKIT_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: ttsBody,
+            });
+            if (!ttsRes.ok) {
+                const err = await ttsRes.text();
+                console.warn(`[CALMKIT TTS] Model ${model} failed: ${ttsRes.status} ${err.slice(0, 200)}`);
+                continue;
+            }
+            data = await ttsRes.json();
+            audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (audio) {
+                console.log(`[CALMKIT TTS] Success with model ${model}`);
+                break;
+            }
+            console.warn(`[CALMKIT TTS] Model ${model} returned no audio. Response keys: ${JSON.stringify(Object.keys(data))}`);
         }
 
-        const data: any = await ttsRes.json();
-        const audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!ttsRes) return res.status(503).json({ error: 'TTS not available' });
         if (!audio) return res.status(502).json({ error: 'No audio in response' });
 
         res.json({ success: true, audio });
