@@ -3420,6 +3420,57 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         if (speed !== undefined && speed !== null && speed > 0) envParts.push(`Current pace: ${speed.toFixed(1)} mph`);
         const envContext = envParts.length > 0 ? `\nEnvironmental & session context: ${envParts.join('. ')}.` : '';
 
+        const indoorActivity = req.body.indoorActivity;
+        const isIndoor = activity && activity !== 'WALK';
+
+        // Indoor-specific prompt — navigating the self, not the world
+        if (isIndoor) {
+            const activityLabel = indoorActivity === 'SWEAT' ? 'HIIT / Strength training' : indoorActivity === 'FLOW' ? 'Yoga / mindful movement flow' : 'Stretching / mobility';
+            const activityFocus = indoorActivity === 'SWEAT'
+                ? 'Virtual Spotter. Push them through the mental wall at peak effort. "That weight is not heavy — your doubt is." Behavioral Activation: action before motivation.'
+                : indoorActivity === 'FLOW'
+                ? 'Somatic Reframe. Connect physical sensation to emotional patterns. "Notice the tension. What are you holding onto? Use this movement to create space for a new truth."'
+                : 'Technical Architect. Precision and intentionality. Compose, alignment, breath. "Check your foundation. Are you breathing into the work or fighting it?"';
+            const indoorPrompt = `Generate a CBT-informed indoor coaching script for a ${activityLabel} session.
+            Language: ${langText}.
+            PERSONA: ${spec.persona}
+            COACHING FOCUS: ${activityFocus}
+            CADENCE: ${spec.cadence}
+            EMOTIONAL POSTURE: ${spec.posture}
+            ${targetThought ? `User's focus: "${targetThought}"` : ''}
+
+            CRITICAL RULES:
+            1. NEVER say your name. No clichés ("let's get started", "you got this", "keep going"). BANNED.
+            2. No outdoor references — no roads, paths, destinations, miles, speed. This is an INDOOR session.
+            3. Every segment must be completely different — different technique, different imagery, different emotional angle.
+            4. Real human talk, 6th-grade reading level. No clinical jargon.
+            5. Build a real arc: warmup → activation → peak effort → integration.
+            6. preStartIntro drops them straight in — unexpected, no warmup phrase.
+            7. Closing must leave them feeling changed, not just congratulated.
+
+            STRUCTURE (20-minute indoor session):
+            - preStartIntro: 10-15 seconds. Unexpected. Drops them into the session from word one.
+            - segments: 5-7 beats at minute marks (1, 3, 6, 9, 12, 16, 19). Each with 2-3 scriptBeats advancing the arc.
+            - spokenSponsorMoment: Weave naturally — "This session is supported by L.A. Care Health Plan, making wellness accessible for everyone in our community."
+            - closingTemplate: 15-20 seconds. In character. No "well done." Leave them changed.
+
+            Output JSON only: { "preStartIntro": "...", "segments": [{"minuteIndex": N, "scriptBeats": ["...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
+            const indoorText = await generateAIContent(GEMINI_MODEL, indoorPrompt, true);
+            try {
+                const parsed = JSON.parse(indoorText);
+                res.json({ success: true, ...parsed });
+            } catch {
+                res.json({
+                    success: true,
+                    preStartIntro: langText === 'Spanish' ? 'Tu cuerpo está aquí. Tu mente también está aquí. Empecemos.' : 'Your body is here. Your mind is here. Let\'s go.',
+                    segments: [{ minuteIndex: 1, scriptBeats: [langText === 'Spanish' ? 'Siente la base. Conecta.' : 'Feel your foundation. Connect.'] }],
+                    spokenSponsorMoment: 'This session is supported by L.A. Care Health Plan — making wellness accessible for everyone.',
+                    closingTemplate: langText === 'Spanish' ? 'Lo hiciste. Lleva esto contigo.' : 'You did the work. Carry that with you.'
+                });
+            }
+            return;
+        }
+
         const prompt = `Generate a CBT-informed movement coaching script for a wellness walk.
             Language: ${langText}.
             PERSONA: ${spec.persona}
