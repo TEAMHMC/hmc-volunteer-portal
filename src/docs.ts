@@ -679,7 +679,7 @@ New applications appear in:
 1. After reviewing, click **Approve**.
 2. Optionally add a note (e.g., "Approved for Events Lead role — bilingual asset").
 3. Confirm. The system will:
-   - Set `applicationStatus` → "approved"
+   - Set \`applicationStatus\` → "approved"
    - Unlock Tier 2 training modules for the volunteer
    - Send an automated email notification to the volunteer
 4. After approval, assign the volunteer their official role in the **Directory tab** → edit their profile → update the Role field from "HMC Champion" to their assigned role.
