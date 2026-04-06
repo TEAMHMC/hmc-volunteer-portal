@@ -5168,7 +5168,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
                     toEmail: email,
                     volunteerName: name,
                     title: 'We received your speaker application',
-                    content: `Hi ${name},\n\nThank you for applying to speak at the Unstoppable Experience! We've received your application and our team will review it shortly.\n\nIf we think you're a great fit, we'll be in touch with next steps.\n\nTopic submitted: ${needs?.replace('Speaker Application: ', '') || 'N/A'}\n\nThank you for wanting to be part of this community.\n\n— Health Matters Clinic`,
+                    content: `Thank you for applying to speak at the Unstoppable Experience! We've received your application and our team will review it shortly.\n\nIf we think you're a great fit, we'll be in touch with next steps.\n\nTopic submitted: ${needs?.replace('Speaker Application: ', '') || 'N/A'}\n\nThank you for wanting to be part of this community.\n\n— Health Matters Clinic`,
                 }).catch(err => console.error('[PUBLIC RSVP] Speaker confirmation email failed:', err));
             }
 
@@ -5188,7 +5188,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
                 toEmail: email,
                 volunteerName: name,
                 title: `You're registered for ${eventTitle || 'an HMC event'}!`,
-                content: `Hi ${name},\n\nYou're confirmed! We can't wait to see you at ${eventTitle || 'our upcoming event'}${eventDate ? ` on ${eventDate}` : ''}.\n\nCheck-in will be at the event — no need to print anything, just give your name at the door.\n\nQuestions? Reply to this email or reach us at unstoppable@healthmatters.clinic.\n\nSee you there!\n— Health Matters Clinic`,
+                content: `You're confirmed! We can't wait to see you at ${eventTitle || 'our upcoming event'}${eventDate ? ` on ${eventDate}` : ''}.\n\nCheck-in will be at the event — no need to print anything, just give your name at the door.\n\nQuestions? Reply to this email or reach us at unstoppable@healthmatters.clinic.\n\nSee you there!\n— Health Matters Clinic`,
             }).catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
         }
 
