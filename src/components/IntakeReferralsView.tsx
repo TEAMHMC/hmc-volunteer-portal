@@ -406,8 +406,8 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                 <button onClick={() => downloadPdf(createdClient.id)} className="w-full py-3 bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all">
                     <FileDown size={16} /> Download Intake Form (PDF)
                 </button>
-                <button onClick={() => { setActiveClient(createdClient); setView('referral'); }} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:scale-105 transition-transform">
-                    Continue to Referral
+                <button onClick={() => { setActiveClient(createdClient); setView('referral'); }} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Continue to Referral
                 </button>
             </div>
         );
@@ -575,7 +575,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
 
                 <div className="flex gap-4">
                     <button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
-                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">{isSaving ? 'Saving...' : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save and Continue</>}</button>
                 </div>
             </form>
         </div>

@@ -3,7 +3,7 @@ import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck, MoreHorizontal, Camera
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck, MoreHorizontal, Camera, Info
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -294,6 +294,26 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
       {/* === OpsTour Welcome Modal === */}
       {showOpsTour && <OpsTour onComplete={handleCompleteOpsTour} onClose={() => setShowOpsTour(false)} />}
+
+      {/* === What is Event Ops Mode? — Contextual explainer for volunteers === */}
+      {/*
+        EVENT OPS MODE — PURPOSE SUMMARY (for volunteers)
+        Event Ops Mode is your real-time command center for the day of a community health event.
+        It gives you everything you need in one place: check in when you arrive, review your
+        mission briefing and team roster, log client interactions (surveys, intake referrals,
+        health screenings, and supply distribution), report incidents, and sign off at the end
+        of the day so your hours are recorded automatically.
+
+        WHO USES IT:
+        - All volunteers: check in/out, review the brief, log data during the event, finish sign-off.
+        - Leads & coordinators: additionally manage volunteer check-ins, assign rotations,
+          run setup/breakdown checklists, and access the audit trail.
+
+        HOW TO GET HERE:
+        From "My Missions" → click an upcoming event → "Enter Event Ops Mode".
+        You only see this mode for events you are signed up for.
+      */}
+
       <header className="space-y-4 px-2">
         <button onClick={onBack} className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-900 transition-colors">
           <ArrowLeft size={14} /> Back to Schedule
@@ -354,6 +374,19 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           </div>
         </div>
       </header>
+
+      {/* === Event Ops Mode — Volunteer orientation banner (shown to non-leads who have not checked in yet) === */}
+      {!isLead && !checkinStatus?.checkedIn && (
+        <div className="mx-2 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-start gap-3">
+          <Info size={18} className="text-indigo-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-black text-indigo-900">Event Ops Mode — Your Day-Of Command Center</p>
+            <p className="text-xs font-bold text-indigo-700 mt-1 leading-relaxed">
+              This is where you work during the event. Tap <strong>"I'm Here"</strong> to check in and get your buddy assignment, then use the tabs to log surveys, client referrals, health screenings, and supply distributions. Tap <strong>"Finish"</strong> at the end to record your hours. If you see something wrong, use the <strong>Alerts</strong> tab to report it.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Buddy Assignment Card — shows after check-in */}
       {checkinStatus?.checkedIn && !checkinStatus.checkedOut && checkinStatus.buddyName && (

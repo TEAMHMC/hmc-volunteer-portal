@@ -434,8 +434,8 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; referrals: ReferralRecord
               </div>
               <div className="flex justify-end gap-3">
                 <button onClick={() => setShowNewReferral(false)} className="px-5 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px]">Cancel</button>
-                <button onClick={handleCreateReferral} disabled={!newReferralData.serviceNeeded || isSavingReferral} className="px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 min-h-[44px]">
-                  {isSavingReferral ? <Loader2 size={16} className="animate-spin" /> : 'Create Referral'}
+                <button onClick={handleCreateReferral} disabled={!newReferralData.serviceNeeded || isSavingReferral} className="px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 min-h-[44px] flex items-center gap-2">
+                  {isSavingReferral ? <Loader2 size={16} className="animate-spin" /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Create Referral</>}
                 </button>
               </div>
             </div>
@@ -495,8 +495,8 @@ const ClientsView: React.FC<{ clients: ClientRecord[]; referrals: ReferralRecord
                         </div>
                         <div className="flex justify-end gap-2">
                           <button onClick={() => { setEditingReferralId(null); setEditData({}); }} className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-full text-xs font-bold uppercase tracking-wide min-h-[36px]">Cancel</button>
-                          <button onClick={() => handleUpdateReferral(ref.id!)} disabled={isSavingEdit} className="px-4 py-2 bg-brand text-white rounded-full text-xs font-bold uppercase tracking-wide disabled:opacity-50 min-h-[36px]">
-                            {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : 'Save'}
+                          <button onClick={() => handleUpdateReferral(ref.id!)} disabled={isSavingEdit} className="px-4 py-2 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide disabled:opacity-50 min-h-[36px] flex items-center gap-1.5">
+                            {isSavingEdit ? <Loader2 size={14} className="animate-spin" /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save</>}
                           </button>
                         </div>
                       </div>
@@ -731,16 +731,16 @@ const ReferralCard: React.FC<{ referral: ReferralRecord; onRefresh: () => void }
           <button
             onClick={() => updateStatus('In Progress')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50 min-h-[44px] w-full sm:w-auto"
+            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center justify-center gap-2"
           >
-            Mark In Progress
+            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Mark In Progress
           </button>
           <button
             onClick={() => updateStatus('Completed')}
             disabled={isUpdating}
-            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50 min-h-[44px] w-full sm:w-auto"
+            className="px-4 py-2 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:bg-brand/90 disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center justify-center gap-2"
           >
-            Mark Completed
+            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Mark Completed
           </button>
         </div>
       )}
@@ -913,8 +913,8 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRe
               </div>
               <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
                 <button onClick={() => { setShowMatchClient(false); setSelectedResource(null); }} className="px-5 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold text-sm uppercase tracking-wide min-h-[44px] w-full sm:w-auto">Cancel</button>
-                <button onClick={handleMatchToClient} disabled={!matchClientId || isSavingMatch} className="px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto">
-                  {isSavingMatch ? <Loader2 size={16} className="animate-spin" /> : 'Create Referral'}
+                <button onClick={handleMatchToClient} disabled={!matchClientId || isSavingMatch} className="px-5 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center gap-2">
+                  {isSavingMatch ? <Loader2 size={16} className="animate-spin" /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Create Referral</>}
                 </button>
               </div>
             </div>
@@ -1170,8 +1170,8 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide min-h-[44px] w-full sm:w-auto">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto">
-              {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Create Client'}
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center gap-2">
+              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Create Client</>}
             </button>
           </div>
         </form>
@@ -1265,8 +1265,8 @@ const NewPartnerModal: React.FC<{ onClose: () => void; onComplete: () => void }>
             <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide min-h-[44px] w-full sm:w-auto">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto">
-              {isSaving ? <Loader2 className="animate-spin" size={18} /> : 'Add Partner'}
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center gap-2">
+              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Add Partner</>}
             </button>
           </div>
         </form>
@@ -1621,7 +1621,7 @@ const FlaggedClientsView: React.FC<{
                   disabled={creatingId === referralModal.id}
                   className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide text-sm disabled:opacity-50 shadow-elevation-2 flex items-center justify-center gap-2"
                 >
-                  {creatingId === referralModal.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                  {creatingId === referralModal.id ? <Loader2 size={14} className="animate-spin" /> : <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
                   {selectedResource ? `Refer to ${selectedResource['Resource Name'].substring(0, 20)}` : 'Create Referral'}
                 </button>
               </div>

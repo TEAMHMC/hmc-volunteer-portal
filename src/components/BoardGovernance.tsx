@@ -753,9 +753,9 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                     const val = parseInt(input.value);
                     if (val > 0) handleSaveGiveOrGet({ ...giveOrGet, goal: val });
                   }}
-                  className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2"
+                  className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide shadow-elevation-2 flex items-center gap-2"
                 >
-                  Set Goal
+                  <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Set Goal
                 </button>
               </div>
             </div>
@@ -1102,9 +1102,9 @@ const FormSigningModal: React.FC<{
             <button
               onClick={() => onSign(signatureRef.current?.toDataURL())}
               disabled={!agreed || !hasSignature}
-              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed shadow-elevation-2"
+              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed shadow-elevation-2 flex items-center justify-center gap-2"
             >
-              Sign Form
+              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Sign Form
             </button>
           </div>
         )}
@@ -1155,7 +1155,7 @@ const MinutesReviewModal: React.FC<{
               />
               <div className="flex gap-3">
                 <button onClick={() => { if (meeting.minutesContent) setEditing(false); }} className="flex-1 py-3 border border-black rounded-full font-bold uppercase tracking-wide">Cancel</button>
-                <button onClick={() => { onSaveMinutes(editContent); setEditing(false); }} className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide shadow-elevation-2">Save Draft</button>
+                <button onClick={() => { onSaveMinutes(editContent); setEditing(false); }} className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save Draft</button>
               </div>
             </div>
           ) : (
@@ -1586,9 +1586,9 @@ const LogDonationModal: React.FC<{ type: 'personal' | 'fundraised'; onClose: () 
             <button
               onClick={() => onLog(parseInt(amount) || 0, type, note || undefined)}
               disabled={!amount}
-              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2"
+              className="flex-1 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 shadow-elevation-2 flex items-center justify-center gap-2"
             >
-              Log {type === 'personal' ? 'Donation' : 'Activity'}
+              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Log {type === 'personal' ? 'Donation' : 'Activity'}
             </button>
           </div>
         </div>

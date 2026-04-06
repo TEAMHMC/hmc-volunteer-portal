@@ -200,7 +200,7 @@ const BroadcastsView: React.FC<{
                   ${isSent ? 'bg-emerald-500 text-white' : 'bg-brand border border-black text-white'}
                   disabled:opacity-70`}
               >
-                {isSending ? <Loader2 size={16} className="animate-spin" /> : isSent ? <><Check size={16} /> Sent!</> : 'Send Broadcast'}
+                {isSending ? <Loader2 size={16} className="animate-spin" /> : isSent ? <><Check size={16} /> Sent!</> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Send Broadcast</>}
               </button>
             </div>
           </div>

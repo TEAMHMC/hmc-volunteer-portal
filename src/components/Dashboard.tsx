@@ -218,10 +218,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return user;
   }, [user, viewingAsRole]);
 
-  // Dismissed announcement IDs (moved out of IIFE to comply with Rules of Hooks)
-  const DISMISSED_KEY = 'hmcDismissedAnnouncements';
+  // Dismissed announcement IDs — keyed by userId so dismissals persist correctly per user
+  const DISMISSED_KEY = `hmcDismissedAnnouncements_${user.id}`;
   const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(`hmcDismissedAnnouncements_${initialUser.id}`) || '[]'); } catch { return []; }
   });
 
   // Only reset tab when admin switches role preview
@@ -410,11 +410,24 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   type NavItem = { id: string; label: string; icon: any; badge?: number };
   type SidebarGroup = { label: string; items: NavItem[] };
 
+  const isHMCChampion = !displayUser.isAdmin && displayUser.role === 'HMC Champion';
+
   const sidebarGroups = useMemo(() => {
     const medicalRoles = ['Licensed Medical Professional', 'Medical Admin'];
     const clientFacingRoles = ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'];
 
     const groups: SidebarGroup[] = [];
+
+    // HMC Champions get a restricted navigation: Overview, Doc Hub (Resource Hub), Referral Hub, Calendar (Events)
+    if (isHMCChampion) {
+      groups.push({ label: 'MAIN', items: [{ id: 'overview', label: 'Overview', icon: Activity }] });
+      groups.push({ label: 'RESOURCES', items: [
+        { id: 'docs', label: 'Resource Hub', icon: BookOpen },
+        { id: 'referral-hub', label: 'Referral Hub', icon: Share2 },
+        { id: 'calendar', label: 'Events', icon: CalendarDays },
+      ] });
+      return groups;
+    }
 
     // MAIN
     const mainItems: NavItem[] = [{ id: 'overview', label: 'Overview', icon: Activity }];
@@ -459,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       roleItems.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
     }
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
-      roleItems.push({ id: 'intake', label: 'Client Portal', icon: Send });
+      roleItems.push({ id: 'intake', label: 'Client Intake', icon: Send });
     }
     if (GOVERNANCE_ROLES.includes(displayUser.role)) {
       roleItems.push({ id: 'governance', label: 'Governance', icon: Briefcase });
@@ -486,7 +499,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           { id: 'event-management', label: 'Event Management', icon: CalendarDays },
           { id: 'meetings', label: 'Meetings', icon: Calendar },
           { id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount },
-          { id: 'referrals', label: 'Referrals', icon: Send },
+          { id: 'referrals', label: 'Referral Mgmt', icon: Send },
           { id: 'resources', label: 'Resources', icon: Database },
           { id: 'analytics', label: 'Analytics', icon: BarChart3 },
           { id: 'workflows', label: 'Workflows', icon: Zap },
@@ -499,7 +512,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
     return groups;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayUser.role, displayUser.isAdmin, canAccessOperationalTools, canAccessMissions, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
+  }, [displayUser.role, displayUser.isAdmin, isHMCChampion, canAccessOperationalTools, canAccessMissions, unreadDMs, openTicketsCount, newApplicantsCount, isGovernanceRole, completedTrainingIds]);
 
   // Flat navItems for tab validation and mobile bottom bar
   const navItems = useMemo(() => {
@@ -891,11 +904,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            return (
              <div className="space-y-2 mb-6">
                {visibleAnnouncements.map(a => (
-                 <div key={a.id} className="flex items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/15 rounded-3xl">
-                   <Megaphone size={16} className="text-brand shrink-0" />
-                   <div className="flex-1 min-w-0">
-                     <span className="text-sm font-bold text-zinc-900">{a.title}</span>
-                     {a.content && <span className="text-sm text-zinc-500 ml-2 truncate">{a.content.length > 80 ? a.content.slice(0, 80) + '...' : a.content}</span>}
+                 <div key={a.id} className="flex items-start gap-3 px-4 py-3 bg-brand/5 border border-brand/15 rounded-3xl overflow-hidden">
+                   <Megaphone size={16} className="text-brand shrink-0 mt-0.5" />
+                   <div className="flex-1 min-w-0 overflow-hidden">
+                     <p className="text-sm font-bold text-zinc-900 leading-snug">{a.title}</p>
+                     {a.content && <p className="text-sm text-zinc-500 mt-0.5 line-clamp-2">{a.content}</p>}
                    </div>
                    <button onClick={() => handleDismiss(a.id)} className="p-1.5 hover:bg-brand/10 rounded-lg transition-colors shrink-0">
                      <X size={14} className="text-zinc-400" />
@@ -984,7 +997,36 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   );
                 })()}
             </header>
-            {(displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} newApplicantsCount={newApplicantsCount} />}
+            {isHMCChampion && (
+              <div className="bg-gradient-to-br from-indigo-50 to-brand/5 border border-brand/20 rounded-3xl md:rounded-[40px] p-5 md:p-8 space-y-3">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={22} className="text-brand" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base md:text-lg font-black text-zinc-900">You have HMC Champion access</h3>
+                    <p className="text-sm text-zinc-500 mt-1 leading-relaxed">
+                      Your volunteer application is currently under review. While you wait, you have Champion access — you can explore the Resource Hub, share HMC resources with your community through the Referral Hub, and view upcoming public events.
+                    </p>
+                    <p className="text-xs text-zinc-400 mt-3 font-bold">
+                      Once your application is approved, your full volunteer dashboard will unlock automatically.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button onClick={() => setActiveTab('docs')} className="px-4 py-2 bg-brand text-white rounded-full text-xs font-bold hover:opacity-90 transition-opacity">
+                    Browse Resources
+                  </button>
+                  <button onClick={() => setActiveTab('referral-hub')} className="px-4 py-2 bg-white border border-brand/20 text-brand rounded-full text-xs font-bold hover:bg-brand/5 transition-colors">
+                    Referral Hub
+                  </button>
+                  <button onClick={() => setActiveTab('calendar')} className="px-4 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-full text-xs font-bold hover:bg-zinc-50 transition-colors">
+                    View Events
+                  </button>
+                </div>
+              </div>
+            )}
+            {!isHMCChampion && ((displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} newApplicantsCount={newApplicantsCount} />)}
             <ComingUp user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} />
            </>
          )}
@@ -1003,7 +1045,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}
          {activeTab === 'referrals' && user.isAdmin && <ReferralManagement isAdmin={true} />}
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
-         {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} />}
+         {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} />}
          {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
          {activeTab === 'forms' && (user.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <FormBuilder />}
          {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (

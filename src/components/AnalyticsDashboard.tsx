@@ -3,18 +3,19 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Volunteer, VolunteerSurveyResponse } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
-import { Users, Clock, ShieldCheck, BarChart3, Star, Percent, MessageSquare, Sparkles, Loader2, FileText, CheckCircle, TrendingUp } from 'lucide-react';
+import { Users, Clock, ShieldCheck, BarChart3, Star, Percent, MessageSquare, Sparkles, Loader2, FileText, CheckCircle, TrendingUp, AlertTriangle, Activity, Server, Database, ExternalLink } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { apiService } from '../services/apiService';
 
 interface AnalyticsDashboardProps {
   volunteers: Volunteer[];
+  isAdmin?: boolean;
 }
 
 const BRAND_COLOR = '#233DFF';
 
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) => {
-  const [activeTab, setActiveTab] = useState<'operations' | 'experience'>('operations');
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers, isAdmin = false }) => {
+  const [activeTab, setActiveTab] = useState<'operations' | 'experience' | 'system'>('operations');
     
   const totalVolunteers = volunteers.length;
   const totalHours = useMemo(() => volunteers.reduce((acc, v) => acc + v.hoursContributed, 0), [volunteers]);
@@ -48,6 +49,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
       <div className="flex bg-white border border-zinc-100 p-2 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow w-full md:w-fit flex-wrap">
           <button onClick={() => setActiveTab('operations')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'operations' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><BarChart3 size={16} /> Operations</button>
           <button onClick={() => setActiveTab('experience')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'experience' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><MessageSquare size={16} /> Volunteer Experience</button>
+          {isAdmin && (
+            <button onClick={() => setActiveTab('system')} className={`flex items-center gap-3 px-4 md:px-8 py-4 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'system' ? 'bg-brand text-white shadow-elevation-2' : 'text-zinc-400 hover:text-zinc-600'}`}><Server size={16} /> System Health</button>
+          )}
       </div>
       
       {activeTab === 'operations' && (
@@ -92,6 +96,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ volunteers }) =
       )}
 
       {activeTab === 'experience' && <VolunteerExperienceView />}
+      {activeTab === 'system' && isAdmin && <SystemHealthView />}
 
     </div>
   );
@@ -249,5 +254,186 @@ const VolunteerExperienceView = () => {
   );
 };
 
+
+interface HealthData {
+  status: 'ok' | 'degraded' | 'error';
+  timestamp: string;
+  uptime: number;
+  services: {
+    firestore: string;
+    storage: string;
+    twilio: string;
+    gemini: string;
+  };
+  metrics: {
+    activeUsersLast24h: number;
+    failedLoginAttemptsLast24h: number;
+  };
+  logs: string;
+}
+
+const SystemHealthView = () => {
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+  const fetchHealth = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await apiService.get('/api/health');
+      setHealthData(data);
+      setLastRefreshed(new Date());
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch system health data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHealth();
+  }, []);
+
+  const formatUptime = (seconds: number) => {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const parts = [];
+    if (d > 0) parts.push(`${d}d`);
+    if (h > 0) parts.push(`${h}h`);
+    parts.push(`${m}m`);
+    return parts.join(' ');
+  };
+
+  const ServiceBadge = ({ name, status }: { name: string; status: string }) => {
+    const isOk = status === 'ok' || status === 'configured';
+    const isNotConfigured = status === 'not_configured';
+    return (
+      <div className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 border border-zinc-100">
+        <div className="flex items-center gap-3">
+          <div className={`w-2.5 h-2.5 rounded-full ${isOk ? 'bg-emerald-500' : isNotConfigured ? 'bg-zinc-300' : 'bg-rose-500'}`} />
+          <span className="text-sm font-bold text-zinc-700">{name}</span>
+        </div>
+        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${isOk ? 'bg-emerald-100 text-emerald-700' : isNotConfigured ? 'bg-zinc-100 text-zinc-400' : 'bg-rose-100 text-rose-700'}`}>
+          {status.replace('_', ' ')}
+        </span>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="animate-spin text-brand" size={32} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-rose-50 border border-rose-200 rounded-2xl md:rounded-[40px] p-8 text-center space-y-3">
+        <AlertTriangle size={32} className="mx-auto text-rose-400" />
+        <p className="font-bold text-rose-700">Failed to load system health data</p>
+        <p className="text-sm text-rose-500">{error}</p>
+        <button onClick={fetchHealth} className="mt-2 px-6 py-2 bg-rose-600 text-white rounded-full text-sm font-bold hover:bg-rose-700 transition-colors">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!healthData) return null;
+
+  const isAllOk = healthData.status === 'ok';
+  const activeUsers = healthData.metrics.activeUsersLast24h;
+  const failedLogins = healthData.metrics.failedLoginAttemptsLast24h;
+
+  return (
+    <div className="space-y-4 md:space-y-8 animate-in fade-in">
+      {/* Overall status banner */}
+      <div className={`flex items-center gap-4 p-5 md:p-8 rounded-2xl md:rounded-[40px] border ${isAllOk ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isAllOk ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+          {isAllOk ? <CheckCircle size={24} className="text-white" /> : <AlertTriangle size={24} className="text-white" />}
+        </div>
+        <div className="flex-1">
+          <p className={`text-lg font-black ${isAllOk ? 'text-emerald-800' : 'text-amber-800'}`}>
+            {isAllOk ? 'All Systems Operational' : 'Issues Detected'}
+          </p>
+          <p className={`text-sm font-bold ${isAllOk ? 'text-emerald-600' : 'text-amber-600'}`}>
+            Last checked: {lastRefreshed?.toLocaleTimeString() ?? 'Unknown'} &bull; Server uptime: {formatUptime(healthData.uptime)}
+          </p>
+        </div>
+        <button
+          onClick={fetchHealth}
+          className="px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-bold text-zinc-600 hover:bg-zinc-50 transition-colors shrink-0"
+        >
+          Refresh
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+        {/* Active users */}
+        <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="flex items-center justify-center w-12 h-12 bg-brand/10 rounded-3xl text-brand mb-4">
+            <Activity size={24} />
+          </div>
+          <p className="text-sm font-bold text-zinc-400">Active Users (24h)</p>
+          <p className="text-3xl font-black text-zinc-900 mt-1">
+            {activeUsers < 0 ? 'N/A' : activeUsers.toLocaleString()}
+          </p>
+          {activeUsers < 0 && <p className="text-xs text-zinc-400 mt-1">Data unavailable</p>}
+        </div>
+
+        {/* Failed logins */}
+        <div className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border shadow-sm hover:shadow-2xl transition-shadow ${failedLogins > 10 ? 'border-rose-200' : 'border-zinc-100'}`}>
+          <div className={`flex items-center justify-center w-12 h-12 rounded-3xl mb-4 ${failedLogins > 10 ? 'bg-rose-100 text-rose-600' : 'bg-zinc-50 text-zinc-500'}`}>
+            <ShieldCheck size={24} />
+          </div>
+          <p className="text-sm font-bold text-zinc-400">Failed Login Attempts (24h)</p>
+          <p className={`text-3xl font-black mt-1 ${failedLogins > 10 ? 'text-rose-600' : 'text-zinc-900'}`}>
+            {failedLogins < 0 ? 'N/A' : failedLogins.toLocaleString()}
+          </p>
+          {failedLogins > 10 && <p className="text-xs text-rose-500 mt-1 font-bold">Elevated — review audit logs</p>}
+        </div>
+
+        {/* Server uptime */}
+        <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="flex items-center justify-center w-12 h-12 bg-zinc-50 rounded-3xl text-zinc-500 mb-4">
+            <Server size={24} />
+          </div>
+          <p className="text-sm font-bold text-zinc-400">Server Uptime</p>
+          <p className="text-3xl font-black text-zinc-900 mt-1">{formatUptime(healthData.uptime)}</p>
+        </div>
+      </div>
+
+      {/* Services grid */}
+      <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+        <h3 className="text-base md:text-xl font-bold text-zinc-900 mb-6 uppercase tracking-wider flex items-center gap-3">
+          <Database size={20} /> Service Status
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ServiceBadge name="Firestore Database" status={healthData.services.firestore} />
+          <ServiceBadge name="Cloud Storage" status={healthData.services.storage} />
+          <ServiceBadge name="Twilio (SMS)" status={healthData.services.twilio} />
+          <ServiceBadge name="Gemini AI" status={healthData.services.gemini} />
+        </div>
+      </div>
+
+      {/* Logs note */}
+      <div className="flex items-start gap-4 p-5 md:p-6 bg-zinc-50 rounded-2xl border border-zinc-100">
+        <ExternalLink size={18} className="text-zinc-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-bold text-zinc-700">Detailed Logs</p>
+          <p className="text-sm text-zinc-500 mt-1">{healthData.logs}</p>
+          <p className="text-xs text-zinc-400 mt-2">
+            Application logs are also available in Google Cloud Run → Logs, and authentication audit events are stored in Firestore under <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-zinc-200 text-[11px]">audit_logs</span>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default AnalyticsDashboard;

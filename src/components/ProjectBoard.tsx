@@ -5,7 +5,8 @@ import { toastService } from '../services/toastService';
 import {
   Plus, X, Calendar, Target, AlertTriangle,
   Loader2, Trash2, ArrowRight, Mail, Save,
-  ChevronDown, Search, User, LayoutList, Kanban, ChevronRight
+  ChevronDown, Search, User, LayoutList, Kanban, ChevronRight,
+  MoreHorizontal, CheckCircle2
 } from 'lucide-react';
 
 interface ProjectBoardProps {
@@ -144,6 +145,10 @@ const ProjectBoard: React.FC<ProjectBoardProps> = ({ user, allVolunteers }) => {
   const [vendorMessage, setVendorMessage] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  // Project actions menu
+  const [showProjectMenu, setShowProjectMenu] = useState(false);
+  const projectMenuRef = useRef<HTMLDivElement>(null);
+
   const canManage = user.isAdmin || ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Development Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead'].includes(user.role);
 
   // All phases across tasks (+ project milestones as suggestions)
@@ -207,6 +212,7 @@ const ProjectBoard: React.FC<ProjectBoardProps> = ({ user, allVolunteers }) => {
 
   const handleDeleteProject = async () => {
     if (!selectedProject) return;
+    setShowProjectMenu(false);
     if (!confirm(`Delete project "${selectedProject.title}" and all its tasks? This cannot be undone.`)) return;
     try {
       await apiService.delete(`/api/projects/${selectedProject.id}`);
@@ -217,6 +223,29 @@ const ProjectBoard: React.FC<ProjectBoardProps> = ({ user, allVolunteers }) => {
       toastService.success('Project deleted');
     } catch (e: any) { toastService.error(e.message || 'Failed to delete project'); }
   };
+
+  const handleMarkComplete = async () => {
+    if (!selectedProject) return;
+    setShowProjectMenu(false);
+    try {
+      await apiService.put(`/api/projects/${selectedProject.id}`, { status: 'completed' });
+      const updated = { ...selectedProject, status: 'completed' as const };
+      setSelectedProject(updated);
+      setProjects(prev => prev.map(p => p.id === selectedProject.id ? updated : p));
+      toastService.success('Project marked as complete');
+    } catch (e: any) { toastService.error(e.message || 'Failed to update project'); }
+  };
+
+  // Close project menu on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (projectMenuRef.current && !projectMenuRef.current.contains(e.target as Node)) {
+        setShowProjectMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
 
   const handleAddPhase = async () => {
     if (!newPhaseName.trim() || !selectedProject) return;
@@ -357,7 +386,11 @@ const ProjectBoard: React.FC<ProjectBoardProps> = ({ user, allVolunteers }) => {
           {projects.map(p => (
             <button key={p.id} onClick={() => setSelectedProject(p)}
               className={`px-4 md:px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.15em] whitespace-nowrap flex items-center gap-2 transition-all min-h-[44px] ${selectedProject?.id === p.id ? 'bg-brand text-white shadow-elevation-2' : 'bg-white text-zinc-400 border border-zinc-100 hover:text-zinc-600'}`}>
-              <Target size={14} /> {p.title}
+              {p.status === 'completed' ? <CheckCircle2 size={14} className={selectedProject?.id === p.id ? 'text-white' : 'text-emerald-500'} /> : <Target size={14} />}
+              {p.title}
+              {p.status === 'completed' && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide ${selectedProject?.id === p.id ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'}`}>Done</span>
+              )}
             </button>
           ))}
         </div>
@@ -368,7 +401,14 @@ const ProjectBoard: React.FC<ProjectBoardProps> = ({ user, allVolunteers }) => {
         <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div>
-              <h3 className="text-lg font-black text-zinc-900">{selectedProject.title}</h3>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-lg font-black text-zinc-900">{selectedProject.title}</h3>
+                {selectedProject.status === 'completed' && (
+                  <span className="flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-black uppercase tracking-wide">
+                    <CheckCircle2 size={11} /> Completed
+                  </span>
+                )}
+              </div>
               {selectedProject.description && <p className="text-sm text-zinc-500 mt-1">{selectedProject.description}</p>}
             </div>
             <div className="flex items-center gap-3 text-sm flex-wrap">
@@ -380,10 +420,38 @@ const ProjectBoard: React.FC<ProjectBoardProps> = ({ user, allVolunteers }) => {
               {overdueTasks > 0 && (
                 <span className="flex items-center gap-1.5 text-rose-500 font-bold"><AlertTriangle size={14} /> {overdueTasks} overdue</span>
               )}
-              {user.isAdmin && (
-                <button onClick={handleDeleteProject} className="flex items-center gap-1.5 text-zinc-300 hover:text-rose-500 font-bold text-xs transition-colors">
-                  <Trash2 size={13} /> Delete Project
-                </button>
+              {canManage && (
+                <div ref={projectMenuRef} className="relative">
+                  <button
+                    onClick={() => setShowProjectMenu(o => !o)}
+                    className="flex items-center justify-center w-8 h-8 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-500 transition-colors"
+                    title="Project actions"
+                  >
+                    <MoreHorizontal size={15} />
+                  </button>
+                  {showProjectMenu && (
+                    <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-zinc-200 rounded-xl shadow-elevation-2 overflow-hidden z-50">
+                      {selectedProject.status !== 'completed' && (
+                        <button
+                          onClick={handleMarkComplete}
+                          className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50 transition-colors border-b border-zinc-100"
+                        >
+                          <span className="w-2 h-2 rounded-full bg-zinc-900 shrink-0" />
+                          Mark as Complete
+                        </button>
+                      )}
+                      {user.isAdmin && (
+                        <button
+                          onClick={handleDeleteProject}
+                          className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-zinc-200 rounded-b-xl"
+                        >
+                          <Trash2 size={14} className="shrink-0" />
+                          Delete Project
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

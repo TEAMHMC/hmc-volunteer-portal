@@ -392,7 +392,7 @@ const BulkUploadResourceModal: React.FC<{ onClose: () => void, onComplete: () =>
                             <div><span className="text-2xl font-black text-amber-900">{importResult.updatedCount}</span> <span className="text-amber-700">updated</span></div>
                             <div><span className="text-2xl font-black text-zinc-500">{importResult.skippedCount}</span> <span className="text-zinc-400">skipped</span></div>
                         </div>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 min-h-[44px] bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 min-h-[44px] bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Done</button>
                     </div>
                 ) : (
                     <>

@@ -433,7 +433,8 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
         </div>
         <div className="mt-6">
           {!isCompleted && !isLocked && (
-            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand text-white rounded-xl font-bold text-xs uppercase tracking-wide transition-all hover:scale-[1.02] hover:shadow-md">
+            <button onClick={() => startQuiz(m)} className="w-full py-3.5 bg-brand text-white border border-[#0f0f0f] rounded-xl font-bold text-xs uppercase tracking-wide transition-all hover:scale-[1.02] hover:shadow-md flex items-center justify-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
               Launch Mastery Assessment
             </button>
           )}
@@ -522,6 +523,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
               onClick={() => { setQuizMode(false); setActiveSession(null); }}
               className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
+              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
               Done Reviewing
             </button>
           </>
@@ -991,6 +993,7 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
                         onClick={() => { setQuizMode(false); setActiveSession(null); }}
                         className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
+                        <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
                         Done Reviewing
                       </button>
                     </>

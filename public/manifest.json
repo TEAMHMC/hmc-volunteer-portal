@@ -1,6 +1,6 @@
 {
   "name": "HMC Volunteer Portal",
-  "short_name": "HMC Volunteer",
+  "short_name": "HMC Portal",
   "description": "Health Matters Clinic Volunteer Management",
   "start_url": "/",
   "display": "standalone",

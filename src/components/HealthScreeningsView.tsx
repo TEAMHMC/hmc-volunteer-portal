@@ -900,7 +900,7 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
 
                 <div className="flex gap-4">
                     <button type="button" onClick={() => setView('search')} className="flex-1 py-3 bg-white border border-black text-zinc-900 hover:bg-zinc-200 rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
-                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Save and Continue'}</button>
+                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">{isSaving ? 'Saving...' : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save and Continue</>}</button>
                 </div>
             </form>
         </div>
@@ -1097,7 +1097,7 @@ const ClientProfileCompletion: React.FC<{client: ClientRecord, user: Volunteer, 
                     {hasConsent && (
                         <button type="button" onClick={() => { setActiveClient(client); setView('screening'); }} className="py-3 px-6 border border-zinc-300 text-zinc-500 rounded-full text-sm font-bold uppercase tracking-wide hover:bg-zinc-50">Skip</button>
                     )}
-                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50">{isSaving ? 'Saving...' : 'Update & Start Screening'}</button>
+                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">{isSaving ? 'Saving...' : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Update & Start Screening</>}</button>
                 </div>
             </form>
         </div>
@@ -1312,8 +1312,8 @@ const ScreeningForm: React.FC<{client: ClientRecord, user: Volunteer, shift: Shi
                         <FileDown size={16} /> Download Refusal of Care Form (PDF)
                     </button>
                 )}
-                <button onClick={() => onComplete()} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:scale-105 transition-transform">
-                    Done
+                <button onClick={() => onComplete()} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Done
                 </button>
             </div>
         );

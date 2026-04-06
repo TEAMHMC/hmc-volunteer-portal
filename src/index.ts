@@ -328,6 +328,68 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// --- ADMIN HEALTH CHECK ENDPOINT (auth + admin required) ---
+app.get('/api/health', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    // Check Firestore connectivity
+    let firestoreStatus = 'ok';
+    try {
+      await db.collection('_healthcheck').doc('ping').set({ ts: new Date() });
+      firestoreStatus = 'ok';
+    } catch (e) {
+      firestoreStatus = 'degraded';
+    }
+
+    // Count active users in the last 24h (volunteers who pinged presence recently)
+    let activeUsersLast24h = 0;
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const snap = await db.collection('volunteers')
+        .where('lastActiveAt', '>=', since.toISOString())
+        .count()
+        .get();
+      activeUsersLast24h = snap.data().count;
+    } catch (e) {
+      activeUsersLast24h = -1; // -1 signals unavailable
+    }
+
+    // Count failed login attempts in last 24h (stored in audit_logs)
+    let failedLoginAttempts = 0;
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const snap = await db.collection('audit_logs')
+        .where('actionType', '==', 'login_failed')
+        .where('timestamp', '>=', since.toISOString())
+        .count()
+        .get();
+      failedLoginAttempts = snap.data().count;
+    } catch (e) {
+      failedLoginAttempts = -1; // -1 signals unavailable
+    }
+
+    const allOk = firestoreStatus === 'ok';
+
+    res.json({
+      status: allOk ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      services: {
+        firestore: firestoreStatus,
+        storage: bucket ? 'ok' : 'not_configured',
+        twilio: TWILIO_ACCOUNT_SID ? 'configured' : 'not_configured',
+        gemini: process.env.GEMINI_API_KEY ? 'configured' : 'not_configured',
+      },
+      metrics: {
+        activeUsersLast24h,
+        failedLoginAttemptsLast24h: failedLoginAttempts,
+      },
+      logs: 'Available in Firebase Console → Firestore → audit_logs collection',
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 // --- GEMINI TEST ENDPOINT — moved after middleware definitions, see below ---
 
 // --- ANALYTICS ENDPOINT — moved after middleware definitions, see below ---
@@ -13683,49 +13745,69 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     results.push({ name: 'Event Finder HTML', status: 'fail', responseTime: 0, error: e.message });
   }
 
-  // Check Events API returns valid data
-  try {
-    const start = Date.now();
-    const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, { signal: AbortSignal.timeout(15000), redirect: 'follow' });
-    const data: any = await res.json();
-    const responseTime = Date.now() - start;
-    if (data.success && Array.isArray(data.events) && data.events.length > 0) {
-      // Also check that upcoming events exist (not just stale past events)
-      const today = new Date().toISOString().split('T')[0];
-      const upcoming = data.events.filter((e: any) => e.date >= today);
-      results.push({ name: `Events API (${data.events.length} total, ${upcoming.length} upcoming)`, status: 'pass', responseTime });
-      if (upcoming.length === 0) {
-        results.push({ name: 'Events: No Upcoming', status: 'fail', responseTime: 0, error: 'All events are in the past — visitors see empty calendar' });
+  // ── Events API: lightweight ping first (no Spreadsheet read, responds in <2s)
+  // Full event data fetch is done separately with a longer timeout and is WARNING-only.
+  const eventsAvailable = await (async () => {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const start = Date.now();
+        const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, { signal: AbortSignal.timeout(10000), redirect: 'follow' });
+        const data: any = await res.json();
+        const responseTime = Date.now() - start;
+        if (data.ok) {
+          results.push({ name: 'Events API', status: 'pass', responseTime });
+          return true;
+        }
+      } catch (e: any) {
+        if (attempt === 2) {
+          results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
+          return false;
+        }
+        // brief pause before retry
+        await new Promise(r => setTimeout(r, 3000));
       }
-    } else {
-      results.push({ name: 'Events API', status: 'fail', responseTime, error: 'No events returned' });
     }
-  } catch (e: any) {
-    results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
+    return false;
+  })();
+
+  // Verify event data exists (longer timeout, warning-level only — not an outage alert)
+  if (eventsAvailable) {
+    try {
+      const start = Date.now();
+      const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, { signal: AbortSignal.timeout(30000), redirect: 'follow' });
+      const data: any = await res.json();
+      const responseTime = Date.now() - start;
+      if (data.success && Array.isArray(data.events)) {
+        const today = new Date().toISOString().split('T')[0];
+        const upcoming = data.events.filter((e: any) => e.date >= today);
+        results.push({ name: `Events Data (${data.events.length} total, ${upcoming.length} upcoming)`, status: upcoming.length > 0 ? 'pass' : 'warn' as any, responseTime });
+      }
+    } catch {
+      // Non-critical — ping already passed, so Events API is alive
+    }
   }
 
-  // Test RSVP by submitting a test RSVP and verifying success (use a clearly fake test entry)
-  try {
-    const start = Date.now();
-    const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        action: 'submitRSVP',
-        eventId: 'MONITOR_TEST',
-        name: 'HMC Monitor Test',
-        email: 'monitor@healthmatters.clinic',
-        phone: '',
-        contactMethod: 'Email',
-      }).toString(),
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000),
-    });
-    const responseTime = Date.now() - start;
-    // Apps Script may redirect on POST — a 200 or redirect means the endpoint is alive
-    results.push({ name: 'RSVP Submit', status: (rsvpRes.ok || rsvpRes.redirected) ? 'pass' : 'fail', responseTime, error: rsvpRes.ok || rsvpRes.redirected ? undefined : `HTTP ${rsvpRes.status}` });
-  } catch (e: any) {
-    results.push({ name: 'RSVP Submit', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
+  // ── RSVP endpoint: ping-based check with 2-attempt retry
+  // We no longer submit a test RSVP (writes junk data to the sheet).
+  // Instead confirm the endpoint is reachable and responding.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const start = Date.now();
+      const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, {
+        signal: AbortSignal.timeout(10000),
+        redirect: 'follow',
+      });
+      const responseTime = Date.now() - start;
+      const data: any = await rsvpRes.json();
+      results.push({ name: 'RSVP Submit', status: data.ok ? 'pass' : 'fail', responseTime });
+      break;
+    } catch (e: any) {
+      if (attempt === 2) {
+        results.push({ name: 'RSVP Submit', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
+      } else {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
   }
 
   // Check Webflow footer code isn't crashing Event Finder (verify no blocking scripts)

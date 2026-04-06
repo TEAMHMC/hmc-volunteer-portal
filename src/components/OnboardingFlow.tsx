@@ -735,6 +735,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
             disabled={!canContinue}
             className="w-full py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
             Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" />
           </button>
         </div>

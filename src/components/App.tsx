@@ -260,23 +260,26 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
             boxShadow: '0 -4px 20px rgba(0,0,0,.15)', flexWrap: 'wrap' as const
           }}>
             <span style={{ textAlign: 'center' }}>
-              📱 Install the HMC Portal as an app for quick access
+              Install the HMC Portal as an app for quick access
             </span>
+            {/* Primary CTA — white bg, 1px black outline, black dot, blue text on brand bg */}
             <button
               onClick={handleInstallApp}
               style={{
-                background: '#fff', color: '#233dff', border: 'none', borderRadius: '100px',
-                padding: '8px 20px', fontSize: '12px', fontWeight: 700, letterSpacing: '.04em',
-                textTransform: 'uppercase' as const, cursor: 'pointer', whiteSpace: 'nowrap' as const
+                background: '#fff', color: '#0f0f0f', border: '1px solid #0f0f0f',
+                borderRadius: '100px', padding: '8px 20px', fontSize: '13px', fontWeight: 700,
+                cursor: 'pointer', whiteSpace: 'nowrap' as const,
+                display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}
             >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
               Install
             </button>
             <button
               onClick={dismissInstallBanner}
               style={{
-                background: 'none', border: 'none', color: 'rgba(255,255,255,.5)',
-                fontSize: '20px', cursor: 'pointer', padding: '4px 8px'
+                background: 'none', border: 'none', color: 'rgba(255,255,255,.6)',
+                fontSize: '20px', cursor: 'pointer', padding: '4px 8px', lineHeight: 1
               }}
               aria-label="Dismiss"
             >

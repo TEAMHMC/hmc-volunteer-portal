@@ -1491,14 +1491,14 @@ const BulkImportModal: React.FC<{onClose: () => void, setVolunteers: Function}> 
                         <CheckCircle className="mx-auto text-emerald-500 mb-4" size={48} />
                         <h3 className="font-black text-emerald-800">Import Successful</h3>
                         <p className="text-emerald-700">{successCount} volunteers have been imported and sent a welcome email.</p>
-                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide shadow-elevation-2">Done</button>
+                        <button onClick={onClose} className="mt-4 px-4 py-2 bg-brand border border-black text-white text-xs font-bold rounded-full uppercase tracking-wide shadow-elevation-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Done</button>
                     </div>
                 ) : (
                     <>
                         <input type="file" accept=".csv" onChange={handleFileChange} className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-brand/5 file:text-brand hover:file:bg-brand/10"/>
                         {error && <p className="text-rose-500 text-sm text-center font-bold">{error}</p>}
                         <button onClick={handleUpload} disabled={isUploading || !file} className="w-full py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 shadow-elevation-2">
-                            {isUploading ? <Loader2 className="animate-spin"/> : "Start Import"}
+                            {isUploading ? <Loader2 className="animate-spin"/> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Start Import</>}
                         </button>
                     </>
                 )}

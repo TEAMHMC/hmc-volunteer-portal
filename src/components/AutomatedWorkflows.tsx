@@ -172,7 +172,7 @@ const ReminderCadencePanel: React.FC<{ showNotification: (msg: string) => void }
 
             <div className="flex justify-end">
                 <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
-                    {saving ? <Loader2 className="animate-spin" size={14} /> : 'Save Cadence Settings'}
+                    {saving ? <Loader2 className="animate-spin" size={14} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save Cadence Settings</>}
                 </button>
             </div>
         </div>
@@ -305,9 +305,9 @@ const SMOCyclePanel: React.FC<{ showNotification: (msg: string) => void }> = ({ 
                                                 <button
                                                     onClick={() => handleSaveMeetLink(cycle.id)}
                                                     disabled={savingLink}
-                                                    className="px-4 py-2.5 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide disabled:opacity-50"
+                                                    className="px-4 py-2.5 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide disabled:opacity-50 flex items-center gap-2"
                                                 >
-                                                    {savingLink ? <Loader2 className="animate-spin" size={14} /> : 'Save'}
+                                                    {savingLink ? <Loader2 className="animate-spin" size={14} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save</>}
                                                 </button>
                                             </div>
                                         </div>
@@ -606,7 +606,7 @@ const AutomatedWorkflows: React.FC = () => {
                         {hasChanges && (
                             <div className="mt-4 md:mt-8 pt-4 md:pt-8 border-t border-zinc-100 flex justify-end">
                                 <button onClick={handleSaveChanges} disabled={isSaving} className="w-full sm:w-auto min-h-[44px] flex items-center justify-center gap-3 px-8 py-4 bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide shadow-elevation-2 disabled:opacity-50">
-                                   {isSaving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
+                                   {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save Changes</>}
                                 </button>
                             </div>
                         )}

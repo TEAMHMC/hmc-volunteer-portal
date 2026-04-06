@@ -252,7 +252,7 @@ export interface Volunteer {
   // Roles are now organized into:
   // - Primary: Core Volunteer (community-facing)
   // - Specialized: Board, Medical, Tech, etc. (separate tracks)
-  volunteerRole: 'Core Volunteer' | 'Board Member' | 'Community Advisory Board' |
+  volunteerRole: 'HMC Champion' | 'Core Volunteer' | 'Board Member' | 'Community Advisory Board' |
                  'Licensed Medical Professional' | 'Medical Admin' | 'Tech Team' |
                  'Data Analyst' | 'Development Coordinator' | 'Grant Writer' |
                  'Fundraising Volunteer' | 'Newsletter & Content Writer' | 'Content Writer' | 'Social Media Team' |

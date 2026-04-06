@@ -239,9 +239,9 @@ const VolunteerSurveyModal: React.FC<VolunteerSurveyModalProps> = ({
               </p>
               <button
                 onClick={onClose}
-                className="mt-4 px-6 py-3 min-h-[44px] bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide"
+                className="mt-4 px-6 py-3 min-h-[44px] bg-brand border border-black text-white rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2"
               >
-                Done
+                <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Done
               </button>
             </div>
           ) : form ? (

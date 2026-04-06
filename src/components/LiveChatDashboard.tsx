@@ -296,9 +296,9 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                       </div>
                       <button
                         onClick={() => handleClaimSession(session)}
-                        className="px-4 py-2 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
+                        className="px-4 py-2 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black flex items-center gap-2"
                       >
-                        Accept Chat
+                        <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Accept Chat
                       </button>
                     </div>
                   </div>
@@ -427,9 +427,9 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                   <button
                     type="submit"
                     disabled={!messageInput.trim()}
-                    className="px-6 py-3 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black"
+                    className="px-6 py-3 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-black flex items-center gap-2"
                   >
-                    Send
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Send
                   </button>
                 </div>
 
@@ -463,9 +463,9 @@ export const LiveChatDashboard: React.FC<LiveChatDashboardProps> = ({ currentUse
                 <p className="text-sm mt-1">Accept a chat from the queue to get started</p>
                 <button
                   onClick={() => setView('queue')}
-                  className="mt-4 px-6 py-2 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black"
+                  className="mt-4 px-6 py-2 min-h-[44px] bg-brand text-white text-sm font-bold rounded-full hover:bg-brand-hover transition-colors border-2 border-black flex items-center gap-2"
                 >
-                  View Queue
+                  <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> View Queue
                 </button>
               </div>
             </div>
