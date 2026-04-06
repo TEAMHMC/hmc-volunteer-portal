@@ -348,6 +348,507 @@ Reach out through the **Communication Hub** — submit a support ticket or messa
         tags: ['runbook', 'hmc champion', 'ambassador', 'outreach', 'referral hub', 'community', 'sharing']
     },
     {
+        id: 'runbook-003',
+        category: 'Runbooks & Tutorials',
+        title: 'Training Progression & Event Eligibility — How It Works',
+        content: `## Training Progression & Event Eligibility
+
+Training in the HMC Volunteer Portal is structured into tiers. Each tier you complete unlocks the next level of access — including event registration, program participation, and specialized roles. This guide explains the full progression.
+
+---
+
+### The Tier System
+
+**Tier 1 — Orientation (Required for everyone)**
+This is where every new volunteer starts. Tier 1 includes the foundational HMC modules:
+- HMC Orientation
+- Because You're a Champion
+- Volunteer Rights & Ethics
+- HIPAA Overview (non-clinical version)
+
+You must complete all Tier 1 modules before anything else unlocks. Until Tier 1 is finished, you cannot register for events, access your Missions list, or proceed to higher tiers. Completing Tier 1 during your initial application (the onboarding flow) counts — you will not need to repeat it.
+
+---
+
+**Tier 2A — Core Baseline (Required for active field volunteers)**
+Tier 2A unlocks after your application is reviewed and approved by an admin. These modules prepare you for real community health events:
+- Community Mental Health & Wellness (Parts 1 and 2)
+- Survey Data Collection
+- De-escalation
+
+Completing Tier 2A activates your **Core Volunteer Status** — the internal flag that enables event registration. You will not see the "Sign Up" option on events until this status is active.
+
+---
+
+**Tier 2B — Field Readiness (Recommended before your first in-person event)**
+These modules are not strictly required before registration, but are expected before you participate:
+- Safety & Personal Health
+- Street Medicine Introduction
+- Health Screening Basics
+
+Completing Tier 2B, combined with Tier 2A, fully activates your **Health Fair Gate** — which unlocks general community health events.
+
+---
+
+**Tier 3 — Program-Specific Clearance (Required for specialized work)**
+These modules unlock access to specific program tracks and event types:
+- **Street Medicine training** — required before attending Street Medicine events
+- **Clinical Services training** — required for Licensed Medical Professional roles (also unlocks the Clinical Gate)
+- **Community Wellness / Health Outreach tracks** — unlock program-specific event types
+
+Completing program training is tracked on your profile. Events tied to a specific program (e.g., Street Medicine pop-ups) will only appear as registerable once the corresponding gate is open.
+
+---
+
+**Tier 4 — Governance (Board and Community Advisory Board roles only)**
+Board members and CAB members skip Tier 2A/2B and instead complete governance-specific modules:
+- Board Policies & Procedures
+- Meeting Conduct & Confidentiality
+- Fiduciary Responsibilities
+
+Governance roles still complete Tier 1. Field training (Tier 2B) is optional for them.
+
+---
+
+### What Each Gate Controls
+
+| Gate | What It Unlocks | How to Open It |
+|------|-----------------|----------------|
+| Core Volunteer Status | Event registration ("My Missions" active) | Tier 2A complete + application approved |
+| Health Fair Gate | General community health events | Core Volunteer Status + Tier 2B complete |
+| Street Medicine Gate | Street medicine and outreach events | Role eligibility + Street Medicine training |
+| Clinical Gate | Clinical services events | Licensed Medical/Admin role + Clinical training |
+| Naloxone Distribution | Naloxone-related event roles | Separate request + specific compliance training |
+
+---
+
+### Governance and HMC Champion Exceptions
+
+- **HMC Champions**: Only Tier 1 is shown until your application is approved and a full volunteer role is assigned. After approval, Tier 2 and beyond unlock automatically.
+- **Governance roles**: Skip Tier 2 field training requirements. Event eligibility for governance roles is based on Tier 1 completion + role assignment.
+
+---
+
+### How Training Completion Is Tracked
+
+- Progress auto-saves as you complete each module. If you close the browser mid-module, your progress is preserved.
+- Some modules end with a short quiz (video modules) or an AI-generated knowledge check (read modules). You must pass the check to mark the module complete.
+- Modules requiring a legal signature (governance or clinical policy modules) ask you to type your full legal name to confirm.
+- Your Training Academy page shows which tiers are complete, which are in progress, and what is locked next.
+
+---
+
+### FAQ
+
+**Why can I not sign up for events yet?**
+Check your Training Academy. If your Tier 2A Core modules are incomplete, event registration is locked. If they are complete but you still cannot register, your application may not yet be approved — contact your coordinator or submit a support ticket.
+
+**I completed training but the event still says I am not eligible.**
+Some events require program-specific training (Tier 3) in addition to Core Volunteer Status. Check the event listing for any listed requirements, then look for the corresponding training module in the Academy.
+
+**Can I skip ahead to a higher tier?**
+No. Tiers must be completed in order. Lower tiers unlock higher ones — there is no bypass.
+
+**I completed orientation during my application. Does it count?**
+Yes. If you watched the HMC Orientation and HMC Champion videos during the onboarding flow, they are marked complete automatically on your training record.`,
+        tags: ['runbook', 'training', 'tiers', 'event eligibility', 'gates', 'core volunteer', 'tier 1', 'tier 2', 'missions', 'unlock']
+    },
+    {
+        id: 'runbook-004',
+        category: 'Runbooks & Tutorials',
+        title: 'Project Board — How to Use It',
+        content: `## Project Board — How to Use It
+
+The Project Board is HMC's internal task and project management tool. It is accessible to all volunteers (view only) and editable by coordinators, leads, and admins.
+
+---
+
+### Who Can Do What
+
+| Role | Can View | Can Create/Edit Tasks | Can Create/Delete Projects |
+|------|----------|----------------------|---------------------------|
+| All volunteers | Yes (read only) | No | No |
+| Events Lead, Program Coordinator, General/Operations Coordinator, Development Coordinator, Outreach & Engagement Lead, Volunteer Lead | Yes | Yes | Yes |
+| Admin | Yes | Yes | Yes |
+
+---
+
+### Projects vs. Tasks
+
+**Projects** are the top-level containers. Each project has:
+- A title and description
+- A status (Active or Completed)
+- An optional due date
+- A list of milestones/phases (used to group tasks)
+- A list of assigned team members
+
+**Tasks** live inside projects. Each task has:
+- Title and description
+- Status: **To Do → In Progress → Review → Done**
+- Priority: Low, Medium, High, or Urgent
+- An assignee (any active volunteer)
+- An optional phase/milestone label
+- Start and due dates
+- Notes
+
+---
+
+### Creating a Project
+
+1. Click **New Project** in the top right of the Project Board.
+2. Enter a title, description, and (optionally) a due date.
+3. Add milestones to break the project into phases — for example: "Planning", "Outreach", "Event Day", "Follow-Up."
+4. Save. The project appears in the Active tab.
+
+---
+
+### Adding Tasks
+
+1. Open a project and click **Add Task**.
+2. Fill in the title, description, priority, and assignee.
+3. Choose a phase (if the project has milestones) or leave it unphased.
+4. Set a due date if the task has a deadline.
+5. Save. The task appears in the **To Do** column on the Kanban view.
+
+---
+
+### Moving Tasks Through the Workflow
+
+**Kanban view**: Drag and drop cards between columns (To Do, In Progress, Review, Done).
+
+**List/Timeline view**: Use the status dropdown on each task to update its stage.
+
+Overdue tasks (due date passed, not marked Done) are flagged automatically with a red indicator.
+
+---
+
+### Completing or Deleting a Project
+
+- **Mark Complete**: Click the **...** menu on the project card → "Mark as Complete." The project moves to the Completed tab. Completed projects cannot be edited.
+- **Delete Project**: Click the **...** menu → "Delete Project." This permanently removes the project and all its tasks. Admins only.
+
+---
+
+### Tips for Coordinators
+
+- Use **phases/milestones** to organize multi-week campaigns. Group all week-1 tasks under a "Week 1" phase so nothing gets lost.
+- Assign tasks at the start of a project cycle so everyone knows their responsibilities before the event.
+- Check the Project Board during your weekly coordination meeting — overdue tasks show a visual flag so they are easy to catch.
+- Use the **Notes** field on tasks to leave context or blockers so the next person knows where things stand.`,
+        tags: ['runbook', 'project board', 'tasks', 'kanban', 'coordinator', 'projects', 'milestones', 'phases']
+    },
+    {
+        id: 'runbook-005',
+        category: 'Runbooks & Tutorials',
+        title: 'Communication Hub — Broadcasts, Messaging & Tickets',
+        content: `## Communication Hub — Broadcasts, Messaging & Tickets
+
+The Communication Hub has three tools: **Broadcasts** (org-wide announcements), **Briefing** (direct messages and team chat), and **Support Tickets**. Here is how to use each one.
+
+---
+
+## Broadcasts (Announcements)
+
+### Who Can Send Broadcasts
+Broadcasts can be sent by: Admins, Volunteer Leads, Events Leads, and Operations Leads.
+
+All other volunteers see the Broadcasts tab in read-only mode — they receive and can read announcements but cannot compose or send them.
+
+### Sending a Broadcast
+
+1. Go to **Communication Hub → Broadcasts**.
+2. Click **New Announcement** (visible only to broadcast-eligible roles).
+3. Write a **title** and **body**. Keep the body clear and actionable — recipients see this directly.
+4. Set your **target audience**:
+   - **Role filter**: Choose a specific volunteer role ("Events Lead," "Core Volunteer," etc.) or leave as "All" to reach everyone.
+   - **Status filter**: Target active volunteers, those still in onboarding, or a custom status group.
+   - **Skill filter**: Target volunteers with specific tags (e.g., bilingual, healthcare_worker).
+5. Choose **delivery method**: Email, SMS (if phone numbers are on file), or both.
+6. Review the recipient count shown before sending.
+7. Click **Send**. A delivery summary confirms how many messages were sent successfully.
+
+### When to Use Broadcasts
+- Pre-event reminders (shift confirmation, location, what to bring)
+- Role-specific training deadlines
+- Org-wide policy updates
+- Volunteer appreciation or milestone announcements
+- Urgent cancellations or schedule changes
+
+---
+
+## Briefing (Direct Messages & Team Chat)
+
+### Channels
+- **#general** — A team-wide channel. All volunteers can read and post. Use this for non-urgent questions, sharing resources, and community conversation.
+- **Direct Messages (1:1)** — Private conversations between two portal users. Search for any volunteer by name to start a conversation.
+
+### Using the Chat
+1. Go to **Communication Hub → Briefing**.
+2. Select **#general** for team-wide chat or use the search bar to find a specific person for a DM.
+3. Type your message and press Enter (or click Send).
+4. Use **@Name** to mention someone — they will receive a notification.
+
+### Real-Time Messaging
+Messages appear in real time. If your connection drops, the system falls back to checking for new messages every 5 seconds automatically.
+
+Unread DM conversations show a badge count. Clicking into a conversation marks all messages as read.
+
+---
+
+## Support Tickets
+
+### Who Should Use Tickets
+Any volunteer who has a technical issue, access problem, scheduling question, compliance question, or feedback to submit should use the Support Ticket system — not DMs. Tickets create a trackable record that coordinators can manage and prioritize.
+
+### Submitting a Ticket (Volunteers)
+
+1. Go to **Communication Hub → Support**.
+2. Click **New Ticket**.
+3. Fill in:
+   - **Subject**: A clear one-line summary of the issue.
+   - **Description**: Full details — what you were trying to do, what happened, any error messages.
+   - **Category**: Choose the closest match (Technical Issue, Account/Access, Training, Scheduling, Compliance, Feedback, Task, Project, Other).
+   - **Priority**: Low, Medium, High, or Urgent.
+4. Submit. You will receive a notification when a coordinator responds.
+
+### Ticket Statuses
+- **Open** — Submitted, not yet assigned.
+- **In Progress** — Assigned to a coordinator who is actively working on it.
+- **Closed** — Resolved.
+
+### Managing Tickets (Coordinators & Admins)
+
+1. Go to **Communication Hub → Support**. Admins see all tickets; volunteers only see their own.
+2. Open a ticket to view full details.
+3. **Assign** the ticket to yourself or another coordinator using the assignment dropdown.
+4. Change status to **In Progress** once you begin work.
+5. Add **Notes** to communicate with the volunteer (public notes) or document internal context (internal notes — hidden from the volunteer).
+6. When resolved, mark as **Closed**.
+
+**Internal Notes**: Only visible to admins and the assigned coordinator. Use these to document troubleshooting steps, escalation decisions, or sensitive context that should not be visible to the volunteer.
+
+### Ticket Features
+- **Attachments**: Volunteers and admins can attach screenshots, PDFs, or documents (up to 5MB) to help explain or resolve an issue.
+- **Activity Log**: Every status change, assignment, edit, and note addition is recorded with a timestamp. This creates a full audit trail for compliance purposes.
+- **@Mentions in Notes**: Tag a specific coordinator in a note (type @Name) to notify them directly.`,
+        tags: ['runbook', 'communication hub', 'broadcast', 'announcements', 'messages', 'direct messages', 'support tickets', 'coordinator', 'admin']
+    },
+    {
+        id: 'runbook-006',
+        category: 'Runbooks & Tutorials',
+        title: 'Admin Runbook: Reviewing & Approving New Volunteer Applications',
+        content: `## Admin Runbook: Reviewing & Approving New Volunteer Applications
+
+This guide is for HMC system administrators and senior coordinators who review incoming volunteer applications and manage the approval workflow.
+
+---
+
+### Where Applications Land
+
+When a new volunteer submits their application through the onboarding flow, their record is created with:
+- **Role**: "HMC Champion" (default until you assign a full role)
+- **Application Status**: "Pending Review"
+- **Training**: Tier 1 orientation auto-marked if they completed it during signup
+
+New applications appear in:
+1. **Admin Panel → Applicants tab** (primary review location)
+2. The overview dashboard notification badge (new applicants count)
+
+---
+
+### Step-by-Step: Reviewing an Application
+
+1. Go to **Admin Panel** in the left sidebar.
+2. Click the **Applicants** tab.
+3. Use the filters to sort by applied role, group vs. individual, or returning volunteer status.
+4. Click on an applicant to open their full profile.
+
+**What you will see in the review modal:**
+- Personal details: name, email, phone, address, DOB
+- Applied role and resume (downloadable)
+- Availability: days, hours per week, start date, scheduling notes
+- Role-specific assessment answers (the questions they were asked during signup)
+- Compliance checklist status (what is verified vs. pending)
+- Demographics and background context
+- Referral code (if they joined through a Champion's link)
+
+---
+
+### Approving a Volunteer
+
+1. After reviewing, click **Approve**.
+2. Optionally add a note (e.g., "Approved for Events Lead role — bilingual asset").
+3. Confirm. The system will:
+   - Set `applicationStatus` → "approved"
+   - Unlock Tier 2 training modules for the volunteer
+   - Send an automated email notification to the volunteer
+4. After approval, assign the volunteer their official role in the **Directory tab** → edit their profile → update the Role field from "HMC Champion" to their assigned role.
+
+**Important**: Approving unlocks training but does not auto-assign a role. You must manually update the role in their profile after approval. Core Volunteer Status (event registration access) activates after they complete Tier 2A training.
+
+---
+
+### Rejecting an Application
+
+1. Click **Reject**.
+2. Add a rejection note explaining the reason (this is for internal records — it is not automatically sent to the applicant).
+3. Confirm. The volunteer's portal access remains at Champion level. They cannot proceed to full volunteer status.
+
+If the rejection is due to missing documents or incomplete information rather than a disqualification, consider reaching out via email before rejecting — they may be able to resubmit.
+
+---
+
+### Managing Active Volunteers (Directory Tab)
+
+The **Directory** tab shows all approved/active volunteers. From here you can:
+
+- **Edit a profile**: Update role, contact info, name, team lead status, demographics.
+- **Manage tags**: Add or remove skill/status tags (e.g., "bilingual", "healthcare_worker", "street_medicine_trained").
+- **Assign tasks**: Create a task directly on a volunteer's record with a title, description, and due date.
+- **View compliance status**: Check which requirements (background check, HIPAA, training, Live Scan) are verified vs. pending.
+- **Deactivate a volunteer**: Removes them from shift assignments and event eligibility without deleting their record. Use this for leaves of absence or inactive periods.
+- **Delete a volunteer**: Permanently removes the record. Requires confirmation. Use only for duplicate records or explicit data deletion requests.
+
+---
+
+### Bulk Import
+
+To add multiple volunteers at once (e.g., migrating from a spreadsheet):
+
+1. Go to **Admin Panel → Bulk Import**.
+2. Download the CSV template to see required column format.
+3. Fill in: Name, Email, Role, Phone (minimum required fields).
+4. Upload the file. The system will create accounts, assign the specified roles, and send welcome emails to each imported volunteer.
+5. A success summary shows how many records were created and any rows that failed validation.
+
+---
+
+### Compliance Overview
+
+The **Compliance tab** in the Directory view shows a matrix of all volunteers × compliance requirements:
+- Background Check
+- HIPAA Acknowledgment
+- Orientation Training
+- Live Scan (where required)
+- Role-specific certifications
+
+Green checkmark = verified. Red X = pending. Use this view before events to confirm your team is compliant.
+
+---
+
+### Common Issues
+
+**Volunteer says they cannot register for events after approval.**
+Make sure you updated their role from "HMC Champion" to a full volunteer role. Also confirm they have completed Tier 2A Core training in the Training Academy — both are required.
+
+**Applicant did not receive approval email.**
+Check their email address in the profile for typos. If correct, ask them to check spam. You can resend by editing and re-saving their profile, which triggers a re-notification.
+
+**Duplicate accounts.**
+If two records exist for the same person, deactivate the duplicate and ensure training completion from both records is manually reconciled before deleting.`,
+        tags: ['admin', 'runbook', 'onboarding', 'applications', 'approval', 'reject', 'directory', 'compliance', 'bulk import', 'role assignment'],
+        visibleTo: ['System Administrator', 'Events Lead', 'Program Coordinator', 'General Operations Coordinator', 'Volunteer Lead']
+    },
+    {
+        id: 'runbook-007',
+        category: 'Runbooks & Tutorials',
+        title: 'Coordinator Guide: Walking New Volunteers Through Onboarding',
+        content: `## Coordinator Guide: Walking New Volunteers Through Onboarding
+
+This guide is for HMC coordinators helping new volunteers navigate the signup and onboarding process — whether in person, by phone, or via a shared screen session.
+
+---
+
+### Before They Start: What They Need
+
+Make sure the new volunteer has:
+- A valid email address they can access during signup (for the verification code)
+- Their resume file (PDF or Word document) — this is required to complete the application
+- About 15–20 minutes for the full flow (without rushing)
+
+---
+
+### The 8 Steps of the Onboarding Flow
+
+Walk them through each step:
+
+**Step 1 — Account**
+They create their email and password (13+ characters, must include uppercase, lowercase, number, and special character). Or they can sign up with Google, which skips this step. A 6-digit verification code is sent to their email — they need to enter it before proceeding.
+
+*Common issue*: Code goes to spam. Ask them to check their junk folder.
+
+**Step 2 — Personal**
+Legal name, preferred name (optional), date of birth, gender, phone, address, emergency contact. All fields are required. Address must be complete — street, city, state, zip.
+
+*Common issue*: They enter a nickname in the legal name field. Remind them this needs to match their ID for background check purposes.
+
+**Step 3 — Background**
+Employment status, education, HMC history, availability (days, hours/week, start date), timezone, languages spoken, and optional demographic information. SSN is collected here (encrypted) for background check processing — this is standard and secure.
+
+*Common question*: "Why do you need my SSN?" Explain it is used only for the background check process, encrypted immediately, and not stored in readable form.
+
+**Step 4 — Availability**
+Confirm specific days and time preferences (morning/afternoon/evening). They should also note any scheduling limitations here.
+
+**Step 5 — Role**
+This is where they upload their resume and select the volunteer role they are interested in. The role list includes all available HMC positions. Help them choose the best match based on their background and your current staffing needs.
+
+*Common issue*: They skip the resume upload. This is required — the system will not let them proceed without it.
+
+**Step 6 — Details**
+AI-generated questions tailored to their selected role. These will be different for a Licensed Medical Professional vs. a Social Media volunteer. They just need to answer honestly and in some detail — minimum answer length is required.
+
+**Step 7 — Compliance**
+Checkboxes for age verification, background check consent, SSN authorization, Terms of Service, and HIPAA (if applicable to their role). Final step: they type their full legal name as a digital signature to confirm all agreements.
+
+*Common issue*: Their typed name does not match their legal name exactly. It is case-insensitive, but spacing and spelling must match what they entered in Step 2.
+
+**Step 8 — Orientation**
+They watch (or acknowledge) the HMC Orientation video and the HMC Champion video. Completing these here means they are automatically marked off in the Training Academy — they will not have to repeat them.
+
+---
+
+### After They Submit
+
+Once the application is submitted:
+1. Their account is created with the role **HMC Champion** and status **Pending Review**.
+2. They can log in immediately and access the portal at Champion level.
+3. They will see the Training Academy with Tier 1 unlocked. Encourage them to complete any Tier 1 modules they did not finish during signup.
+4. An admin will review their application and approve them. Once approved, Tier 2 training unlocks.
+
+Tell them: **"You will receive an email when your application is reviewed. After approval, go back to Training Academy and you will see new modules to complete. Those unlock your ability to sign up for events."**
+
+---
+
+### If They Get Stuck or Need to Stop
+
+The application auto-saves after every step. If they need to stop, they can click **Save & Return Later** and their progress is preserved. Next time they log in, they will see a "Welcome Back" prompt and can pick up where they left off.
+
+If they want to start over entirely (e.g., they made an error on an early step), they can click **Start Over** to clear all saved data.
+
+---
+
+### Using a Referral Link
+
+If you are recruiting someone through an HMC Champion's referral link (volunteer.healthmatters.clinic?ref=CODE), the signup flow automatically attributes the new account to that Champion. No extra action needed — the referral is tracked automatically.
+
+If you want to make sure credit goes to a specific Champion, share their personal link (found in their portal dashboard or the Referral Hub) rather than the general portal URL.
+
+---
+
+### After Approval: What Coordinators Should Do
+
+Once you approve an application (see the Admin Runbook for approval steps), follow up with:
+
+1. **Update their role** in Admin Panel → Directory → Edit Profile. Change from "HMC Champion" to their assigned role.
+2. **Send a welcome message** via the Communication Hub → Briefing (DM) or Broadcasts to the relevant role group.
+3. **Assign orientation tasks** if your team uses the Project Board to track onboarding checklists.
+4. **Check Tier 2 progress** within the first week. Core Volunteer Status (event registration access) activates only after they complete all Tier 2A modules. Follow up if they have not started.
+5. **Add them to the event roster** once Core Volunteer Status is confirmed.`,
+        tags: ['runbook', 'coordinator', 'onboarding', 'new volunteer', 'walkthrough', 'application', 'training', 'signup', 'approval'],
+        visibleTo: ['System Administrator', 'Events Lead', 'Program Coordinator', 'General Operations Coordinator', 'Volunteer Lead', 'Outreach & Engagement Lead']
+    },
+    {
         id: 'admin-checklist-001',
         category: 'Admin & Operations',
         title: 'Pre-Launch Security Checklist',
