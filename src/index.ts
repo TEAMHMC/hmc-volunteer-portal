@@ -1508,6 +1508,52 @@ const EmailTemplates = {
     text: `[HMC] ${data.title}\n\n${data.content}`
   }),
 
+  training_nudge: (data: EmailTemplateData) => ({
+    subject: `${(data.volunteerName || '').split(' ')[0] || 'Hi'} — a few quick steps before your first event`,
+    html: `${emailHeader('Your Training is Waiting')}
+      <p>Hi ${(data.volunteerName || '').split(' ')[0] || 'there'},</p>
+      <p>You're approved and almost ready to volunteer in the field. There are just a few short training modules standing between you and your first HMC community health event.</p>
+      <div style="background:#f0f4ff;border-radius:12px;padding:20px 24px;margin:24px 0">
+        <p style="font-weight:700;color:#111;margin:0 0 12px 0;font-size:15px">Complete these to unlock event registration:</p>
+        <div style="white-space:pre-line;line-height:2;color:#374151;font-size:14px">${data.content || ''}</div>
+      </div>
+      <p>Each module takes 5–10 minutes. Once you finish, your <strong>Core Volunteer Status</strong> activates automatically and you can sign up for upcoming events.</p>
+      ${actionButton('Open Training Academy', `${EMAIL_CONFIG.WEBSITE_URL}`)}
+      <p style="color:#9ca3af;font-size:13px;margin-top:8px">Questions? Reply to this email or submit a support ticket inside the portal.</p>
+    ${emailFooter()}`,
+    text: `Hi ${(data.volunteerName || '').split(' ')[0] || 'there'},\n\nYou're approved — here's what's left before you can sign up for events:\n\n${data.content || ''}\n\nEach module takes 5–10 minutes. Once done, your Core Volunteer Status activates automatically.\n\nOpen Training Academy: ${EMAIL_CONFIG.WEBSITE_URL}`
+  }),
+
+  event_registration_nudge: (data: EmailTemplateData) => ({
+    subject: `Events are coming up — here's how to claim your spot`,
+    html: `${emailHeader('Upcoming Events For You')}
+      <p>Hi ${(data.volunteerName || '').split(' ')[0] || 'there'},</p>
+      <p>Your training is complete and you're cleared for community health events. Here's what's coming up:</p>
+      ${data.content ? `<div style="margin:24px 0;border:1px solid #f0f0f0;border-radius:12px;padding:4px 16px">${data.content}</div>` : ''}
+      <p>Go to <strong>My Missions</strong> in your portal to see all open events and register for the ones that fit your schedule.</p>
+      ${actionButton('View Upcoming Events', `${EMAIL_CONFIG.WEBSITE_URL}`)}
+      <p style="color:#9ca3af;font-size:13px;margin-top:8px">Already registered? Check the Calendar tab in your portal for your full schedule.</p>
+    ${emailFooter()}`,
+    text: `Hi ${(data.volunteerName || '').split(' ')[0] || 'there'},\n\nYour training is complete and events are coming up. Go to My Missions in your portal to register.\n\n${data.content ? data.content.replace(/<[^>]+>/g, '') + '\n\n' : ''}View events: ${EMAIL_CONFIG.WEBSITE_URL}`
+  }),
+
+  reengagement_30day: (data: EmailTemplateData) => ({
+    subject: `We haven't seen you in a while — how are you doing?`,
+    html: `${emailHeader("Checking in on you")}
+      <p>Hi ${(data.volunteerName || '').split(' ')[0] || 'there'},</p>
+      <p>It has been a little while since we've seen you in the portal — and we just wanted to check in. Whether life got busy, something came up, or the portal wasn't quite clicking for you, we understand. There's no pressure here.</p>
+      <p>But <strong>you're still part of this community</strong>, and that matters to us. If there's anything we can do to make your HMC experience better — or easier — we would genuinely love to hear it.</p>
+      <div style="background:#f9fafb;border-radius:12px;padding:20px 24px;margin:24px 0">
+        <p style="font-weight:700;color:#111;margin:0 0 8px 0">Two minutes would mean a lot:</p>
+        <p style="color:#4b5563;margin:0;line-height:1.7">We have a short feedback form in the portal — just a few questions about your experience. Your input directly shapes how we improve things for volunteers like you.</p>
+      </div>
+      ${actionButton('Share Your Feedback', `${EMAIL_CONFIG.WEBSITE_URL}`)}
+      ${data.content ? `<p style="color:#4b5563;margin-top:20px">Also — ${data.content}</p>` : ''}
+      <p style="color:#9ca3af;font-size:13px;margin-top:16px">Not ready to come back yet? No worries. Your account and all your training progress are saved and waiting whenever you are.</p>
+    ${emailFooter()}`,
+    text: `Hi ${(data.volunteerName || '').split(' ')[0] || 'there'},\n\nIt has been a while — we just wanted to check in and see how you are doing.\n\nIf you have 2–3 minutes, your feedback on your HMC experience would really help us improve things for everyone:\n${EMAIL_CONFIG.WEBSITE_URL}\n\n${data.content ? data.content + '\n\n' : ''}Your account and training progress are still here whenever you are ready to come back.\n\nWarmly,\nThe HMC Team`
+  }),
+
   weekly_digest: (data: EmailTemplateData) => ({
     subject: `Your Weekly Wellness & Volunteer Update`,
     html: `${emailHeader('Your Week Ahead')}
@@ -11064,8 +11110,151 @@ async function runDailyWorkflows() {
 
     if (workflows.w4?.enabled !== false) await executeBirthdayRecognition();
     if (workflows.w5?.enabled !== false) await executeComplianceExpiryWarning();
+    await runEngagementEmails();
   } catch (e) {
     console.error('[WORKFLOW] runDailyWorkflows error:', e);
+  }
+}
+
+async function runEngagementEmails() {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo  = new Date(now.getTime() -  7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const TIER_2_CORE_IDS = ['hipaa_nonclinical', 'survey_general', 'portal_howto'];
+  const TIER_2_CORE_NAMES: Record<string, string> = {
+    hipaa_nonclinical: 'HIPAA Overview (Non-Clinical) — 10 min',
+    survey_general: 'Survey & Research Data Collection — 5 min',
+    portal_howto: 'How to Use the HMC Volunteer Portal — 5 min',
+  };
+
+  const COORDINATOR_ROLES = new Set([
+    'Events Lead', 'Program Coordinator', 'General Operations Coordinator',
+    'Development Coordinator', 'Volunteer Lead', 'Outreach & Engagement Lead',
+  ]);
+
+  let trainingNudges = 0, eventNudges = 0, reengagements = 0;
+
+  try {
+    const snapshot = await db.collection('volunteers')
+      .where('applicationStatus', '==', 'approved')
+      .where('status', '==', 'active')
+      .get();
+
+    // Fetch upcoming events once for event nudge emails
+    let upcomingEventsHtml = '';
+    try {
+      const evSnap = await db.collection('opportunities')
+        .where('date', '>=', now.toISOString().split('T')[0])
+        .orderBy('date')
+        .limit(3)
+        .get();
+      upcomingEventsHtml = evSnap.docs.map(d => {
+        const ev = d.data();
+        return `<div style="padding:12px 0;border-bottom:1px solid #f0f0f0;last-child:{border:none}">
+          <strong style="color:#111;font-size:14px">${ev.title || 'Upcoming Event'}</strong><br>
+          <span style="color:#6b7280;font-size:13px">${ev.date || ''}${ev.time ? ' · ' + ev.time : ''}${ev.location ? ' · ' + ev.location : ''}</span>
+        </div>`;
+      }).join('');
+    } catch (_) {}
+
+    for (const doc of snapshot.docs) {
+      const v = doc.data();
+      const vid = doc.id;
+      if (!v.email) continue;
+
+      const completedIds: string[] = v.completedTrainingIds || [];
+      const eng: Record<string, string> = v.engagementEmails || {};
+      const approvedAt   = v.reviewedAt  ? new Date(v.reviewedAt)  : (v.createdAt ? new Date(v.createdAt) : null);
+      const lastActiveAt = v.lastActiveAt ? new Date(v.lastActiveAt) : (v.updatedAt ? new Date(v.updatedAt) : null);
+      const name  = v.name || v.legalFirstName || 'Volunteer';
+      const email = v.email as string;
+      const role  = v.role || v.volunteerRole || 'Volunteer';
+
+      // ── 1. TRAINING NUDGE ─────────────────────────────────────────────────
+      // Approved 7+ days ago, Tier 2A still incomplete, sent <3 times, gap ≥14 days
+      if (!v.coreVolunteerStatus && approvedAt && approvedAt < sevenDaysAgo) {
+        const missing = TIER_2_CORE_IDS.filter(id => !completedIds.includes(id));
+        if (missing.length > 0) {
+          const lastSent = eng.training_nudge ? new Date(eng.training_nudge) : null;
+          const count    = Number(eng.training_nudge_count || 0);
+          if (count < 3 && (!lastSent || lastSent < fourteenDaysAgo)) {
+            try {
+              await EmailService.send('training_nudge', {
+                toEmail: email, volunteerName: name, userId: vid,
+                content: missing.map(id => `• ${TIER_2_CORE_NAMES[id]}`).join('\n'),
+              });
+              await db.collection('volunteers').doc(vid).update({
+                'engagementEmails.training_nudge': now.toISOString(),
+                'engagementEmails.training_nudge_count': count + 1,
+              });
+              trainingNudges++;
+            } catch (e) { console.warn(`[ENGAGEMENT] Training nudge failed ${vid}:`, e); }
+          }
+        }
+      }
+
+      // ── 2. EVENT REGISTRATION NUDGE ───────────────────────────────────────
+      // Core Volunteer Status = true, no upcoming registered events, gap ≥14 days, sent <4 times
+      if (v.coreVolunteerStatus) {
+        const lastSent = eng.event_nudge ? new Date(eng.event_nudge) : null;
+        const count    = Number(eng.event_nudge_count || 0);
+        if (count < 4 && (!lastSent || lastSent < fourteenDaysAgo)) {
+          const registeredIds: string[] = v.registeredOpportunityIds || v.rsvpedEventIds || [];
+          let hasUpcoming = false;
+          if (registeredIds.length > 0) {
+            try {
+              const evDoc = await db.collection('opportunities').doc(registeredIds[registeredIds.length - 1]).get();
+              if (evDoc.exists && (evDoc.data()?.date || '') >= now.toISOString().split('T')[0]) hasUpcoming = true;
+            } catch (_) {}
+          }
+          if (!hasUpcoming) {
+            try {
+              await EmailService.send('event_registration_nudge', {
+                toEmail: email, volunteerName: name, userId: vid,
+                content: upcomingEventsHtml, approvedRole: role,
+              });
+              await db.collection('volunteers').doc(vid).update({
+                'engagementEmails.event_nudge': now.toISOString(),
+                'engagementEmails.event_nudge_count': count + 1,
+              });
+              eventNudges++;
+            } catch (e) { console.warn(`[ENGAGEMENT] Event nudge failed ${vid}:`, e); }
+          }
+        }
+      }
+
+      // ── 3. 30-DAY RE-ENGAGEMENT ───────────────────────────────────────────
+      // Last active >30 days, sent <2 times, gap ≥30 days
+      if (lastActiveAt && lastActiveAt < thirtyDaysAgo) {
+        const lastSent = eng.reengagement ? new Date(eng.reengagement) : null;
+        const count    = Number(eng.reengagement_count || 0);
+        if (count < 2 && (!lastSent || lastSent < thirtyDaysAgo)) {
+          const roleHint = COORDINATOR_ROLES.has(role)
+            ? `There may be open projects on the Project Board that could use your coordination skills as ${role}.`
+            : v.coreVolunteerStatus
+            ? 'There are community health events coming up — it would mean a lot to have you there.'
+            : 'You still have a few short training modules to complete, and after that you can sign up for events.';
+          try {
+            await EmailService.send('reengagement_30day', {
+              toEmail: email, volunteerName: name, userId: vid, content: roleHint,
+            });
+            await db.collection('volunteers').doc(vid).update({
+              'engagementEmails.reengagement': now.toISOString(),
+              'engagementEmails.reengagement_count': count + 1,
+            });
+            reengagements++;
+          } catch (e) { console.warn(`[ENGAGEMENT] Re-engagement failed ${vid}:`, e); }
+        }
+      }
+    }
+
+    console.log(`[ENGAGEMENT] Sent: ${trainingNudges} training nudges, ${eventNudges} event nudges, ${reengagements} re-engagements`);
+    return { trainingNudges, eventNudges, reengagements };
+  } catch (e) {
+    console.error('[ENGAGEMENT] runEngagementEmails error:', e);
+    return { error: String(e) };
   }
 }
 
@@ -13636,6 +13825,7 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
     const results: any = {};
     results.scheduled = await runScheduledWorkflows();
     results.daily = await runDailyWorkflows();
+    results.engagement = await runEngagementEmails();
     console.log('[CRON-ENDPOINT] Workflows complete');
     res.json({ success: true, results });
   } catch (e: any) {
