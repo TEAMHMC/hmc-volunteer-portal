@@ -997,35 +997,92 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   );
                 })()}
             </header>
-            {isHMCChampion && (
-              <div className="bg-gradient-to-br from-indigo-50 to-brand/5 border border-brand/20 rounded-3xl md:rounded-[40px] p-5 md:p-8 space-y-3">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
-                    <ShieldCheck size={22} className="text-brand" />
+            {isHMCChampion && (() => {
+              const referralLink = `https://volunteer.healthmatters.clinic?ref=${gamification?.referralCode || ''}`;
+              const copyReferralLink = () => {
+                navigator.clipboard.writeText(referralLink).then(() => {
+                  toastService.success('Referral link copied!');
+                }).catch(() => {
+                  toastService.info(`Your link: ${referralLink}`);
+                });
+              };
+              return (
+                <div className="space-y-4">
+                  {/* Champion hero card */}
+                  <div className="bg-[#0f0f0f] rounded-3xl md:rounded-[40px] p-6 md:p-8 text-white relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-transparent pointer-events-none" />
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-4">
+                        <ShieldCheck size={16} className="text-brand" />
+                        <span className="text-xs font-bold tracking-widest uppercase text-white/40">HMC Champion</span>
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-1">
+                        Welcome to the community, {displayUser.name?.split(' ')[0] || 'Champion'}.
+                      </h3>
+                      <p className="text-white/50 text-sm leading-relaxed max-w-lg">
+                        You're an HMC Ambassador — sharing resources, connecting your community, and earning recognition for every action you take.
+                      </p>
+
+                      {/* Stats row */}
+                      {gamification && (
+                        <div className="flex flex-wrap gap-3 mt-5">
+                          <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+                            <p className="text-xs font-bold text-white/35 uppercase tracking-wider mb-0.5">XP Earned</p>
+                            <p className="text-xl font-black text-brand">{gamification.currentXP.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+                            <p className="text-xs font-bold text-white/35 uppercase tracking-wider mb-0.5">Level</p>
+                            <p className="text-xl font-black text-white">Lv {gamification.level}</p>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+                            <p className="text-xs font-bold text-white/35 uppercase tracking-wider mb-0.5">Referrals</p>
+                            <p className="text-xl font-black text-white">{gamification.referralCount}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-base md:text-lg font-black text-zinc-900">You have HMC Champion access</h3>
-                    <p className="text-sm text-zinc-500 mt-1 leading-relaxed">
-                      Your volunteer application is currently under review. While you wait, you have Champion access — you can explore the Resource Hub, share HMC resources with your community through the Referral Hub, and view upcoming public events.
-                    </p>
-                    <p className="text-xs text-zinc-400 mt-3 font-bold">
-                      Once your application is approved, your full volunteer dashboard will unlock automatically.
-                    </p>
+
+                  {/* Referral link card */}
+                  <div className="bg-brand/5 border border-brand/15 rounded-3xl p-5 md:p-6">
+                    <div className="flex items-start gap-3 mb-4">
+                      <Share2 size={18} className="text-brand shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-bold text-zinc-900 text-sm">Your Ambassador Link</h4>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">Share this link anywhere. Every person who joins through it earns you XP and counts toward your impact.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-2xl px-4 py-3">
+                      <span className="flex-1 text-sm text-zinc-600 font-medium truncate">{referralLink}</span>
+                      <button
+                        onClick={copyReferralLink}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white border border-[#0f0f0f] rounded-full text-xs font-bold shrink-0 hover:bg-brand/90 transition-colors"
+                        aria-label="Copy referral link"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" aria-hidden="true" />
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setActiveTab('referral-hub')} className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white border border-[#0f0f0f] rounded-full text-sm font-bold hover:bg-brand/90 transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" aria-hidden="true" />
+                      Referral Hub
+                    </button>
+                    <button onClick={() => setActiveTab('docs')} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-zinc-800 border border-[#0f0f0f] rounded-full text-sm font-bold hover:bg-zinc-50 transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-800 shrink-0" aria-hidden="true" />
+                      Browse Resources
+                    </button>
+                    <button onClick={() => setActiveTab('calendar')} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-zinc-800 border border-[#0f0f0f] rounded-full text-sm font-bold hover:bg-zinc-50 transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-800 shrink-0" aria-hidden="true" />
+                      Upcoming Events
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button onClick={() => setActiveTab('docs')} className="px-4 py-2 bg-brand text-white rounded-full text-xs font-bold hover:opacity-90 transition-opacity">
-                    Browse Resources
-                  </button>
-                  <button onClick={() => setActiveTab('referral-hub')} className="px-4 py-2 bg-white border border-brand/20 text-brand rounded-full text-xs font-bold hover:bg-brand/5 transition-colors">
-                    Referral Hub
-                  </button>
-                  <button onClick={() => setActiveTab('calendar')} className="px-4 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-full text-xs font-bold hover:bg-zinc-50 transition-colors">
-                    View Events
-                  </button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
             {!isHMCChampion && ((displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) ? <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /> : isOnboarding ? <OnboardingView user={displayUser} onNavigate={setActiveTab} /> : <ActiveVolunteerView user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} hasCompletedCoreTraining={hasCompletedCoreTraining} isOperationalEligible={isOperationalEligible} isGovernanceRole={isGovernanceRole} newApplicantsCount={newApplicantsCount} />)}
             <ComingUp user={displayUser} shifts={shifts} opportunities={opportunities} onNavigate={setActiveTab} />
            </>
