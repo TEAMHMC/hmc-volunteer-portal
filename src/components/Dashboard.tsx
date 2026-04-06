@@ -734,6 +734,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                   className="w-full bg-brand text-white border-0 rounded-full font-black text-[10px] uppercase tracking-[0.2em] pl-10 pr-6 py-3 appearance-none cursor-pointer hover:bg-zinc-800 transition-colors shadow-elevation-2"
                 >
                   <option value="">View as Role...</option>
+                  <option value="HMC Champion">HMC Champion</option>
                   {APP_CONFIG.HMC_ROLES.map(role => <option key={role.id} value={role.label}>{role.label}</option>)}
                 </select>
                 <Eye size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
