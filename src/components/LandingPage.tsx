@@ -237,20 +237,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
                 </button>
-                <div className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 bg-white border border-zinc-100 rounded-2xl shadow-elevation-1">
-                   <div className="flex -space-x-2.5 md:-space-x-3">
+                <div className="flex items-center gap-3 md:gap-4 bg-zinc-900 border border-zinc-700 rounded-full px-2 py-2 md:px-3 md:py-2.5 shadow-elevation-2">
+                   <div className="flex -space-x-2 md:-space-x-2.5">
                       {[
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa961f15351ec1bc5243e_P1100963.jpeg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9a26489edb0895bc219_Website_Kerry.jpeg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9607ca39931abff9f95_Profile%20Image.jpeg',
+                        'https://cdn.prod.website-files.com/67359e6040140078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa7619fae2db0b4ec877e_headshot%20(1).jpg',
                       ].map((src, i) => (
-                        <img key={i} src={src} alt="HMC volunteer" className="w-7 h-7 md:w-10 md:h-10 rounded-full border-2 border-white object-cover shadow-elevation-1" />
+                        <img key={i} src={src} alt="HMC volunteer" className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-zinc-900 object-cover" />
                       ))}
                    </div>
-                   <div className="text-left pr-1 md:pr-2">
-                      <p className="text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-zinc-900">1,000+ Volunteers</p>
-                      <p className="text-[8px] md:text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Join our Community</p>
+                   <div className="text-left pr-2 md:pr-3">
+                      <p className="text-[11px] md:text-[13px] font-bold text-white leading-tight">1,000+ Volunteers</p>
+                      <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Serving Los Angeles</p>
                    </div>
                 </div>
              </div>
