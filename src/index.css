@@ -64,13 +64,13 @@ input:-webkit-autofill:active {
 
 /* Selection Color */
 ::selection {
-  background-color: var(--color-brand);
-  color: white;
+  background-color: #233DFF;
+  color: #ffffff;
 }
 
 ::-moz-selection {
-  background-color: var(--color-brand);
-  color: white;
+  background-color: #233DFF;
+  color: #ffffff;
 }
 
 /* Code Blocks */

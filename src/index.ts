@@ -13289,6 +13289,47 @@ app.post('/api/org-calendar', verifyToken, async (req: Request, res: Response) =
     };
     const ref = await db.collection('org_calendar_events').add(eventData);
     res.json({ id: ref.id, sourceCollection: 'org_calendar_events', ...eventData });
+
+    // Fire-and-forget: email relevant volunteers about new calendar event
+    if (EMAIL_SERVICE_URL) {
+      setImmediate(async () => {
+        try {
+          const volSnap = await db.collection('volunteers').where('status', '==', 'active').get();
+          const targetVols = volSnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter((v: any) => {
+            if (!v.email) return false;
+            if (v.notificationPrefs?.emailAlerts === false) return false;
+            if (!visibleTo || visibleTo.length === 0) return true;
+            return visibleTo.includes(v.role) || visibleTo.includes(v.volunteerRole);
+          });
+          const dateFormatted = date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : date;
+          const subject = `📅 New Event Added: ${title}`;
+          for (const vol of targetVols) {
+            const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111">
+              <div style="background:#233DFF;padding:20px 24px;border-radius:12px 12px 0 0">
+                <p style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 4px">Health Matters Clinic · Calendar</p>
+                <h1 style="color:white;margin:0;font-size:18px">${title}</h1>
+              </div>
+              <div style="background:#f9f9f9;padding:24px;border-radius:0 0 12px 12px;border:1px solid #eee;border-top:none">
+                <p style="color:#555;font-size:13px;margin:0 0 16px">Hi ${vol.preferredFirstName || vol.name?.split(' ')[0] || 'Team'},</p>
+                <p style="color:#555;font-size:13px;margin:0 0 20px">A new event has been added to the HMC team calendar.</p>
+                <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin-bottom:16px">
+                  <p style="font-size:16px;font-weight:800;color:#111;margin:0 0 10px">${title}</p>
+                  ${dateFormatted ? `<p style="font-size:13px;color:#555;margin:0 0 4px">📅 ${dateFormatted}${startTime ? ` · ${startTime}` : ''}${endTime ? `–${endTime}` : ''}</p>` : ''}
+                  ${location ? `<p style="font-size:13px;color:#555;margin:0 0 4px">📍 ${location}</p>` : ''}
+                  ${meetLink ? `<p style="font-size:13px;color:#555;margin:0 0 4px">🔗 <a href="${meetLink}" style="color:#233DFF">Join Meeting</a></p>` : ''}
+                  ${description ? `<p style="font-size:13px;color:#6b7280;margin:8px 0 0">${description}</p>` : ''}
+                </div>
+                <a href="https://volunteer.healthmatters.clinic" style="display:inline-block;background:#233DFF;color:white;padding:12px 24px;border-radius:24px;text-decoration:none;font-weight:600;font-size:13px">View Calendar →</a>
+              </div>
+            </div>`;
+            await fetch(EMAIL_SERVICE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'prerendered', toEmail: vol.email, subject, html, text: `New event: ${title} on ${dateFormatted}${startTime ? ' at ' + startTime : ''}${location ? ' · ' + location : ''}` }), redirect: 'follow' }).catch(() => {});
+          }
+          console.log(`[CALENDAR] Notified ${targetVols.length} volunteers about: ${title}`);
+        } catch (err: any) {
+          console.error('[CALENDAR-NOTIFY]', err.message);
+        }
+      });
+    }
   } catch (e: any) {
     console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' });
   }
@@ -14202,6 +14243,49 @@ app.delete('/api/projects/:projectId/tasks/:taskId', verifyToken, async (req: Re
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/projects/:projectId/tasks/:taskId/email-vendor — Send task details to external vendor
+app.post('/api/projects/:projectId/tasks/:taskId/email-vendor', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { toEmail, message, taskTitle, taskDescription, projectTitle, senderName } = req.body;
+    if (!toEmail || !taskTitle) return res.status(400).json({ error: 'toEmail and taskTitle required' });
+    if (!EMAIL_SERVICE_URL) return res.status(503).json({ error: 'Email service not configured' });
+
+    const subject = `HMC Task: ${taskTitle}`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111">
+        <div style="background:#233DFF;padding:24px;border-radius:12px 12px 0 0">
+          <p style="color:white;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 4px">Health Matters Clinic</p>
+          <h1 style="color:white;margin:0;font-size:20px">Task Assignment</h1>
+        </div>
+        <div style="background:#f9f9f9;padding:24px;border-radius:0 0 12px 12px;border:1px solid #eee;border-top:none">
+          <p style="color:#555;font-size:13px;margin:0 0 16px">Hi,</p>
+          <p style="color:#555;font-size:13px;margin:0 0 20px"><strong>${senderName || 'Health Matters Clinic'}</strong> has shared a task with you from the <strong>${projectTitle || 'HMC'}</strong> project.</p>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:20px">
+            <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#9ca3af;margin:0 0 6px">Task</p>
+            <p style="font-size:17px;font-weight:800;color:#111;margin:0 0 12px">${taskTitle}</p>
+            ${taskDescription ? `<p style="font-size:13px;color:#555;margin:0">${taskDescription}</p>` : ''}
+          </div>
+          ${message ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px;margin-bottom:20px"><p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#3b82f6;margin:0 0 6px">Message from ${senderName || 'HMC'}</p><p style="font-size:13px;color:#1e40af;margin:0">${message}</p></div>` : ''}
+          <p style="font-size:12px;color:#9ca3af;margin:24px 0 0;border-top:1px solid #f3f4f6;padding-top:16px">Please reply directly to this email with any questions or updates. — Health Matters Clinic</p>
+        </div>
+      </div>`;
+
+    const emailBody = JSON.stringify({ type: 'prerendered', toEmail, subject, html, text: `HMC Task: ${taskTitle}\n\n${taskDescription || ''}\n\n${message ? `Message: ${message}` : ''}` });
+    let response = await fetch(EMAIL_SERVICE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: emailBody, redirect: 'manual' });
+    if (response.status === 301 || response.status === 302) {
+      const loc = response.headers.get('location');
+      if (loc) response = await fetch(loc, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: emailBody, redirect: 'follow' });
+    }
+    const result = await response.json() as { success?: boolean; error?: string };
+    if (result.success) return res.json({ success: true });
+    res.status(500).json({ error: result.error || 'Email failed' });
+  } catch (e: any) {
+    console.error('[EMAIL-VENDOR]', e.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

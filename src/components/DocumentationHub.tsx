@@ -187,23 +187,98 @@ const ArticleModal: React.FC<{
     onEdit: (article: KnowledgeBaseArticle) => void;
     onDelete: (articleId: string) => void;
 }> = ({ article, onClose, canEdit, onEdit, onDelete }) => {
-    // SECURITY: Escape HTML to prevent XSS, then apply safe formatting
-    const escapeHtml = (text: string) => {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    };
-
     const renderContent = (content: string) => {
-        // First escape all HTML, then apply safe markdown-like formatting
-        const escaped = escapeHtml(content);
-        return escaped
-            .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-6 mb-2">$1</h2>')
-            .replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold mt-4 mb-2">$1</h3>')
-            .replace(/\n/g, '<br />');
+        const escapeHtmlInner = (t: string) => t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        const applyInline = (t: string) => t
+            .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/`(.+?)`/g, '<code class="bg-zinc-100 px-1.5 py-0.5 rounded text-xs font-mono text-zinc-800">$1</code>')
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-brand underline font-medium">$1</a>');
+
+        const lines = content.split('\n');
+        let html = '';
+        let tableRows: string[] = [];
+        let listItems: string[] = [];
+        let listType: 'ul' | 'ol' | null = null;
+
+        const isTableSep = (r: string) => r.replace(/[\s|:\-]/g, '') === '';
+
+        const flushTable = () => {
+            if (!tableRows.length) return;
+            const dataRows = tableRows.filter(r => !isTableSep(r));
+            if (dataRows.length < 1) { tableRows = []; return; }
+            const parseRow = (r: string) => r.split('|').slice(1, -1).map(c => escapeHtmlInner(c.trim()));
+            const headers = parseRow(dataRows[0]).map(c => `<th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide bg-zinc-50 border-b border-zinc-200">${applyInline(c)}</th>`).join('');
+            const body = dataRows.slice(1).map(r => {
+                const cells = parseRow(r).map(c => `<td class="px-3 py-2 text-sm text-zinc-700 border-b border-zinc-100">${applyInline(c)}</td>`).join('');
+                return `<tr class="hover:bg-zinc-50/60">${cells}</tr>`;
+            }).join('');
+            html += `<div class="overflow-x-auto my-4 rounded-xl border border-zinc-200"><table class="w-full border-collapse text-left"><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table></div>`;
+            tableRows = [];
+        };
+
+        const flushList = () => {
+            if (!listItems.length) return;
+            const tag = listType === 'ol' ? 'ol' : 'ul';
+            const cls = listType === 'ol' ? 'list-decimal' : 'list-disc';
+            html += `<${tag} class="${cls} pl-5 space-y-1 my-3 text-sm text-zinc-700">${listItems.map(i => `<li>${i}</li>`).join('')}</${tag}>`;
+            listItems = [];
+            listType = null;
+        };
+
+        for (const rawLine of lines) {
+            const line = rawLine.trimEnd();
+            const trimmed = line.trim();
+
+            // Table
+            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                if (listType) flushList();
+                tableRows.push(trimmed);
+                continue;
+            } else if (tableRows.length) {
+                flushTable();
+            }
+
+            // Unordered list
+            if (/^[-*+] /.test(trimmed)) {
+                if (listType === 'ol') flushList();
+                listType = 'ul';
+                listItems.push(applyInline(escapeHtmlInner(trimmed.replace(/^[-*+] /, ''))));
+                continue;
+            }
+            // Ordered list
+            if (/^\d+[.)]\s/.test(trimmed)) {
+                if (listType === 'ul') flushList();
+                listType = 'ol';
+                listItems.push(applyInline(escapeHtmlInner(trimmed.replace(/^\d+[.)]\s/, ''))));
+                continue;
+            }
+            if (listType) flushList();
+
+            // Headings
+            if (/^#### /.test(trimmed)) {
+                html += `<h4 class="text-base font-bold mt-3 mb-1 text-zinc-800">${applyInline(escapeHtmlInner(trimmed.slice(5)))}</h4>`;
+            } else if (/^### /.test(trimmed)) {
+                html += `<h3 class="text-lg font-bold mt-5 mb-2 text-zinc-900">${applyInline(escapeHtmlInner(trimmed.slice(4)))}</h3>`;
+            } else if (/^## /.test(trimmed)) {
+                html += `<h2 class="text-xl font-black mt-6 mb-2 text-zinc-900">${applyInline(escapeHtmlInner(trimmed.slice(3)))}</h2>`;
+            } else if (/^# /.test(trimmed)) {
+                html += `<h1 class="text-2xl font-black mt-6 mb-3 text-zinc-900">${applyInline(escapeHtmlInner(trimmed.slice(2)))}</h1>`;
+            } else if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
+                html += '<hr class="my-5 border-zinc-200" />';
+            } else if (trimmed === '') {
+                html += '<div class="h-2"></div>';
+            } else {
+                html += `<p class="text-sm text-zinc-700 leading-relaxed mb-2">${applyInline(escapeHtmlInner(trimmed))}</p>`;
+            }
+        }
+
+        // Flush any remaining
+        if (tableRows.length) flushTable();
+        if (listType) flushList();
+
+        return html;
     };
 
     return (
