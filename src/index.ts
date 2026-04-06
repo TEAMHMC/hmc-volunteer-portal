@@ -5192,6 +5192,14 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
         }
 
+        // Notify rsvp@healthmatters.clinic for all public event RSVPs
+        EmailService.send('broadcast', {
+            toEmail: 'rsvp@healthmatters.clinic',
+            volunteerName: 'Team',
+            title: `New RSVP: ${eventTitle || eventId}`,
+            content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
+        }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
+
         // Send SMS confirmation if phone provided and opt-in given
         const smsOptIn = req.body.smsOptIn;
         if (phone && (smsOptIn || contactPreference === 'text' || contactPreference === 'sms')) {
