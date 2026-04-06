@@ -15022,6 +15022,11 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
   }
 });
 
+// --- PUBLIC TOUR PAGE (no auth required) ---
+app.get('/tour', (req: Request, res: Response) => {
+  res.sendFile(path.join(buildPath, 'tour.html'));
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {
