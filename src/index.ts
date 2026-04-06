@@ -328,68 +328,6 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// --- ADMIN HEALTH CHECK ENDPOINT (auth + admin required) ---
-app.get('/api/health', verifyToken, requireAdmin, async (req: Request, res: Response) => {
-  try {
-    // Check Firestore connectivity
-    let firestoreStatus = 'ok';
-    try {
-      await db.collection('_healthcheck').doc('ping').set({ ts: new Date() });
-      firestoreStatus = 'ok';
-    } catch (e) {
-      firestoreStatus = 'degraded';
-    }
-
-    // Count active users in the last 24h (volunteers who pinged presence recently)
-    let activeUsersLast24h = 0;
-    try {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const snap = await db.collection('volunteers')
-        .where('lastActiveAt', '>=', since.toISOString())
-        .count()
-        .get();
-      activeUsersLast24h = snap.data().count;
-    } catch (e) {
-      activeUsersLast24h = -1; // -1 signals unavailable
-    }
-
-    // Count failed login attempts in last 24h (stored in audit_logs)
-    let failedLoginAttempts = 0;
-    try {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const snap = await db.collection('audit_logs')
-        .where('actionType', '==', 'login_failed')
-        .where('timestamp', '>=', since.toISOString())
-        .count()
-        .get();
-      failedLoginAttempts = snap.data().count;
-    } catch (e) {
-      failedLoginAttempts = -1; // -1 signals unavailable
-    }
-
-    const allOk = firestoreStatus === 'ok';
-
-    res.json({
-      status: allOk ? 'ok' : 'degraded',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      services: {
-        firestore: firestoreStatus,
-        storage: bucket ? 'ok' : 'not_configured',
-        twilio: TWILIO_ACCOUNT_SID ? 'configured' : 'not_configured',
-        gemini: process.env.GEMINI_API_KEY ? 'configured' : 'not_configured',
-      },
-      metrics: {
-        activeUsersLast24h,
-        failedLoginAttemptsLast24h: failedLoginAttempts,
-      },
-      logs: 'Available in Firebase Console → Firestore → audit_logs collection',
-    });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-});
-
 // --- GEMINI TEST ENDPOINT — moved after middleware definitions, see below ---
 
 // --- ANALYTICS ENDPOINT — moved after middleware definitions, see below ---
@@ -2042,6 +1980,55 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
         return res.status(403).json({ error: 'Unauthorized: Invalid or expired token.' });
     }
 };
+
+// --- ADMIN HEALTH CHECK ENDPOINT (placed after verifyToken + requireAdmin definitions) ---
+app.get('/api/health', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    let firestoreStatus = 'ok';
+    try {
+      await db.collection('_healthcheck').doc('ping').set({ ts: new Date() });
+    } catch (e) {
+      firestoreStatus = 'degraded';
+    }
+
+    let activeUsersLast24h = 0;
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const snap = await db.collection('volunteers')
+        .where('lastActiveAt', '>=', since.toISOString())
+        .count().get();
+      activeUsersLast24h = snap.data().count;
+    } catch (e) { activeUsersLast24h = -1; }
+
+    let failedLoginAttempts = 0;
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const snap = await db.collection('audit_logs')
+        .where('actionType', '==', 'login_failed')
+        .where('timestamp', '>=', since.toISOString())
+        .count().get();
+      failedLoginAttempts = snap.data().count;
+    } catch (e) { failedLoginAttempts = -1; }
+
+    res.json({
+      status: firestoreStatus === 'ok' ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      services: {
+        firestore: firestoreStatus,
+        storage: bucket ? 'ok' : 'not_configured',
+        twilio: TWILIO_ACCOUNT_SID ? 'configured' : 'not_configured',
+        gemini: process.env.GEMINI_API_KEY ? 'configured' : 'not_configured',
+      },
+      metrics: {
+        activeUsersLast24h,
+        failedLoginAttemptsLast24h: failedLoginAttempts,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
 
 // --- GEMINI TEST ENDPOINT (admin-only, placed after verifyToken definition) ---
 app.get('/api/gemini/test', verifyToken, requireAdmin, async (req: Request, res: Response) => {
