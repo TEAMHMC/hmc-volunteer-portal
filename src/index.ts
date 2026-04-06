@@ -15201,8 +15201,9 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
 
 // --- PUBLIC TOUR PAGE (no auth required) ---
 app.get('/tour', (req: Request, res: Response) => {
-  // Allow healthmatters.clinic to embed this page in an iframe
-  res.setHeader('X-Frame-Options', 'ALLOW-FROM https://www.healthmatters.clinic');
+  // Remove helmet's X-Frame-Options (SAMEORIGIN blocks all iframe embeds incl. Firefox)
+  // and use CSP frame-ancestors instead — supported by all modern browsers
+  res.removeHeader('X-Frame-Options');
   res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://www.healthmatters.clinic https://healthmatters.clinic");
   res.sendFile(path.join(buildPath, 'tour.html'));
 });
