@@ -81,8 +81,11 @@ export interface ProjectTask {
   assigneeName?: string;
   createdBy: string;
   createdAt: string;
+  startDate?: string;
   dueDate?: string;
   completedAt?: string;
+  phase?: string;
+  notes?: string;
   milestoneId?: string;
   labels?: string[];
 }
