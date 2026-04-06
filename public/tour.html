@@ -83,24 +83,29 @@ section{padding:96px 48px}
 
 /* ── CHAMPION SECTION ── */
 .champion{background:#0f0f0f;color:#fff}
-.champion-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;margin-top:56px}
-.champion-title{font-size:clamp(32px,4vw,52px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin-bottom:20px}
+.champion-intro{max-width:680px;margin:0 auto 56px;text-align:center}
+.champion-title{font-size:clamp(32px,4vw,56px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin-bottom:20px}
 .champion-title .blue{color:#233dff}
-.champion-body{font-size:17px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:24px}
+.champion-body{font-size:17px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:0}
 .champion-body strong{color:#fff;font-weight:600}
-.champion-perks{display:flex;flex-direction:column;gap:12px;margin-bottom:36px}
-.perk{display:flex;align-items:flex-start;gap:14px;font-size:15px;color:rgba(255,255,255,.65);line-height:1.5}
-.perk-dot{width:8px;height:8px;border-radius:50%;background:#233dff;flex-shrink:0;margin-top:6px}
-.perk strong{color:#fff;font-weight:600}
-.champion-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px;position:relative;overflow:hidden}
-.champion-card::before{content:'HMC CHAMPION';position:absolute;bottom:-10px;right:-10px;font-size:72px;font-weight:900;color:rgba(35,61,255,.06);letter-spacing:-.04em;pointer-events:none;line-height:1}
-.champion-badge-title{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:20px}
-.champion-access{display:flex;flex-direction:column;gap:10px}
-.access-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;font-size:15px;color:rgba(255,255,255,.7);font-weight:500}
-.access-check{width:18px;height:18px;border-radius:50%;background:#233dff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.access-check svg{width:10px;height:10px;color:#fff}
-.access-item.locked{opacity:.35}
-.access-lock{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.champion-benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:48px}
+.benefit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px 24px}
+.benefit-icon{font-size:28px;margin-bottom:14px;line-height:1}
+.benefit-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-.01em}
+.benefit-desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.65}
+.benefit-desc strong{color:rgba(255,255,255,.8);font-weight:600}
+.champion-link-demo{background:rgba(35,61,255,.1);border:1px solid rgba(35,61,255,.25);border-radius:20px;padding:32px 36px;margin-bottom:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.link-demo-left{}
+.link-demo-label{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:12px}
+.link-demo-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:10px;letter-spacing:-.02em}
+.link-demo-desc{font-size:15px;color:rgba(255,255,255,.5);line-height:1.6}
+.link-demo-right{display:flex;flex-direction:column;gap:12px}
+.link-step{display:flex;align-items:flex-start;gap:14px}
+.link-step-num{width:28px;height:28px;border-radius:50%;background:#233dff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.link-step-text{font-size:14px;color:rgba(255,255,255,.6);line-height:1.5;padding-top:4px}
+.link-step-text strong{color:#fff}
+.champion-bottom{text-align:center}
+.champion-capacity{display:inline-block;font-size:14px;color:rgba(255,255,255,.4);margin-top:16px;line-height:1.55}
 
 /* ── EVENTS ── */
 .events{background:#f5f3ef}
@@ -139,7 +144,8 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
   .hero{padding:80px 24px 64px}
   section{padding:72px 24px}
   .features-grid{grid-template-columns:1fr}
-  .champion-grid{grid-template-columns:1fr;gap:48px}
+  .champion-benefits{grid-template-columns:1fr}
+  .champion-link-demo{grid-template-columns:1fr;gap:28px}
   .events-grid{grid-template-columns:1fr}
   .footer-grid{grid-template-columns:1fr;gap:32px}
   .footer-bottom{flex-direction:column;align-items:flex-start}
@@ -301,32 +307,91 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
 <!-- HMC CHAMPION -->
 <section class="champion" aria-labelledby="champion-heading">
   <div class="container">
-    <div class="champion-grid">
-      <div>
-        <p class="section-label">Not Ready to Commit?</p>
-        <h2 class="champion-title" id="champion-heading">Become an<br><span class="blue">HMC Champion.</span></h2>
-        <p class="champion-body">You don't have to be a full volunteer to make a difference. The <strong>HMC Champion</strong> role is for community members who want to do outreach, share resources, and stay connected to HMC's mission — without a full volunteer commitment.</p>
-        <p class="champion-body">Anyone who creates an account gets Champion access immediately. If you later want to become a full volunteer, you can apply directly from the portal.</p>
-        <div class="champion-perks" role="list">
-          <div class="perk" role="listitem"><span class="perk-dot" aria-hidden="true"></span><span>Access the <strong>Resource Hub</strong> — browse 1,000+ free and low-cost LA County services</span></div>
-          <div class="perk" role="listitem"><span class="perk-dot" aria-hidden="true"></span><span>Use the <strong>Referral Hub</strong> to connect neighbors and family to services they need</span></div>
-          <div class="perk" role="listitem"><span class="perk-dot" aria-hidden="true"></span><span>Browse <strong>upcoming events</strong> and register to attend</span></div>
-          <div class="perk" role="listitem"><span class="perk-dot" aria-hidden="true"></span><span>Share your personal <strong>referral link</strong> to grow the HMC network</span></div>
+
+    <div class="champion-intro">
+      <p class="section-label">HMC Champion</p>
+      <h2 class="champion-title" id="champion-heading">Support the mission.<br>Earn rewards. <span class="blue">Make an impact.</span></h2>
+      <p class="champion-body">The <strong>HMC Champion</strong> role is for community members who want to show up for LA — sharing resources, attending events, and connecting people to the services they need. Champions earn points, unlock rewards, and are the backbone of HMC's community outreach.</p>
+    </div>
+
+    <!-- Benefit cards -->
+    <div class="champion-benefits" role="list">
+      <div class="benefit-card" role="listitem">
+        <div class="benefit-icon" aria-hidden="true" style="font-size:32px;margin-bottom:16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#233dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
         </div>
-        <a href="https://volunteer.healthmatters.clinic" class="btn-primary">Claim Your Champion Access</a>
+        <h3 class="benefit-title">Earn XP and Level Up</h3>
+        <p class="benefit-desc">Every action earns you XP — sharing a resource, attending an event, making a referral. <strong>Level up from Champion to higher tiers</strong> and unlock more recognition along the way.</p>
       </div>
-      <div class="champion-card" role="presentation">
-        <p class="champion-badge-title">Champion Access Includes</p>
-        <div class="champion-access">
-          <div class="access-item"><span class="access-check" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Resource Hub (1,000+ services)</div>
-          <div class="access-item"><span class="access-check" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Referral Hub</div>
-          <div class="access-item"><span class="access-check" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Events Calendar</div>
-          <div class="access-item"><span class="access-check" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Personal Referral Link</div>
-          <div class="access-item locked" aria-label="Requires full volunteer status"><span class="access-lock" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="8" height="6" rx="1"/><path d="M4 5V3.5a2 2 0 0 1 4 0V5"/></svg></span>Training Academy</div>
-          <div class="access-item locked" aria-label="Requires full volunteer status"><span class="access-lock" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="8" height="6" rx="1"/><path d="M4 5V3.5a2 2 0 0 1 4 0V5"/></svg></span>Hours Tracking and Shifts</div>
+      <div class="benefit-card" role="listitem">
+        <div class="benefit-icon" aria-hidden="true" style="margin-bottom:16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#233dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3 class="benefit-title">Your Personal Referral Link</h3>
+        <p class="benefit-desc">Get a unique HMC link to share anywhere. <strong>Every person who joins through your link</strong> counts toward your impact score and earns you bonus points and recognition.</p>
+      </div>
+      <div class="benefit-card" role="listitem">
+        <div class="benefit-icon" aria-hidden="true" style="margin-bottom:16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#233dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <h3 class="benefit-title">Prizes and Merch</h3>
+        <p class="benefit-desc">Top Champions are recognized with <strong>HMC merch, event prizes, and early access</strong> to HMC experiences — including Take Action LA events and future programs.</p>
+      </div>
+      <div class="benefit-card" role="listitem">
+        <div class="benefit-icon" aria-hidden="true" style="margin-bottom:16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#233dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="benefit-title">Resource and Referral Hub</h3>
+        <p class="benefit-desc">Browse <strong>1,000+ free LA County services</strong> and connect people directly to mental health, housing, food, and more — right from your phone.</p>
+      </div>
+      <div class="benefit-card" role="listitem">
+        <div class="benefit-icon" aria-hidden="true" style="margin-bottom:16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#233dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h3 class="benefit-title">Community Events Access</h3>
+        <p class="benefit-desc">Register for all HMC events — including the <strong>May Take Action LA series</strong> — directly through the portal. Champions always have a seat at the table.</p>
+      </div>
+      <div class="benefit-card" role="listitem">
+        <div class="benefit-icon" aria-hidden="true" style="margin-bottom:16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#233dff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3 class="benefit-title">Track Your Community Impact</h3>
+        <p class="benefit-desc">Your dashboard shows your referrals made, events attended, and resources shared. <strong>Your impact is visible, counted, and celebrated</strong> — every action matters.</p>
+      </div>
+    </div>
+
+    <!-- How your referral link works -->
+    <div class="champion-link-demo" role="region" aria-label="How your referral link works">
+      <div class="link-demo-left">
+        <p class="link-demo-label">How It Works</p>
+        <h3 class="link-demo-title">Your link. Your community. Your impact.</h3>
+        <p class="link-demo-desc">When you create your account, you get a unique Champion link — something like <strong style="color:#fff;">volunteer.healthmatters.clinic?ref=yourname</strong>. Share it anywhere: Instagram, text, in person. Every person who joins through your link is credited to you.</p>
+      </div>
+      <div class="link-demo-right" role="list">
+        <div class="link-step" role="listitem">
+          <div class="link-step-num" aria-hidden="true">1</div>
+          <p class="link-step-text">Create your account and get your <strong>personal referral link</strong></p>
+        </div>
+        <div class="link-step" role="listitem">
+          <div class="link-step-num" aria-hidden="true">2</div>
+          <p class="link-step-text">Share it — in person, on social, or by text — with anyone who could benefit from HMC resources</p>
+        </div>
+        <div class="link-step" role="listitem">
+          <div class="link-step-num" aria-hidden="true">3</div>
+          <p class="link-step-text"><strong>Earn XP and recognition</strong> each time someone joins through your link</p>
+        </div>
+        <div class="link-step" role="listitem">
+          <div class="link-step-num" aria-hidden="true">4</div>
+          <p class="link-step-text">Top referrers are highlighted as <strong>Community Leaders</strong> and get early access to prizes and events</p>
         </div>
       </div>
     </div>
+
+    <div class="champion-bottom">
+      <a href="https://volunteer.healthmatters.clinic" class="btn-primary" style="font-size:16px;padding:18px 44px;">Become an HMC Champion</a>
+      <p class="champion-capacity">Already part of our community? <a href="https://volunteer.healthmatters.clinic" style="color:rgba(255,255,255,.6);text-decoration:underline;text-underline-offset:3px;">Sign in to your portal.</a><br>Interested in a full volunteer role? Spots open periodically — apply through the portal and we'll reach out when space becomes available.</p>
+    </div>
+
   </div>
 </section>
 
