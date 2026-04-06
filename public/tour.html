@@ -47,6 +47,14 @@ nav{position:sticky;top:0;z-index:100;background:rgba(253,254,254,.92);backdrop-
 .btn-secondary{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#111;border:1px solid #0f0f0f;border-radius:100px;padding:16px 36px;font-size:15px;font-weight:700;letter-spacing:.02em;transition:background .2s,transform .2s}
 .btn-secondary::before{content:'';width:7px;height:7px;border-radius:50%;background:#111;flex-shrink:0}
 .btn-secondary:hover{background:#f0f0f0;transform:translateY(-1px)}
+/* ── AVATAR STACK ── */
+.avatar-stack{display:inline-flex;align-items:center;gap:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:100px;padding:8px 20px 8px 8px;margin-top:32px}
+.avatar-stack-faces{display:flex;align-items:center}
+.avatar-face{width:36px;height:36px;border-radius:50%;border:2px solid #0f0f0f;object-fit:cover;margin-left:-10px;flex-shrink:0;background:#233dff}
+.avatar-face:first-child{margin-left:0}
+.avatar-stack-text{}
+.avatar-stack-count{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1.2}
+.avatar-stack-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
 .hero-stats{display:flex;align-items:center;justify-content:center;gap:48px;margin-top:60px;padding-top:48px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
 .stat-num{font-size:40px;font-weight:900;letter-spacing:-.03em;color:#fff}
 .stat-num span{color:#233dff}
@@ -271,9 +279,22 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
     <a href="https://volunteer.healthmatters.clinic" class="btn-primary">Create Your Account</a>
     <a href="#how-it-works" class="btn-secondary">See How It Works</a>
   </div>
+  <div class="avatar-stack" role="img" aria-label="1,000+ volunteers have joined the HMC community">
+    <div class="avatar-stack-faces" aria-hidden="true">
+      <img class="avatar-face" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa961f15351ec1bc5243e_P1100963.jpeg" alt="HMC volunteer" width="36" height="36">
+      <img class="avatar-face" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9a26489edb0895bc219_Website_Kerry.jpeg" alt="HMC volunteer" width="36" height="36">
+      <img class="avatar-face" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9607ca39931abff9f95_Profile%20Image.jpeg" alt="HMC volunteer" width="36" height="36">
+      <img class="avatar-face" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg" alt="HMC volunteer" width="36" height="36">
+      <img class="avatar-face" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa7619fae2db0b4ec877e_headshot%20(1).jpg" alt="HMC volunteer" width="36" height="36">
+    </div>
+    <div class="avatar-stack-text">
+      <div class="avatar-stack-count">1,000+ Volunteers</div>
+      <div class="avatar-stack-label">Join our community</div>
+    </div>
+  </div>
   <div class="hero-stats" role="list">
     <div role="listitem">
-      <div class="stat-num">800<span>+</span></div>
+      <div class="stat-num">1k<span>+</span></div>
       <div class="stat-label">Community Members</div>
     </div>
     <div role="listitem">
