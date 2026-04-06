@@ -37,7 +37,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(253,254,254,.92);backdrop-
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(35,61,255,.25),transparent);pointer-events:none}
 .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(35,61,255,.15);border:1px solid rgba(35,61,255,.3);border-radius:100px;padding:8px 16px;margin-bottom:28px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.7)}
 .hero-badge-dot{width:6px;height:6px;border-radius:50%;background:#233dff}
-.hero-title{font-size:clamp(40px,6vw,80px);font-weight:900;line-height:.95;letter-spacing:-.03em;max-width:900px;margin:0 auto 24px}
+.hero-title{font-size:clamp(52px,7.5vw,104px);font-weight:900;line-height:.9;letter-spacing:-.04em;max-width:1000px;margin:0 auto 28px}
 .hero-title .blue{color:#233dff}
 .hero-sub{font-size:clamp(17px,2vw,20px);color:rgba(255,255,255,.55);max-width:600px;margin:0 auto 44px;line-height:1.65}
 .hero-actions{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
@@ -200,6 +200,100 @@ section{padding:96px 48px}
 .feature-title{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
 .feature-desc{font-size:15px;color:#666;line-height:1.6}
 .feature-chip{display:inline-block;margin-top:14px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:#f0f4ff;color:#233dff;padding:5px 12px;border-radius:100px}
+
+/* ── FEATURE SPOTLIGHTS ── */
+.spotlight{padding:120px 48px;background:#fff;overflow:hidden}
+.spotlight.dark{background:#0f0f0f;color:#fff}
+.spotlight.tint{background:#f8f8fc}
+.spotlight-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.spotlight-inner.flip{direction:rtl}
+.spotlight-inner.flip > *{direction:ltr}
+.spotlight-copy{}
+.spotlight-eyebrow{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#233dff;margin-bottom:20px}
+.dark .spotlight-eyebrow{color:#7b93ff}
+.spotlight-headline{font-size:clamp(36px,4vw,56px);font-weight:900;letter-spacing:-.04em;line-height:.95;margin-bottom:24px}
+.dark .spotlight-headline{color:#fff}
+.spotlight-body{font-size:17px;color:#555;line-height:1.75;margin-bottom:32px}
+.dark .spotlight-body{color:rgba(255,255,255,.55)}
+.spotlight-features{display:flex;flex-direction:column;gap:14px;margin-bottom:36px}
+.spotlight-feat{display:flex;align-items:flex-start;gap:12px}
+.spotlight-feat-dot{width:20px;height:20px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.dark .spotlight-feat-dot{background:rgba(35,61,255,.2)}
+.spotlight-feat-dot svg{width:10px;height:10px;stroke:#233dff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.spotlight-feat-text{font-size:15px;color:#333;line-height:1.5;font-weight:500}
+.dark .spotlight-feat-text{color:rgba(255,255,255,.7)}
+.spotlight-feat-text strong{color:#111;font-weight:700}
+.dark .spotlight-feat-text strong{color:#fff}
+.spotlight-link{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#233dff;letter-spacing:.01em}
+.dark .spotlight-link{color:#7b93ff}
+.spotlight-link::after{content:'→';transition:transform .2s}
+.spotlight-link:hover::after{transform:translateX(4px)}
+/* mockup panels */
+.spotlight-mockup{position:relative}
+.mockup-window{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,.08);box-shadow:0 32px 80px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.04);overflow:hidden}
+.dark .mockup-window{background:#1c1c1e;border-color:rgba(255,255,255,.1);box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 60px rgba(35,61,255,.1)}
+.mockup-titlebar{background:#f5f5f5;padding:10px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #eee}
+.dark .mockup-titlebar{background:#2a2a2c;border-bottom-color:rgba(255,255,255,.06)}
+.mockup-dot{width:9px;height:9px;border-radius:50%}
+.mockup-body{padding:20px}
+/* training mockup */
+.tm-header{font-size:11px;font-weight:800;color:#111;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;display:flex;justify-content:space-between}
+.tm-tier{font-size:9px;color:#aaa;font-weight:600}
+.tm-module{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:6px}
+.tm-module.done{background:#f0fdf4}
+.tm-module.active{background:#eff6ff;border:1px solid #dbeafe}
+.tm-module.locked{background:#fafafa;border:1px solid #f0f0f0}
+.tm-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tm-icon.done{background:#dcfce7}
+.tm-icon.active{background:#dbeafe}
+.tm-icon.locked{background:#f0f0f0}
+.tm-icon svg{width:14px;height:14px;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.tm-icon.done svg{stroke:#16a34a}
+.tm-icon.active svg{stroke:#2563eb}
+.tm-icon.locked svg{stroke:#ccc}
+.tm-info{flex:1}
+.tm-name{font-size:11px;font-weight:700;color:#111;line-height:1.3}
+.tm-module.locked .tm-name{color:#bbb}
+.tm-sub{font-size:9px;color:#aaa;font-weight:500;margin-top:1px}
+.tm-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px}
+.tm-badge.done{background:#dcfce7;color:#16a34a}
+.tm-badge.active{background:#dbeafe;color:#2563eb}
+.tm-badge.locked{background:#f0f0f0;color:#bbb}
+.tm-progress{margin-top:16px}
+.tm-progress-label{display:flex;justify-content:space-between;font-size:9px;font-weight:700;color:#aaa;margin-bottom:6px}
+.tm-bar-wrap{height:6px;background:#f0f0f0;border-radius:100px;overflow:hidden}
+.tm-bar{height:100%;background:linear-gradient(90deg,#233dff,#7b93ff);border-radius:100px;width:68%}
+/* comms mockup */
+.cm-msg{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.cm-msg:last-child{border-bottom:none}
+.cm-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.cm-bubble{flex:1}
+.cm-name{font-size:10px;font-weight:800;color:#111;margin-bottom:3px;display:flex;align-items:center;justify-content:space-between}
+.cm-time{font-size:8.5px;font-weight:500;color:#bbb}
+.cm-text{font-size:11px;color:#555;line-height:1.5}
+.cm-unread{width:7px;height:7px;border-radius:50%;background:#233dff;flex-shrink:0;margin-top:4px}
+/* referral mockup */
+.rm-search{background:#f5f5f7;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.rm-search svg{width:12px;height:12px;stroke:#ccc;stroke-width:2;fill:none;flex-shrink:0}
+.rm-card{background:#fff;border:1px solid #f0f0f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.rm-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.rm-info{flex:1}
+.rm-title{font-size:11px;font-weight:700;color:#111;line-height:1.3}
+.rm-sub{font-size:9px;color:#aaa;font-weight:500;margin-top:2px}
+.rm-chip{font-size:8px;font-weight:700;padding:2px 7px;border-radius:100px;background:#f0f4ff;color:#233dff}
+/* mockup float accents */
+.mockup-accent{position:absolute;background:#fff;border-radius:12px;padding:8px 12px;box-shadow:0 8px 24px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;z-index:5}
+.ma-1{bottom:-20px;right:-20px;animation:floatB 4s ease-in-out infinite}
+.ma-2{top:-16px;left:-16px;animation:floatA 5s ease-in-out infinite 1s}
+.ma-icon{font-size:18px}
+.ma-text{font-size:10px;font-weight:800;color:#111;line-height:1.2}
+.ma-sub{font-size:8.5px;color:#888;font-weight:500}
+@media(max-width:900px){
+  .spotlight{padding:80px 24px}
+  .spotlight-inner{grid-template-columns:1fr;gap:48px}
+  .spotlight-inner.flip{direction:ltr}
+  .spotlight-headline{font-size:clamp(32px,7vw,48px)}
+}
 
 /* ── HOW IT WORKS ── */
 .steps{background:#fff}
@@ -597,6 +691,94 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
         <span class="feature-chip">Built-In Wellness</span>
       </article>
 
+    </div>
+  </div>
+</section>
+
+<!-- SPOTLIGHT 1: TRAINING -->
+<section class="spotlight tint" aria-labelledby="spot1-heading">
+  <div class="spotlight-inner container" data-reveal>
+    <div class="spotlight-copy">
+      <p class="spotlight-eyebrow">Training Academy</p>
+      <h2 class="spotlight-headline" id="spot1-heading">Your skills unlock your access.</h2>
+      <p class="spotlight-body">Self-paced modules built for real community work. Complete your orientation and Tier 2 training to unlock event sign-ups, tools, and your full volunteer role.</p>
+      <div class="spotlight-features">
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Pick up where you left off</strong> — your progress is saved automatically</p></div>
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Tier 2A completion</strong> unlocks event registration and volunteer tools</p></div>
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Earn XP</strong> for every module you complete — it counts toward your level</p></div>
+      </div>
+      <a href="https://volunteer.healthmatters.clinic" class="spotlight-link">Open Training Academy</a>
+    </div>
+    <div class="spotlight-mockup">
+      <div class="mockup-window">
+        <div class="mockup-titlebar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div></div>
+        <div class="mockup-body">
+          <div class="tm-header">Training Academy <span class="tm-tier">Tier 2 · In Progress</span></div>
+          <div class="tm-module done"><div class="tm-icon done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tm-info"><div class="tm-name">HMC Orientation</div><div class="tm-sub">Foundations · 45 min</div></div><span class="tm-badge done">Complete</span></div>
+          <div class="tm-module done"><div class="tm-icon done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tm-info"><div class="tm-name">Community Mental Health</div><div class="tm-sub">Tier 1 · 60 min</div></div><span class="tm-badge done">Complete</span></div>
+          <div class="tm-module active"><div class="tm-icon active"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><div class="tm-info"><div class="tm-name">Survey Data Collection</div><div class="tm-sub">Tier 2A · 30 min</div></div><span class="tm-badge active">In Progress</span></div>
+          <div class="tm-module locked"><div class="tm-icon locked"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="tm-info"><div class="tm-name">De-escalation Techniques</div><div class="tm-sub">Tier 2B · Unlocks after 2A</div></div><span class="tm-badge locked">Locked</span></div>
+          <div class="tm-progress"><div class="tm-progress-label"><span>Progress</span><span>68% · 2,340 XP</span></div><div class="tm-bar-wrap"><div class="tm-bar"></div></div></div>
+        </div>
+      </div>
+      <div class="mockup-accent ma-1"><span class="ma-icon">🎓</span><div><div class="ma-text">Tier 2A unlocked</div><div class="ma-sub">Events now available</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SPOTLIGHT 2: COMMS HUB -->
+<section class="spotlight dark" aria-labelledby="spot2-heading">
+  <div class="spotlight-inner flip container" data-reveal>
+    <div class="spotlight-copy">
+      <p class="spotlight-eyebrow">Communication Hub</p>
+      <h2 class="spotlight-headline" id="spot2-heading">Your team in one place.</h2>
+      <p class="spotlight-body">Team broadcasts, direct messages from coordinators, and a support ticket system — no more digging through emails to know what's going on.</p>
+      <div class="spotlight-features">
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Broadcast announcements</strong> pushed directly to your portal</p></div>
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Direct messages</strong> with your coordinator and team leads</p></div>
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Support tickets</strong> for questions, scheduling, or anything you need</p></div>
+      </div>
+      <a href="https://volunteer.healthmatters.clinic" class="spotlight-link">Open Comms Hub</a>
+    </div>
+    <div class="spotlight-mockup">
+      <div class="mockup-window">
+        <div class="mockup-titlebar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div></div>
+        <div class="mockup-body" style="padding:16px">
+          <div style="font-size:10px;font-weight:800;color:#111;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">Messages <span style="background:#233dff;color:#fff;font-size:8px;padding:2px 7px;border-radius:100px">2 new</span></div>
+          <div class="cm-msg"><div class="cm-avatar" style="background:#233dff">E</div><div class="cm-bubble"><div class="cm-name">Erica Robinson <span class="cm-time">9:04 AM</span></div><div class="cm-text">Hey team! May 9 volunteer slots are filling fast — make sure you're registered in the portal 🙌</div></div><div class="cm-unread"></div></div>
+          <div class="cm-msg"><div class="cm-avatar" style="background:#7c3aed">K</div><div class="cm-bubble"><div class="cm-name">Kerry Williams <span class="cm-time">8:47 AM</span></div><div class="cm-text">Training reminder: complete your Survey Data module before the walk. It unlocks event check-in access.</div></div><div class="cm-unread"></div></div>
+          <div class="cm-msg"><div class="cm-avatar" style="background:#059669">M</div><div class="cm-bubble"><div class="cm-name">Mikaela T. <span class="cm-time">Yesterday</span></div><div class="cm-text">See everyone Saturday! Wear comfortable shoes — we'll be on our feet all morning 💪</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPOTLIGHT 3: REFERRAL HUB -->
+<section class="spotlight" aria-labelledby="spot3-heading">
+  <div class="spotlight-inner container" data-reveal>
+    <div class="spotlight-copy">
+      <p class="spotlight-eyebrow">Referral Hub</p>
+      <h2 class="spotlight-headline" id="spot3-heading">Connect people to what they actually need.</h2>
+      <p class="spotlight-body">Browse 1,000+ free LA County services and make referrals directly from your phone. Mental health, housing, food, clinics — all in one searchable directory.</p>
+      <div class="spotlight-features">
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Instant search</strong> across all service categories for LA County</p></div>
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>One-tap referral</strong> — send a resource directly to someone's phone</p></div>
+        <div class="spotlight-feat"><div class="spotlight-feat-dot"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><p class="spotlight-feat-text"><strong>Each referral earns XP</strong> and counts toward your community impact record</p></div>
+      </div>
+      <a href="https://volunteer.healthmatters.clinic" class="spotlight-link">Open Referral Hub</a>
+    </div>
+    <div class="spotlight-mockup">
+      <div class="mockup-window">
+        <div class="mockup-titlebar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div></div>
+        <div class="mockup-body">
+          <div class="rm-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search services in LA County...</div>
+          <div class="rm-card"><div class="rm-badge" style="background:#fef3c7">🏠</div><div class="rm-info"><div class="rm-title">LAHSA Emergency Shelter Hotline</div><div class="rm-sub">Housing · Free · Available 24/7</div></div><span class="rm-chip">Housing</span></div>
+          <div class="rm-card"><div class="rm-badge" style="background:#ede9fe">🧠</div><div class="rm-info"><div class="rm-title">DIDI Hirsch Mental Health Services</div><div class="rm-sub">Mental Health · Sliding scale · Inglewood</div></div><span class="rm-chip">Mental Health</span></div>
+          <div class="rm-card"><div class="rm-badge" style="background:#dcfce7">🥗</div><div class="rm-info"><div class="rm-title">LA Regional Food Bank</div><div class="rm-sub">Food Assistance · Free · Multiple locations</div></div><span class="rm-chip">Food</span></div>
+        </div>
+      </div>
+      <div class="mockup-accent ma-2"><span class="ma-icon">📋</span><div><div class="ma-text">Referral sent</div><div class="ma-sub">+50 XP earned</div></div></div>
     </div>
   </div>
 </section>
