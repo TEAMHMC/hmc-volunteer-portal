@@ -43,6 +43,61 @@ Protected Health Information (PHI) includes any identifiable information about a
         tags: ['hipaa', 'privacy', 'confidentiality', 'phi']
     },
     {
+        id: 'portal-overview-001',
+        category: 'Portal Features & Navigation',
+        title: 'HMC Volunteer Portal — Feature Overview',
+        content: `## HMC Volunteer Portal — Feature Overview
+
+The HMC Volunteer Portal is your all-in-one hub for everything related to your experience as a Health Matters Clinic volunteer or Champion. Below is a summary of every major section.
+
+**Take an interactive tour:** [volunteer.healthmatters.clinic/tour](/tour)
+
+---
+
+### Overview (Home Dashboard)
+Your personal home screen. Shows your current XP level, volunteer hours, upcoming events, active announcements, daily quests, and quick-access shortcuts.
+
+### My Missions
+A list of every HMC event or community mission you are registered for. On the day of an event, the **Enter Event Ops Mode** button appears here so you can check in, log interactions, and check out.
+
+### Calendar
+A full calendar view of all scheduled HMC events — month, week, or list format. Events you are signed up for are highlighted. Click any event to view details or register.
+
+### Training Academy
+All required orientation modules and optional skill tracks. Tier 1 modules (HMC Orientation + Because You're a Champion) must be completed before you can sign up for community missions. Tier 2 modules cover advanced skills (screenings, street medicine, community surveys).
+
+### Doc Hub
+This documentation system. Search policies, protocols, glossary terms, runbooks, and reference guides. Admins can add and edit articles directly from the Doc Hub interface.
+
+### Communication Hub
+Three tools in one:
+- **Announcements** — Org-wide broadcasts from HMC coordination staff.
+- **Direct Messages** — Private conversations with other portal members.
+- **Support Tickets** — Submit a help request; coordinators respond within 1–2 business days.
+
+### Impact Hub
+Your personal volunteer stats: total hours, events attended, XP, badges earned, and your rank on the community leaderboard.
+
+### Referral Hub
+Browse and share HMC health resources, event listings, and community services. Your personal referral link (with your unique code) is shown here — when someone signs up through your link, you earn XP and the referral is tracked to you.
+
+### Event Ops Mode
+The real-time work environment used on the day of an event. Contains: Check-In / Check-Out, the Mission Brief, Client Survey, Health Screening, Intake, Tracker, Alerts, and end-of-day Debrief.
+
+### Project Board *(admin/lead roles)*
+Track HMC team projects and tasks. Create projects, assign them, add notes, mark complete, or delete.
+
+### Analytics *(senior roles)*
+Volunteer engagement metrics, event data, survey results, and system health monitoring.
+
+### Client Intake / Referrals *(clinical roles)*
+Manage intake forms for clients seen at HMC events and track referrals to partner organizations.
+
+### Admin Panel *(admin only)*
+Volunteer directory, new applicant review, role assignment, compliance status, and CSV import tools.`,
+        tags: ['portal', 'overview', 'navigation', 'features', 'tour', 'guide']
+    },
+    {
         id: 'glossary-001',
         category: 'Glossary of Terms',
         title: 'CHW (Community Health Worker)',
@@ -65,6 +120,62 @@ Examples include:
 - Polluted air and water
 - Language and literacy skills`,
         tags: ['glossary', 'sdoh', 'health equity']
+    },
+    {
+        id: 'glossary-003',
+        category: 'Glossary of Terms',
+        title: 'HMC Champion',
+        content: `### HMC Champion
+An HMC Champion is a community outreach ambassador — someone who shares HMC resources and spreads awareness of HMC programs within their personal and professional networks. Champions have access to the Referral Hub, Resource Hub, and Calendar, and earn XP through referrals and engagement activities.
+
+HMC Champions are not clinical or operational volunteers but are a recognized and valued part of the HMC community. Anyone who creates a portal account may receive Champion access; full volunteer roles are available by application through the portal.`,
+        tags: ['glossary', 'hmc champion', 'ambassador', 'role', 'referral']
+    },
+    {
+        id: 'glossary-004',
+        category: 'Glossary of Terms',
+        title: 'XP (Experience Points)',
+        content: `### XP (Experience Points)
+XP is the portal's engagement currency. You earn XP by completing training modules, checking into events, logging hours, making referrals, and finishing daily quests. XP accumulates to raise your volunteer Level, which unlocks badges and appears on the Impact Hub leaderboard.
+
+XP does not affect your operational role or event eligibility — it is a recognition system to celebrate participation and community impact.`,
+        tags: ['glossary', 'xp', 'experience points', 'gamification', 'level', 'badges']
+    },
+    {
+        id: 'glossary-005',
+        category: 'Glossary of Terms',
+        title: 'Event Ops Mode',
+        content: `### Event Ops Mode
+Event Ops Mode is the real-time work interface activated on the day of a community event. It replaces paper check-in sheets and clipboards with a digital workflow covering:
+
+- **Check-In / Check-Out** — records your hours automatically
+- **Brief** — your mission summary, role, and team roster
+- **Survey / Intake / Health** — tools for logging client interactions during the event
+- **Alerts** — flag safety issues to your event lead in real time
+- **Debrief** — end-of-day sign-off and feedback form
+
+Event Ops Mode is only accessible on the day of an event you are registered for.`,
+        tags: ['glossary', 'event ops', 'check-in', 'check-out', 'event day', 'ops']
+    },
+    {
+        id: 'glossary-006',
+        category: 'Glossary of Terms',
+        title: 'Referral Code',
+        content: `### Referral Code
+A unique code assigned to every portal user. When you share your personal referral link (found in the Referral Hub or your Champion dashboard), the code is embedded in the URL. If someone creates a portal account through your link, the referral is attributed to you and you earn XP.
+
+Your referral link format: \`volunteer.healthmatters.clinic?ref=YOUR_CODE\``,
+        tags: ['glossary', 'referral', 'referral code', 'link', 'champion', 'xp']
+    },
+    {
+        id: 'glossary-007',
+        category: 'Glossary of Terms',
+        title: 'Take Action LA',
+        content: `### Take Action LA
+Take Action LA is an HMC initiative in partnership with LACDMH (Los Angeles County Department of Mental Health) focused on community health outreach and wellness events across Los Angeles. HMC volunteers and Champions can attend Take Action LA events as part of their community mission work.
+
+Upcoming Take Action LA events are listed on the Calendar and on the public event page at healthmatters.clinic/takeactionla.`,
+        tags: ['glossary', 'take action la', 'lacdmh', 'event', 'outreach']
     },
     {
         id: 'program-001',

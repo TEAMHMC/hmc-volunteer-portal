@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallbackDenylist: [/^\/tour/],
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
