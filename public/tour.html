@@ -67,17 +67,51 @@ section{padding:96px 48px}
 .section-sub{font-size:18px;color:#555;line-height:1.65;max-width:560px}
 .container{max-width:1100px;margin:0 auto}
 
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes floatA{0%,100%{transform:translateY(0px)}50%{transform:translateY(-8px)}}
+@keyframes floatB{0%,100%{transform:translateY(0px)}50%{transform:translateY(-6px)}}
+@keyframes floatC{0%,100%{transform:translateY(0px)}50%{transform:translateY(-10px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.animate-up{opacity:0;animation:fadeUp .7s ease forwards}
+.animate-up.delay-1{animation-delay:.1s}
+.animate-up.delay-2{animation-delay:.2s}
+.animate-up.delay-3{animation-delay:.3s}
+[data-reveal]{opacity:0;transform:translateY(32px);transition:opacity .7s ease,transform .7s ease}
+[data-reveal].revealed{opacity:1;transform:translateY(0)}
+
+/* ── HERO ENHANCEMENTS ── */
+.hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 40% at 20% 80%,rgba(35,61,255,.12),transparent),radial-gradient(ellipse 40% 50% at 80% 20%,rgba(120,80,255,.1),transparent);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)}
+
 /* ── PRODUCT PREVIEW ── */
-.preview{background:#0f0f0f;padding:0 48px 96px}
-.preview-label{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:20px;text-align:center;padding-top:0}
-.browser-frame{background:#1c1c1e;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.6);max-width:1060px;margin:0 auto}
+.preview{background:#0f0f0f;padding:0 48px 120px;position:relative;overflow:hidden}
+.preview::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(35,61,255,.2),transparent 70%);pointer-events:none}
+.preview-label{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:32px;text-align:center;padding-top:0}
+.preview-wrap{position:relative;max-width:1060px;margin:0 auto}
+.browser-frame{background:#1c1c1e;border:1px solid rgba(255,255,255,.12);border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 60px 160px rgba(0,0,0,.8),0 0 120px rgba(35,61,255,.15);transform:perspective(1400px) rotateX(4deg) scale(1);transform-origin:center top;transition:transform .6s ease}
+.preview-wrap:hover .browser-frame{transform:perspective(1400px) rotateX(1deg) scale(1.01)}
 .browser-bar{background:#2a2a2c;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)}
 .browser-dots{display:flex;gap:6px}
 .browser-dot{width:11px;height:11px;border-radius:50%}
 .browser-dot.red{background:#ff5f57}
 .browser-dot.yellow{background:#febc2e}
 .browser-dot.green{background:#28c840}
-.browser-url{flex:1;background:rgba(255,255,255,.06);border-radius:6px;padding:5px 12px;font-size:11px;color:rgba(255,255,255,.35);font-family:'Inter',sans-serif;margin:0 16px;letter-spacing:.01em}
+.browser-url{flex:1;background:rgba(255,255,255,.06);border-radius:6px;padding:5px 12px;font-size:11px;color:rgba(255,255,255,.45);font-family:'Inter',sans-serif;margin:0 16px;letter-spacing:.01em}
+/* floating callout badges */
+.float-badge{position:absolute;background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(0,0,0,.06);display:flex;align-items:center;gap:8px;z-index:10;pointer-events:none}
+.float-badge-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.float-badge-icon.green{background:#dcfce7}
+.float-badge-icon.blue{background:#eff6ff}
+.float-badge-icon.amber{background:#fef3c7}
+.float-badge-text{}
+.float-badge-title{font-size:11px;font-weight:800;color:#111;line-height:1.2;letter-spacing:-.01em}
+.float-badge-sub{font-size:9.5px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+.fb-hours{top:-24px;left:-40px;animation:floatA 4s ease-in-out infinite}
+.fb-xp{top:40px;right:-48px;animation:floatB 4.5s ease-in-out infinite 0.5s}
+.fb-event{bottom:60px;left:-48px;animation:floatC 5s ease-in-out infinite 1s}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s ease-in-out infinite;flex-shrink:0}
 /* portal shell inside browser */
 .portal-shell{display:grid;grid-template-columns:220px 1fr;height:520px;background:#fafafa;overflow:hidden}
 .portal-sidebar{background:#fff;border-right:1px solid #f0f0f0;display:flex;flex-direction:column;padding:20px 0;overflow:hidden}
@@ -272,10 +306,11 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
 <!-- HERO -->
 <main id="main">
 <section class="hero" aria-labelledby="hero-heading">
-  <div class="hero-badge"><span class="hero-badge-dot" aria-hidden="true"></span>Health Matters Clinic</div>
-  <h1 class="hero-title" id="hero-heading">Welcome to<br><span class="blue">TEAM HMC.</span></h1>
-  <p class="hero-sub">Whether you're joining us for the first time or coming back to the team — this is your home base. Meet the portal, explore what's inside, and join us for Mental Health Awareness Month.</p>
-  <div class="hero-actions">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-badge animate-up"><span class="hero-badge-dot" aria-hidden="true"></span>Health Matters Clinic · Mental Health Awareness Month</div>
+  <h1 class="hero-title animate-up delay-1" id="hero-heading">Welcome to<br><span class="blue">TEAM HMC.</span></h1>
+  <p class="hero-sub animate-up delay-2">Whether you're joining us for the first time or coming back to the team — this is your home base. Meet the portal, explore what's inside, and join us for Mental Health Awareness Month.</p>
+  <div class="hero-actions animate-up delay-3">
     <a href="https://volunteer.healthmatters.clinic" class="btn-primary">Join the Community</a>
     <a href="#whats-inside" class="btn-secondary">See What's Inside</a>
   </div>
@@ -311,6 +346,29 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
 <!-- PRODUCT PREVIEW -->
 <section class="preview" aria-label="Portal dashboard preview">
   <p class="preview-label">Live portal — volunteer.healthmatters.clinic</p>
+  <div class="preview-wrap">
+  <!-- floating callout badges -->
+  <div class="float-badge fb-hours" aria-hidden="true">
+    <div class="float-badge-icon green">⏱</div>
+    <div class="float-badge-text">
+      <div class="float-badge-title">47.5 hrs logged</div>
+      <div class="float-badge-sub">Your impact this season</div>
+    </div>
+  </div>
+  <div class="float-badge fb-xp" aria-hidden="true">
+    <div class="float-badge-icon blue">⚡</div>
+    <div class="float-badge-text">
+      <div class="float-badge-title">2,340 XP · Level 8</div>
+      <div class="float-badge-sub">Keep going</div>
+    </div>
+  </div>
+  <div class="float-badge fb-event" aria-hidden="true">
+    <div class="live-dot"></div>
+    <div class="float-badge-text">
+      <div class="float-badge-title">May 9 — Registered ✓</div>
+      <div class="float-badge-sub">Unstoppable Walk</div>
+    </div>
+  </div>
   <div class="browser-frame" role="img" aria-label="Screenshot of the HMC Volunteer Portal dashboard showing volunteer stats, upcoming events, and training progress">
     <!-- browser chrome -->
     <div class="browser-bar">
@@ -474,15 +532,16 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
       </div>
     </div>
   </div>
+  </div><!-- /preview-wrap -->
 </section>
 
 <!-- WHATS INSIDE -->
 <section class="features" id="whats-inside" aria-labelledby="features-heading">
   <div class="container">
-    <p class="section-label">What's Inside</p>
-    <h2 class="section-title" id="features-heading">A full home for your volunteer work.</h2>
-    <p class="section-sub">Everything you need is already in your portal — here's a quick look at what's waiting for you.</p>
-    <div class="features-grid">
+    <p class="section-label" data-reveal>What's Inside</p>
+    <h2 class="section-title" data-reveal>A full home for your volunteer work.</h2>
+    <p class="section-sub" data-reveal>Everything you need is already in your portal — here's a quick look at what's waiting for you.</p>
+    <div class="features-grid" data-reveal>
 
       <article class="feature-card">
         <div class="feature-icon" aria-hidden="true">
@@ -545,10 +604,10 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
 <!-- HOW TO GET BACK IN -->
 <section class="steps" id="how-it-works" aria-labelledby="steps-heading">
   <div class="container">
-    <p class="section-label">How It Works</p>
-    <h2 class="section-title" id="steps-heading">Up and running<br>in under 5 minutes.</h2>
-    <p class="section-sub">New or returning — the portal works the same way. No app download needed, works from any browser.</p>
-    <div class="steps-list">
+    <p class="section-label" data-reveal>How It Works</p>
+    <h2 class="section-title" data-reveal>Up and running<br>in under 5 minutes.</h2>
+    <p class="section-sub" data-reveal>New or returning — the portal works the same way. No app download needed, works from any browser.</p>
+    <div class="steps-list" data-reveal>
       <div class="step">
         <div class="step-num" aria-hidden="true">01</div>
         <div class="step-content">
@@ -627,10 +686,10 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
 <!-- EVENTS -->
 <section class="events" aria-labelledby="events-heading">
   <div class="container">
-    <p class="section-label">Take Action LA — May 2026</p>
-    <h2 class="section-title" id="events-heading">Three events. One mission.</h2>
-    <p class="section-sub">Be part of Mental Health Awareness Month with HMC. All events are free and open to the community.</p>
-    <div class="events-grid">
+    <p class="section-label" data-reveal>Take Action LA — May 2026</p>
+    <h2 class="section-title" data-reveal>Three events. One mission.</h2>
+    <p class="section-sub" data-reveal>Be part of Mental Health Awareness Month with HMC. All events are free and open to the community.</p>
+    <div class="events-grid" data-reveal>
 
       <article class="event-card">
         <div class="event-header">
@@ -710,5 +769,12 @@ footer{background:#111;color:#fff;padding:64px 48px 40px}
 </footer>
 </main>
 
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('revealed'); observer.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>
