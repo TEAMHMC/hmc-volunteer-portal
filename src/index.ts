@@ -1378,7 +1378,7 @@ const EmailTemplates = {
 
   // Birthday Recognition
   birthday_recognition: (data: EmailTemplateData) => ({
-    subject: `Happy Birthday, ${data.volunteerName}! 🎂`,
+    subject: `Happy Birthday, ${data.volunteerName}!`,
     html: `${emailHeader('Happy Birthday!')}
       <p>Hi ${data.volunteerName},</p>
       <p>Everyone at <strong>Health Matters Clinic</strong> wants to wish you a wonderful birthday!</p>
@@ -1587,7 +1587,7 @@ class EmailService {
       });
       let response = await fetch(EMAIL_SERVICE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: emailBody,
         redirect: 'manual',
       });
@@ -1596,7 +1596,7 @@ class EmailService {
         if (redirectUrl) {
           response = await fetch(redirectUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: emailBody,
             redirect: 'follow',
           });
@@ -14017,7 +14017,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
 
 const sendMonitorAlert = async (failures: MonitorResult[]) => {
   if (failures.length === 0) return;
-  const failList = failures.map(f => `❌ ${f.name}: ${f.error}`).join('\n');
+  const failList = failures.map(f => `[FAIL] ${f.name}: ${f.error}`).join('\n');
   const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
   // URGENT: SMS to Erica
@@ -14039,7 +14039,7 @@ const sendMonitorAlert = async (failures: MonitorResult[]) => {
     await EmailService.send('broadcast', {
       toEmail: 'erica@healthmatters.clinic',
       volunteerName: 'HMC Monitor',
-      title: `🚨 ALERT: ${failures.length} HMC Service(s) Down`,
+      title: `[ALERT] ${failures.length} HMC Service(s) Down`,
       content: `The following services failed their health check at ${timestamp}:\n\n${failList}\n\nCheck https://volunteer.healthmatters.clinic/api/monitor/status for details.`,
     });
     console.log('[MONITOR] Alert email sent to erica@healthmatters.clinic');
@@ -14052,7 +14052,7 @@ const sendDailyReport = async (results: MonitorResult[]) => {
   const passed = results.filter(r => r.status === 'pass').length;
   const failed = results.filter(r => r.status === 'fail').length;
   const avgTime = Math.round(results.reduce((sum, r) => sum + r.responseTime, 0) / results.length);
-  const lines = results.map(r => `${r.status === 'pass' ? '✅' : '❌'} ${r.name} (${r.responseTime}ms)`).join('\n');
+  const lines = results.map(r => `${r.status === 'pass' ? '[PASS]' : '[FAIL]'} ${r.name} (${r.responseTime}ms)`).join('\n');
   const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
   // SMS daily summary to Erica
@@ -14071,7 +14071,7 @@ const sendDailyReport = async (results: MonitorResult[]) => {
   // Email daily report to test@healthmatters.clinic always, CC erica only if failures
   try {
     const reportContent = `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`;
-    const reportTitle = `📊 HMC Daily Health Report — ${passed} pass, ${failed} fail`;
+    const reportTitle = `HMC Daily Health Report — ${passed} pass, ${failed} fail`;
     await EmailService.send('broadcast', {
       toEmail: 'test@healthmatters.clinic',
       volunteerName: 'HMC Monitor',
