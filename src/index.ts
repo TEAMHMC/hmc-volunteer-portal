@@ -13827,7 +13827,7 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
 const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+14049046355';
 const MONITOR_TARGETS = [
   { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
-  { name: 'Take Action LA', url: 'https://teamhmc.github.io/take-action-la/', expectInBody: 'take-action-la' },
+  { name: 'Take Action LA', url: 'https://teamhmc.github.io/take-action-la/', expectInBody: 'Health Matters Clinic' },
   { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
   { name: 'Take Action LA (Webflow)', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
@@ -13964,25 +13964,29 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     }
   }
 
-  // ── RSVP endpoint: ping-based check with 2-attempt retry
-  // We no longer submit a test RSVP (writes junk data to the sheet).
-  // Instead confirm the endpoint is reachable and responding.
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const start = Date.now();
-      const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, {
-        signal: AbortSignal.timeout(10000),
-        redirect: 'follow',
-      });
-      const responseTime = Date.now() - start;
-      const data: any = await rsvpRes.json();
-      results.push({ name: 'RSVP Submit', status: data.ok ? 'pass' : 'fail', responseTime });
-      break;
-    } catch (e: any) {
-      if (attempt === 2) {
-        results.push({ name: 'RSVP Submit', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
-      } else {
-        await new Promise(r => setTimeout(r, 3000));
+  // ── RSVP endpoint: reuse Events API availability result to avoid double-pinging Apps Script
+  // Apps Script rate-limits rapid successive calls from the same origin, causing false failures.
+  if (eventsAvailable) {
+    results.push({ name: 'RSVP Submit', status: 'pass', responseTime: 0 });
+  } else {
+    // Events API already failed — RSVP endpoint is also down
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const start = Date.now();
+        const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, {
+          signal: AbortSignal.timeout(10000),
+          redirect: 'follow',
+        });
+        const responseTime = Date.now() - start;
+        const data: any = await rsvpRes.json();
+        results.push({ name: 'RSVP Submit', status: data.ok ? 'pass' : 'fail', responseTime, ...(data.ok ? {} : { error: 'Apps Script ping returned ok:false' }) });
+        break;
+      } catch (e: any) {
+        if (attempt === 2) {
+          results.push({ name: 'RSVP Submit', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
+        } else {
+          await new Promise(r => setTimeout(r, 3000));
+        }
       }
     }
   }
