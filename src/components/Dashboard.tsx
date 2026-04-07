@@ -885,19 +885,23 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       <main className={`flex-1 p-6 md:p-8 space-y-8 overflow-y-auto h-screen no-scrollbar pb-20 ${showBetaBanner ? (viewingAsRole ? 'pt-40' : 'pt-36') : (viewingAsRole ? 'pt-28 md:pt-28' : 'pt-28 md:pt-24')}`}>
          {/* Announcement Banner */}
          {(() => {
+           const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+           const titleSlug = (title: string) => `title:${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
            const visibleAnnouncements = announcements
              .filter(a =>
                a.status === 'approved'
                && (!a.targetRoles || a.targetRoles.length === 0 || a.targetRoles.includes(displayUser.role))
                && !dismissedAnnouncementIds.includes(a.id)
+               && !dismissedAnnouncementIds.includes(titleSlug(a.title))
+               && new Date(a.date).getTime() >= sevenDaysAgo
              )
              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
              .slice(0, 2);
 
            if (visibleAnnouncements.length === 0) return null;
 
-           const handleDismiss = (id: string) => {
-             const updated = [...dismissedAnnouncementIds, id];
+           const handleDismiss = (id: string, title: string) => {
+             const updated = [...dismissedAnnouncementIds, id, titleSlug(title)];
              setDismissedAnnouncementIds(updated);
              localStorage.setItem(DISMISSED_KEY, JSON.stringify(updated));
            };
@@ -911,7 +915,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                      <p className="text-sm font-bold text-zinc-900 leading-snug">{a.title}</p>
                      {a.content && <p className="text-sm text-zinc-500 mt-0.5 line-clamp-2">{a.content}</p>}
                    </div>
-                   <button onClick={() => handleDismiss(a.id)} className="p-1.5 hover:bg-brand/10 rounded-lg transition-colors shrink-0">
+                   <button onClick={() => handleDismiss(a.id, a.title)} className="p-1.5 hover:bg-brand/10 rounded-lg transition-colors shrink-0">
                      <X size={14} className="text-zinc-400" />
                    </button>
                  </div>
