@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense, Component } from 'react';
 import {
   ArrowRight, Activity, Calendar, Clock, MapPin,
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
@@ -46,6 +46,24 @@ const LazyFallback = () => (
     <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
   </div>
 );
+
+class TabErrorBoundary extends Component<{ tab: string; children: React.ReactNode }, { error: Error | null }> {
+  constructor(props: any) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error, info: React.ErrorInfo) { console.error(`[Tab crash: ${this.props.tab}]`, error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <p className="text-zinc-500 font-bold">This tab encountered an error.</p>
+          <p className="text-xs text-zinc-400 font-mono max-w-md text-center">{this.state.error.message}</p>
+          <button onClick={() => this.setState({ error: null })} className="px-6 py-3 bg-brand text-white rounded-full font-bold text-sm border border-black">Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface DashboardProps {
   user: Volunteer;
@@ -1144,7 +1162,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
            />
          )}
          {activeTab === 'projects' && <ProjectBoard user={displayUser} allVolunteers={allVolunteers} />}
-         {activeTab === 'website-cms' && user.isAdmin && <WebflowCMS />}
+         {activeTab === 'website-cms' && user.isAdmin && <TabErrorBoundary tab="website-cms"><WebflowCMS /></TabErrorBoundary>}
          </Suspense>
 
       </main>

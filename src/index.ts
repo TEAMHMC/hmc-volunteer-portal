@@ -1603,10 +1603,18 @@ class EmailService {
         }
       }
 
-      const result = await response.json() as { success?: boolean; error?: string };
+      const responseText = await response.text();
+      let result: { success?: boolean; error?: string };
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        // Apps Script returned non-JSON (usually an HTML error page)
+        console.error(`[EMAIL] ❌ Apps Script non-JSON response (status ${response.status}):`, responseText.substring(0, 300));
+        return { sent: false, reason: `apps_script_html_response_${response.status}` };
+      }
 
       if (result.success) {
-        console.log(`[EMAIL] ✅ Sent ${templateName} to ${maskEmail(data.toEmail)}`);
+        console.log(`[EMAIL] Sent ${templateName} to ${maskEmail(data.toEmail)}`);
         return { sent: true };
       } else {
         console.error(`[EMAIL] ❌ Apps Script error: ${result.error}`);

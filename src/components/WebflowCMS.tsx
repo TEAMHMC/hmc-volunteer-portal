@@ -73,7 +73,7 @@ const WebflowCMS: React.FC = () => {
     setLoading(true);
     try {
       const result = await apiService.get(`/api/admin/webflow/collections/${slug}/items`);
-      setItems(result.items || []);
+      setItems(result?.items || []);
     } catch (e: any) {
       toastService.error(`Failed to load: ${e.message}`);
       setItems([]);
