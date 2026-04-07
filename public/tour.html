@@ -226,9 +226,8 @@ section{padding:96px 48px}
 .dark .spotlight-feat-text strong{color:#fff}
 .spotlight-link{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#fff;background:#233dff;padding:13px 28px;border-radius:100px;letter-spacing:.01em;transition:opacity .2s}
 .dark .spotlight-link{background:#233dff;color:#fff}
-.spotlight-link::after{content:'→';transition:transform .2s}
+.spotlight-link::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0}
 .spotlight-link:hover{opacity:.85}
-.spotlight-link:hover::after{transform:translateX(4px)}
 /* mockup panels */
 .spotlight-mockup{position:relative}
 .mockup-window{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,.08);box-shadow:0 32px 80px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.04);overflow:hidden}
@@ -267,11 +266,15 @@ section{padding:96px 48px}
 /* comms mockup */
 .cm-msg{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
 .cm-msg:last-child{border-bottom:none}
+.dark .cm-msg{border-bottom-color:rgba(255,255,255,.07)}
 .cm-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
 .cm-bubble{flex:1}
 .cm-name{font-size:10px;font-weight:800;color:#111;margin-bottom:3px;display:flex;align-items:center;justify-content:space-between}
+.dark .cm-name{color:rgba(255,255,255,.85)}
 .cm-time{font-size:8.5px;font-weight:500;color:#bbb}
+.dark .cm-time{color:rgba(255,255,255,.3)}
 .cm-text{font-size:11px;color:#555;line-height:1.5}
+.dark .cm-text{color:rgba(255,255,255,.5)}
 .cm-unread{width:7px;height:7px;border-radius:50%;background:#233dff;flex-shrink:0;margin-top:4px}
 /* referral mockup */
 .rm-search{background:#f5f5f7;border-radius:10px;padding:10px 14px;font-size:11px;color:#aaa;font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:8px}
@@ -336,14 +339,14 @@ section{padding:96px 48px}
 /* ── EVENTS ── */
 .events{background:#f5f3ef}
 .events-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
-.event-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:20px;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.event-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:20px;overflow:hidden;transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column}
 .event-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
 .event-header{padding:28px 28px 20px;border-bottom:1px solid rgba(0,0,0,.06)}
 .event-num{font-size:64px;font-weight:900;letter-spacing:-.04em;color:#e8ecff;line-height:1;margin-bottom:8px}
 .event-title{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-bottom:8px}
 .event-date{font-size:13px;font-weight:600;color:#555;letter-spacing:.03em}
-.event-body{padding:20px 28px 28px}
-.event-desc{font-size:15px;color:#555;line-height:1.6;margin-bottom:20px}
+.event-body{padding:20px 28px 28px;display:flex;flex-direction:column;flex:1}
+.event-desc{font-size:15px;color:#555;line-height:1.6;margin-bottom:20px;flex:1}
 .event-rsvp{display:inline-flex;align-items:center;gap:8px;background:#233dff;color:#fff;border:1px solid #0f0f0f;border-radius:100px;padding:12px 24px;font-size:13px;font-weight:700;transition:background .2s}
 .event-rsvp::before{content:'';width:6px;height:6px;border-radius:50%;background:#fff;flex-shrink:0}
 .event-rsvp:hover{background:#1a2bcc}
@@ -747,7 +750,7 @@ footer .footer-brand img{background:#fff}
       <div class="mockup-window">
         <div class="mockup-titlebar"><div class="mockup-dot" style="background:#ff5f57"></div><div class="mockup-dot" style="background:#febc2e"></div><div class="mockup-dot" style="background:#28c840"></div></div>
         <div class="mockup-body" style="padding:16px">
-          <div style="font-size:10px;font-weight:800;color:#111;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">Messages <span style="background:#233dff;color:#fff;font-size:8px;padding:2px 7px;border-radius:100px">2 new</span></div>
+          <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">Messages <span style="background:#233dff;color:#fff;font-size:8px;padding:2px 7px;border-radius:100px">2 new</span></div>
           <div class="cm-msg"><div class="cm-avatar" style="background:#233dff">J</div><div class="cm-bubble"><div class="cm-name">Jordan R. <span class="cm-time">9:04 AM</span></div><div class="cm-text">Hey team! May 9 volunteer slots are filling fast — make sure you're registered in the portal.</div></div><div class="cm-unread"></div></div>
           <div class="cm-msg"><div class="cm-avatar" style="background:#7c3aed">D</div><div class="cm-bubble"><div class="cm-name">Danielle M. <span class="cm-time">8:47 AM</span></div><div class="cm-text">Training reminder: complete your Survey Data module before the walk. It unlocks event check-in access.</div></div><div class="cm-unread"></div></div>
           <div class="cm-msg"><div class="cm-avatar" style="background:#059669">T</div><div class="cm-bubble"><div class="cm-name">Tre L. <span class="cm-time">Yesterday</span></div><div class="cm-text">See everyone Saturday! Wear comfortable shoes — we'll be on our feet all morning.</div></div></div>
@@ -863,7 +866,7 @@ footer .footer-brand img{background:#fff}
 
     <div class="champion-bottom">
       <a href="https://volunteer.healthmatters.clinic" class="btn-primary" style="font-size:16px;padding:18px 44px;">Join the Community</a>
-      <p class="champion-capacity">Already have an account? <a href="https://volunteer.healthmatters.clinic" style="color:rgba(255,255,255,.6);text-decoration:underline;text-underline-offset:3px;">Log back in here.</a><br>Questions? <a href="mailto:volunteer@healthmatters.clinic" style="color:rgba(255,255,255,.6);text-decoration:underline;text-underline-offset:3px;">volunteer@healthmatters.clinic</a></p>
+      <p class="champion-capacity">Already have an account? <a href="https://volunteer.healthmatters.clinic" style="color:rgba(255,255,255,.6);text-decoration:underline;text-underline-offset:3px;">Log back in here.</a><br>Questions? <a href="mailto:volunteer@healthmatters.clinic" style="color:rgba(255,255,255,.6);text-decoration:underline;text-underline-offset:3px;">Email Us</a></p>
     </div>
   </div>
 </section>
@@ -937,7 +940,7 @@ footer .footer-brand img{background:#fff}
       <div>
         <p class="footer-col-title">Contact</p>
         <nav class="footer-links" aria-label="Contact links">
-          <a href="mailto:volunteer@healthmatters.clinic">volunteer@healthmatters.clinic</a>
+          <a href="mailto:volunteer@healthmatters.clinic">Email Us</a>
           <a href="https://www.healthmatters.clinic/takeactionla">Take Action LA</a>
           <a href="https://www.instagram.com/healthmattersclinic" target="_blank" rel="noopener noreferrer" aria-label="HMC on Instagram (opens in new tab)">Instagram</a>
         </nav>
