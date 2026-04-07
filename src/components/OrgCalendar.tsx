@@ -11,6 +11,7 @@ import { toastService } from '../services/toastService';
 interface OrgCalendarProps {
   user: Volunteer;
   opportunities: Opportunity[];
+  onNavigate?: (tab: string) => void;
 }
 
 const EVENT_COLORS: Record<string, { dot: string; bg: string; text: string; border: string; label: string }> = {
@@ -75,7 +76,7 @@ const formatTimeDisplay = (t: string): string => {
 
 // TODO: CONSOLIDATION — Create Event form duplicates EventBuilder. Consider linking to EventBuilder instead.
 
-const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
+const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities, onNavigate }) => {
   const [events, setEvents] = useState<OrgCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -625,6 +626,16 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities }) => {
                     className="flex-1 py-3 rounded-full font-bold text-base bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-300 flex items-center justify-center gap-2 transition-colors uppercase tracking-wide"
                   >
                     <span className="w-2 h-2 rounded-full bg-rose-600" /> <Trash2 size={16} /> Delete
+                  </button>
+                </div>
+              )}
+              {canCreateEvents && showDetailEvent.source !== 'org-calendar' && onNavigate && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => { setShowDetailEvent(null); onNavigate('event-management'); }}
+                    className="w-full py-3 rounded-full font-bold text-base bg-white text-zinc-900 border border-zinc-950 flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors uppercase tracking-wide"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-zinc-950" /> <Edit3 size={16} /> Edit in Event Management
                   </button>
                 </div>
               )}

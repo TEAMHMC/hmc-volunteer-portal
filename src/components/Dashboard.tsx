@@ -1103,7 +1103,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
          {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
          {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}
-         <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}><OrgCalendar user={displayUser} opportunities={opportunities} /></div>
+         <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}><OrgCalendar user={displayUser} opportunities={opportunities} onNavigate={setActiveTab} /></div>
          {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}
          {activeTab === 'referrals' && user.isAdmin && <ReferralManagement isAdmin={true} />}
          {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
