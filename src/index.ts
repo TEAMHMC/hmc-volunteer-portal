@@ -13827,7 +13827,7 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
 const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+14049046355';
 const MONITOR_TARGETS = [
   { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
-  { name: 'Take Action LA', url: 'https://teamhmc.github.io/take-action-la/', expectInBody: 'Health Matters Clinic' },
+  { name: 'Take Action LA', url: 'https://www.healthmatters.clinic/takeactionla', expectInBody: 'Health Matters Clinic' },
   { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
   { name: 'Take Action LA (Webflow)', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
@@ -13931,7 +13931,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
         const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, { signal: AbortSignal.timeout(10000), redirect: 'follow' });
         const data: any = await res.json();
         const responseTime = Date.now() - start;
-        if (data.ok) {
+        if (data.ok || data.success) {
           results.push({ name: 'Events API', status: 'pass', responseTime });
           return true;
         }
@@ -13979,7 +13979,8 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
         });
         const responseTime = Date.now() - start;
         const data: any = await rsvpRes.json();
-        results.push({ name: 'RSVP Submit', status: data.ok ? 'pass' : 'fail', responseTime, ...(data.ok ? {} : { error: 'Apps Script ping returned ok:false' }) });
+        const rsvpOk = data.ok || data.success;
+        results.push({ name: 'RSVP Submit', status: rsvpOk ? 'pass' : 'fail', responseTime, ...(rsvpOk ? {} : { error: 'Apps Script ping returned ok:false' }) });
         break;
       } catch (e: any) {
         if (attempt === 2) {
