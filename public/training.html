@@ -111,7 +111,11 @@ img{display:block;max-width:100%}
 /* ── TWO COL ── */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
 .mini-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px}
-.mini-card-icon{font-size:20px;margin-bottom:10px}
+.mini-card-icon{width:40px;height:40px;border-radius:8px;background:rgba(35,61,255,.14);border:1px solid rgba(35,61,255,.22);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);margin-bottom:14px;flex-shrink:0}
+/* ── SCREENSHOT PLACEHOLDER ── */
+.screen-placeholder{background:rgba(255,255,255,.03);border:1.5px dashed rgba(255,255,255,.12);border-radius:12px;padding:40px 24px;text-align:center;margin:20px 0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.screen-placeholder-label{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.2)}
+.screen-placeholder-desc{font-size:12px;color:rgba(255,255,255,.25);max-width:340px;line-height:1.5}
 .mini-card-title{font-size:13px;font-weight:700;margin-bottom:6px;color:#fff}
 .mini-card-desc{font-size:12px;color:var(--text-2);line-height:1.6}
 
@@ -244,7 +248,7 @@ img{display:block;max-width:100%}
         <span class="step-num">10</span> After the Event
       </a>
       <a href="#help" class="sidebar-link" onclick="setActive(this)">
-        <span class="step-icon">?</span> Getting Help
+        <span class="step-num">?</span> Getting Help
       </a>
     </div>
     <div class="sidebar-progress">
@@ -366,22 +370,22 @@ img{display:block;max-width:100%}
 
       <div class="two-col">
         <div class="mini-card">
-          <div class="mini-card-icon">📊</div>
+          <div class="mini-card-icon">STATS</div>
           <div class="mini-card-title">Stats Cards</div>
           <div class="mini-card-desc">Hours contributed, XP earned, your level, and total events attended. These update automatically as you complete missions.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-card-icon">📅</div>
+          <div class="mini-card-icon">NEXT</div>
           <div class="mini-card-title">Upcoming Missions</div>
           <div class="mini-card-desc">Your next registered event shows here with the date, time, and location. Click to go directly to My Missions for full details.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-card-icon">⚡</div>
+          <div class="mini-card-icon">XP</div>
           <div class="mini-card-title">Daily Quests</div>
           <div class="mini-card-desc">Small tasks that earn you XP — things like completing a training module, referring a friend, or RSVPing to a mission.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-card-icon">🔔</div>
+          <div class="mini-card-icon">TODO</div>
           <div class="mini-card-title">Action Items</div>
           <div class="mini-card-desc">Anything you need to do — incomplete training, empty availability, missing profile info. Clear these to stay in good standing.</div>
         </div>
@@ -538,22 +542,22 @@ img{display:block;max-width:100%}
 
       <div class="two-col">
         <div class="mini-card">
-          <div class="mini-card-icon">📆</div>
+          <div class="mini-card-icon">CAL</div>
           <div class="mini-card-title">Browse by month</div>
           <div class="mini-card-desc">Use the arrow buttons to navigate forward and back by month. Days with events show colored dots — multiple dots mean multiple events that day.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-card-icon">🎨</div>
+          <div class="mini-card-icon">CLR</div>
           <div class="mini-card-title">Color coding</div>
           <div class="mini-card-desc">Each event type has a color — Street Medicine (rose), Wellness (emerald), Workshop (violet), Health Fair (sky), Training (green). Use the filter dropdown to show one type at a time.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-card-icon">👆</div>
+          <div class="mini-card-icon">TAP</div>
           <div class="mini-card-title">Click a day</div>
           <div class="mini-card-desc">Clicking any day shows all events for that date on the right. Click an event title to open its full detail panel with the RSVP button.</div>
         </div>
         <div class="mini-card">
-          <div class="mini-card-icon">📋</div>
+          <div class="mini-card-icon">RSVP</div>
           <div class="mini-card-title">RSVP from calendar</div>
           <div class="mini-card-desc">You can register directly from the calendar detail panel — same as the My Missions tab. The event will appear in your assignments immediately.</div>
         </div>

@@ -21,6 +21,9 @@ declare global {
  * - In Production (Cloud Run), it exclusively uses the server-injected `window.env.GOOGLE_CLIENT_ID`.
  * - In Development, it falls back to Vite's `import.meta.env.VITE_GOOGLE_CLIENT_ID`.
  */
+// Google OAuth Client IDs are public values — safe to hardcode as fallback
+const HMC_GOOGLE_CLIENT_ID = '172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com';
+
 export const getGoogleClientId = (): string => {
   // Production: Use runtime variable injected by the server.
   if (window.env?.GOOGLE_CLIENT_ID) {
@@ -31,8 +34,8 @@ export const getGoogleClientId = (): string => {
   if (viteClientId) {
     return viteClientId;
   }
-  console.warn("Google Client ID not found. Google login may be disabled.");
-  return '';
+  // Permanent fallback — ensures Google login always works even if env injection fails
+  return HMC_GOOGLE_CLIENT_ID;
 };
 
 /**
