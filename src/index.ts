@@ -9056,7 +9056,20 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
       });
 
       await Promise.allSettled(coordinatorNotifications);
-      console.log(`[EVENTS] Notified ${coordinatorsSnap.size} coordinator(s) about registration`);
+
+      // SMO-specific: always notify Mikaela for Street Medicine events
+      const isSMO = (eventTitle || '').toLowerCase().includes('street medicine') || (eventTitle || '').toLowerCase().includes('smo');
+      if (isSMO) {
+        await EmailService.send('coordinator_registration_alert', {
+          toEmail: 'mikaela@healthmatters.clinic',
+          coordinatorName: 'Mikaela',
+          volunteerName: volunteerName || 'A volunteer',
+          eventTitle: eventTitle || 'an event',
+          eventDate: formatEventDate(eventDate || 'upcoming'),
+        }).catch(e => console.error('[EVENTS] Failed to notify Mikaela (SMO):', e));
+      }
+
+      console.log(`[EVENTS] Notified ${activeCoordinators.length} coordinator(s) about registration${isSMO ? ' + Mikaela (SMO)' : ''}`);
     } catch (coordError) {
       console.error('[EVENTS] Failed to notify coordinators:', coordError);
       // Non-blocking - don't fail registration if coordinator notification fails
