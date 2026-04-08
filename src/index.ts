@@ -15236,6 +15236,13 @@ app.get('/tour', (req: Request, res: Response) => {
   res.sendFile(path.join(buildPath, 'tour.html'));
 });
 
+// --- PUBLIC TRAINING GUIDE (no auth required) ---
+app.get('/training', (req: Request, res: Response) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://www.healthmatters.clinic https://healthmatters.clinic");
+  res.sendFile(path.join(buildPath, 'training.html'));
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {

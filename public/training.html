@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Volunteer Portal Training — Health Matters Clinic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --brand:#233dff;
+  --brand-dark:#1a2fd4;
+  --orange:#ff6e40;
+  --black:#0a0a0a;
+  --surface:#111116;
+  --surface2:#18181f;
+  --border:rgba(255,255,255,.07);
+  --border2:rgba(255,255,255,.12);
+  --text:#fff;
+  --text-2:rgba(255,255,255,.6);
+  --text-3:rgba(255,255,255,.35);
+  --green:#12c06b;
+  --yellow:#f9c74f;
+  --sidebar-w:260px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.65;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;background:rgba(10,10,10,.95);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;backdrop-filter:blur(12px)}
+.topbar-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:10px}
+.topbar-logo-dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-badge{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);border:1px solid var(--border2);padding:5px 12px;border-radius:100px}
+.topbar-cta{background:var(--brand);color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 18px;border-radius:100px;border:none;cursor:pointer;transition:background .2s}
+.topbar-cta:hover{background:var(--brand-dark)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh;padding-top:56px}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;position:fixed;top:56px;left:0;bottom:0;overflow-y:auto;padding:28px 0 40px;border-right:1px solid var(--border);background:var(--surface)}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.sidebar-section{padding:0 16px 8px}
+.sidebar-label{font-size:9px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--text-3);padding:0 8px 8px;margin-top:20px;display:block}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text-2);transition:all .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.sidebar-link:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.sidebar-link.active{background:rgba(35,61,255,.15);color:var(--brand);font-weight:600}
+.sidebar-link .step-num{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.07);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-3)}
+.sidebar-link.active .step-num{background:rgba(35,61,255,.3);color:var(--brand)}
+.sidebar-link .step-icon{font-size:14px;flex-shrink:0}
+.sidebar-progress{padding:16px 16px 0;border-top:1px solid var(--border);margin-top:16px}
+.prog-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+.prog-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--brand);border-radius:2px;width:0%;transition:width .4s ease}
+.prog-count{font-size:11px;color:var(--text-3);margin-top:6px}
+
+/* ── MAIN CONTENT ── */
+.main{margin-left:var(--sidebar-w);flex:1;min-width:0}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,rgba(35,61,255,.12) 0%,rgba(255,110,64,.06) 100%);border-bottom:1px solid var(--border);padding:64px 64px 56px}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--brand);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.hero-eyebrow::before{content:'';width:24px;height:2px;background:var(--brand)}
+.hero-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(36px,5vw,62px);line-height:.95;text-transform:uppercase;letter-spacing:-.01em;margin-bottom:20px}
+.hero-title span{color:var(--brand)}
+.hero-sub{font-size:16px;line-height:1.7;color:var(--text-2);max-width:600px;margin-bottom:32px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:12px}
+.meta-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:100px;padding:7px 14px;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--text-2)}
+.meta-pill span{display:inline-block;width:6px;height:6px;border-radius:50%}
+.meta-pill .dot-blue{background:var(--brand)}
+.meta-pill .dot-green{background:var(--green)}
+.meta-pill .dot-orange{background:var(--orange)}
+
+/* ── SECTIONS ── */
+.content-section{padding:64px 64px 48px;border-bottom:1px solid var(--border)}
+.content-section:last-child{border-bottom:none;padding-bottom:80px}
+.section-header{margin-bottom:36px}
+.section-eyebrow{font-size:9px;font-weight:800;letter-spacing:.25em;text-transform:uppercase;color:var(--brand);margin-bottom:10px}
+.section-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;text-transform:uppercase;letter-spacing:.02em;margin-bottom:8px}
+.section-intro{font-size:15px;color:var(--text-2);line-height:1.7;max-width:680px}
+
+/* ── STEP CARDS ── */
+.steps{display:flex;flex-direction:column;gap:16px}
+.step{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:24px 28px;display:flex;gap:20px;align-items:flex-start;transition:border-color .2s}
+.step:hover{border-color:var(--border2)}
+.step-badge{width:36px;height:36px;border-radius:10px;background:rgba(35,61,255,.18);border:1px solid rgba(35,61,255,.3);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:var(--brand);flex-shrink:0}
+.step-body{flex:1;min-width:0}
+.step-title{font-size:14px;font-weight:700;margin-bottom:5px;color:#fff}
+.step-desc{font-size:13px;color:var(--text-2);line-height:1.65}
+.step-desc strong{color:var(--text);font-weight:600}
+.step-desc code{background:rgba(35,61,255,.15);color:#8aabff;font-size:12px;padding:2px 7px;border-radius:5px;font-family:monospace}
+.step.highlight{border-color:rgba(35,61,255,.35);background:rgba(35,61,255,.06)}
+
+/* ── CALLOUTS ── */
+.callout{border-radius:12px;padding:16px 20px;margin:20px 0;display:flex;gap:14px;align-items:flex-start;font-size:13px;line-height:1.65}
+.callout.tip{background:rgba(18,192,107,.08);border:1px solid rgba(18,192,107,.2)}
+.callout.tip .callout-icon{color:var(--green)}
+.callout.warn{background:rgba(249,199,79,.07);border:1px solid rgba(249,199,79,.2)}
+.callout.warn .callout-icon{color:var(--yellow)}
+.callout.info{background:rgba(35,61,255,.08);border:1px solid rgba(35,61,255,.2)}
+.callout.info .callout-icon{color:#8aabff}
+.callout-icon{font-size:16px;margin-top:1px;flex-shrink:0}
+.callout-body strong{color:var(--text);font-weight:600}
+.callout-body{color:var(--text-2)}
+
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.mini-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px}
+.mini-card-icon{font-size:20px;margin-bottom:10px}
+.mini-card-title{font-size:13px;font-weight:700;margin-bottom:6px;color:#fff}
+.mini-card-desc{font-size:12px;color:var(--text-2);line-height:1.6}
+
+/* ── SCREEN MOCKUP ── */
+.screen-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:24px;margin:24px 0}
+.screen-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.screen-dot{width:10px;height:10px;border-radius:50%}
+.screen-dot:nth-child(1){background:#ff5f57}
+.screen-dot:nth-child(2){background:#febc2e}
+.screen-dot:nth-child(3){background:#28c840}
+.screen-url{flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 12px;font-size:11px;font-family:monospace;color:var(--text-3);margin-left:8px}
+.screen-body{background:rgba(255,255,255,.03);border-radius:10px;padding:20px}
+
+/* ── TAB NAV MOCK ── */
+.tab-nav-mock{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.tab-mock{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:rgba(255,255,255,.05);color:var(--text-3);border:1px solid transparent}
+.tab-mock.active{background:rgba(35,61,255,.2);color:var(--brand);border-color:rgba(35,61,255,.3)}
+
+/* ── FIELD REFERENCE ── */
+.field-table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
+.field-table th{text-align:left;padding:10px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+.field-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text-2);vertical-align:top}
+.field-table td:first-child{color:var(--text);font-weight:600;white-space:nowrap}
+.field-table tr:last-child td{border-bottom:none}
+.req-badge{display:inline-block;background:rgba(255,110,64,.15);color:var(--orange);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase}
+.opt-badge{display:inline-block;background:rgba(255,255,255,.06);color:var(--text-3);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase}
+
+/* ── CHECKLIST ── */
+.checklist{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.checklist li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text-2);line-height:1.55}
+.check-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(35,61,255,.4);background:rgba(35,61,255,.08);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:10px;color:var(--brand)}
+.checklist strong{color:var(--text)}
+
+/* ── QUICK REF ── */
+.quick-ref{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px}
+.qr-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.qr-label{font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.qr-value{font-size:13px;font-weight:600;color:var(--text)}
+.qr-value a{color:var(--brand)}
+
+/* ── SECTION DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:32px 0}
+
+/* ── FOOTER ── */
+.training-footer{background:var(--surface);border-top:1px solid var(--border);padding:40px 64px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.footer-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+.footer-note{font-size:12px;color:var(--text-3);text-align:center}
+.footer-link{font-size:12px;color:var(--brand)}
+
+/* ── PROGRESS TRACKER ── */
+.completion-banner{position:fixed;bottom:24px;right:24px;background:rgba(18,192,107,.15);border:1px solid rgba(18,192,107,.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;z-index:300;font-size:13px;backdrop-filter:blur(12px);transition:opacity .3s;opacity:0;pointer-events:none}
+.completion-banner.show{opacity:1;pointer-events:auto}
+.completion-banner-icon{color:var(--green);font-size:18px}
+.completion-banner-text{color:var(--text-2)}
+.completion-banner-text strong{color:#fff}
+
+/* ── MOBILE ── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .hero,.content-section{padding:40px 24px}
+  .two-col{grid-template-columns:1fr}
+  .training-footer{flex-direction:column;text-align:center;padding:32px 24px}
+  .quick-ref{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .hero-title{font-size:32px}
+  .quick-ref{grid-template-columns:1fr}
+  .topbar-badge{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <div class="topbar-logo-dot"></div>
+    Health Matters Clinic
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-badge">Core Volunteer Training</span>
+    <a href="https://volunteer.healthmatters.clinic" class="topbar-cta" target="_blank" rel="noopener">Open Portal</a>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" aria-label="Training sections">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a href="#login" class="sidebar-link active" onclick="setActive(this)">
+        <span class="step-num">1</span> Logging In
+      </a>
+      <a href="#dashboard" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">2</span> Your Dashboard
+      </a>
+      <a href="#training" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">3</span> Training Academy
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Events</span>
+      <a href="#find-events" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">4</span> Finding Events
+      </a>
+      <a href="#rsvp" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">5</span> Registering for a Mission
+      </a>
+      <a href="#calendar" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">6</span> Calendar View
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Client Workflow</span>
+      <a href="#client-intake" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">7</span> Adding a Client
+      </a>
+      <a href="#questionnaire" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">8</span> Wellness Questionnaire
+      </a>
+      <a href="#checkin" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">9</span> Checking In a Client
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Wrap-Up</span>
+      <a href="#after" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-num">10</span> After the Event
+      </a>
+      <a href="#help" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-icon">?</span> Getting Help
+      </a>
+    </div>
+    <div class="sidebar-progress">
+      <div class="prog-label">Your Progress</div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-count" id="progCount">0 of 10 sections viewed</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-eyebrow">Volunteer Portal · Core Volunteer Training</div>
+      <h1 class="hero-title">Portal<br><span>Training Guide</span></h1>
+      <p class="hero-sub">A step-by-step walkthrough for core volunteers — from logging in for the first time to adding clients, completing wellness questionnaires, and checking people in on event day.</p>
+      <div class="hero-meta">
+        <div class="meta-pill"><span class="dot-blue"></span> Street Medicine Outreach</div>
+        <div class="meta-pill"><span class="dot-green"></span> Core Volunteers</div>
+        <div class="meta-pill"><span class="dot-orange"></span> Hosted by HMC</div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: LOGIN -->
+    <section class="content-section" id="login">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 1</div>
+        <h2 class="section-title">Logging In</h2>
+        <p class="section-intro">Access the portal at <strong>volunteer.healthmatters.clinic</strong>. You can sign in with your Google account or the email and password you used when you applied.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Go to the portal</div>
+            <div class="step-desc">Open your browser and navigate to <code>volunteer.healthmatters.clinic</code>. Bookmark it — you'll be coming back often.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Sign in with Google (recommended)</div>
+            <div class="step-desc">Click <strong>Continue with Google</strong> and select the email address associated with your HMC volunteer account. This is the fastest option and doesn't require a password.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Or sign in with email + password</div>
+            <div class="step-desc">Enter the email you used when you applied. If you've forgotten your password, click <strong>Forgot password</strong> to reset it.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">You're in — land on your Dashboard</div>
+            <div class="step-desc">After login you'll see your personal dashboard. If you're brand new, it will prompt you to complete orientation first. If you're already approved, you'll see your stats, upcoming missions, and action items.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">✓</div>
+        <div class="callout-body"><strong>First time?</strong> If you see an onboarding screen instead of your dashboard, you'll need to complete Tier 1 orientation in the Training Academy before anything else unlocks. Jump to <a href="#training" style="color:var(--brand)">Step 3 — Training Academy</a>.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: DASHBOARD -->
+    <section class="content-section" id="dashboard">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 2</div>
+        <h2 class="section-title">Your Dashboard</h2>
+        <p class="section-intro">The dashboard is your home base. It shows your stats, upcoming missions, daily quests, and any action items that need your attention.</p>
+      </div>
+
+      <div class="screen-wrap">
+        <div class="screen-bar">
+          <div class="screen-dot"></div>
+          <div class="screen-dot"></div>
+          <div class="screen-dot"></div>
+          <div class="screen-url">volunteer.healthmatters.clinic</div>
+        </div>
+        <div class="screen-body">
+          <div class="tab-nav-mock">
+            <div class="tab-mock active">Overview</div>
+            <div class="tab-mock">My Missions</div>
+            <div class="tab-mock">Calendar</div>
+            <div class="tab-mock">Training</div>
+            <div class="tab-mock">Briefing</div>
+            <div class="tab-mock">Impact</div>
+            <div class="tab-mock">Referral Hub</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:rgba(35,61,255,.12);border:1px solid rgba(35,61,255,.2);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:var(--brand)">12.5</div>
+              <div style="font-size:10px;color:var(--text-3);margin-top:2px">Hours</div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:20px;font-weight:800">840</div>
+              <div style="font-size:10px;color:var(--text-3);margin-top:2px">XP Earned</div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:20px;font-weight:800">2</div>
+              <div style="font-size:10px;color:var(--text-3);margin-top:2px">Level</div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:20px;font-weight:800">3</div>
+              <div style="font-size:10px;color:var(--text-3);margin-top:2px">Events</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--text-2)">
+            <div style="font-weight:700;color:#fff;margin-bottom:4px">Next Mission</div>
+            Street Medicine Outreach — May 9, 2026 · 8:00 AM
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="mini-card">
+          <div class="mini-card-icon">📊</div>
+          <div class="mini-card-title">Stats Cards</div>
+          <div class="mini-card-desc">Hours contributed, XP earned, your level, and total events attended. These update automatically as you complete missions.</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon">📅</div>
+          <div class="mini-card-title">Upcoming Missions</div>
+          <div class="mini-card-desc">Your next registered event shows here with the date, time, and location. Click to go directly to My Missions for full details.</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon">⚡</div>
+          <div class="mini-card-title">Daily Quests</div>
+          <div class="mini-card-desc">Small tasks that earn you XP — things like completing a training module, referring a friend, or RSVPing to a mission.</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon">🔔</div>
+          <div class="mini-card-title">Action Items</div>
+          <div class="mini-card-desc">Anything you need to do — incomplete training, empty availability, missing profile info. Clear these to stay in good standing.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: TRAINING -->
+    <section class="content-section" id="training">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 3</div>
+        <h2 class="section-title">Training Academy</h2>
+        <p class="section-intro">All volunteers must complete training before they can sign up for missions. The Training Academy is organized into tiers — you unlock each tier as you progress.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Click "Training" in the sidebar</div>
+            <div class="step-desc">The Training Academy tab is accessible to everyone, even during onboarding. You'll see your current progress at the top.</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Complete Tier 1 — Orientation (required first)</div>
+            <div class="step-desc">Two videos you must watch and pass before anything else unlocks:<br><br>
+              <strong>1. HMC Orientation</strong> — Watch the video, then answer the quiz questions in your own words.<br>
+              <strong>2. Because You're a Champion</strong> — Same format. Takes about 10–15 minutes total.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Complete Tier 2 — Core Volunteer Training</div>
+            <div class="step-desc">Once Tier 1 is done and your role is approved, Tier 2 unlocks. Three required modules:<br><br>
+              <strong>HIPAA Non-Clinical</strong> — Read the document and click Acknowledge.<br>
+              <strong>Community Mental Health Workshop</strong> — Video + quiz.<br>
+              <strong>Survey Data Collection</strong> — Video + quiz. This covers how to enter client data correctly.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Complete program-specific training (if required)</div>
+            <div class="step-desc">For <strong>Street Medicine Outreach</strong>, you may see an additional SMO training module. Complete this before your first SMO event. It covers field protocols and safety.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠</div>
+        <div class="callout-body"><strong>Can't RSVP to a mission?</strong> The most common reason is incomplete training. Go to Training Academy and look for any module showing "In Progress" or a lock icon. Complete those first, then try registering again.</div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body"><strong>Quiz tips:</strong> Answers are graded on key concepts, not exact wording. Write at least 2–3 sentences in your own words. You'll know you passed when the module shows a green checkmark.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: FIND EVENTS -->
+    <section class="content-section" id="find-events">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 4</div>
+        <h2 class="section-title">Finding Events</h2>
+        <p class="section-intro">Once your training is complete, you can browse available missions and sign up for events that match your schedule and skills.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Click "My Missions" in the sidebar</div>
+            <div class="step-desc">This tab shows all available events, your current assignments, and your attendance history. It's your primary workspace for event management.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Click "Available Missions"</div>
+            <div class="step-desc">This shows all upcoming events you're eligible to join. Events you've already registered for are shown separately under "My Assignments."</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Use the filters to narrow results</div>
+            <div class="step-desc">You can filter by <strong>category</strong> (Street Medicine, Workshop, Health Fair, etc.) or <strong>location</strong>. Events are sorted by date — soonest first.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Click any event card to see full details</div>
+            <div class="step-desc">The detail view shows the full description, location with map link, volunteer slot count (how many spots are left), required training, and the registration button.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">✓</div>
+        <div class="callout-body"><strong>Don't see an event?</strong> Check the Calendar tab — it shows every event on the schedule. If an event you're looking for isn't showing in Available Missions, it may have a training prerequisite or limited capacity. Check with your coordinator.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: RSVP -->
+    <section class="content-section" id="rsvp">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 5</div>
+        <h2 class="section-title">Registering for a Mission</h2>
+        <p class="section-intro">Registering (RSVPing) to a mission adds you to the volunteer roster and sends you a confirmation. You can also add the event directly to your personal calendar.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Open the event and click "RSVP" or "Register"</div>
+            <div class="step-desc">The button label varies by event type. One click registers you — there's a brief confirmation message, then the event moves to your "My Assignments" list.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Add to your personal calendar</div>
+            <div class="step-desc">After registering, click <strong>Download ICS</strong> to add the event directly to Google Calendar, Apple Calendar, or Outlook. This creates a calendar invite with the event name, date, time, and location.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Check "My Assignments" to confirm</div>
+            <div class="step-desc">Go to My Missions → My Assignments to see your registered events. Your upcoming mission should also appear on your dashboard under "Next Mission."</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Need to cancel? Contact your coordinator</div>
+            <div class="step-desc">If your plans change, let your team lead or coordinator know as soon as possible so the slot can be reassigned. Use the Communication Hub to message them directly.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: CALENDAR -->
+    <section class="content-section" id="calendar">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 6</div>
+        <h2 class="section-title">Calendar View</h2>
+        <p class="section-intro">The Calendar tab gives you a full month-by-month view of all HMC events. It's useful for planning ahead and seeing the full schedule at a glance.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="mini-card">
+          <div class="mini-card-icon">📆</div>
+          <div class="mini-card-title">Browse by month</div>
+          <div class="mini-card-desc">Use the arrow buttons to navigate forward and back by month. Days with events show colored dots — multiple dots mean multiple events that day.</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon">🎨</div>
+          <div class="mini-card-title">Color coding</div>
+          <div class="mini-card-desc">Each event type has a color — Street Medicine (rose), Wellness (emerald), Workshop (violet), Health Fair (sky), Training (green). Use the filter dropdown to show one type at a time.</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon">👆</div>
+          <div class="mini-card-title">Click a day</div>
+          <div class="mini-card-desc">Clicking any day shows all events for that date on the right. Click an event title to open its full detail panel with the RSVP button.</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon">📋</div>
+          <div class="mini-card-title">RSVP from calendar</div>
+          <div class="mini-card-desc">You can register directly from the calendar detail panel — same as the My Missions tab. The event will appear in your assignments immediately.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: CLIENT INTAKE -->
+    <section class="content-section" id="client-intake">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 7 — Core Workflow</div>
+        <h2 class="section-title">Adding a Client</h2>
+        <p class="section-intro">At outreach events, you'll add clients to the HMC system using the Client Intake form. This captures the information we need to connect them with services and track our community impact.</p>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠</div>
+        <div class="callout-body"><strong>Before you begin:</strong> This section of the portal is accessible on event day through your dashboard or the Client Intake tab. Make sure your device is charged and connected to the internet or the event's WiFi before starting.</div>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Navigate to Client Intake</div>
+            <div class="step-desc">In the portal sidebar, look for <strong>Client Intake</strong>. On event day, a shortcut may also appear on your dashboard under "Active Mission Tools."</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Click "Add New Client"</div>
+            <div class="step-desc">This opens a blank intake form. Each client gets their own form — never add multiple clients on one form.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Fill in the client's basic information</div>
+            <div class="step-desc">Collect what the client is comfortable sharing. Required fields are marked — everything else is optional but helpful.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Submit the form</div>
+            <div class="step-desc">Click <strong>Save Client</strong> or <strong>Submit</strong> at the bottom of the form. You'll see a confirmation and the client record will be created. Then proceed to the Wellness Questionnaire.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;color:#fff">Client Intake — Field Reference</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:4px">What to collect and why. <strong>Required fields must be completed to save the record.</strong></p>
+
+      <table class="field-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>First Name</td>
+            <td><span class="req-badge">Required</span></td>
+            <td>First name or preferred name is fine</td>
+          </tr>
+          <tr>
+            <td>Last Name</td>
+            <td><span class="req-badge">Required</span></td>
+            <td>If client prefers to keep private, note that in comments</td>
+          </tr>
+          <tr>
+            <td>Date of Birth</td>
+            <td><span class="req-badge">Required</span></td>
+            <td>Used for age-based service eligibility</td>
+          </tr>
+          <tr>
+            <td>Phone Number</td>
+            <td><span class="opt-badge">Optional</span></td>
+            <td>For follow-up outreach. Ask if they'd like to be contacted</td>
+          </tr>
+          <tr>
+            <td>Email Address</td>
+            <td><span class="opt-badge">Optional</span></td>
+            <td>For service updates and resource newsletters</td>
+          </tr>
+          <tr>
+            <td>ZIP Code</td>
+            <td><span class="req-badge">Required</span></td>
+            <td>Used to confirm LA County service area eligibility</td>
+          </tr>
+          <tr>
+            <td>Housing Status</td>
+            <td><span class="req-badge">Required</span></td>
+            <td>Housed, unstably housed, or unhoused — select closest option</td>
+          </tr>
+          <tr>
+            <td>Service Needs</td>
+            <td><span class="opt-badge">Optional</span></td>
+            <td>Multi-select. Check all that apply: mental health, food, housing, medical, etc.</td>
+          </tr>
+          <tr>
+            <td>How did they hear about us?</td>
+            <td><span class="opt-badge">Optional</span></td>
+            <td>Referral source tracking — helps us understand outreach effectiveness</td>
+          </tr>
+          <tr>
+            <td>Consent to Contact</td>
+            <td><span class="req-badge">Required</span></td>
+            <td>Must be confirmed before saving. Read the consent statement to the client</td>
+          </tr>
+          <tr>
+            <td>Notes</td>
+            <td><span class="opt-badge">Optional</span></td>
+            <td>Anything else relevant — language preference, urgent needs, referrals made</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout info" style="margin-top:20px">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body"><strong>Privacy first:</strong> Only collect what clients are comfortable sharing. Never pressure someone to give information. If a client declines to share their name, you can record them as "Anonymous" with their ZIP code and service needs only.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: QUESTIONNAIRE -->
+    <section class="content-section" id="questionnaire">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 8 — Core Workflow</div>
+        <h2 class="section-title">Completing the Wellness Questionnaire</h2>
+        <p class="section-intro">After adding a client, you'll walk them through the wellness questionnaire. This is a standardized set of questions that helps us assess their current wellbeing and connect them with the right resources.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Open the questionnaire from the client's record</div>
+            <div class="step-desc">After saving the client, you'll see a <strong>Start Questionnaire</strong> or <strong>Complete Survey</strong> button. Click it to begin. The questionnaire is linked to this specific client record.</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Read each question aloud to the client</div>
+            <div class="step-desc">This is a conversational process — you're the one entering responses, they're answering verbally. Speak clearly, go at their pace, and don't rush. Most questionnaires take 5–8 minutes.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Select or type their answers</div>
+            <div class="step-desc">Most questions are multiple choice or scale-based (e.g., 1–10 or Never/Sometimes/Often). A few questions may have free-text fields — type their response as they give it. Don't interpret or paraphrase.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Flag urgent needs if prompted</div>
+            <div class="step-desc">Some answers will trigger a yellow or red flag in the system (e.g., housing crisis, mental health risk). If you see a flag, <strong>notify your on-site coordinator immediately</strong> — do not try to handle this alone. The system will also show next steps.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">5</div>
+          <div class="step-body">
+            <div class="step-title">Submit the questionnaire</div>
+            <div class="step-desc">Click <strong>Submit</strong> at the bottom. The client's record now shows the completed questionnaire and any resource recommendations generated by the system. Share those recommendations with the client before they leave.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">✓</div>
+        <div class="callout-body"><strong>Handling sensitive questions:</strong> If a client seems uncomfortable with a question, it's okay to skip it — mark it as "Declined." Your job is to make them feel safe, not to complete a perfect form. A partial questionnaire is always better than no questionnaire.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 9: CHECK IN -->
+    <section class="content-section" id="checkin">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 9 — Event Day</div>
+        <h2 class="section-title">Checking In a Client</h2>
+        <p class="section-intro">Client check-in is how we track who attended each outreach event. It's a quick process — your coordinator will confirm the workflow at the event briefing, but here's what it looks like in the portal.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">On event day, go to the event in My Missions</div>
+            <div class="step-desc">Find the active event under <strong>My Assignments</strong>. On event day, it will show an <strong>Event Day</strong> badge or active status. Click it to open the event tools.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Search for the client by name</div>
+            <div class="step-desc">If the client is already in the system from a previous event, search their name to pull up their existing record. This saves time and links their check-in history.</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">If it's their first time — add them as a new client</div>
+            <div class="step-desc">Click <strong>New Client</strong>, complete the intake form (Step 7), then return here to finish check-in. New clients should be added before marking them as checked in.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Click "Check In"</div>
+            <div class="step-desc">Once you've found or created their record, click the <strong>Check In</strong> button. Their status will change to "Checked In" with a timestamp. The attendance counter on the event updates in real time.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">5</div>
+          <div class="step-body">
+            <div class="step-title">Complete the wellness questionnaire (if not done)</div>
+            <div class="step-desc">If the client hasn't done a questionnaire recently, the system may prompt you to complete one now or flag it as recommended. Do this while the client is still at your station.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body"><strong>Returning clients:</strong> If a returning client's information has changed — new phone number, new address, housing situation — update their record at check-in. Click <strong>Edit Client</strong> before checking them in.</div>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠</div>
+        <div class="callout-body"><strong>Internet issues?</strong> If the portal is loading slowly on-site, try refreshing or switching to your phone's hotspot. If it's completely down, use the paper backup forms your coordinator will have on hand — all paper records get entered into the system within 24 hours.</div>
+      </div>
+    </section>
+
+    <!-- SECTION 10: AFTER EVENT -->
+    <section class="content-section" id="after">
+      <div class="section-header">
+        <div class="section-eyebrow">Step 10</div>
+        <h2 class="section-title">After the Event</h2>
+        <p class="section-intro">Once the event wraps up, there are a few quick things to take care of in the portal. This is how your hours get logged and how we improve future events.</p>
+      </div>
+
+      <ul class="checklist">
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Complete the post-event debrief survey.</strong> A pop-up will appear in the portal after the event closes. It takes 2–3 minutes and awards XP. Share what worked, what didn't, and any notable client interactions (without identifying information).</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Verify your hours are logged.</strong> Go to your dashboard and check your Hours Contributed stat. Hours are logged when your coordinator marks the shift complete. If they're missing after 48 hours, submit a support ticket.</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Check for any follow-up action items.</strong> If a client was flagged during the questionnaire or check-in process, your coordinator may assign you a follow-up task in the portal. Check your Action Items on the dashboard.</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Update your availability if needed.</strong> If your schedule changed, go to your Profile and update your availability so coordinators can plan future events accurately.</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Check the Communication Hub.</strong> Your coordinator or team lead may post a debrief message or next steps in the Briefing tab. Check it within 24 hours after the event.</div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- HELP -->
+    <section class="content-section" id="help">
+      <div class="section-header">
+        <div class="section-eyebrow">Resources</div>
+        <h2 class="section-title">Getting Help</h2>
+        <p class="section-intro">You're not on your own. Here's how to get support when you need it.</p>
+      </div>
+
+      <div class="quick-ref">
+        <div class="qr-card">
+          <div class="qr-label">Portal Support</div>
+          <div class="qr-value">Communication Hub → Support Tickets</div>
+        </div>
+        <div class="qr-card">
+          <div class="qr-label">Direct Message</div>
+          <div class="qr-value">Briefing → find your coordinator</div>
+        </div>
+        <div class="qr-card">
+          <div class="qr-label">Portal URL</div>
+          <div class="qr-value"><a href="https://volunteer.healthmatters.clinic" target="_blank">volunteer.healthmatters.clinic</a></div>
+        </div>
+        <div class="qr-card">
+          <div class="qr-label">Tour & Preview</div>
+          <div class="qr-value"><a href="https://volunteer.healthmatters.clinic/tour" target="_blank">volunteer.healthmatters.clinic/tour</a></div>
+        </div>
+        <div class="qr-card">
+          <div class="qr-label">General Email</div>
+          <div class="qr-value"><a href="mailto:volunteers@healthmatters.clinic">volunteers@healthmatters.clinic</a></div>
+        </div>
+        <div class="qr-card">
+          <div class="qr-label">Documentation</div>
+          <div class="qr-value">Portal → Doc Hub tab</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Common Issues — Quick Fixes</h3>
+      <table class="field-table">
+        <thead>
+          <tr>
+            <th>Problem</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Can't RSVP to an event</td>
+            <td>Check Training Academy — you likely have an incomplete module. Complete it, then try again.</td>
+          </tr>
+          <tr>
+            <td>Google login not showing</td>
+            <td>Hard refresh the page (Cmd+Shift+R / Ctrl+Shift+R). If still missing, try a different browser.</td>
+          </tr>
+          <tr>
+            <td>Hours not showing after event</td>
+            <td>Wait 48 hours. If still missing, submit a support ticket with the event name and date.</td>
+          </tr>
+          <tr>
+            <td>Client not found in search</td>
+            <td>Try searching by first name only. If still not found, add them as a new client.</td>
+          </tr>
+          <tr>
+            <td>Questionnaire won't submit</td>
+            <td>Check for unanswered required fields (highlighted in red). Fill them in and try again.</td>
+          </tr>
+          <tr>
+            <td>Can't access Client Intake tab</td>
+            <td>This tab is only active on event day during an active shift. Contact your coordinator to confirm you're on the roster.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="training-footer">
+      <div class="footer-logo">Health Matters Clinic · Volunteer Portal</div>
+      <div class="footer-note">Questions about this training? Email <a href="mailto:volunteers@healthmatters.clinic" class="footer-link">volunteers@healthmatters.clinic</a></div>
+      <div style="font-size:12px;color:var(--text-3)">volunteer.healthmatters.clinic/training</div>
+    </footer>
+
+  </main>
+</div>
+
+<!-- COMPLETION BANNER -->
+<div class="completion-banner" id="completionBanner">
+  <div class="completion-banner-icon">✓</div>
+  <div class="completion-banner-text"><strong>Training complete!</strong> You're ready for event day.</div>
+</div>
+
+<script>
+// Sidebar active state + progress tracking
+const viewed = new Set();
+const totalSections = 10;
+
+function setActive(el) {
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Intersection observer for scroll-based progress
+const sections = document.querySelectorAll('.content-section[id]');
+const sidebarLinks = document.querySelectorAll('.sidebar-link[href^="#"]');
+
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      const stepMap = {login:1,dashboard:2,training:3,'find-events':4,rsvp:5,calendar:6,'client-intake':7,questionnaire:8,checkin:9,after:10};
+      if (stepMap[id]) viewed.add(stepMap[id]);
+
+      // Update sidebar active
+      sidebarLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+      });
+
+      updateProgress();
+    }
+  });
+}, { threshold: 0.25, rootMargin: '-56px 0px 0px 0px' });
+
+sections.forEach(s => obs.observe(s));
+
+function updateProgress() {
+  const count = viewed.size;
+  const pct = Math.round((count / totalSections) * 100);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progCount').textContent = count + ' of ' + totalSections + ' sections viewed';
+  if (count >= totalSections) {
+    document.getElementById('completionBanner').classList.add('show');
+    setTimeout(() => document.getElementById('completionBanner').classList.remove('show'), 5000);
+  }
+}
+
+// Smooth scroll with offset for topbar
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - 72;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  });
+});
+</script>
+</body>
+</html>
