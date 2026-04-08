@@ -21,7 +21,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--update-env-vars'
-      - 'EMAIL_SERVICE_URL=https://script.google.com/macros/s/AKfycbxMOK7JiV_nTZKLQCDumFALNY_v-m-M5PST2zuhQLShT3WcqG_8hmTCcB6PHzHpcts4Tg/exec,APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbyiCw_yisTVlgT5CGR07ABLNt0O-zEoHV7o6L3vLRTEaQJcDGXD00jkTinDVuZ_v_lBqA/exec'
+      - 'EMAIL_SERVICE_URL=https://script.google.com/macros/s/AKfycbxMOK7JiV_nTZKLQCDumFALNY_v-m-M5PST2zuhQLShT3WcqG_8hmTCcB6PHzHpcts4Tg/exec,APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbyiCw_yisTVlgT5CGR07ABLNt0O-zEoHV7o6L3vLRTEaQJcDGXD00jkTinDVuZ_v_lBqA/exec,GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com,VITE_GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com'
 
 images:
   - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:$COMMIT_SHA'
