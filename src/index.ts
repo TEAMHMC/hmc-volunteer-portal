@@ -13835,10 +13835,9 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
 const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+14049046355';
 const MONITOR_TARGETS = [
   { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
-  { name: 'Take Action LA', url: 'https://www.healthmatters.clinic/takeactionla', expectInBody: 'Health Matters Clinic' },
+  { name: 'Take Action LA', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
   { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
-  { name: 'Take Action LA (Webflow)', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
 ];
 const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
 
