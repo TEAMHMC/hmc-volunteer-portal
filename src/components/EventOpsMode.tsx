@@ -283,7 +283,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     tracker: { title: 'Distribution Tracker', description: 'Track distribution of supplies — Narcan, fentanyl test strips, food, hygiene kits. Log each distribution so we can estimate future needs.' },
     incidents: { title: 'Incident Reporting', description: 'Report any incidents or safety concerns here. Your lead will be notified immediately.' },
     signoff: { title: 'End-of-Day', description: 'End-of-day sign-off. Complete this after breakdown and the debrief session.' },
-    checkin: { title: 'Volunteer Check-In', description: 'Manage volunteer check-ins. Share the QR code for self check-in or manually check volunteers in.' },
+    checkin: { title: 'Volunteer Check-In', description: 'For team members only — not clients or participants. Share the QR code for self check-in or manually check volunteers in. Walk-ins are community members who showed up to help without pre-registering.' },
     checklists: { title: 'Setup & Breakdown', description: 'Setup and breakdown checklists.', tips: ['First hour: equipment setup, station layout, team huddle.', 'Last hour: recap, pack-up, debrief.'] },
     logistics: { title: 'Equipment Loadout', description: 'Equipment loadout for logistics. Track what\'s packed, loaded, and delivered.' },
   };
@@ -864,7 +864,8 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
 
     return (
         <div className="space-y-10 animate-in fade-in">
-            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Event Check-In</h2>
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Volunteer Check-In</h2>
+            <p className="text-sm text-zinc-500 -mt-6">Check in team members listed on the Brief. Clients &amp; participants are registered via Health, Intake, or Tracker.</p>
 
             {/* QR Code Card */}
             <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 shadow-inner text-center space-y-6">
@@ -887,7 +888,7 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-3xl border border-blue-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <p className="text-3xl font-black text-zinc-900">{totalRsvps}</p>
-                    <p className="text-sm font-bold text-blue-500 mt-1">RSVPs</p>
+                    <p className="text-sm font-bold text-blue-500 mt-1">Volunteers Registered</p>
                 </div>
                 <div className="p-6 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 rounded-3xl border border-emerald-100/50 text-center shadow-sm hover:shadow-2xl transition-shadow">
                     <p className="text-3xl font-black text-zinc-900">{checkedInCount}</p>
@@ -906,12 +907,13 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
                         onClick={() => setShowWalkinForm(true)}
                         className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-brand to-indigo-600 text-white rounded-2xl text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-opacity shadow-elevation-2"
                     >
-                        <UserPlus size={16} /> Register Walk-in
+                        <UserPlus size={16} /> Register Walk-in Volunteer
                     </button>
                 ) : (
                     <form onSubmit={handleWalkinCheckin} className="p-5 bg-white border border-zinc-200 rounded-3xl space-y-4 shadow-sm">
                         <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Walk-in Check-in</p>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Walk-in Volunteer</p>
+                            <p className="text-[10px] text-zinc-400 mt-0.5">Someone who showed up to help but didn't pre-register</p>
                             <button type="button" onClick={() => { setShowWalkinForm(false); setWalkinName(''); setWalkinEmail(''); }} className="p-1 hover:bg-zinc-100 rounded-full"><X size={14} className="text-zinc-400" /></button>
                         </div>
                         <input
@@ -935,7 +937,7 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
                             className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-brand text-white rounded-2xl text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
                             {walkinSubmitting ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
-                            Check In Walk-in
+                            Check In Walk-in Volunteer
                         </button>
                     </form>
                 )}
@@ -944,7 +946,7 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
             {/* Attendee List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Attendee List</p>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Volunteer Team</p>
                     <p className="text-[10px] font-bold text-zinc-400">{checkedInCount}/{totalRsvps} checked in</p>
                 </div>
                 <div className="relative">
@@ -3104,12 +3106,12 @@ Use markdown formatting with ## for main headings and ### for subheadings. Use b
 // STATION ROTATION PLANNER - DEFAULT STATIONS
 // ============================================================
 const DEFAULT_STREET_MEDICINE_STATIONS: Station[] = [
-    { id: 'st-1', name: 'Check-in / Line Management', shortName: 'Check-in', status: 'active', position: { x: 20, y: 120 }, width: 110, height: 70, roleA: 'Greeter', roleB: 'Logger', swapRoles: false, linkedTool: 'tracker' },
-    { id: 'st-2', name: 'Blood Pressure / Vitals', shortName: 'BP/Vitals', status: 'active', requiresClinical: true, supplies: ['BP cuff', 'Pulse oximeter'], position: { x: 150, y: 120 }, width: 110, height: 70, roleA: 'Hands-On', roleB: 'Observer', swapRoles: true, linkedTool: 'screenings' },
-    { id: 'st-3', name: 'HIV Testing', shortName: 'HIV Test', status: 'active', requiresClinical: true, supplies: ['OraQuick kits', 'Gloves'], position: { x: 280, y: 120 }, width: 110, height: 70, roleA: 'Hands-On', roleB: 'Observer', swapRoles: true, linkedTool: 'screenings' },
-    { id: 'st-4', name: 'Harm Reduction Supply Distribution', shortName: 'Harm Red.', status: 'active', supplies: ['Narcan', 'Fentanyl test strips', 'Condoms'], position: { x: 410, y: 120 }, width: 110, height: 70, roleA: 'Educator', roleB: 'Distributor', swapRoles: false, linkedTool: 'tracker' },
-    { id: 'st-5', name: 'Food Distribution', shortName: 'Food', status: 'active', supplies: ['Meals', 'Water', 'Snacks'], position: { x: 540, y: 120 }, width: 110, height: 70, roleA: 'Server', roleB: 'Server', swapRoles: false, linkedTool: 'tracker' },
-    { id: 'st-6', name: 'Referrals & Screenings', shortName: 'Referrals', status: 'active', supplies: ['Referral forms', 'Tablets'], position: { x: 670, y: 120 }, width: 110, height: 70, roleA: 'Screener', roleB: 'Navigator', swapRoles: false, linkedTool: 'intake' },
+    { id: 'st-1', name: 'Check-in / Line Management', shortName: 'Check-in', status: 'active', position: { x: 20, y: 120 }, width: 110, height: 70, rotation: 0, roleA: 'Greeter', roleB: 'Logger', swapRoles: false, linkedTool: 'tracker' },
+    { id: 'st-2', name: 'Blood Pressure / Vitals', shortName: 'BP/Vitals', status: 'active', requiresClinical: true, supplies: ['BP cuff', 'Pulse oximeter'], position: { x: 150, y: 120 }, width: 110, height: 70, rotation: 0, roleA: 'Hands-On', roleB: 'Observer', swapRoles: true, linkedTool: 'screenings' },
+    { id: 'st-3', name: 'HIV Testing', shortName: 'HIV Test', status: 'active', requiresClinical: true, supplies: ['OraQuick kits', 'Gloves'], position: { x: 280, y: 120 }, width: 110, height: 70, rotation: 0, roleA: 'Hands-On', roleB: 'Observer', swapRoles: true, linkedTool: 'screenings' },
+    { id: 'st-4', name: 'Harm Reduction Supply Distribution', shortName: 'Harm Red.', status: 'active', supplies: ['Narcan', 'Fentanyl test strips', 'Condoms'], position: { x: 410, y: 120 }, width: 110, height: 70, rotation: 0, roleA: 'Educator', roleB: 'Distributor', swapRoles: false, linkedTool: 'tracker' },
+    { id: 'st-5', name: 'Food Distribution', shortName: 'Food', status: 'active', supplies: ['Meals', 'Water', 'Snacks'], position: { x: 540, y: 120 }, width: 110, height: 70, rotation: 0, roleA: 'Server', roleB: 'Server', swapRoles: false, linkedTool: 'tracker' },
+    { id: 'st-6', name: 'Referrals & Screenings', shortName: 'Referrals', status: 'active', supplies: ['Referral forms', 'Tablets'], position: { x: 670, y: 120 }, width: 110, height: 70, rotation: 0, roleA: 'Screener', roleB: 'Navigator', swapRoles: false, linkedTool: 'intake' },
 ];
 
 const STATION_COLORS: Record<string, string> = {
@@ -3396,7 +3398,7 @@ const SidewalkLayoutCanvas: React.FC<{
     const canvasRef = useRef<HTMLDivElement>(null);
 
     // Defensive: guard against null/undefined data from server
-    const safeStations = stations || [];
+    const safeStations = (stations || []).map(s => ({ rotation: 0, ...s }));
     const safeRotationSlots = rotationSlots || [];
     const safeRovingTeam = rovingTeam || { status: 'inactive' as const, assignedPairIds: [] };
 

@@ -180,6 +180,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     delete safeFormData.password;
     delete safeFormData.verifyPassword;
     delete safeFormData.ssn;
+    delete safeFormData.signature;
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -189,6 +190,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
       }));
     } catch (e) {
       console.warn('Failed to save onboarding progress');
+    }
+
+    // Also save to server whenever email is known (so any device can resume)
+    if (safeFormData.email && step !== 'account') {
+      apiService.post('/auth/onboarding-draft', { email: safeFormData.email, step, formData: safeFormData })
+        .catch(() => {}); // fire-and-forget, localStorage is the local backup
     }
   }, [step, formData]);
 
@@ -209,9 +216,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     onBackToLanding();
   };
 
-  // Explicit save & exit — same as back to landing but with a toast confirmation
+  // Explicit save & exit — saves to both localStorage and server, then returns to landing
   const handleSaveAndExit = () => {
-    toastService.success('Progress saved! Return anytime to continue your application.');
+    if (formData.email && step !== 'account') {
+      const safe = { ...formData };
+      delete safe.password; delete safe.verifyPassword; delete safe.ssn; delete safe.signature;
+      apiService.post('/auth/onboarding-draft', { email: formData.email, step, formData: safe }).catch(() => {});
+    }
+    toastService.success('Progress saved! Log back in anytime on any device to continue your application.');
     onBackToLanding();
   };
 
@@ -276,6 +288,16 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     setFormErrors(errors);
     if (Object.keys(errors).length === 0) {
       if (step === 'account') {
+        // If a server draft was found, load it so the volunteer resumes where they left off
+        if (formData._serverDraft) {
+          const { step: savedStep, formData: savedForm } = formData._serverDraft;
+          const merged = { ...savedForm, email: formData.email, emailVerified: true, passwordBypassed: formData.passwordBypassed, password: formData.password, verifyPassword: formData.verifyPassword, googleCredential: formData.googleCredential, authProvider: formData.authProvider };
+          delete merged._serverDraft;
+          setFormData(merged);
+          setStep(savedStep as StepId);
+          setShowWelcomeBack(true);
+          return;
+        }
         setStep(STEPS[currentStepIndex + 1]);
         return;
       }
@@ -431,7 +453,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
           ? { user: v, googleCredential: formData.googleCredential, ...(referralCode ? { referralCode } : {}) }
           : { user: v, password: formData.password, ...(referralCode ? { referralCode } : {}) };
         const response = await apiService.post('/auth/signup', authPayload, 90000);
+        // Clear both local and server drafts on success
         clearSavedProgress();
+        apiService.post('/auth/onboarding-draft', { email: formData.email, step: 'complete', formData: {} }).catch(() => {});
         if (response && response.token && onSuccess) {
             onSuccess();
         } else {
@@ -441,7 +465,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     } catch (error: any) {
       const msg = error?.message || '';
       if (msg.includes('already exists') || msg.includes('existingAccount')) {
-        setSubmitError('An account with this email already exists. Please go back and log in instead of creating a new account.');
+        setSubmitError('You already started an application with this email. Log in to your account to continue where you left off — your progress was saved.');
       } else {
         setSubmitError(msg || 'An unexpected error occurred. Please try again.');
       }
@@ -514,7 +538,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
              <CheckCircle size={18} className="text-emerald-600 shrink-0" />
              <div>
                <p className="text-sm font-bold text-emerald-900">Welcome back! Your progress has been restored.</p>
-               <p className="text-xs text-emerald-700 mt-0.5">You're on step {currentStepIndex + 1} of {STEPS.length} — pick up right where you left off.</p>
+               <p className="text-xs text-emerald-700 mt-0.5">You're on step {currentStepIndex + 1} of {STEPS.length} — pick up right where you left off. Progress is saved across all your devices.</p>
              </div>
            </div>
            <button onClick={() => setShowWelcomeBack(false)} className="text-emerald-400 hover:text-emerald-600 shrink-0"><X size={16} /></button>
@@ -620,6 +644,16 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
         const res = await apiService.post('/auth/verify-code', { email: data.email, code: verificationCode });
         if (res && res.valid) {
             onChange('emailVerified', true);
+            // Check if a server-side draft exists for this email so returning
+            // volunteers can resume on any device without re-entering everything
+            try {
+                const draftRes = await apiService.get(`/auth/onboarding-draft?email=${encodeURIComponent(data.email)}`);
+                if (draftRes?.draft?.step && draftRes.draft.step !== 'account') {
+                    onChange('_serverDraft', draftRes.draft);
+                }
+            } catch (_) {
+                // Non-fatal — proceed without draft
+            }
         } else {
             setCodeError(res?.message || 'Invalid code');
         }

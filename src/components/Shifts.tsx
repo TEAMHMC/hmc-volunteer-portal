@@ -798,6 +798,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showEventDetail, setShowEventDetail] = useState<Opportunity | null>(null);
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [showStaffingModal, setShowStaffingModal] = useState<{ role: string; eventDate: string; eventId: string; eventTitle: string; eventLocation: string; eventType?: string } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Opportunity | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -1432,9 +1433,22 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
            )}
 
            {/* All Events */}
-           <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wide mb-6 px-2">All Events</h3>
+           <div className="flex items-center justify-between mb-6 px-2">
+             <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wide">
+               {showPastEvents ? 'All Events' : 'Upcoming Events'}
+             </h3>
+             <button
+               onClick={() => setShowPastEvents(p => !p)}
+               className="text-xs font-semibold text-brand underline underline-offset-2"
+             >
+               {showPastEvents ? 'Hide past events' : 'Show past events'}
+             </button>
+           </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {[...opportunities].filter(o => o.approvalStatus !== 'pending').sort((a, b) => {
+              {[...opportunities].filter(o => o.approvalStatus !== 'pending').filter(o => {
+                if (showPastEvents) return true;
+                return !isPastEvent(o.date);
+              }).sort((a, b) => {
                 const dateA = new Date(a.date + 'T00:00:00').getTime();
                 const dateB = new Date(b.date + 'T00:00:00').getTime();
                 return dateA - dateB;
@@ -1848,7 +1862,9 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
             )}
             {Object.values(groupedByDate).some(d => d.shifts.length > 0) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {Object.entries(groupedByDate).flatMap(([, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) =>
+                    {Object.entries(groupedByDate)
+                    .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                    .flatMap(([, dateData]: [string, { shifts: Shift[], opportunities: Opportunity[] }]) =>
                         dateData.shifts.map(shift => {
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;

@@ -2215,6 +2215,63 @@ app.post('/auth/verify-code', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================
+// ONBOARDING DRAFT — server-side save so volunteers can resume
+// on any device after email verification
+// ============================================================
+app.post('/auth/onboarding-draft', rateLimit(30, 60000), async (req: Request, res: Response) => {
+    const { email, step, formData } = req.body;
+    if (!email || !step) return res.status(400).json({ error: 'email and step required' });
+    const normalEmail = email.toLowerCase().trim();
+    // Key = url-safe base64 of email
+    const key = Buffer.from(normalEmail).toString('base64url');
+    try {
+        // Strip sensitive fields before storing
+        const safe = { ...(formData || {}) };
+        delete safe.password;
+        delete safe.verifyPassword;
+        delete safe.ssn;
+        delete safe.signature;
+        await db.collection('onboarding_drafts').doc(key).set({
+            email: normalEmail,
+            step,
+            formData: JSON.stringify(safe),
+            savedAt: new Date().toISOString(),
+            // Drafts expire after 60 days of inactivity
+            expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('[ONBOARDING DRAFT] save failed:', e);
+        res.status(500).json({ error: 'Failed to save draft' });
+    }
+});
+
+app.get('/auth/onboarding-draft', async (req: Request, res: Response) => {
+    const email = ((req.query.email as string) || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const key = Buffer.from(email).toString('base64url');
+    try {
+        const doc = await db.collection('onboarding_drafts').doc(key).get();
+        if (!doc.exists) return res.json({ draft: null });
+        const data = doc.data()!;
+        if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
+            doc.ref.delete().catch(() => {});
+            return res.json({ draft: null });
+        }
+        res.json({
+            draft: {
+                step: data.step,
+                formData: JSON.parse(data.formData || '{}'),
+                savedAt: data.savedAt,
+            },
+        });
+    } catch (e) {
+        console.error('[ONBOARDING DRAFT] fetch failed:', e);
+        res.status(500).json({ error: 'Failed to get draft' });
+    }
+});
+
 // Note: CAPTCHA already verified during email verification step, not needed here
 app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response) => {
     const { user, password, googleCredential, referralCode } = req.body;
