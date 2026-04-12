@@ -485,9 +485,10 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                             <label className={labelCls}>Preferred Contact Method</label>
                             <select onChange={e => setClient({...client, contactMethod: e.target.value as any})} className={inputCls}>
                                 <option value="">Select...</option>
-                                <option value="phone">Phone</option>
+                                <option value="call">Call</option>
                                 <option value="email">Email</option>
                                 <option value="text">Text</option>
+                                <option value="none">N/A — Do Not Contact</option>
                             </select>
                         </div>
                     </div>

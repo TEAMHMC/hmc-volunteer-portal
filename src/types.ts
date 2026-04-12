@@ -627,7 +627,7 @@ export interface ClientRecord {
     dob?: string;
     phone?: string;
     email?: string;
-    contactMethod?: 'phone' | 'email' | 'text' | 'walk-in';
+    contactMethod?: 'call' | 'email' | 'text' | 'walk-in' | 'none';
 
     // Demographics (for matching & grant reporting)
     gender?: string;

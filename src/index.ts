@@ -4151,7 +4151,7 @@ app.get('/api/referrals', verifyToken, async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to fetch referrals' });
     }
 });
-app.post('/api/referrals/create', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+app.post('/api/referrals/create', verifyToken, async (req: Request, res: Response) => {
     try {
         const referral = req.body.referral;
         if (!referral || !referral.clientId) return res.status(400).json({ error: 'clientId required' });
