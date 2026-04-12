@@ -1868,9 +1868,11 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                         dateData.shifts.map(shift => {
                             const opp = getOpp(shift.opportunityId);
                             if (!opp) return null;
-                            const isRegistered = user.assignedShiftIds?.includes(shift.id);
                             // Show total available across ALL shifts for this event (not just this one shift)
                             const allEventShifts = shifts.filter(s => s.opportunityId === shift.opportunityId);
+                            // Registered = assigned to this shift OR any other shift for the same event
+                            const isRegistered = allEventShifts.some(s => user.assignedShiftIds?.includes(s.id))
+                              || user.rsvpedEventIds?.includes(shift.opportunityId);
                             const slotsLeft = allEventShifts.reduce((sum, s) => sum + Math.max(0, s.slotsTotal - (s.assignedVolunteerIds?.length || 0)), 0);
 
                             const regStatus = getRegistrationStatus(opp);
@@ -1967,7 +1969,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
                                             );
                                           })()}
                                           {canManageEvents && (() => {
-                                            const isReg = user.assignedShiftIds?.includes(shift.id);
+                                            const isReg = allEventShifts.some(s => user.assignedShiftIds?.includes(s.id)) || user.rsvpedEventIds?.includes(shift.opportunityId);
                                             const adminOpsVisible = isInOpsWindow(opp.date);
                                             return (
                                               <div className="flex items-center gap-2">
