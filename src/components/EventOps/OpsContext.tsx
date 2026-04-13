@@ -118,6 +118,7 @@ export interface OpsProviderProps {
   allVolunteers?: Volunteer[];
   isTestMode?: boolean;
   onSignoff?: () => void;
+  onUpdateUser?: (u: Volunteer) => void;
   children: React.ReactNode;
 }
 
@@ -178,6 +179,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
   user,
   isTestMode = false,
   onSignoff,
+  onUpdateUser,
   children,
 }) => {
   const isLead = user.isAdmin || LEAD_ROLES.includes(user.role);
@@ -502,7 +504,19 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
       const completedItems = state.opsRun?.completedItems ?? [];
 
       if (isTestMode) {
-        toastService.success('[PRACTICE MODE] Sign-off complete');
+        toastService.success('Simulation complete — great work!');
+        // Mark simulation as completed on the volunteer's training record
+        onUpdateUser?.({
+          ...user,
+          completedTrainingIds: [
+            ...new Set([...(user.completedTrainingIds ?? []), 'event-ops-simulation']),
+          ],
+        });
+        // Simulate checkout result so WrapUp shows the celebration screen
+        setState(prev => ({
+          ...prev,
+          checkoutResult: { hoursServed: 2, pointsEarned: 100 },
+        }));
         onSignoff?.();
         return;
       }
@@ -517,7 +531,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
         throw err;
       }
     },
-    [isTestMode, shift.id, state.opsRun, onSignoff],
+    [isTestMode, shift.id, state.opsRun, onSignoff, onUpdateUser, user],
   );
 
   const logAudit = useCallback(

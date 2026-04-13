@@ -18,6 +18,8 @@ import {
   Trophy,
   Shield,
   Navigation,
+  X,
+  MessageSquare,
 } from 'lucide-react';
 import { useOps } from '../OpsContext';
 import {
@@ -145,6 +147,150 @@ function StepProgress({ current }: { current: number }) {
           </React.Fragment>
         );
       })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Simulation Guide — visible only in test/practice mode
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SimScenario {
+  id: string;
+  step: string;
+  title: string;
+  context: string;
+  clientSays?: string;
+  volunteerSays?: string;
+  action: string;
+  isComplete: (state: any) => boolean;
+}
+
+const SIMULATION_SCENARIOS: SimScenario[] = [
+  {
+    id: 'arrive',
+    step: '1 of 5',
+    title: 'Arrive & Check In',
+    context: "You've arrived at 545 S San Pedro St. Your Events Lead is setting up near the entrance. Make contact and check in to get your station assignment.",
+    action: 'Tap "Check In" to check in with your lead.',
+    isComplete: (s) => !!s.checkinStatus?.checkedIn,
+  },
+  {
+    id: 'screening',
+    step: '2 of 5',
+    title: 'Client Encounter — Raymond',
+    context: "You're walking the outreach area near 5th & San Pedro. Raymond (approx. 50s, male) is sitting on a crate. He looks tired but makes eye contact.",
+    clientSays: '"My blood pressure has been acting up and I haven\'t seen a doctor in two years. I don\'t know what to do."',
+    volunteerSays: '"Hi Raymond, I\'m with Health Matters Clinic. We have a free health station set up right here — can I check your BP right now? Takes about two minutes."',
+    action: 'After taking his blood pressure reading, tap "Screenings" and log the result.',
+    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'screening'),
+  },
+  {
+    id: 'distribution',
+    step: '3 of 5',
+    title: 'Client Encounter — Maria',
+    context: "Maria (approx. 30s, female) walks over to your supply table. She says she\'s staying at a nearby shelter.",
+    clientSays: '"Do you have any hygiene stuff? I\'ve been out of toothpaste and clean socks for days."',
+    volunteerSays: '"Of course! We have hygiene kits, socks, and a resource packet with local services. Let me grab you a bag."',
+    action: 'Give her the supplies, then tap "Resources" and log a Distribution.',
+    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'distribution'),
+  },
+  {
+    id: 'referral',
+    step: '4 of 5',
+    title: 'Client Encounter — James',
+    context: "James (approx. 40s, male) steps aside with you, away from the group. He speaks quietly and looks vulnerable.",
+    clientSays: '"I\'ve been feeling really low lately... can\'t sleep, can\'t focus. I heard you all know about mental health help."',
+    volunteerSays: '"James, thank you for trusting me. You deserve real support — we connect people with mental health services. Can I get your verbal consent to set up a referral for you?"',
+    action: 'After getting his verbal consent, tap "Referrals" and log the referral (Mental Health Services). Check the consent box.',
+    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'referral'),
+  },
+  {
+    id: 'wrapup',
+    step: '5 of 5',
+    title: 'Wrap Up & Sign Off',
+    context: "Outstanding work! You\'ve completed all four practice encounters — a screening, a distribution, and a referral. The Events Lead is signaling wrap-up time.",
+    action: 'Tap "Begin Wrap-Up" when you\'re ready, then review your logs and sign off to complete the simulation.',
+    isComplete: (s) => !!s.checkoutResult,
+  },
+];
+
+function SimulationGuide() {
+  const { state } = useOps();
+  const [minimized, setMinimized] = useState(false);
+
+  const completedCount = SIMULATION_SCENARIOS.filter(s => s.isComplete(state)).length;
+  const activeIndex = SIMULATION_SCENARIOS.findIndex(s => !s.isComplete(state));
+  const scenario = activeIndex >= 0 ? SIMULATION_SCENARIOS[activeIndex] : null;
+
+  // Auto-expand when scenario changes
+  const prevActiveIndex = useRef(activeIndex);
+  useEffect(() => {
+    if (activeIndex !== prevActiveIndex.current) {
+      setMinimized(false);
+      prevActiveIndex.current = activeIndex;
+    }
+  }, [activeIndex]);
+
+  if (!scenario) return null; // All done — celebration shown by WrapUp
+
+  if (minimized) {
+    return (
+      <button
+        onClick={() => setMinimized(false)}
+        className="w-full mb-3 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 text-left active:scale-[0.99] transition-all"
+      >
+        <MessageSquare size={14} className="text-amber-500 flex-shrink-0" />
+        <span className="text-xs font-black text-amber-700 uppercase tracking-wider flex-1">Scenario Guide</span>
+        <div className="flex gap-1 mr-2">
+          {SIMULATION_SCENARIOS.map((s, i) => (
+            <div key={s.id} className={`w-1.5 h-1.5 rounded-full ${i < completedCount ? 'bg-amber-500' : i === completedCount ? 'bg-amber-400 animate-pulse' : 'bg-amber-200'}`} />
+          ))}
+        </div>
+        <span className="text-[10px] text-amber-500 font-black">{completedCount}/{SIMULATION_SCENARIOS.length}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare size={14} className="text-amber-500 flex-shrink-0" />
+        <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider flex-1">Scenario Guide — Step {scenario.step}</span>
+        <div className="flex gap-1 mr-1">
+          {SIMULATION_SCENARIOS.map((s, i) => (
+            <div key={s.id} className={`w-1.5 h-1.5 rounded-full transition-colors ${i < completedCount ? 'bg-amber-500' : i === completedCount ? 'bg-amber-400 animate-pulse' : 'bg-amber-200'}`} />
+          ))}
+        </div>
+        <button onClick={() => setMinimized(true)} className="text-amber-300 hover:text-amber-600 ml-1"><X size={14} /></button>
+      </div>
+
+      {/* Scenario title + context */}
+      <p className="text-sm font-black text-amber-900 mb-1.5">{scenario.title}</p>
+      <p className="text-xs text-amber-800 font-medium leading-relaxed mb-2">{scenario.context}</p>
+
+      {/* Client says */}
+      {scenario.clientSays && (
+        <div className="bg-white border border-amber-200 rounded-xl p-2.5 mb-2">
+          <p className="text-[10px] font-black text-amber-500 uppercase tracking-wider mb-1">Client says:</p>
+          <p className="text-xs text-zinc-700 italic leading-relaxed">{scenario.clientSays}</p>
+        </div>
+      )}
+
+      {/* Volunteer response */}
+      {scenario.volunteerSays && (
+        <div className="bg-[#233DFF]/5 border border-[#233DFF]/10 rounded-xl p-2.5 mb-2">
+          <p className="text-[10px] font-black text-[#233DFF] uppercase tracking-wider mb-1">Your response:</p>
+          <p className="text-xs text-zinc-700 italic leading-relaxed">{scenario.volunteerSays}</p>
+        </div>
+      )}
+
+      {/* Action */}
+      <div className="flex items-start gap-2 mt-2 bg-amber-100 rounded-xl px-3 py-2">
+        <ArrowRight size={12} className="text-amber-600 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-800 font-black leading-relaxed">{scenario.action}</p>
+      </div>
     </div>
   );
 }
@@ -1245,6 +1391,7 @@ export default function MyDay({ onBack, onNavigateToAcademy }: VolunteerMyDayPro
 
       {/* Step content */}
       <div className="flex-1 px-4 pb-8 pt-2">
+        {isTestMode && <SimulationGuide />}
         {currentStep === 0 && <StepArrive />}
         {currentStep === 1 && (
           <StepAssigned

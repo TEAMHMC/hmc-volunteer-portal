@@ -939,7 +939,11 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Event Day Simulation</h3>
-                <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-wider">Practice Mode</span>
+                {hasCompletedModule(completedModuleIds, 'event-ops-simulation') ? (
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-wider">Completed</span>
+                ) : (
+                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-wider">Practice Mode</span>
+                )}
               </div>
               <p className="text-zinc-500 font-medium text-sm leading-relaxed">
                 Walk through a real event day — check in, receive your assignment, log services, and sign off — just like you would on event day.
@@ -955,10 +959,10 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
             </div>
             <button
               onClick={() => onLaunchEventOpsPractice?.()}
-              className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-wider hover:bg-[#1a2ecc] transition-all shadow-sm whitespace-nowrap shrink-0"
+              className={`flex items-center gap-2 px-6 py-3 min-h-[44px] rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-sm whitespace-nowrap shrink-0 ${hasCompletedModule(completedModuleIds, 'event-ops-simulation') ? 'bg-zinc-900 text-white hover:bg-zinc-700' : 'bg-[#233DFF] text-white hover:bg-[#1a2ecc]'}`}
             >
               <Play size={14} />
-              Launch Simulation
+              {hasCompletedModule(completedModuleIds, 'event-ops-simulation') ? 'Re-run Simulation' : 'Launch Simulation'}
             </button>
           </div>
         </div>

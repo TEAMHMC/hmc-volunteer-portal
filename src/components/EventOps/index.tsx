@@ -291,6 +291,7 @@ const EventOps: React.FC<EventOpsProps> = ({
   opportunity,
   user,
   onBack,
+  onUpdateUser,
   onNavigateToAcademy,
   allVolunteers,
   onEditEvent,
@@ -304,6 +305,7 @@ const EventOps: React.FC<EventOpsProps> = ({
       user={user}
       allVolunteers={allVolunteers}
       isTestMode={isTestMode}
+      onUpdateUser={onUpdateUser}
     >
       <InnerShell
         onBack={onBack}
