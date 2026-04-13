@@ -1,0 +1,1285 @@
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle,
+  Users,
+  MapPin,
+  Clock,
+  Star,
+  Zap,
+  ClipboardList,
+  BookOpen,
+  UserCheck,
+  LogOut,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  Trophy,
+  Shield,
+  Navigation,
+} from 'lucide-react';
+import { useOps } from '../OpsContext';
+import {
+  CHECKLIST_TEMPLATES,
+  SCRIPTS,
+  EVENT_TYPE_TEMPLATE_MAP,
+} from '../../../constants';
+import { apiService } from '../../../services/apiService';
+import { toastService } from '../../../services/toastService';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface VolunteerMyDayProps {
+  onBack: () => void;
+  onNavigateToAcademy?: () => void;
+}
+
+type ServiceLogType = 'screening' | 'resources' | 'referral' | 'survey' | null;
+
+interface ReferralForm {
+  clientName: string;
+  needType: string;
+}
+
+interface ResourceForm {
+  itemName: string;
+  quantity: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatShiftTime(timeStr: string): string {
+  // Handles "HH:MM" or ISO strings
+  if (timeStr.includes('T')) return formatTime(timeStr);
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function getElapsedMinutes(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+}
+
+function formatElapsed(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function isWithin45Minutes(endTimeStr: string): boolean {
+  const now = new Date();
+  const [h, m] = endTimeStr.includes('T')
+    ? [new Date(endTimeStr).getHours(), new Date(endTimeStr).getMinutes()]
+    : endTimeStr.split(':').map(Number);
+  const end = new Date();
+  end.setHours(h, m, 0, 0);
+  const diffMs = end.getTime() - now.getTime();
+  return diffMs <= 45 * 60 * 1000;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step Progress Indicator
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STEP_LABELS = ['Arrive', 'Assigned', 'Serving', 'Wrap Up'];
+
+function StepProgress({ current }: { current: number }) {
+  return (
+    <div className="flex items-center justify-center gap-0 px-4 py-3">
+      {STEP_LABELS.map((label, idx) => {
+        const isCompleted = idx < current;
+        const isActive = idx === current;
+        const isFuture = idx > current;
+        return (
+          <React.Fragment key={idx}>
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={[
+                  'flex items-center justify-center rounded-full font-black text-xs transition-all duration-300',
+                  'w-8 h-8',
+                  isCompleted
+                    ? 'bg-[#233DFF]/40 text-white'
+                    : isActive
+                    ? 'bg-[#233DFF] text-white shadow-lg shadow-[#233DFF]/30'
+                    : 'bg-zinc-200 text-zinc-400',
+                ].join(' ')}
+              >
+                {isCompleted ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  <span>{idx + 1}</span>
+                )}
+              </div>
+              <span
+                className={[
+                  'text-[10px] font-black uppercase tracking-wider',
+                  isActive ? 'text-[#233DFF]' : isCompleted ? 'text-[#233DFF]/50' : 'text-zinc-300',
+                ].join(' ')}
+              >
+                {label}
+              </span>
+            </div>
+            {idx < STEP_LABELS.length - 1 && (
+              <div
+                className={[
+                  'h-[2px] flex-1 mx-1 mb-5 rounded-full transition-all duration-300',
+                  idx < current ? 'bg-[#233DFF]/40' : 'bg-zinc-200',
+                ].join(' ')}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 0 — ARRIVE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StepArrive() {
+  const { state, opportunity, shift, isTestMode, checkIn } = useOps();
+  const [checking, setChecking] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const isCheckedIn = state.checkinStatus?.checkedIn ?? false;
+
+  useEffect(() => {
+    if (isCheckedIn) setShowSuccess(true);
+  }, [isCheckedIn]);
+
+  const handleCheckIn = async () => {
+    if (checking) return;
+    setChecking(true);
+    try {
+      await checkIn();
+      setShowSuccess(true);
+    } catch {
+      // toastService already shows error
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const checkinStatus = state.checkinStatus;
+
+  return (
+    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Hero card */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#233DFF]">
+            Today's Mission
+          </span>
+          {isTestMode && (
+            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+              <Zap className="w-2.5 h-2.5" />
+              Practice Mode
+            </span>
+          )}
+        </div>
+
+        <h1 className="text-2xl font-black tracking-tighter uppercase text-zinc-900 leading-tight mb-3">
+          {opportunity.title}
+        </h1>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2 text-zinc-400 font-medium text-sm">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {formatShiftTime(shift.startTime)} – {formatShiftTime(shift.endTime)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-zinc-400 font-medium text-sm">
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            <span>{opportunity.serviceLocation}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Check-in action (only shown when not yet checked in) */}
+      {!showSuccess && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-6">
+          <button
+            onClick={handleCheckIn}
+            disabled={checking}
+            className={[
+              'w-full flex items-center justify-center gap-3 rounded-full font-black uppercase tracking-wider text-white transition-all duration-300',
+              'min-h-[64px] text-base',
+              checking
+                ? 'bg-[#233DFF]/60 cursor-not-allowed'
+                : 'bg-[#233DFF] active:scale-95 shadow-lg shadow-[#233DFF]/25',
+            ].join(' ')}
+          >
+            {checking ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Checking In...
+              </>
+            ) : (
+              <>
+                <UserCheck className="w-5 h-5" />
+                I'm Here — Check In
+              </>
+            )}
+          </button>
+          <p className="text-center text-zinc-400 font-medium text-xs mt-3">
+            Team members only · Not for community participants
+          </p>
+        </div>
+      )}
+
+      {/* Success + Buddy card */}
+      {showSuccess && checkinStatus && (
+        <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* Check-in confirmation */}
+          <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-6 h-6 text-emerald-500" />
+              </div>
+              <div>
+                <p className="font-black text-zinc-900 text-base">You're checked in!</p>
+                {checkinStatus.checkedInAt && (
+                  <p className="text-zinc-400 font-medium text-sm">
+                    {formatTime(checkinStatus.checkedInAt)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Buddy card */}
+          {checkinStatus.buddyName ? (
+            <div className="rounded-2xl border border-[#233DFF]/10 bg-gradient-to-br from-[#233DFF]/5 to-blue-50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#233DFF] flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#233DFF] mb-1">
+                    Your Buddy
+                  </p>
+                  <p className="font-black text-zinc-900 text-lg leading-tight">
+                    {checkinStatus.buddyName}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    {checkinStatus.buddyRole && (
+                      <span className="bg-[#233DFF]/10 text-[#233DFF] text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                        {checkinStatus.buddyRole}
+                      </span>
+                    )}
+                    {checkinStatus.pairLabel && (
+                      <span className="bg-zinc-100 text-zinc-500 text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                        {checkinStatus.pairLabel}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 animate-pulse">
+                  <Users className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-black text-amber-800 text-sm">Waiting for buddy assignment</p>
+                  <p className="text-amber-600 font-medium text-xs mt-0.5">
+                    You'll be paired when another volunteer arrives
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Advance hint — step auto-advances via state */}
+          <div className="flex items-center justify-center gap-2 text-zinc-400 font-medium text-sm py-1">
+            <span>Scroll down to see your assignment</span>
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 1 — ASSIGNED
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface StepAssignedProps {
+  onStartServing: () => void;
+}
+
+function StepAssigned({ onStartServing }: StepAssignedProps) {
+  const { shift, opportunity, user } = useOps();
+  const [scriptOpen, setScriptOpen] = useState(false);
+
+  const templateId = EVENT_TYPE_TEMPLATE_MAP[opportunity.category] ?? null;
+  const template = templateId
+    ? CHECKLIST_TEMPLATES.find((t) => t.id === templateId) ?? null
+    : null;
+  const previewItems = template
+    ? Object.values(template.stages)
+        .flatMap((stage) => stage.items)
+        .slice(0, 4)
+    : [];
+
+  // Find a matching script by event category keywords
+  const matchedScript = SCRIPTS.find((s) =>
+    s.title.toLowerCase().includes('en') &&
+    (opportunity.category.toLowerCase().includes('survey') ||
+      opportunity.category.toLowerCase().includes('outreach') ||
+      opportunity.category.toLowerCase().includes('street'))
+  ) ?? SCRIPTS[0] ?? null;
+
+  const roleLabel = shift.roleType || user.role || 'Volunteer';
+
+  return (
+    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Assignment card */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        <div className="border-l-4 border-[#233DFF] p-6">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#233DFF] mb-3">
+            Your Assignment
+          </p>
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-zinc-400 mb-0.5">Role</p>
+              <p className="text-xl font-black tracking-tight text-zinc-900">{roleLabel}</p>
+            </div>
+            <div className="h-px bg-zinc-100" />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-zinc-400 shrink-0" />
+                <p className="text-sm font-medium text-zinc-600">{opportunity.serviceLocation}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
+                <p className="text-sm font-medium text-zinc-600">
+                  {formatShiftTime(shift.startTime)} – {formatShiftTime(shift.endTime)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* What you'll be doing */}
+      {previewItems.length > 0 && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardList className="w-4 h-4 text-[#233DFF]" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#233DFF]">
+              What You'll Be Doing Today
+            </p>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {previewItems.map((item) => (
+              <div key={item.id} className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full border-2 border-zinc-200 flex items-center justify-center shrink-0 mt-0.5" />
+                <p className="text-sm font-medium text-zinc-600 leading-snug">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Script reference — collapsible */}
+      {matchedScript && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setScriptOpen((v) => !v)}
+            className="w-full flex items-center justify-between p-5 min-h-[44px] text-left"
+          >
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-[#233DFF]" />
+              <span className="text-sm font-black text-zinc-800">Outreach Script</span>
+            </div>
+            <ChevronRight
+              className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
+                scriptOpen ? 'rotate-90' : ''
+              }`}
+            />
+          </button>
+          {scriptOpen && (
+            <div className="border-t border-zinc-100 px-5 pb-5 animate-in fade-in duration-200">
+              {matchedScript.notice && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 mt-3">
+                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium text-amber-700">{matchedScript.notice}</p>
+                </div>
+              )}
+              <pre className="whitespace-pre-wrap text-sm text-zinc-600 font-sans leading-relaxed mt-3">
+                {matchedScript.content.trim()}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CTA */}
+      <button
+        onClick={onStartServing}
+        className="w-full flex items-center justify-center gap-2 bg-[#233DFF] text-white rounded-full font-black uppercase tracking-wider min-h-[56px] text-sm active:scale-95 transition-all duration-200 shadow-lg shadow-[#233DFF]/25"
+      >
+        I'm Ready — Let's Go
+        <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 2 — SERVING
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface StepServingProps {
+  onBeginWrapUp: () => void;
+  serviceLogsCount: number;
+  onServiceLogged: () => void;
+}
+
+function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepServingProps) {
+  const { state, opportunity, shift, user, isTestMode, checkItem, logAudit } = useOps();
+  const [activeLog, setActiveLog] = useState<ServiceLogType>(null);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [logLoading, setLogLoading] = useState(false);
+  const [showSurveyKiosk, setShowSurveyKiosk] = useState(false);
+  const [referralForm, setReferralForm] = useState<ReferralForm>({ clientName: '', needType: '' });
+  const [resourceForm, setResourceForm] = useState<ResourceForm>({ itemName: '', quantity: 1 });
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const checkedInAt = state.checkinStatus?.checkedInAt;
+    if (!checkedInAt) return;
+    setElapsed(getElapsedMinutes(checkedInAt));
+    const id = setInterval(() => setElapsed(getElapsedMinutes(checkedInAt)), 60000);
+    return () => clearInterval(id);
+  }, [state.checkinStatus?.checkedInAt]);
+
+  const templateId = EVENT_TYPE_TEMPLATE_MAP[opportunity.category] ?? null;
+  const template = templateId
+    ? CHECKLIST_TEMPLATES.find((t) => t.id === templateId) ?? null
+    : null;
+  const allItems = template
+    ? Object.values(template.stages).flatMap((stage) => stage.items)
+    : [];
+  const completedItems = state.opsRun?.completedItems ?? [];
+  const completedCount = allItems.filter((i) => completedItems.includes(i.id)).length;
+
+  const canWrapUp =
+    isWithin45Minutes(shift.endTime) || completedCount > 0 || serviceLogsCount > 0;
+
+  // ── Service log handlers ──
+
+  const handleLogScreening = async () => {
+    setLogLoading(true);
+    try {
+      if (!isTestMode) {
+        await apiService.post('/api/health-screenings/create', {
+          eventId: opportunity.id,
+          shiftId: shift.id,
+          loggedBy: user.id,
+          type: 'general',
+        });
+      }
+      toastService.success(isTestMode ? '[PRACTICE] Screening logged' : 'Screening logged');
+      logAudit({
+        actionType: 'LOG_SCREENING',
+        targetSystem: 'HealthScreenings',
+        targetId: opportunity.id,
+        summary: `Volunteer ${user.id} logged a screening for event ${opportunity.id}`,
+      });
+      onServiceLogged();
+      setActiveLog(null);
+    } catch {
+      // error shown by apiService
+    } finally {
+      setLogLoading(false);
+    }
+  };
+
+  const handleLogResource = async () => {
+    if (!resourceForm.itemName.trim()) {
+      toastService.error('Please enter an item name');
+      return;
+    }
+    setLogLoading(true);
+    try {
+      if (!isTestMode) {
+        await apiService.post(`/api/ops/tracker/${opportunity.id}/distribution`, {
+          item: resourceForm.itemName,
+          quantity: resourceForm.quantity,
+          shiftId: shift.id,
+          loggedBy: user.id,
+        });
+      }
+      toastService.success(isTestMode ? '[PRACTICE] Distribution logged' : 'Distribution logged');
+      logAudit({
+        actionType: 'LOG_DISTRIBUTION',
+        targetSystem: 'OpsTracker',
+        targetId: opportunity.id,
+        summary: `Volunteer ${user.id} logged ${resourceForm.quantity}x ${resourceForm.itemName}`,
+      });
+      onServiceLogged();
+      setResourceForm({ itemName: '', quantity: 1 });
+      setActiveLog(null);
+    } catch {
+      // error shown by apiService
+    } finally {
+      setLogLoading(false);
+    }
+  };
+
+  const handleLogReferral = async () => {
+    if (!referralForm.clientName.trim() || !referralForm.needType) {
+      toastService.error('Please fill out all fields');
+      return;
+    }
+    setLogLoading(true);
+    try {
+      if (!isTestMode) {
+        await apiService.post('/api/referrals/create', {
+          clientName: referralForm.clientName,
+          needType: referralForm.needType,
+          eventId: opportunity.id,
+          shiftId: shift.id,
+          loggedBy: user.id,
+        });
+      }
+      toastService.success(isTestMode ? '[PRACTICE] Referral logged' : 'Referral logged');
+      logAudit({
+        actionType: 'LOG_REFERRAL',
+        targetSystem: 'Referrals',
+        targetId: opportunity.id,
+        summary: `Volunteer ${user.id} logged referral: ${referralForm.needType} for ${referralForm.clientName}`,
+      });
+      onServiceLogged();
+      setReferralForm({ clientName: '', needType: '' });
+      setActiveLog(null);
+    } catch {
+      // error shown by apiService
+    } finally {
+      setLogLoading(false);
+    }
+  };
+
+  const handleStartSurvey = () => {
+    logAudit({
+      actionType: 'START_SURVEY_KIOSK',
+      targetSystem: 'SurveyKit',
+      targetId: opportunity.id,
+      summary: `Volunteer ${user.id} initiated survey kiosk for event ${opportunity.id}`,
+    });
+    setShowSurveyKiosk(true);
+    setActiveLog(null);
+  };
+
+  // ── Service log forms ──
+
+  const renderInlineForm = () => {
+    if (!activeLog) return null;
+
+    const formBase =
+      'mt-4 pt-4 border-t border-zinc-100 animate-in fade-in slide-in-from-bottom-2 duration-200';
+
+    if (activeLog === 'screening') {
+      return (
+        <div className={formBase}>
+          <p className="text-xs text-zinc-500 font-medium mb-3">
+            Log one health screening (BP, BMI, O2, temp, or glucose)
+          </p>
+          <button
+            onClick={handleLogScreening}
+            disabled={logLoading}
+            className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+          >
+            {logLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            Log Screening
+          </button>
+        </div>
+      );
+    }
+
+    if (activeLog === 'resources') {
+      return (
+        <div className={formBase}>
+          <div className="flex flex-col gap-3 mb-3">
+            <input
+              type="text"
+              placeholder="Item name (e.g. Hygiene Kit)"
+              value={resourceForm.itemName}
+              onChange={(e) => setResourceForm((f) => ({ ...f, itemName: e.target.value }))}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+            />
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-400">Qty</span>
+              <div className="flex items-center gap-2 bg-zinc-50 rounded-full px-1 py-1">
+                <button
+                  onClick={() => setResourceForm((f) => ({ ...f, quantity: Math.max(1, f.quantity - 1) }))}
+                  className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center font-black text-zinc-600 text-lg min-h-0 active:scale-90 transition-all"
+                >
+                  −
+                </button>
+                <span className="w-8 text-center font-black text-zinc-900 text-base">
+                  {resourceForm.quantity}
+                </span>
+                <button
+                  onClick={() => setResourceForm((f) => ({ ...f, quantity: f.quantity + 1 }))}
+                  className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center font-black text-zinc-600 text-lg min-h-0 active:scale-90 transition-all"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleLogResource}
+            disabled={logLoading}
+            className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+          >
+            {logLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            Log Distribution
+          </button>
+        </div>
+      );
+    }
+
+    if (activeLog === 'referral') {
+      return (
+        <div className={formBase}>
+          <div className="flex flex-col gap-3 mb-3">
+            <input
+              type="text"
+              placeholder="Client first name or initials"
+              value={referralForm.clientName}
+              onChange={(e) => setReferralForm((f) => ({ ...f, clientName: e.target.value }))}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+            />
+            <select
+              value={referralForm.needType}
+              onChange={(e) => setReferralForm((f) => ({ ...f, needType: e.target.value }))}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] bg-white"
+            >
+              <option value="">Select need type...</option>
+              <option value="Housing">Housing</option>
+              <option value="Mental Health">Mental Health</option>
+              <option value="Substance Use">Substance Use</option>
+              <option value="Medical">Medical</option>
+              <option value="Food">Food</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <button
+            onClick={handleLogReferral}
+            disabled={logLoading}
+            className="w-full flex items-center justify-center gap-2 bg-purple-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+          >
+            {logLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            Log Referral
+          </button>
+        </div>
+      );
+    }
+
+    if (activeLog === 'survey') {
+      return (
+        <div className={formBase}>
+          <p className="text-xs text-zinc-500 font-medium mb-3">
+            Open the survey kiosk for a community participant
+          </p>
+          <button
+            onClick={handleStartSurvey}
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+          >
+            <Star className="w-4 h-4" />
+            Start Survey
+          </button>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const ServiceButton = ({
+    type,
+    icon,
+    title,
+    subtitle,
+    color,
+  }: {
+    type: ServiceLogType;
+    icon: React.ReactNode;
+    title: string;
+    subtitle: string;
+    color: string;
+  }) => {
+    const isActive = activeLog === type;
+    return (
+      <button
+        onClick={() => setActiveLog(isActive ? null : type)}
+        className={[
+          'flex flex-col gap-1 rounded-2xl p-5 min-h-[88px] text-left transition-all duration-200',
+          'border active:scale-95',
+          isActive
+            ? 'bg-[#233DFF]/5 border-[#233DFF]/20 shadow-sm'
+            : 'bg-white border-zinc-100 shadow-sm',
+        ].join(' ')}
+      >
+        <div className={`text-${color} mb-1`}>{icon}</div>
+        <p className="font-black text-zinc-900 text-sm leading-tight">{title}</p>
+        <p className="text-zinc-400 font-medium text-xs">{subtitle}</p>
+      </button>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Live status bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5 min-h-[32px]">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span className="text-emerald-700 font-black text-xs uppercase tracking-wider">Active</span>
+          <span className="text-emerald-600 font-medium text-xs">· {formatElapsed(elapsed)}</span>
+        </div>
+        {isTestMode && (
+          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5 min-h-[32px]">
+            <Zap className="w-3 h-3 text-amber-500" />
+            <span className="text-amber-700 font-black text-xs uppercase tracking-wider">Practice</span>
+          </div>
+        )}
+      </div>
+
+      {/* Quick-log service buttons */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">
+          Log a Service
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <ServiceButton
+            type="screening"
+            icon={<Shield className="w-5 h-5" />}
+            title="Screening"
+            subtitle="Health checks"
+            color="emerald-500"
+          />
+          <ServiceButton
+            type="resources"
+            icon={<Navigation className="w-5 h-5" />}
+            title="Resources"
+            subtitle="Supplies given"
+            color="blue-500"
+          />
+          <ServiceButton
+            type="referral"
+            icon={<ArrowRight className="w-5 h-5" />}
+            title="Referral"
+            subtitle="Complex needs"
+            color="purple-500"
+          />
+          <ServiceButton
+            type="survey"
+            icon={<Star className="w-5 h-5" />}
+            title="Survey"
+            subtitle="Community data"
+            color="amber-500"
+          />
+        </div>
+        {renderInlineForm()}
+      </div>
+
+      {/* Survey kiosk notice */}
+      {showSurveyKiosk && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-start gap-3">
+            <Star className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-black text-amber-900 text-sm">Survey Kiosk Active</p>
+              <p className="text-amber-700 font-medium text-xs mt-1">
+                Hand the device to the participant. Navigate to the survey link in your browser. Remind them: voluntary, anonymous, ~10 minutes.
+              </p>
+              <button
+                onClick={() => setShowSurveyKiosk(false)}
+                className="mt-2 text-amber-600 font-black text-xs uppercase tracking-wider underline underline-offset-2"
+              >
+                Done — Close Notice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* My Tasks accordion */}
+      {allItems.length > 0 && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setTasksOpen((v) => !v)}
+            className="w-full flex items-center justify-between p-5 min-h-[44px] text-left"
+          >
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-[#233DFF]" />
+              <span className="font-black text-zinc-800 text-sm">My Tasks</span>
+              <span className="bg-zinc-100 text-zinc-500 font-black text-xs px-2 py-0.5 rounded-full">
+                {completedCount}/{allItems.length}
+              </span>
+            </div>
+            <ChevronRight
+              className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
+                tasksOpen ? 'rotate-90' : ''
+              }`}
+            />
+          </button>
+          {tasksOpen && (
+            <div className="border-t border-zinc-100 px-5 pb-5 animate-in fade-in duration-200">
+              <div className="flex flex-col gap-1 mt-3">
+                {allItems.map((item) => {
+                  const done = completedItems.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => checkItem(item.id)}
+                      className="flex items-start gap-3 py-2.5 text-left min-h-[44px] rounded-xl hover:bg-zinc-50 px-2 -mx-2 transition-colors"
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
+                          done
+                            ? 'bg-emerald-500 border-emerald-500'
+                            : 'border-zinc-300'
+                        }`}
+                      >
+                        {done && <CheckCircle className="w-3 h-3 text-white" />}
+                      </div>
+                      <p
+                        className={`text-sm font-medium leading-snug ${
+                          done ? 'line-through text-zinc-400' : 'text-zinc-600'
+                        }`}
+                      >
+                        {item.text}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Begin Wrap-Up button */}
+      {canWrapUp && (
+        <button
+          onClick={onBeginWrapUp}
+          className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white rounded-full font-black uppercase tracking-wider min-h-[56px] text-sm active:scale-95 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 duration-300"
+        >
+          Begin Wrap-Up
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Signature Canvas
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SignatureCanvasProps {
+  onChange: (dataUrl: string | null) => void;
+}
+
+function SignatureCanvas({ onChange }: SignatureCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const hasStrokes = useRef(false);
+
+  const getPos = (
+    e: MouseEvent | TouchEvent,
+    canvas: HTMLCanvasElement
+  ): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ('touches' in e) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDraw = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      e.preventDefault();
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      drawing.current = true;
+      const { x, y } = getPos(e, canvas);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    },
+    []
+  );
+
+  const draw = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      if (!drawing.current) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      e.preventDefault();
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1a1a1a';
+      const { x, y } = getPos(e, canvas);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      hasStrokes.current = true;
+      onChange(canvas.toDataURL('image/png'));
+    },
+    [onChange]
+  );
+
+  const stopDraw = useCallback(() => {
+    drawing.current = false;
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseleave', stopDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw);
+
+    return () => {
+      canvas.removeEventListener('mousedown', startDraw);
+      canvas.removeEventListener('mousemove', draw);
+      canvas.removeEventListener('mouseup', stopDraw);
+      canvas.removeEventListener('mouseleave', stopDraw);
+      canvas.removeEventListener('touchstart', startDraw);
+      canvas.removeEventListener('touchmove', draw);
+      canvas.removeEventListener('touchend', stopDraw);
+    };
+  }, [startDraw, draw, stopDraw]);
+
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasStrokes.current = false;
+    onChange(null);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          width={300}
+          height={100}
+          className="w-full rounded-xl border border-zinc-200 bg-white touch-none"
+          style={{ height: 100, cursor: 'crosshair' }}
+        />
+        <p className="absolute inset-0 flex items-center justify-center text-zinc-200 font-medium text-sm pointer-events-none select-none">
+          Sign here
+        </p>
+      </div>
+      <button
+        onClick={handleClear}
+        className="text-zinc-400 font-black text-xs uppercase tracking-wider self-end underline underline-offset-2 min-h-[44px] px-2"
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Celebration Animation
+// ─────────────────────────────────────────────────────────────────────────────
+
+function Celebration() {
+  return (
+    <div className="relative flex items-center justify-center w-20 h-20 mx-auto mb-2">
+      <div className="absolute w-20 h-20 rounded-full bg-amber-100 animate-ping opacity-75" />
+      <div
+        className="absolute w-16 h-16 rounded-full animate-[ping_1.2s_ease-out_0.15s_infinite] opacity-50"
+        style={{ background: 'rgba(52,211,153,0.3)' }}
+      />
+      <div
+        className="absolute w-12 h-12 rounded-full animate-[ping_1.4s_ease-out_0.3s_infinite] opacity-40"
+        style={{ background: 'rgba(99,102,241,0.3)' }}
+      />
+      <div className="relative z-10 w-14 h-14 bg-amber-400 rounded-full flex items-center justify-center">
+        <Trophy className="w-7 h-7 text-white" />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 3 — WRAP UP
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface StepWrapUpProps {
+  onBack: () => void;
+  serviceLogsCount: number;
+}
+
+function StepWrapUp({ onBack, serviceLogsCount }: StepWrapUpProps) {
+  const { state, opportunity, checkOut } = useOps();
+  const [signature, setSignature] = useState<string | null>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  const checkinStatus = state.checkinStatus;
+  const checkoutResult = state.checkoutResult;
+
+  const completedCount = state.opsRun?.completedItems?.length ?? 0;
+
+  const hoursWorked = useMemo(() => {
+    if (!checkinStatus?.checkedInAt) return 0;
+    const diff = (Date.now() - new Date(checkinStatus.checkedInAt).getTime()) / 3600000;
+    return Math.round(diff * 10) / 10;
+  }, [checkinStatus?.checkedInAt]);
+
+  const handleCheckOut = async () => {
+    if (checkingOut) return;
+    setCheckingOut(true);
+    try {
+      await checkOut();
+    } catch {
+      // toast shown in context
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
+  if (checkoutResult) {
+    return (
+      <div className="flex flex-col items-center gap-5 text-center animate-in fade-in slide-in-from-bottom-4 duration-300 py-4">
+        <Celebration />
+        <div>
+          <h2 className="text-3xl font-black tracking-tighter uppercase text-zinc-900">
+            Great work!
+          </h2>
+          <p className="text-zinc-500 font-medium text-base mt-1">
+            {checkoutResult.hoursServed}h recorded · +{checkoutResult.pointsEarned} pts
+          </p>
+        </div>
+        <p className="text-zinc-400 font-medium text-sm max-w-xs">
+          Thank you for serving your community today.
+        </p>
+        <button
+          onClick={onBack}
+          className="w-full flex items-center justify-center gap-2 bg-[#233DFF] text-white rounded-full font-black uppercase tracking-wider min-h-[56px] text-sm active:scale-95 transition-all duration-200 shadow-lg shadow-[#233DFF]/25"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to My Missions
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Summary card */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-[#233DFF]/5 to-blue-50 px-5 py-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#233DFF] mb-1">
+            Mission Complete
+          </p>
+          <h2 className="text-xl font-black tracking-tighter uppercase text-zinc-900">
+            {opportunity.title}
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 gap-px bg-zinc-100">
+          {[
+            { label: 'Hours', value: `${hoursWorked}h`, color: 'text-[#233DFF]' },
+            { label: 'Services', value: String(serviceLogsCount), color: 'text-emerald-500' },
+            { label: 'Tasks Done', value: String(completedCount), color: 'text-amber-500' },
+            {
+              label: 'Buddy Pair',
+              value: checkinStatus?.pairLabel ?? '—',
+              color: 'text-zinc-700',
+            },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-white px-4 py-4 flex flex-col gap-0.5">
+              <p className="text-xs font-black uppercase tracking-wider text-zinc-400">{label}</p>
+              <p className={`text-2xl font-black tracking-tighter ${color}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Signature */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <LogOut className="w-4 h-4 text-[#233DFF]" />
+          <p className="text-sm font-black text-zinc-800">Sign to confirm your shift</p>
+        </div>
+        <SignatureCanvas onChange={setSignature} />
+      </div>
+
+      {/* Check-out button */}
+      <button
+        onClick={handleCheckOut}
+        disabled={checkingOut || !signature}
+        className={[
+          'w-full flex items-center justify-center gap-2 rounded-full font-black uppercase tracking-wider min-h-[56px] text-sm transition-all duration-200',
+          checkingOut || !signature
+            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+            : 'bg-emerald-500 text-white active:scale-95 shadow-lg shadow-emerald-500/25',
+        ].join(' ')}
+      >
+        {checkingOut ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Checking Out...
+          </>
+        ) : (
+          <>
+            <LogOut className="w-4 h-4" />
+            Check Out + Record Hours
+          </>
+        )}
+      </button>
+      {!signature && (
+        <p className="text-center text-zinc-400 font-medium text-xs -mt-2">
+          Please sign above to enable check-out
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Root Component
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function MyDay({ onBack, onNavigateToAcademy }: VolunteerMyDayProps) {
+  const { state, isTestMode } = useOps();
+  const [opsRunStarted, setOpsRunStarted] = useState(false);
+  const [serviceLogsCount, setServiceLogsCount] = useState(0);
+  const [wrapUpRequested, setWrapUpRequested] = useState(false);
+
+  // Increment service log counter
+  const handleServiceLogged = useCallback(() => {
+    setServiceLogsCount((n) => n + 1);
+  }, []);
+
+  // Derive current step from state — never from setStep
+  const currentStep = useMemo(() => {
+    if (!state.checkinStatus?.checkedIn) return 0;
+    if (!opsRunStarted && serviceLogsCount === 0) return 1;
+    if (!state.checkinStatus?.checkedOut && !wrapUpRequested) return 2;
+    if (wrapUpRequested || state.checkinStatus?.checkedOut) return 3;
+    return 2;
+  }, [state.checkinStatus, opsRunStarted, serviceLogsCount, wrapUpRequested]);
+
+  // Loading state
+  if (state.loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="w-8 h-8 text-[#233DFF] animate-spin" />
+        <p className="text-zinc-400 font-medium text-sm">Loading your day...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={[
+        'flex flex-col min-h-screen bg-zinc-50',
+        isTestMode ? 'pt-11' : '',
+      ].join(' ')}
+    >
+      {/* Back nav */}
+      <div className="px-4 pt-4 pb-0">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-zinc-400 font-black text-xs uppercase tracking-wider min-h-[44px] -ml-1 px-1"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Schedule
+        </button>
+      </div>
+
+      {/* Step progress */}
+      <div className="px-2 pt-1 pb-0">
+        <StepProgress current={currentStep} />
+      </div>
+
+      {/* Step content */}
+      <div className="flex-1 px-4 pb-8 pt-2">
+        {currentStep === 0 && <StepArrive />}
+        {currentStep === 1 && (
+          <StepAssigned
+            onStartServing={() => {
+              setOpsRunStarted(true);
+            }}
+          />
+        )}
+        {currentStep === 2 && (
+          <StepServing
+            onBeginWrapUp={() => setWrapUpRequested(true)}
+            serviceLogsCount={serviceLogsCount}
+            onServiceLogged={handleServiceLogged}
+          />
+        )}
+        {currentStep === 3 && (
+          <StepWrapUp
+            onBack={onBack}
+            serviceLogsCount={serviceLogsCount}
+          />
+        )}
+
+        {/* Academy nudge (optional, show when idle on step 1) */}
+        {currentStep === 1 && onNavigateToAcademy && (
+          <div className="mt-4 flex items-center justify-center">
+            <button
+              onClick={onNavigateToAcademy}
+              className="flex items-center gap-1.5 text-[#233DFF] font-black text-xs uppercase tracking-wider min-h-[44px] px-2"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              Open Training Academy
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

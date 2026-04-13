@@ -667,8 +667,8 @@ const emailHeader = (title: string) => `
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9fafb;">
   <div style="max-width: 600px; margin: 0 auto; background: white;">
     <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; padding: 40px 32px; text-align: center;">
-      <div style="width: 64px; height: 64px; background: white; border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-        <img src="https://healthmatters.clinic/favicon.ico" alt="HMC" width="40" height="40" style="display: block;" onerror="this.style.display='none'" />
+      <div style="width: 72px; height: 72px; background: white; border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="Health Matters Clinic" width="56" height="56" style="display: block; object-fit: contain;" />
       </div>
       <p style="margin: 0 0 4px 0; color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 600; letter-spacing: 0.05em;">HEALTH MATTERS CLINIC</p>
       <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: white;">${title}</h2>
@@ -1065,9 +1065,9 @@ const EmailTemplates = {
         <li style="margin: 8px 0;">Water bottle</li>
         <li style="margin: 8px 0;">A positive attitude!</li>
       </ul>`;
-    const checkinUrl = data.shiftId
+    const checkinUrl = (data.checkinUrl as string) || (data.shiftId
       ? `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions&checkin=${data.shiftId}`
-      : `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions`;
+      : `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions`);
     return {
     subject: `Registration Confirmed | ${data.eventTitle}`,
     html: `${emailHeader(isTraining ? 'Training Registration Confirmed' : 'Registration Confirmed')}
@@ -1635,6 +1635,21 @@ class EmailService {
     }
   }
 }
+
+// Helper: send pre-rendered HTML email via Apps Script with correct 302 redirect handling.
+// Google Apps Script ALWAYS returns a 302 on POST. Using redirect:'follow' (the default)
+// causes Node fetch to convert POST→GET and drop the body — email never arrives.
+// This helper follows the redirect manually, keeping the POST body intact.
+const sendEmailRaw = async (toEmail: string, subject: string, html: string, text: string): Promise<void> => {
+  if (!EMAIL_SERVICE_URL) return;
+  const body = JSON.stringify({ type: 'prerendered', toEmail, subject, html, text });
+  const headers = { 'Content-Type': 'application/json; charset=utf-8' };
+  let response = await fetch(EMAIL_SERVICE_URL, { method: 'POST', headers, body, redirect: 'manual' });
+  if (response.status === 301 || response.status === 302) {
+    const loc = response.headers.get('location');
+    if (loc) response = await fetch(loc, { method: 'POST', headers, body, redirect: 'follow' });
+  }
+};
 
 // ═══════════════════════════════════════════════════════════════
 // GAMIFICATION SERVICE - XP, Achievements, Streaks
@@ -5351,14 +5366,29 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
         }
 
-        // Send confirmation email to registrant
+        // Send confirmation email to registrant — includes check-in button with token
         if (email) {
-            EmailService.send('broadcast', {
-                toEmail: email,
-                volunteerName: name,
-                title: `You're registered for ${eventTitle || 'an HMC event'}!`,
-                content: `You're confirmed! We can't wait to see you at ${eventTitle || 'our upcoming event'}${eventDate ? ` on ${eventDate}` : ''}.\n\nCheck-in will be at the event — no need to print anything, just give your name at the door.\n\nQuestions? Reply to this email or reach us at unstoppable@healthmatters.clinic.\n\nSee you there!\n— Health Matters Clinic`,
-            }).catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
+            const checkinPageUrl = EMAIL_SERVICE_URL
+              ? `${EMAIL_SERVICE_URL}?token=${checkinToken}`
+              : `${EMAIL_CONFIG.WEBSITE_URL}`;
+            const guestLine = guests ? `<p style="margin:0 0 8px 0;"><strong>Guests:</strong> +${guests}</p>` : '';
+            const confirmHtml = `${emailHeader(`You're Registered!`)}
+              <p>Hi ${name},</p>
+              <p>You're confirmed for:</p>
+              <div style="background:#f0f9ff;padding:24px;border-radius:12px;margin:24px 0;border-left:4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                <h3 style="margin:0 0 12px 0;color:${EMAIL_CONFIG.BRAND_COLOR};">${eventTitle || 'Community Event'}</h3>
+                ${eventDate ? `<p style="margin:0 0 8px 0;"><strong>Date:</strong> ${eventDate}</p>` : ''}
+                ${guestLine}
+              </div>
+              <p>On the day of the event, tap the button below when you arrive to check in — no need to print anything or wait in line.</p>
+              ${actionButton('Check In on Event Day', checkinPageUrl)}
+              <p style="text-align:center;font-size:13px;color:#9ca3af;margin-top:-16px;">Use this button when you arrive at the venue.</p>
+              <p>We'll send you a reminder before the event. Questions? Reply to this email or reach us at <a href="mailto:unstoppable@healthmatters.clinic" style="color:${EMAIL_CONFIG.BRAND_COLOR};">unstoppable@healthmatters.clinic</a>.</p>
+              <p>See you there!</p>
+            ${emailFooter()}`;
+            const confirmText = `Hi ${name}, you're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. Check in on event day: ${checkinPageUrl}`;
+            sendEmailRaw(email, `You're registered: ${eventTitle || 'HMC Event'}`, confirmHtml, confirmText)
+              .catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
         }
 
         // Notify rsvp@healthmatters.clinic for all public event RSVPs
@@ -5539,7 +5569,10 @@ app.get('/api/admin/volunteers-missing-phone', verifyToken, async (req: Request,
 // POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
-        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+        if (!APPS_SCRIPT_URL) {
+            return res.status(400).json({ success: false, error: 'Event Finder sync is not configured. Add APPS_SCRIPT_URL to your environment variables in Cloud Run.' });
+        }
         const { action, event, id } = req.body;
         if (!action) {
             return res.status(400).json({ success: false, error: 'action is required' });
@@ -5575,6 +5608,155 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
         console.error('[SAVE-EVENT PROXY] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
+});
+
+// GET /api/public/volunteer-checkin-status — called by Apps Script doGet to validate a check-in token.
+// Handles BOTH public Event Finder RSVPs (public_rsvps) and volunteer shift registrations (volunteer_checkin_tokens).
+app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (req: Request, res: Response) => {
+  try {
+    const token = typeof req.query.token === 'string' ? req.query.token.trim() : '';
+    if (!token) return res.status(400).json({ status: 'invalid', message: 'token is required' });
+
+    const now = new Date();
+
+    // ── 1. Check public_rsvps (Event Finder community registrants) ──
+    const rsvpSnap = await db.collection('public_rsvps')
+      .where('checkinToken', '==', token).limit(1).get();
+
+    if (!rsvpSnap.empty) {
+      const doc = rsvpSnap.docs[0];
+      const d = doc.data();
+
+      // Look up the event to get start time for "not yet" gating
+      let eventStart: Date | null = null;
+      let eventEnd: Date | null = null;
+      let eventTime = '';
+      let eventLocation = '';
+      if (d.eventId) {
+        try {
+          const evDoc = await db.collection('opportunities').doc(d.eventId).get();
+          const evData = evDoc.data();
+          if (evData?.time) eventTime = evData.time;
+          if (evData?.serviceLocation) eventLocation = evData.serviceLocation;
+          if (evData?.date) {
+            // Parse "YYYY-MM-DD" or full ISO string
+            const parsed = new Date(evData.date + (evData.date.includes('T') ? '' : 'T06:00:00'));
+            if (!isNaN(parsed.getTime())) {
+              eventStart = parsed;
+              eventEnd = new Date(parsed.getTime() + 8 * 60 * 60 * 1000); // assume 8h event window
+            }
+          }
+          // Prefer shift start times if available
+          const shiftsSnap = await db.collection('shifts')
+            .where('opportunityId', '==', d.eventId).limit(1).get();
+          if (!shiftsSnap.empty) {
+            const sd = shiftsSnap.docs[0].data();
+            if (sd.startTime) eventStart = new Date(sd.startTime);
+            if (sd.endTime)   eventEnd   = new Date(sd.endTime);
+          }
+        } catch { /* non-critical */ }
+      }
+
+      // Allow check-in from 45 min before event start
+      const windowOpen = eventStart ? new Date(eventStart.getTime() - 45 * 60 * 1000) : null;
+
+      if (windowOpen && now < windowOpen) {
+        const timeStr = eventStart
+          ? eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })
+          : 'the scheduled time';
+        return res.json({
+          status: 'not_yet',
+          eventTitle: d.eventTitle || '',
+          eventDate: d.eventDate || '',
+          eventTime,
+          eventLocation,
+          volunteerName: d.name || '',
+          message: `This event starts at ${timeStr}. Come back when you arrive at the venue.`,
+        });
+      }
+
+      if (eventEnd && now > eventEnd) {
+        return res.json({
+          status: 'expired',
+          eventTitle: d.eventTitle || '',
+          eventDate: d.eventDate || '',
+          volunteerName: d.name || '',
+        });
+      }
+
+      if (d.checkedIn) {
+        return res.json({
+          status: 'already_checked_in',
+          eventTitle: d.eventTitle || '',
+          eventDate: d.eventDate || '',
+          eventTime,
+          volunteerName: d.name || '',
+        });
+      }
+
+      // Mark checked in — use transaction to prevent race condition
+      await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(doc.ref);
+        if (fresh.data()?.checkedIn) return; // already checked in by a parallel request
+        tx.update(doc.ref, { checkedIn: true, checkedInAt: now.toISOString() });
+        if (d.eventId) {
+          tx.update(db.collection('opportunities').doc(d.eventId), {
+            checkinCount: admin.firestore.FieldValue.increment(1 + (d.guests || 0)),
+          });
+        }
+      });
+      console.log(`[CHECKIN-TOKEN] Public RSVP ${doc.id} checked in for event ${d.eventId}`);
+      return res.json({
+        status: 'active',
+        eventTitle: d.eventTitle || '',
+        eventDate: d.eventDate || '',
+        eventTime,
+        eventLocation,
+        volunteerName: d.name || '',
+      });
+    }
+
+    // ── 2. Fall back to volunteer_checkin_tokens (HMC volunteer shift registrations) ──
+    const volSnap = await db.collection('volunteer_checkin_tokens')
+      .where('token', '==', token).limit(1).get();
+    if (volSnap.empty) {
+      return res.status(404).json({ status: 'invalid', message: 'Check-in link not found.' });
+    }
+
+    const doc2 = volSnap.docs[0];
+    const d2 = doc2.data();
+    const shiftStart = d2.shiftStartTime ? new Date(d2.shiftStartTime) : null;
+    const shiftEnd   = d2.shiftEndTime   ? new Date(d2.shiftEndTime)   : null;
+    const windowOpen2 = shiftStart ? new Date(shiftStart.getTime() - 45 * 60 * 1000) : null;
+
+    if (windowOpen2 && now < windowOpen2) {
+      const timeStr = shiftStart
+        ? shiftStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })
+        : 'the scheduled time';
+      return res.json({
+        status: 'not_yet',
+        eventTitle: d2.eventTitle || '',
+        eventDate: d2.eventDate || '',
+        eventTime: d2.eventTime || '',
+        eventLocation: d2.eventLocation || '',
+        volunteerName: d2.volunteerName || '',
+        message: `This event starts at ${timeStr}. Come back when you arrive at the venue.`,
+      });
+    }
+    if (shiftEnd && now > shiftEnd) {
+      return res.json({ status: 'expired', eventTitle: d2.eventTitle || '', eventDate: d2.eventDate || '', volunteerName: d2.volunteerName || '' });
+    }
+    if (d2.checkedIn) {
+      return res.json({ status: 'already_checked_in', eventTitle: d2.eventTitle || '', eventDate: d2.eventDate || '', eventTime: d2.eventTime || '', volunteerName: d2.volunteerName || '' });
+    }
+    await doc2.ref.update({ checkedIn: true, checkedInAt: now.toISOString() });
+    console.log(`[CHECKIN-TOKEN] Volunteer ${d2.volunteerId} checked in via token for shift ${d2.shiftId}`);
+    return res.json({ status: 'active', eventTitle: d2.eventTitle || '', eventDate: d2.eventDate || '', eventTime: d2.eventTime || '', eventLocation: d2.eventLocation || '', volunteerName: d2.volunteerName || '' });
+
+  } catch (error: any) {
+    console.error('[CHECKIN-TOKEN] Error:', error.message);
+    res.status(500).json({ status: 'error', message: 'Check-in temporarily unavailable.' });
+  }
 });
 
 // POST /api/public/checkin - Public endpoint for event check-in
@@ -7530,13 +7712,7 @@ app.post('/api/referrals/submit-to-agency', verifyToken, async (req: Request, re
                 <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Please review this referral and forward to the agency when approved.</p>
             ${emailFooter()}`;
 
-            if (EMAIL_SERVICE_URL) {
-                await fetch(EMAIL_SERVICE_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'prerendered', toEmail: internalReviewEmail, subject, html, text: `Referral for review: ${clientName} → ${agencyName}` }),
-                });
-            }
+            await sendEmailRaw(internalReviewEmail, subject, html, `Referral for review: ${clientName} → ${agencyName}`);
 
             await referralRef.update({
                 status: 'Pending Review',
@@ -9085,6 +9261,37 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
             }
           } catch { /* non-critical */ }
         }
+        // Generate a check-in token so the volunteer can check in directly from email
+        let checkinUrl = EMAIL_SERVICE_URL
+          ? `${EMAIL_SERVICE_URL}?token=` // token appended below
+          : `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions${shiftId ? '&checkin=' + shiftId : ''}`;
+        if (EMAIL_SERVICE_URL && shiftId) {
+          try {
+            const checkinToken = crypto.randomBytes(16).toString('hex');
+            const shiftDoc2 = await db.collection('shifts').doc(shiftId).get();
+            const sd = shiftDoc2.data();
+            await db.collection('volunteer_checkin_tokens').add({
+              token: checkinToken,
+              volunteerId,
+              shiftId,
+              eventId: eventId || '',
+              eventTitle: eventTitle || '',
+              eventDate: eventDate || '',
+              eventTime: eventTimeForEmail || '',
+              eventLocation: eventLocation || '',
+              volunteerName: volunteerName || '',
+              shiftStartTime: sd?.startTime || '',
+              shiftEndTime: sd?.endTime || '',
+              checkedIn: false,
+              createdAt: new Date().toISOString(),
+            });
+            checkinUrl = `${EMAIL_SERVICE_URL}?token=${checkinToken}`;
+          } catch (tokenErr) {
+            console.error('[EVENTS] Failed to store checkin token:', tokenErr);
+            checkinUrl = `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions${shiftId ? '&checkin=' + shiftId : ''}`;
+          }
+        }
+
         await EmailService.send('event_registration_confirmation', {
           toEmail: volunteerEmail,
           volunteerName: volunteerName || 'Volunteer',
@@ -9094,6 +9301,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
           eventLocation: eventLocation || 'TBD',
           eventType: eventType || '',
           shiftId: shiftId || '',
+          checkinUrl,
         });
         // Log Stage 1 in reminder_log to prevent duplicate confirmation sends
         try { await logReminderSent(volunteerId, eventId, 1); } catch (e) { console.error('[EVENTS] Failed to log reminder sent:', e); }
@@ -10829,6 +11037,92 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
           result.failed++; volDetails.push({ volunteerId: volDoc.id, email: vol.email, status: 'failed', timestamp: new Date().toISOString(), error: (e as Error).message });
         }
       }
+
+      // 5. Public RSVPs from public_rsvps (Event Finder / community registrants)
+      // These are NOT volunteers — they have their own reminder log keyed by rsvp doc ID
+      if (!smsOnly) {
+        try {
+          const publicRsvpSnap = await db.collection('public_rsvps')
+            .where('eventId', '==', event.id)
+            .where('checkedIn', '==', false)
+            .get();
+
+          for (const rsvpDoc of publicRsvpSnap.docs) {
+            const rsvp = rsvpDoc.data();
+            if (!rsvp.email && !rsvp.phone) continue;
+
+            // Use rsvp doc ID as the "volunteer ID" for dedup logging
+            const rsvpId = rsvpDoc.id;
+
+            let stageToSendPublic: { stage: number; template: string } | null = null;
+            for (const s of applicableStages.filter(s => s.stage !== 5)) { // skip SMS-only stage here
+              if (!(await wasReminderSent(rsvpId, event.id, s.stage))) {
+                stageToSendPublic = s;
+                break;
+              }
+            }
+
+            if (!stageToSendPublic) { result.skipped++; continue; }
+
+            try {
+              const checkinUrl = EMAIL_SERVICE_URL
+                ? `${EMAIL_SERVICE_URL}?token=${rsvp.checkinToken}`
+                : `${EMAIL_CONFIG.WEBSITE_URL}`;
+
+              const daysLabel = stageToSendPublic.stage === 2 ? 'next week' : stageToSendPublic.stage === 3 ? 'in 3 days' : 'tomorrow';
+              const reminderHtml = `${emailHeader(`Reminder: ${opp.title}`)}
+                <p>Hi ${rsvp.name || 'there'},</p>
+                <p>Just a reminder — <strong>${opp.title}</strong> is ${daysLabel}!</p>
+                <div style="background:#f0f9ff;padding:24px;border-radius:12px;margin:24px 0;border-left:4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                  ${eventDate ? `<p style="margin:0 0 8px 0;"><strong>Date:</strong> ${eventDate}</p>` : ''}
+                  ${time !== 'your scheduled time' ? `<p style="margin:0 0 8px 0;"><strong>Time:</strong> ${time}</p>` : ''}
+                  ${location !== 'the event location' ? `<p style="margin:0;"><strong>Location:</strong> ${location}</p>` : ''}
+                </div>
+                <p>When you arrive, tap the button below to check in — no wait, no line.</p>
+                ${actionButton('Check In on Event Day', checkinUrl)}
+                <p style="text-align:center;font-size:13px;color:#9ca3af;margin-top:-16px;">We can't wait to see you there.</p>
+              ${emailFooter()}`;
+              const reminderText = `Hi ${rsvp.name || 'there'}, reminder: ${opp.title} is ${daysLabel}${eventDate ? ` on ${eventDate}` : ''}${location !== 'the event location' ? ` at ${location}` : ''}. Check in: ${checkinUrl}`;
+
+              await sendEmailRaw(rsvp.email, `Reminder: ${opp.title}`, reminderHtml, reminderText);
+              await logReminderSent(rsvpId, event.id, stageToSendPublic.stage);
+              result.sent++;
+              volDetails.push({ volunteerId: rsvpId, email: rsvp.email, status: 'sent', timestamp: new Date().toISOString() });
+            } catch (e) {
+              console.error(`[WORKFLOW] Public RSVP reminder failed for ${rsvpId}:`, (e as Error).message);
+              result.failed++;
+            }
+          }
+
+          // SMS reminders for public RSVPs (3h-before stage only, requires phone + sms consent)
+          if (applicableStages.some(s => s.stage === 5)) {
+            const smsRsvpSnap = await db.collection('public_rsvps')
+              .where('eventId', '==', event.id)
+              .where('checkedIn', '==', false)
+              .get();
+            for (const rsvpDoc of smsRsvpSnap.docs) {
+              const rsvp = rsvpDoc.data();
+              if (!rsvp.phone) continue;
+              if (rsvp.contactPreference !== 'text' && rsvp.contactPreference !== 'sms' && !rsvp.smsOptIn) continue;
+              const rsvpId = rsvpDoc.id;
+              if (await wasReminderSent(rsvpId, event.id, 5)) continue;
+              try {
+                const phone = normalizePhone(rsvp.phone);
+                if (phone) {
+                  const smsText = `HMC Reminder: ${opp.title} starts at ${time}. See you at ${location}! - Health Matters Clinic`;
+                  const smsResult = await sendSMS(null, `+1${phone}`, smsText);
+                  if (smsResult.sent) {
+                    await logReminderSent(rsvpId, event.id, 5);
+                    result.sent++;
+                  }
+                }
+              } catch (e) { console.error(`[WORKFLOW] Public RSVP SMS failed for ${rsvpDoc.id}:`, (e as Error).message); }
+            }
+          }
+        } catch (e) {
+          console.error('[WORKFLOW] Public RSVP reminder batch failed:', (e as Error).message);
+        }
+      }
     }
   } catch (e) {
     console.error('[WORKFLOW] executeEventReminderCadence error:', e);
@@ -11853,20 +12147,19 @@ app.post('/api/referral/send-email', verifyToken, async (req: Request, res: Resp
       .replace(/\[HOURS\]/g, String(volData?.hoursContributed || 0))
       .replace(/\[PEOPLE_HELPED\]/g, String((volData?.hoursContributed || 0) * 5));
 
-    // Send via Google Apps Script
+    // Send via Google Apps Script (prerendered HTML — Apps Script only handles 'prerendered' type)
     if (EMAIL_SERVICE_URL) {
-      await fetch(EMAIL_SERVICE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'referral_invitation',
-          toEmail: recipientEmail,
-          subject: template.subject,
-          body: body,
-          volunteerName: volData?.firstName,
-          referralLink: `${portalUrl}?ref=${profile.referralCode}`,
-        })
-      });
+      const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111">
+        <div style="background:#233DFF;padding:32px 24px;border-radius:12px 12px 0 0;text-align:center">
+          <p style="color:rgba(255,255,255,0.75);font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 6px">Health Matters Clinic</p>
+          <h1 style="color:white;margin:0;font-size:20px">You've Been Invited</h1>
+        </div>
+        <div style="background:#f9f9f9;padding:24px;border-radius:0 0 12px 12px;border:1px solid #eee;border-top:none">
+          <p style="white-space:pre-line;color:#444;font-size:14px;line-height:1.6">${body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+          <a href="${portalUrl}?ref=${profile.referralCode}" style="display:inline-block;background:#233DFF;color:white;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px;margin-top:16px">Join as a Volunteer →</a>
+        </div>
+      </div>`;
+      await sendEmailRaw(recipientEmail, template.subject, html, body);
     }
 
     // Log sharing event
@@ -12159,17 +12452,21 @@ app.post('/api/board/emergency-meeting', verifyToken, async (req: Request, res: 
     });
     if (EMAIL_SERVICE_URL) {
       try {
-        await fetch(EMAIL_SERVICE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'emergency_board_meeting',
-            toEmail: EMAIL_CONFIG.SUPPORT_EMAIL,
-            subject: `Emergency Board Meeting Requested by ${userData?.name || 'Board Member'}`,
-            requestedBy: userData?.name,
-            reason,
-          })
-        });
+        const emSubject = `Emergency Board Meeting Requested by ${userData?.name || 'Board Member'}`;
+        const emHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#111">
+          <div style="background:#c0392b;padding:24px;border-radius:12px 12px 0 0">
+            <p style="color:rgba(255,255,255,0.8);font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 4px">Health Matters Clinic · Board</p>
+            <h1 style="color:white;margin:0;font-size:18px">Emergency Meeting Requested</h1>
+          </div>
+          <div style="background:#f9f9f9;padding:24px;border-radius:0 0 12px 12px;border:1px solid #eee;border-top:none">
+            <p style="color:#555;font-size:13px"><strong>Requested by:</strong> ${userData?.name || 'Board Member'}</p>
+            <p style="color:#555;font-size:13px"><strong>Reason:</strong></p>
+            <p style="color:#444;font-size:14px;background:white;border:1px solid #e5e7eb;border-radius:8px;padding:14px">${String(reason || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            <a href="https://volunteer.healthmatters.clinic" style="display:inline-block;background:#233DFF;color:white;padding:12px 24px;border-radius:24px;text-decoration:none;font-weight:600;font-size:13px;margin-top:8px">Open Portal →</a>
+          </div>
+        </div>`;
+        const emText = `Emergency Board Meeting Requested by ${userData?.name || 'Board Member'}\nReason: ${reason}`;
+        await sendEmailRaw(EMAIL_CONFIG.SUPPORT_EMAIL, emSubject, emHtml, emText);
       } catch (e) { console.error('[Board] Failed to send emergency meeting emails:', e); }
     }
     res.json({ success: true });
@@ -13669,7 +13966,7 @@ app.post('/api/org-calendar', verifyToken, async (req: Request, res: Response) =
                 <a href="https://volunteer.healthmatters.clinic" style="display:inline-block;background:#233DFF;color:white;padding:12px 24px;border-radius:24px;text-decoration:none;font-weight:600;font-size:13px">View Calendar →</a>
               </div>
             </div>`;
-            await fetch(EMAIL_SERVICE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'prerendered', toEmail: vol.email, subject, html, text: `New event: ${title} on ${dateFormatted}${startTime ? ' at ' + startTime : ''}${location ? ' · ' + location : ''}` }), redirect: 'follow' }).catch(() => {});
+            await sendEmailRaw(vol.email, subject, html, `New event: ${title} on ${dateFormatted}${startTime ? ' at ' + startTime : ''}${location ? ' · ' + location : ''}`).catch(() => {});
           }
           console.log(`[CALENDAR] Notified ${targetVols.length} volunteers about: ${title}`);
         } catch (err: any) {
@@ -13932,7 +14229,7 @@ const MONITOR_TARGETS = [
   { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
 ];
-const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
+const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || '';
 
 interface MonitorResult {
   name: string;

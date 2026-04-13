@@ -5,6 +5,7 @@ import OnboardingFlow from './OnboardingFlow';
 import Dashboard from './Dashboard';
 // MigrationFlow removed — all volunteers must complete the full OnboardingFlow
 import ClientPortal from './ClientPortal';
+import SystemTour from './SystemTour';
 import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -48,6 +49,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [deepLinkCheckin] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     return new URLSearchParams(window.location.search).get('checkin');
+  });
+
+  const [forceShowTour] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('tour') === 'true';
   });
 
   const setAppData = (data: any) => {
@@ -262,6 +268,13 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     };
     return (
       <>
+        {forceShowTour && (
+          <SystemTour
+            onComplete={() => { /* no-op — user came via URL, don't mark completed */ }}
+            onClose={() => { window.history.replaceState(null, '', window.location.pathname); }}
+            onNavigateToTraining={() => { window.history.replaceState(null, '', window.location.pathname); }}
+          />
+        )}
         <Dashboard {...dashboardProps} />
         {showInstallBanner && (
           <div style={{

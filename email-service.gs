@@ -17,11 +17,137 @@ var CONFIG = {
   LOGO_URL: "https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png"
 };
 
-function doGet() {
-  return jsonResponse({
-    status: "ok",
-    service: "HMC Email Service"
-  });
+function doGet(e) {
+  var token = (e && e.parameter && e.parameter.token) ? String(e.parameter.token) : null;
+
+  // No token — health check ping
+  if (!token) {
+    return jsonResponse({ status: "ok", service: "HMC Email Service" });
+  }
+
+  // Test/preview token — show the "not yet" page so you can verify the design
+  if (token === "test-preview-token") {
+    return HtmlService.createHtmlOutput(
+      buildCheckinPage({
+        status: "not_yet",
+        eventTitle: "Saturday Morning Street Medicine — Skid Row",
+        eventDate: "Saturday, May 10, 2025",
+        eventTime: "7:00 AM – 12:00 PM",
+        eventLocation: "500 S San Pedro St, Los Angeles, CA",
+        volunteerName: "Test Volunteer",
+        message: "This event hasn't started yet. Come back when you arrive at the venue and the shift has opened."
+      })
+    ).setTitle("Event Check-In | Health Matters Clinic");
+  }
+
+  // Validate token via portal API
+  try {
+    var response = UrlFetchApp.fetch(
+      CONFIG.WEBSITE_URL + "/api/public/volunteer-checkin-status?token=" + encodeURIComponent(token),
+      { method: "get", muteHttpExceptions: true, followRedirects: true }
+    );
+    var code = response.getResponseCode();
+    if (code !== 200) {
+      return HtmlService.createHtmlOutput(
+        buildCheckinPage({ status: "invalid", eventTitle: "", message: "This check-in link is invalid or has already been used." })
+      ).setTitle("Event Check-In | Health Matters Clinic");
+    }
+    var data = JSON.parse(response.getContentText());
+    return HtmlService.createHtmlOutput(buildCheckinPage(data))
+      .setTitle("Event Check-In | Health Matters Clinic");
+  } catch (err) {
+    return HtmlService.createHtmlOutput(
+      buildCheckinPage({ status: "error", eventTitle: "", message: "Check-in is temporarily unavailable. Please see a volunteer lead at the event." })
+    ).setTitle("Event Check-In | Health Matters Clinic");
+  }
+}
+
+function escHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildCheckinPage(data) {
+  var status       = data.status || "error";
+  var eventTitle   = data.eventTitle || "Community Health Event";
+  var eventDate    = data.eventDate || "";
+  var eventTime    = data.eventTime || "";
+  var eventLoc     = data.eventLocation || "";
+  var volName      = data.volunteerName || "";
+  var message      = data.message || "";
+
+  var icon, color, heading, body, btnHtml;
+
+  if (status === "not_yet") {
+    icon = "—"; color = "#f59e0b";
+    heading = "Not Yet";
+    body = message || "This event hasn't started yet. Come back when you arrive at the venue.";
+    btnHtml = "";
+  } else if (status === "active") {
+    icon = "&#10003;"; color = "#10b981";
+    heading = "Checked In";
+    body = "Welcome! Head to your assigned station and check in with your team lead.";
+    btnHtml = "<a href='" + CONFIG.WEBSITE_URL + "?tab=missions' class='btn'>Open Volunteer Portal</a>";
+  } else if (status === "already_checked_in") {
+    icon = "&#10003;"; color = "#10b981";
+    heading = "Already Checked In";
+    body = "You're already checked in for this event. See you there!";
+    btnHtml = "";
+  } else if (status === "expired") {
+    icon = "—"; color = "#6b7280";
+    heading = "Event Has Ended";
+    body = "This check-in link is no longer active. Thank you for volunteering today!";
+    btnHtml = "";
+  } else {
+    icon = "&#215;"; color = "#ef4444";
+    heading = "Invalid Link";
+    body = message || "This check-in link is invalid or has expired.";
+    btnHtml = "";
+  }
+
+  return "<!DOCTYPE html><html><head>" +
+    "<meta charset='utf-8'>" +
+    "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+    "<title>Event Check-In | Health Matters Clinic</title>" +
+    "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' rel='stylesheet'>" +
+    "<style>" +
+    "*{box-sizing:border-box;margin:0;padding:0}" +
+    "body{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f4f2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px}" +
+    ".card{background:#fff;border-radius:24px;padding:40px 32px;max-width:440px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,.08);border:1px solid #e5e7eb;text-align:center}" +
+    ".logo{width:56px;height:56px;border-radius:12px;margin:0 auto 16px;display:block;object-fit:contain}" +
+    ".clinic{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af;margin-bottom:28px}" +
+    ".event-title{font-size:20px;font-weight:800;color:#111;margin-bottom:10px;line-height:1.25}" +
+    ".meta{font-size:13px;color:#6b7280;margin-bottom:4px}" +
+    "hr{border:none;border-top:1px solid #f3f4f6;margin:24px 0}" +
+    ".icon-ring{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px}" +
+    ".status-title{font-size:16px;font-weight:800;margin-bottom:12px}" +
+    ".status-body{font-size:14px;color:#374151;line-height:1.65;margin-bottom:28px}" +
+    ".btn{display:inline-block;background:#233DFF;color:#fff;padding:14px 28px;border-radius:100px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:.02em}" +
+    ".vol-name{font-size:13px;color:#9ca3af;margin-top:24px}" +
+    ".footer{margin-top:28px;font-size:12px;color:#9ca3af;text-align:center}" +
+    "</style></head><body>" +
+    "<div class='card'>" +
+    "<img src='" + CONFIG.LOGO_URL + "' alt='HMC' class='logo'>" +
+    "<p class='clinic'>Health Matters Clinic</p>" +
+    "<h1 class='event-title'>" + escHtml(eventTitle) + "</h1>" +
+    (eventDate ? "<p class='meta'>" + escHtml(eventDate) + "</p>" : "") +
+    (eventTime ? "<p class='meta'>" + escHtml(eventTime) + "</p>" : "") +
+    (eventLoc  ? "<p class='meta'>" + escHtml(eventLoc)  + "</p>" : "") +
+    "<hr>" +
+    "<div class='icon-ring' style='background:" + color + "18'>" +
+    "<span style='color:" + color + "'>" + icon + "</span>" +
+    "</div>" +
+    "<p class='status-title' style='color:" + color + "'>" + heading + "</p>" +
+    "<p class='status-body'>" + escHtml(body) + "</p>" +
+    btnHtml +
+    (volName ? "<p class='vol-name'>Welcome, " + escHtml(volName) + "</p>" : "") +
+    "</div>" +
+    "<p class='footer'>Health Matters Clinic &middot; volunteer@healthmatters.clinic</p>" +
+    "</body></html>";
 }
 
 function doPost(e) {

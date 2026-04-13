@@ -107,7 +107,13 @@ const validateResponseLocally = (question: string, response: string, moduleId: s
   return matchCount >= 2 && response.trim().length >= 30;
 };
 
-const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void }> = ({ user, onUpdate }) => {
+interface TrainingAcademyProps {
+  user: Volunteer;
+  onUpdate: (u: Volunteer) => void;
+  onLaunchEventOpsPractice?: () => void;
+}
+
+const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLaunchEventOpsPractice }) => {
   const [activeSession, setActiveSession] = useState<TrainingModule | null>(null);
   const [quizMode, setQuizMode] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
@@ -920,6 +926,42 @@ const TrainingAcademy: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => v
           ) : (
             <ClinicalOnboarding user={user} onUpdate={onUpdate} />
           )}
+        </div>
+      )}
+
+      {/* ===== PRACTICE EVENT DAY SIMULATION ===== */}
+      {tier1Complete && (
+        <div className="border border-zinc-100 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl transition-shadow overflow-hidden mt-4">
+          <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="w-12 h-12 rounded-2xl bg-[#233DFF]/8 flex items-center justify-center shrink-0">
+              <Monitor size={22} className="text-[#233DFF]" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
+                <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Event Day Simulation</h3>
+                <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-wider">Practice Mode</span>
+              </div>
+              <p className="text-zinc-500 font-medium text-sm leading-relaxed">
+                Walk through a real event day — check in, get a buddy assignment, log services, and sign off — in a fully sandboxed simulation. Nothing gets saved to the real system.
+              </p>
+              <ul className="mt-3 space-y-1">
+                {['Experience the volunteer check-in flow', 'Practice logging screenings, referrals, and distributions', 'See what leads see in the Command Center'].map(item => (
+                  <li key={item} className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+                    <Check size={12} className="text-emerald-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              onClick={onLaunchEventOpsPractice}
+              disabled={!onLaunchEventOpsPractice}
+              className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-wider hover:bg-[#1a2ecc] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm whitespace-nowrap shrink-0"
+            >
+              <Play size={14} />
+              Launch Simulation
+            </button>
+          </div>
         </div>
       )}
 
