@@ -902,8 +902,66 @@ const ServicesTab: React.FC = () => {
 
           {/* SCREENING */}
           {logType === 'screening' && (<>
-            <FSelect label="Screening Type *" field="screeningType" options={['Blood Pressure','Blood Glucose','BMI / Weight','Vision','Hearing','Mental Health Screen (PHQ-2/PHQ-9)','Dental / Oral Health','HIV / STI','Other']} required value={formData.screeningType ?? ''} onChange={v => setField('screeningType', v)} />
-            <FSelect label="Result / Finding" field="result" options={['Within Normal Range','Borderline — Monitor','Abnormal — Referred for Follow-up','Declined / Not Recorded']} value={formData.result ?? ''} onChange={v => setField('result', v)} />
+            <FSelect label="Screening Type *" field="screeningType" options={['Blood Pressure','Blood Glucose','BMI / Weight','Vision','Hearing','Mental Health Screen (PHQ-2/PHQ-9)','Dental / Oral Health','HIV / STI','Other']} required value={formData.screeningType ?? ''} onChange={v => { setField('screeningType', v); setField('result', ''); setField('systolic', ''); setField('diastolic', ''); setField('glucoseReading', ''); }} />
+
+            {/* BP — raw readings + auto traffic light */}
+            {formData.screeningType === 'Blood Pressure' && (() => {
+              const sys = parseInt(formData.systolic ?? '');
+              const dia = parseInt(formData.diastolic ?? '');
+              const ok = !isNaN(sys) && !isNaN(dia) && sys > 0 && dia > 0;
+              let label = '', dot = '', bg = '', border = '';
+              if (ok) {
+                if (sys > 180 || dia > 120)       { label='Hypertensive Crisis — Seek Emergency Care'; dot='bg-red-600';    bg='bg-red-50';    border='border-red-300'; }
+                else if (sys >= 140 || dia >= 90) { label='High BP — Stage 2';                        dot='bg-red-500';    bg='bg-red-50';    border='border-red-200'; }
+                else if (sys >= 130 || dia >= 80) { label='High BP — Stage 1';                        dot='bg-orange-500'; bg='bg-orange-50'; border='border-orange-200'; }
+                else if (sys >= 120 && dia < 80)  { label='Elevated';                                 dot='bg-yellow-500'; bg='bg-yellow-50'; border='border-yellow-200'; }
+                else                              { label='Normal';                                   dot='bg-emerald-500';bg='bg-emerald-50';border='border-emerald-200'; }
+                if (formData.result !== `${sys}/${dia} — ${label}`) setField('result', `${sys}/${dia} — ${label}`);
+              }
+              return (<>
+                <div>
+                  <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Blood Pressure Reading</label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={formData.systolic ?? ''} onChange={e => setField('systolic', e.target.value)} placeholder="Systolic" className="flex-1 p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40 min-w-0" />
+                    <span className="text-zinc-300 font-bold text-xl flex-shrink-0">/</span>
+                    <input type="number" value={formData.diastolic ?? ''} onChange={e => setField('diastolic', e.target.value)} placeholder="Diastolic" className="flex-1 p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40 min-w-0" />
+                    <span className="text-zinc-400 text-xs font-medium flex-shrink-0">mmHg</span>
+                  </div>
+                </div>
+                {ok && <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${bg} ${border}`}><div className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`}/><p className="text-xs font-black text-zinc-800">{sys}/{dia} — {label}</p></div>}
+              </>);
+            })()}
+
+            {/* Blood Glucose — raw reading + auto classification */}
+            {formData.screeningType === 'Blood Glucose' && (() => {
+              const val = parseInt(formData.glucoseReading ?? '');
+              const fasting = formData.fastingStatus !== 'Non-fasting (random)';
+              const ok = !isNaN(val) && val > 0;
+              let label = '', dot = '', bg = '', border = '';
+              if (ok) {
+                const hi = fasting ? 126 : 200, mid = fasting ? 100 : 140;
+                if (val >= hi)   { label='Diabetic Range — Follow-up Needed'; dot='bg-red-500';    bg='bg-red-50';    border='border-red-200'; }
+                else if(val>=mid){ label='Prediabetes Range';                  dot='bg-yellow-500'; bg='bg-yellow-50'; border='border-yellow-200'; }
+                else             { label=`Normal${fasting?' (Fasting)':''}`;   dot='bg-emerald-500';bg='bg-emerald-50';border='border-emerald-200'; }
+                if (formData.result !== `${val} mg/dL — ${label}`) setField('result', `${val} mg/dL — ${label}`);
+              }
+              return (<>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Reading (mg/dL)</label>
+                    <input type="number" value={formData.glucoseReading ?? ''} onChange={e => setField('glucoseReading', e.target.value)} placeholder="e.g. 95" className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40" />
+                  </div>
+                  <FSelect label="Fasting Status" field="fastingStatus" options={['Fasting (8+ hrs)','Non-fasting (random)']} value={formData.fastingStatus ?? ''} onChange={v => setField('fastingStatus', v)} />
+                </div>
+                {ok && <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${bg} ${border}`}><div className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`}/><p className="text-xs font-black text-zinc-800">{val} mg/dL — {label}</p></div>}
+              </>);
+            })()}
+
+            {/* All other types — free text result */}
+            {formData.screeningType && !['Blood Pressure','Blood Glucose'].includes(formData.screeningType) && (
+              <FInput label="Reading / Result" value={formData.result ?? ''} onChange={v => setField('result', v)} placeholder="Enter observed reading or finding..." />
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <FSelect label="Age Range" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
               <FSelect label="Gender Identity" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />

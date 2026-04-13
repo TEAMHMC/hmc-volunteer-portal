@@ -63,9 +63,13 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
 
         // Fetch upcoming events for ambassador links
         apiService.get('/api/opportunities').then((data: any) => {
-          const now = new Date();
-          const upcoming = (data.opportunities || [])
-            .filter((evt: any) => new Date(evt.date || evt.startDate) >= now)
+          const list: any[] = Array.isArray(data) ? data : (data.opportunities || []);
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const upcoming = list
+            .filter((evt: any) => {
+              const d = new Date(evt.date || evt.startDate || '');
+              return !isNaN(d.getTime()) && d >= today;
+            })
             .sort((a: any, b: any) => new Date(a.date || a.startDate).getTime() - new Date(b.date || b.startDate).getTime());
           setEvents(upcoming);
         }).catch(() => {});
@@ -98,19 +102,24 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
     }
   };
 
-  const handleSocialShare = async (platform: 'linkedin' | 'twitter' | 'facebook') => {
+  const handleSocialShare = async (platform: 'linkedin' | 'instagram' | 'youtube') => {
     if (!dashboard) return;
     try {
-      const { content } = await apiService.get(`/api/share/content/${platform}`);
+      const { content } = await apiService.get(`/api/share/content/${platform}`).catch(() => ({ content: '' }));
       const encodedText = encodeURIComponent(content || '');
       const encodedUrl = encodeURIComponent(dashboard.referralLink);
 
       const shareUrls: Record<string, string> = {
         linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-        twitter: `https://twitter.com/intent/tweet?text=${encodedText}`,
-        facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
+        // Instagram and YouTube don't have web share intents — copy text to clipboard instead
+        instagram: `https://www.instagram.com/healthmattersclinic`,
+        youtube: `https://www.youtube.com/@healthmattersclinic`,
       };
 
+      if (platform === 'instagram' || platform === 'youtube') {
+        // Copy share text to clipboard then open profile
+        if (content) { try { await navigator.clipboard.writeText(`${content} ${dashboard.referralLink}`); } catch {} }
+      }
       window.open(shareUrls[platform], '_blank', 'width=600,height=500');
 
       // Log share for XP
@@ -277,18 +286,19 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
                 <Linkedin size={16} /> LinkedIn
               </button>
               <button
-                onClick={() => handleSocialShare('twitter')}
-                className="flex items-center gap-2 px-5 py-3 bg-zinc-900 text-white rounded-full font-bold text-xs uppercase tracking-wide hover:scale-105 active:scale-95 transition-all"
+                onClick={() => handleSocialShare('instagram')}
+                className="flex items-center gap-2 px-5 py-3 text-white rounded-full font-bold text-xs uppercase tracking-wide hover:scale-105 active:scale-95 transition-all"
+                style={{ background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }}
               >
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                X / Twitter
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                Instagram
               </button>
               <button
-                onClick={() => handleSocialShare('facebook')}
-                className="flex items-center gap-2 px-5 py-3 bg-[#1877F2] text-white rounded-full font-bold text-xs uppercase tracking-wide hover:scale-105 active:scale-95 transition-all"
+                onClick={() => handleSocialShare('youtube')}
+                className="flex items-center gap-2 px-5 py-3 bg-[#FF0000] text-white rounded-full font-bold text-xs uppercase tracking-wide hover:scale-105 active:scale-95 transition-all"
               >
-                <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                Facebook
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                YouTube
               </button>
             </div>
           </div>
@@ -304,14 +314,15 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
             <p className="text-sm text-zinc-500 mb-6">We'll pre-populate a post with your impact stats and referral link. Earn 25 XP per share.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { platform: 'linkedin' as const, name: 'LinkedIn', color: 'bg-[#0077B5]', icon: <Linkedin size={24} className="text-white" /> },
-                { platform: 'twitter' as const, name: 'X / Twitter', color: 'bg-zinc-900', icon: <svg viewBox="0 0 24 24" width={20} height={20} fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> },
-                { platform: 'facebook' as const, name: 'Facebook', color: 'bg-[#1877F2]', icon: <svg viewBox="0 0 24 24" width={20} height={20} fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> },
-              ].map(({ platform, name, color, icon }) => (
+                { platform: 'linkedin' as const, name: 'LinkedIn', style: { background: '#0077B5' }, icon: <Linkedin size={24} className="text-white" />, note: 'Opens share dialog' },
+                { platform: 'instagram' as const, name: 'Instagram', style: { background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }, icon: <svg viewBox="0 0 24 24" width={20} height={20} fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>, note: 'Copies caption + opens profile' },
+                { platform: 'youtube' as const, name: 'YouTube', style: { background: '#FF0000' }, icon: <svg viewBox="0 0 24 24" width={20} height={20} fill="white"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>, note: 'Opens channel page' },
+              ].map(({ platform, name, style, icon, note }) => (
                 <button
                   key={platform}
                   onClick={() => handleSocialShare(platform)}
-                  className={`${color} p-6 rounded-3xl text-white flex flex-col items-center gap-4 hover:scale-[1.02] active:scale-[0.98] transition-all`}
+                  className="p-6 rounded-3xl text-white flex flex-col items-center gap-4 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  style={style}
                 >
                   <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
                     {icon}
@@ -321,7 +332,7 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
                     <p className="text-xs text-white/60 mt-1">+25 XP per share</p>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-white/80">
-                    <ExternalLink size={12} /> Share Now
+                    <ExternalLink size={12} /> {note}
                   </div>
                 </button>
               ))}
@@ -475,42 +486,80 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
             )}
           </div>
 
-          {leaderboard.length === 0 ? (
-            <div className="text-center py-12">
-              <Trophy size={40} className="mx-auto text-zinc-300 mb-4" />
-              <p className="text-zinc-400 font-bold">No referrals yet — be the first!</p>
-              <p className="text-zinc-300 text-sm mt-1">Share your link to start climbing the leaderboard.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {leaderboard.slice(0, 20).map((entry, i) => {
-                const isUser = entry.volunteerId === user.id;
-                const medals = ['🥇', '🥈', '🥉'];
-                return (
-                  <div
-                    key={entry.volunteerId}
-                    className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
-                      isUser ? 'bg-brand/5 border border-brand/20' : 'hover:bg-zinc-50'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-lg font-black shrink-0">
-                      {i < 3 ? medals[i] : <span className="text-sm text-zinc-400">{entry.rank}</span>}
+          {(() => {
+            const activeBoard = leaderboard.filter(e => e.referrals > 0);
+            const medals = ['🥇', '🥈', '🥉'];
+            const userEntry = leaderboard.find(e => e.volunteerId === user.id);
+            const userActive = userEntry && userEntry.referrals > 0;
+
+            if (activeBoard.length === 0) {
+              return (
+                <div className="text-center py-12">
+                  <Trophy size={40} className="mx-auto text-zinc-200 mb-4" />
+                  <p className="text-zinc-800 font-black text-lg">The board is wide open.</p>
+                  <p className="text-zinc-400 font-medium text-sm mt-1 max-w-xs mx-auto">
+                    No one has made their first referral yet — share your link and be the one who gets this community moving.
+                  </p>
+                </div>
+              );
+            }
+
+            const top3 = activeBoard.slice(0, 3);
+            const showUserRow = userActive && userRank > 3;
+
+            return (
+              <div className="space-y-2">
+                {top3.map((entry, i) => {
+                  const isUser = entry.volunteerId === user.id;
+                  return (
+                    <div
+                      key={entry.volunteerId}
+                      className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                        isUser ? 'bg-brand/5 border border-brand/20' : 'hover:bg-zinc-50'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-lg shrink-0">
+                        {medals[i]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-bold text-sm truncate ${isUser ? 'text-brand' : 'text-zinc-900'}`}>
+                          {entry.name} {isUser && '(You)'}
+                        </p>
+                        <p className="text-xs text-zinc-400">{entry.impact} people impacted</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-black text-zinc-900">{entry.referrals}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase">Referrals</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-sm truncate ${isUser ? 'text-brand' : 'text-zinc-900'}`}>
-                        {entry.name} {isUser && '(You)'}
-                      </p>
-                      <p className="text-xs text-zinc-400">{entry.impact} people impacted</p>
+                  );
+                })}
+                {showUserRow && userEntry && (
+                  <>
+                    <div className="text-center text-zinc-300 text-xs py-1">· · ·</div>
+                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-brand/5 border border-brand/20">
+                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-sm font-black text-zinc-400 shrink-0">
+                        #{userRank}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate text-brand">{userEntry.name} (You)</p>
+                        <p className="text-xs text-zinc-400">{userEntry.impact} people impacted</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-black text-zinc-900">{userEntry.referrals}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase">Referrals</p>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-black text-zinc-900">{entry.referrals}</p>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase">Referrals</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  </>
+                )}
+                {!userActive && (
+                  <p className="text-center text-xs text-zinc-400 font-medium pt-3">
+                    Share your link and log your first referral to appear on the board.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
