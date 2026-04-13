@@ -243,16 +243,23 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     }
   };
 
-  const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean; leadOnly?: boolean; logisticsOnly?: boolean; coreTab?: boolean }[] = [
+  // Determine event type to show the right workflow
+  const catLower = (opportunity.category || '').toLowerCase();
+  const titleLower = (opportunity.title || '').toLowerCase();
+  const isStreetMedicine = catLower.includes('street medicine');
+  const isVolunteerOnlyEvent = ['training', 'volunteer meeting', 'team meeting', 'internal', 'orientation'].some(t => catLower.includes(t) || titleLower.includes(t));
+  const isClientFacingEvent = !isVolunteerOnlyEvent;
+
+  const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean; leadOnly?: boolean; logisticsOnly?: boolean; coreTab?: boolean; clientOnly?: boolean }[] = [
     { id: 'checkin', label: 'Check-In', icon: QrCode, leadOnly: true, coreTab: true },
     { id: 'overview', label: 'Brief', icon: BookUser, coreTab: true },
     { id: 'checklists', label: 'Tasks', icon: ListChecks, leadOnly: true, coreTab: true },
-    { id: 'screenings', label: 'Health', icon: HeartPulse, coreTab: true },
-    { id: 'intake', label: 'Intake', icon: ClipboardPaste, coreTab: true },
+    { id: 'screenings', label: 'Screenings', icon: HeartPulse, coreTab: true, clientOnly: true },
+    { id: 'intake', label: 'Referrals', icon: ClipboardPaste, coreTab: true, clientOnly: true },
+    { id: 'tracker', label: 'Supplies', icon: Package, coreTab: true, clientOnly: true },
     { id: 'signoff', label: 'Finish', icon: UserCheck, coreTab: true },
     { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
-    { id: 'survey', label: 'Survey', icon: FileText },
-    { id: 'tracker', label: 'Tracker', icon: Package },
+    { id: 'survey', label: 'Survey', icon: FileText, clientOnly: true },
     { id: 'logistics', label: 'Loadout', icon: Truck, logisticsOnly: true },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
@@ -278,9 +285,9 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     overview: { title: 'Start Here', description: 'Review the mission summary, goals, team roster, and your assignment before the huddle.' },
     itinerary: { title: 'Event Timeline', description: 'Review the event day schedule with your team during the huddle.', tips: isLead ? ['Use the rotation planner to assign buddy pairs to stations.', 'Setup starts at shift start, but rotations begin at service start time.'] : undefined },
     survey: { title: 'Community Survey', description: 'Use this tab to survey community members during the event. The script and questions are pre-loaded — follow the prompts for each interaction.' },
-    intake: { title: 'Client Referrals', description: 'Log every client referral here. If someone needs a service connection (housing, mental health, substance use), create an intake record. Every interaction must be accounted for.' },
-    screenings: { title: 'Health Screenings', description: 'Log health screenings here — blood pressure, glucose, HIV testing, BMI. Every person receiving a screening gets a record.' },
-    tracker: { title: 'Distribution Tracker', description: 'Track distribution of supplies — Narcan, fentanyl test strips, food, hygiene kits. Log each distribution so we can estimate future needs.' },
+    intake: { title: 'Referral Line — Complex Needs', description: 'Use this for anyone who needs a service connection: housing, mental health, substance use, or other referrals. These are people who need follow-up beyond today\'s event. Every referral must be logged.' },
+    screenings: { title: 'Screening Line — Health Services', description: 'Use this for anyone receiving a health screening: HIV testing, blood pressure, glucose, BMI. Every person who gets tested or screened gets a record here — even if results are normal.' },
+    tracker: { title: 'Resources Line — Supply Distribution', description: 'Use this to log supplies given out: food, hygiene kits, Narcan, fentanyl test strips. Log each person\'s distribution so we can track usage and plan future supply needs.' },
     incidents: { title: 'Incident Reporting', description: 'Report any incidents or safety concerns here. Your lead will be notified immediately.' },
     signoff: { title: 'End-of-Day', description: 'End-of-day sign-off. Complete this after breakdown and the debrief session.' },
     checkin: { title: 'Volunteer Check-In', description: 'For team members only — not clients or participants. Share the QR code for self check-in or manually check volunteers in. Walk-ins are community members who showed up to help without pre-registering.' },
@@ -416,6 +423,8 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
               if (tab.adminOnly && !user.isAdmin) return false;
               if (tab.leadOnly && !isLead) return false;
               if (tab.logisticsOnly && !isLead && user.role !== 'Logistics') return false;
+              // Hide client-service tabs for volunteer-only events (trainings, team meetings)
+              if (tab.clientOnly && isVolunteerOnlyEvent) return false;
               // In compact mode (volunteers), only show core tabs unless expanded
               if (!showAllTabs && !tab.coreTab) return false;
               return true;
@@ -441,7 +450,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
 
         <main className="flex-1 w-full bg-white border border-zinc-100 rounded-2xl md:rounded-[40px] p-3 sm:p-6 md:p-10 lg:p-16 shadow-sm hover:shadow-2xl transition-shadow min-h-[300px] md:min-h-[600px] relative">
           <TabHelper tabId={activeTab} helpers={TAB_HELPERS} />
-          {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} />}
+          {activeTab === 'overview' && <OverviewTab user={user} opportunity={opportunity} shift={shift} onNavigateToAcademy={onNavigateToAcademy} allVolunteers={allVolunteers} eventShifts={eventShifts} isClientFacingEvent={isClientFacingEvent} isStreetMedicine={isStreetMedicine} onNavigate={setActiveTab} />}
           {activeTab === 'checklists' && opsRun && <ChecklistsView template={checklistTemplate} completedItems={opsRun.completedItems} onCheckItem={handleCheckItem} isLead={isLead} onSaveTemplate={handleSaveChecklist} onResetTemplate={handleResetChecklist} hasOverride={!!opportunity.checklistOverride} />}
           {activeTab === 'checkin' && <CheckInView opportunity={opportunity} user={user} />}
           {activeTab === 'survey' && <SurveyStationView surveyKit={surveyKit} user={user} eventId={derivedEvent.id} eventTitle={derivedEvent.title} />}
@@ -498,7 +507,7 @@ const opsTourSteps = [
     { title: 'Welcome to Mission Ops', content: 'This is your event day command center. Everything you need for the mission is organized by phase.' },
     { title: 'Phase 1: Arrive & Check In', content: "Tap 'I'm Here' in the header to check in. You'll be assigned a buddy pair. Review the Brief tab for your mission summary and assignment." },
     { title: 'Phase 2: Huddle & Setup', content: 'Review the Itinerary with your team. Your lead will walk through station assignments, rotations, and goals. Setup equipment at your assigned station.' },
-    { title: 'Phase 3: Active Operations', content: 'During the event, use the tabs for your role: Survey for community surveys, Intake for client referrals, Health for screenings, Tracker for supply distribution. Every interaction must be logged.' },
+    { title: 'Phase 3: Active Operations', content: 'During the event, use the Brief tab\'s Client Entry buttons to route each community member to the right log: Screening Line → Screenings tab, Resources Only → Supplies tab, Needs Follow-Up → Referrals tab. Every interaction must be logged.' },
     { title: 'Phase 4: Live Ops', content: 'Leads: the Station Rotation Planner has a Live Ops panel. Activate it to track real-time rotation slots, mark depleted stations, and deploy the roving team for street outreach.' },
     { title: 'Phase 5: Pack-Up & Debrief', content: "Breakdown equipment, complete your checklist, and attend the debrief. Hit 'Check Out' and complete the Finish tab sign-off." },
 ];
@@ -531,11 +540,12 @@ const OpsTour: React.FC<{ onComplete: () => void; onClose: () => void }> = ({ on
     );
 };
 
-const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: Shift; onNavigateToAcademy?: () => void; allVolunteers?: Volunteer[]; eventShifts?: Shift[] }> = ({ user, opportunity, shift, allVolunteers, eventShifts }) => {
+const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: Shift; onNavigateToAcademy?: () => void; allVolunteers?: Volunteer[]; eventShifts?: Shift[]; isClientFacingEvent?: boolean; isStreetMedicine?: boolean; onNavigate?: (tab: OpsTab) => void }> = ({ user, opportunity, shift, allVolunteers, eventShifts, isClientFacingEvent, isStreetMedicine, onNavigate }) => {
     const fullAddress = opportunity.serviceLocation || '';
     const services = (opportunity.serviceOfferingIds || [])
         .map(id => SERVICE_OFFERINGS.find(s => s.id === id))
         .filter(Boolean) as typeof SERVICE_OFFERINGS;
+    const [showScript, setShowScript] = useState(false);
 
     // Derive clinical lead requirement from serviceOfferingIds if not explicitly set
     const hasClinicalLead = opportunity.requiresClinicalLead ?? (opportunity.serviceOfferingIds || []).some(id =>
@@ -554,6 +564,96 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
     return (
     <div className="space-y-10 animate-in fade-in">
         <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Operational Brief</h2>
+
+        {/* === CLIENT ENTRY PANEL — Street Medicine + Community Events Only === */}
+        {isClientFacingEvent && onNavigate && (
+          <div className="rounded-2xl md:rounded-3xl border-2 border-brand/20 overflow-hidden">
+            <div className="bg-brand/5 px-6 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em]">
+                  {isStreetMedicine ? 'Street Medicine — Client Encounter Entry' : 'Client Service Entry'}
+                </p>
+                <p className="text-xs font-bold text-zinc-500 mt-0.5">When a community member approaches, select which service they need</p>
+              </div>
+              <button
+                onClick={() => setShowScript(s => !s)}
+                className="text-[10px] font-black text-brand uppercase tracking-wide flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand/30 hover:bg-brand/10 transition-colors shrink-0"
+              >
+                <MessageSquare size={12} /> {showScript ? 'Hide Script' : 'View Script'}
+              </button>
+            </div>
+
+            {showScript && (
+              <div className="px-6 py-4 bg-amber-50 border-b border-amber-100">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider mb-2">Approved Outreach Script</p>
+                <p className="text-sm font-bold text-amber-900 leading-relaxed italic">
+                  "Hey there! We're here with Health Matters Clinic offering free health screenings, resources, and support. We have meals, hygiene kits, and even housing referrals if you need them. If you're here for a health screening, including HIV testing, we'll have you join this line. If you just need food, hygiene kits, or other resources, you can hop in this line — totally up to you! How can we support you today?"
+                </p>
+              </div>
+            )}
+
+            <div className="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Screening Line */}
+              <button
+                onClick={() => onNavigate('screenings')}
+                className="group flex flex-col items-start gap-3 p-5 bg-white rounded-2xl border-2 border-violet-200 hover:border-violet-400 hover:bg-violet-50 transition-all text-left shadow-sm hover:shadow-md active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center group-hover:bg-violet-200 transition-colors">
+                  <HeartPulse size={20} className="text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-zinc-900">Health Screening Line</p>
+                  <p className="text-[11px] font-bold text-zinc-400 mt-1 leading-snug">HIV testing · Blood pressure · Glucose · BMI</p>
+                </div>
+                <span className="text-[10px] font-black text-violet-500 uppercase tracking-wider flex items-center gap-1">Log Screening <ArrowRight size={10} /></span>
+              </button>
+
+              {/* Resources Line */}
+              <button
+                onClick={() => onNavigate('tracker')}
+                className="group flex flex-col items-start gap-3 p-5 bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all text-left shadow-sm hover:shadow-md active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                  <Package size={20} className="text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-zinc-900">Resources Only Line</p>
+                  <p className="text-[11px] font-bold text-zinc-400 mt-1 leading-snug">Food · Hygiene kits · Narcan · Supplies</p>
+                </div>
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider flex items-center gap-1">Log Distribution <ArrowRight size={10} /></span>
+              </button>
+
+              {/* Referral / Complex Needs */}
+              <button
+                onClick={() => onNavigate('intake')}
+                className="group flex flex-col items-start gap-3 p-5 bg-white rounded-2xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-left shadow-sm hover:shadow-md active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <ClipboardPaste size={20} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-zinc-900">Referral Needed</p>
+                  <p className="text-[11px] font-bold text-zinc-400 mt-1 leading-snug">Housing · Mental health · Substance use · Follow-up</p>
+                </div>
+                <span className="text-[10px] font-black text-blue-500 uppercase tracking-wider flex items-center gap-1">Open Intake <ArrowRight size={10} /></span>
+              </button>
+            </div>
+
+            <div className="px-6 py-3 bg-zinc-50 border-t border-zinc-100">
+              <p className="text-[10px] font-bold text-zinc-400">
+                <span className="text-zinc-600 font-black">Volunteer check-in</span> is separate — use the <span className="text-zinc-600 font-black">"I'm Here"</span> button in the header. These buttons are for <span className="text-zinc-600 font-black">community members</span> only.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Volunteer-only event notice */}
+        {!isClientFacingEvent && (
+          <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 flex items-start gap-3">
+            <Users size={16} className="text-zinc-400 shrink-0 mt-0.5" />
+            <p className="text-xs font-bold text-zinc-500">This is a volunteer-only event. Client intake, screenings, and distribution are not active. Use the <strong>Tasks</strong> tab to manage setup/breakdown and <strong>Finish</strong> to log your hours.</p>
+          </div>
+        )}
 
         {/* Section A: Mission Summary */}
         <div className="p-4 md:p-8 bg-zinc-50 rounded-2xl md:rounded-3xl border border-zinc-100 shadow-inner space-y-4">
