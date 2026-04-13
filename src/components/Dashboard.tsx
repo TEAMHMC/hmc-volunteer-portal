@@ -100,6 +100,8 @@ interface DashboardProps {
     referralCode: string;
     referralCount: number;
   } | null;
+  initialTab?: string;
+  initialCheckinShiftId?: string;
 }
 
 // Helper to get personalized greeting based on time of day
@@ -185,7 +187,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const {
     user: initialUser, allVolunteers, setAllVolunteers, onLogout, onUpdateUser,
     opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
-    announcements, setAnnouncements, messages, setMessages, gamification
+    announcements, setAnnouncements, messages, setMessages, gamification,
+    initialTab, initialCheckinShiftId,
   } = props;
 
   const [user, setUser] = useState(initialUser);
@@ -210,7 +213,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   };
 
   const getDefaultTab = (_role: string) => {
-    // Support deep links: /shifts → missions, /calendar → calendar, etc.
+    // Honor deep link from email (?tab=missions)
+    if (initialTab && ['missions', 'calendar', 'academy', 'briefing', 'profile', 'impact', 'directory', 'overview'].includes(initialTab)) {
+      return initialTab;
+    }
+    // Support path-based deep links: /shifts → missions, etc.
     const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
     const pathMap: Record<string, string> = {
       'shifts': 'missions',
@@ -1121,7 +1128,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          <Suspense fallback={<LazyFallback />}>
          {activeTab === 'academy' && <TabErrorBoundary tab="academy"><TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} /></TabErrorBoundary>}
-         {activeTab === 'missions' && canAccessMissions && <TabErrorBoundary tab="missions"><ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} /></TabErrorBoundary>}
+         {activeTab === 'missions' && canAccessMissions && <TabErrorBoundary tab="missions"><ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} initialCheckinShiftId={initialCheckinShiftId} /></TabErrorBoundary>}
 
          {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <TabErrorBoundary tab="my-team"><CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /></TabErrorBoundary>}
          {activeTab === 'impact' && <TabErrorBoundary tab="impact"><ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} /></TabErrorBoundary>}

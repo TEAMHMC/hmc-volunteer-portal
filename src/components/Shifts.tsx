@@ -773,9 +773,10 @@ interface ShiftsProps {
   allVolunteers: Volunteer[];
   setAllVolunteers?: React.Dispatch<React.SetStateAction<Volunteer[]>>;
   manageOnly?: boolean;
+  initialCheckinShiftId?: string;
 }
 
-const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShifts, onUpdate, opportunities, setOpportunities, allVolunteers, setAllVolunteers, manageOnly }) => {
+const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShifts, onUpdate, opportunities, setOpportunities, allVolunteers, setAllVolunteers, manageOnly, initialCheckinShiftId }) => {
   const canManageEvents = userMode === 'admin' || userMode === 'coordinator';
 
   // Ops Mode is visible when the event is within 7 days before to 3 days after its date
@@ -793,7 +794,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [toastError, setToastError] = useState(false);
-  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(initialCheckinShiftId || null);
   const [showEventBuilder, setShowEventBuilder] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');

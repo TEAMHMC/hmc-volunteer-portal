@@ -666,8 +666,12 @@ const emailHeader = (title: string) => `
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9fafb;">
   <div style="max-width: 600px; margin: 0 auto; background: white;">
-    <div style="padding: 40px 32px; text-align: center; border-bottom: 1px solid #f3f4f6;">
-      <h2 style="font-size: 24px; font-weight: 700; margin: 0; color: #1f2937;">${title}</h2>
+    <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; padding: 40px 32px; text-align: center;">
+      <div style="width: 64px; height: 64px; background: white; border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <img src="https://healthmatters.clinic/favicon.ico" alt="HMC" width="40" height="40" style="display: block;" onerror="this.style.display='none'" />
+      </div>
+      <p style="margin: 0 0 4px 0; color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 600; letter-spacing: 0.05em;">HEALTH MATTERS CLINIC</p>
+      <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: white;">${title}</h2>
     </div>
     <div style="padding: 40px 32px; color: #4b5563; line-height: 1.6;">
 `;
@@ -1061,21 +1065,26 @@ const EmailTemplates = {
         <li style="margin: 8px 0;">Water bottle</li>
         <li style="margin: 8px 0;">A positive attitude!</li>
       </ul>`;
+    const checkinUrl = data.shiftId
+      ? `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions&checkin=${data.shiftId}`
+      : `${EMAIL_CONFIG.WEBSITE_URL}?tab=missions`;
     return {
-    subject: `You're Signed Up: ${data.eventTitle}`,
-    html: `${emailHeader(isTraining ? 'Training Registration Confirmed' : 'Event Registration Confirmed')}
-      <p>Hi ${data.volunteerName},</p>
-      <p>You're registered for the following ${isTraining ? 'training' : 'event'}:</p>
+    subject: `Registration Confirmed | ${data.eventTitle}`,
+    html: `${emailHeader(isTraining ? 'Training Registration Confirmed' : 'Registration Confirmed')}
+      <p>Hi ${data.volunteerName}!</p>
+      <p>Your registration has been confirmed for:</p>
       <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
         <h3 style="margin: 0 0 12px 0; color: ${EMAIL_CONFIG.BRAND_COLOR};">${data.eventTitle}</h3>
         <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${data.eventDate}</p>
+        ${data.eventTime ? `<p style="margin: 0 0 8px 0;"><strong>Time:</strong> ${data.eventTime}</p>` : ''}
         ${isTraining ? '' : `<p style="margin: 0;"><strong>Location:</strong> ${data.eventLocation}</p>`}
       </div>
       ${whatToBring}
       <p style="color: #6b7280;">If you can no longer attend, please update your registration in the portal so another volunteer can take your spot.</p>
-      ${actionButton('View My Schedule', `${EMAIL_CONFIG.WEBSITE_URL}/missions`)}
+      ${actionButton(isTraining ? 'View My Schedule' : 'Check-in on Event Day', checkinUrl)}
+      <p style="text-align: center; font-size: 13px; color: #9ca3af; margin-top: -16px;">Use the button above to check in when you arrive at the event.</p>
     ${emailFooter()}`,
-    text: `Hi ${data.volunteerName}, You're registered for ${data.eventTitle} on ${data.eventDate}${isTraining ? '' : ` at ${data.eventLocation}`}. See you there!`
+    text: `Hi ${data.volunteerName}, Your registration is confirmed for ${data.eventTitle} on ${data.eventDate}${data.eventTime ? ' at ' + data.eventTime : ''}${isTraining ? '' : ` at ${data.eventLocation}`}. See you there!`
   }; },
 
   // Coordinator Registration Alert
@@ -9064,13 +9073,27 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
     // Send confirmation email (Stage 1 of event reminder cadence)
     if (volunteerEmail) {
       try {
+        // Fetch shift start time for the email if not passed in body
+        let eventTimeForEmail = (req.body.eventTime as string) || '';
+        if (!eventTimeForEmail && shiftId) {
+          try {
+            const shiftDoc = await db.collection('shifts').doc(shiftId).get();
+            const st = shiftDoc.data()?.startTime;
+            if (st) {
+              const d = new Date(st);
+              if (!isNaN(d.getTime())) eventTimeForEmail = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+            }
+          } catch { /* non-critical */ }
+        }
         await EmailService.send('event_registration_confirmation', {
           toEmail: volunteerEmail,
           volunteerName: volunteerName || 'Volunteer',
           eventTitle: eventTitle || 'Community Event',
           eventDate: formatEventDate(eventDate || 'TBD'),
+          eventTime: eventTimeForEmail,
           eventLocation: eventLocation || 'TBD',
           eventType: eventType || '',
+          shiftId: shiftId || '',
         });
         // Log Stage 1 in reminder_log to prevent duplicate confirmation sends
         try { await logReminderSent(volunteerId, eventId, 1); } catch (e) { console.error('[EVENTS] Failed to log reminder sent:', e); }

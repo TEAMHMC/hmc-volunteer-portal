@@ -40,6 +40,16 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     return params.get('ref') || null;
   });
 
+  // Deep link params from email buttons (?tab=missions&checkin=SHIFTID)
+  const [deepLinkTab] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('tab');
+  });
+  const [deepLinkCheckin] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('checkin');
+  });
+
   const setAppData = (data: any) => {
       setCurrentUser(data.user);
       setAllVolunteers(data.volunteers || []);
@@ -246,7 +256,9 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     const dashboardProps = {
         user: currentUser, allVolunteers, setAllVolunteers, onLogout: handleLogout, onUpdateUser: handleUpdateUser,
         opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
-        announcements, setAnnouncements, messages, setMessages, gamification
+        announcements, setAnnouncements, messages, setMessages, gamification,
+        initialTab: deepLinkTab || undefined,
+        initialCheckinShiftId: deepLinkCheckin || undefined,
     };
     return (
       <>
