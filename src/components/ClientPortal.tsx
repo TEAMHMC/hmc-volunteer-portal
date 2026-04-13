@@ -33,7 +33,7 @@ const TOOLS = [
     description: 'Breathing and grounding to help you settle.',
     cta: 'Open',
     Icon: Wind,
-    href: `${HMC_BASE}/resources/calmkit`,
+    href: `https://teamhmc.github.io/CalmKit/`,
   },
   {
     id: 'gameplan',

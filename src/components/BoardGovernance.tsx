@@ -398,6 +398,17 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
     setShowNewMeetingModal(false);
   };
 
+  const handleDismissMeeting = async (meetingId: string) => {
+    if (!window.confirm('Remove this meeting from the list? This cannot be undone.')) return;
+    try {
+      await apiService.delete(`/api/board/meetings/${meetingId}`);
+      setMeetings(prev => prev.filter(m => m.id !== meetingId));
+      toastService.success('Meeting removed');
+    } catch {
+      toastService.error('Failed to remove meeting');
+    }
+  };
+
   const handleEditMeeting = async (meetingData: Partial<BoardMeeting>) => {
     if (!editingMeeting) return;
     try {
@@ -577,7 +588,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                           className="flex items-center gap-2 px-4 py-2 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide hover:bg-brand-hover transition-colors shadow-elevation-2"
                         >
                           <Video size={16} />
-                          Join Google Meet
+                          {meeting.googleMeetLink.includes('zoom.us') ? 'Join Zoom' : 'Join Google Meet'}
                         </button>
                       )}
                       {!meeting.googleMeetLink && canManageMeetings && (
@@ -586,7 +597,7 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                           className="flex items-center gap-2 px-4 py-2 border border-dashed border-black text-zinc-500 rounded-full font-bold text-xs uppercase tracking-wide hover:border-brand hover:text-brand transition-colors"
                         >
                           <Video size={14} />
-                          Add Meet Link
+                          Add Meeting Link
                         </button>
                       )}
                     </div>
@@ -629,13 +640,24 @@ const BoardGovernance: React.FC<BoardGovernanceProps> = ({ user, meetingsOnly })
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setShowMinutesModal(meeting)}
-                      className="flex items-center gap-2 px-4 py-2 border border-black rounded-full font-bold text-sm uppercase tracking-wide hover:bg-zinc-50"
-                    >
-                      <Eye size={16} />
-                      {meeting.minutesContent ? 'View Minutes' : 'Add Minutes'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {canManageMeetings && !meeting.minutesContent && (
+                        <button
+                          onClick={() => handleDismissMeeting(meeting.id)}
+                          className="p-2 text-zinc-300 hover:text-red-400 transition-colors rounded-full hover:bg-red-50"
+                          title="Remove this meeting"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowMinutesModal(meeting)}
+                        className="flex items-center gap-2 px-4 py-2 border border-black rounded-full font-bold text-sm uppercase tracking-wide hover:bg-zinc-50"
+                      >
+                        <Eye size={16} />
+                        {meeting.minutesContent ? 'View Minutes' : 'Add Minutes'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1301,13 +1323,13 @@ const MeetingFormModal: React.FC<{
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-3xl"><X size={20} /></button>
         </div>
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          {/* Start Now / Schedule for Later toggle — only shown on create */}
+          {/* Start Now / Schedule for Later toggle — pill style */}
           {!isEdit && (
-            <div className="flex bg-zinc-100 rounded-2xl p-1 gap-1">
+            <div className="flex gap-2">
               <button
                 onClick={() => setMode('now')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  mode === 'now' ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${
+                  mode === 'now' ? 'bg-brand border-brand text-white shadow-sm' : 'border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700'
                 }`}
               >
                 <Play size={14} />
@@ -1315,8 +1337,8 @@ const MeetingFormModal: React.FC<{
               </button>
               <button
                 onClick={() => setMode('later')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  mode === 'later' ? 'bg-brand text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${
+                  mode === 'later' ? 'bg-brand border-brand text-white shadow-sm' : 'border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700'
                 }`}
               >
                 <Calendar size={14} />
@@ -1357,12 +1379,12 @@ const MeetingFormModal: React.FC<{
             </select>
           </div>
 
-          {/* Google Meet Link — enhanced section */}
+          {/* Meeting Link — supports Google Meet or Zoom */}
           <div className="border-2 border-zinc-100 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                 <Video size={12} />
-                Google Meet Link
+                Meeting Link
               </label>
               {meetLink && linkValid && (
                 <span className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
@@ -1378,21 +1400,31 @@ const MeetingFormModal: React.FC<{
               )}
             </div>
 
-            {/* Create Meet Link button */}
-            <button
-              type="button"
-              onClick={handleCreateMeetLink}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 border-dashed rounded-xl text-blue-700 font-bold text-sm transition-colors"
-            >
-              <ExternalLink size={14} />
-              {meetLinkOpened ? 'Open Google Meet Again' : 'Create Google Meet Link'}
-            </button>
+            {/* Create Meet/Zoom buttons */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCreateMeetLink}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 border-dashed rounded-xl text-blue-700 font-bold text-sm transition-colors"
+              >
+                <ExternalLink size={13} />
+                {meetLinkOpened ? 'Reopen Meet' : 'Google Meet'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { window.open('https://zoom.us/meeting/schedule', '_blank'); setMeetLinkOpened(true); setTimeout(() => meetLinkInputRef.current?.focus(), 500); }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-sky-50 hover:bg-sky-100 border-2 border-sky-200 border-dashed rounded-xl text-sky-700 font-bold text-sm transition-colors"
+              >
+                <ExternalLink size={13} />
+                Zoom
+              </button>
+            </div>
 
             {meetLinkOpened && !meetLink && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
                 <p className="text-xs text-amber-800 font-semibold flex items-start gap-2">
                   <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  Google Meet opened in a new tab. Copy the meeting link from the address bar, then paste it below.
+                  Meeting link opened. Copy the invite link and paste it below.
                 </p>
               </div>
             )}
@@ -1407,7 +1439,7 @@ const MeetingFormModal: React.FC<{
                   meetLink && linkValid ? 'border-emerald-200 focus:border-emerald-400' :
                   'border-zinc-100 focus:border-brand/30'
                 }`}
-                placeholder="https://meet.google.com/abc-defg-hij"
+                placeholder="https://meet.google.com/... or https://zoom.us/j/..."
               />
               {meetLink && (
                 <button
@@ -1438,7 +1470,7 @@ const MeetingFormModal: React.FC<{
             )}
 
             {!meetLink && !meetLinkOpened && (
-              <p className="text-xs text-zinc-400">Click the button above to generate a new Google Meet, or paste an existing meeting link.</p>
+              <p className="text-xs text-zinc-400">Create a Google Meet or Zoom link above, or paste an existing one.</p>
             )}
           </div>
 

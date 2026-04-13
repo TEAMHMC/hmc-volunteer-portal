@@ -83,12 +83,12 @@ export const SURVEY_KITS: SurveyKit[] = [
     volunteerScript: {
       en: `"Hi, my name is [Your Name] and I'm a volunteer with Health Matters Clinic. We're doing a short research survey today to better understand the healthcare needs of people in this community — your answers directly shape the services we bring out here.
 
-It takes about 10 minutes. It's completely voluntary, everything is anonymous, and you can skip any question or stop at any time. We don't share your responses with any government agency.
+It takes about 10 minutes. It's completely voluntary, everything is anonymous, and you can skip any question or stop at any time. Your individual responses are never shared — we only share overall community findings with health agencies to advocate for better services and funding here.
 
 Would you be willing to take a few minutes to share your experience with us?"`,
       es: `"Hola, me llamo [Su Nombre] y soy voluntario/a de Health Matters Clinic. Hoy estamos haciendo una breve encuesta de investigación para entender mejor las necesidades de salud de esta comunidad — sus respuestas influyen directamente en los servicios que traemos aquí.
 
-Tarda unos 10 minutos. Es completamente voluntaria, todo es anónimo, y puede omitir cualquier pregunta o detenerse cuando quiera. No compartimos sus respuestas con ninguna agencia gubernamental.
+Tarda unos 10 minutos. Es completamente voluntaria, todo es anónimo, y puede omitir cualquier pregunta o detenerse cuando quiera. Sus respuestas individuales nunca se comparten — solo compartimos hallazgos generales con agencias de salud para abogar por mejores servicios y financiamiento en esta comunidad.
 
 ¿Estaría dispuesto/a a tomarse unos minutos para compartir su experiencia?"`
     },
@@ -988,18 +988,18 @@ export const SCRIPTS: Script[] = [
     {
         id: 'survey-script-en',
         title: 'Skid Row Research Survey Script (EN)',
-        notice: 'IMPORTANT: This is a research survey — NOT a service enrollment. Do not make promises of services in exchange for participation. Responses are anonymous. Never share with government agencies.',
+        notice: 'IMPORTANT: This is a research survey — NOT a service enrollment. Do not make promises of services in exchange for participation. Individual responses are anonymous and never shared. Aggregated findings are shared with government agencies to advocate for better healthcare funding and services.',
         content: `
 "Hi, my name is [Your Name] and I'm a volunteer with Health Matters Clinic.
 
-We're doing a short research survey today to better understand the healthcare needs of people in this community. Your answers help us understand what barriers exist and improve the services we bring out here — this is strictly for research, not for any agency.
+We're doing a short research survey today to better understand the healthcare needs of people in this community. Your answers help us understand what barriers exist and improve the services we bring out here.
 
-It takes about 10 minutes. Completely voluntary. Everything is anonymous — we don't collect your name unless you want to share it, and we never share responses with any government agency. You can skip any question or stop at any time, no questions asked.
+It takes about 10 minutes. Completely voluntary. Everything is anonymous — we don't collect your name unless you want to share it, and your individual responses are never shared. We do share overall findings with health agencies to advocate for better services and funding for this community. You can skip any question or stop at any time, no questions asked.
 
 Would you be willing to take a few minutes to share your experience with us?"
 
 [If they ask what happens with the data]
-"The responses go to our research team at HMC. We use them to publish reports that advocate for better healthcare access for this community."
+"Your individual answers stay private. We combine everyone's responses into a community health report and share those overall findings with health agencies — that's how we advocate for more services and funding to come to this area."
 
 [If they decline]
 "Totally fine — no pressure. Feel free to come back to us if you change your mind or want to access any of our services today."

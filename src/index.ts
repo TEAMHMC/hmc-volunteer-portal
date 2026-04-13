@@ -12524,6 +12524,19 @@ app.put('/api/board/meetings/:meetingId/minutes', verifyToken, async (req: Reque
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
+// DELETE /api/board/meetings/:meetingId — Remove a meeting (admins/leads only)
+app.delete('/api/board/meetings/:meetingId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userData = (await db.collection('volunteers').doc(user.uid).get()).data();
+    if (!userData?.isAdmin && !COORDINATOR_AND_LEAD_ROLES.includes(userData?.role)) {
+      return res.status(403).json({ error: 'Only admins and leads can remove meetings' });
+    }
+    await db.collection('board_meetings').doc(req.params.meetingId).delete();
+    res.json({ success: true });
+  } catch (e: any) { console.error('[MEETINGS] Delete failed:', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
 // Get Give or Get data for current user
 app.get('/api/board/give-or-get', verifyToken, async (req: Request, res: Response) => {
   try {
@@ -15633,7 +15646,7 @@ THINGS YOU MUST NEVER DO:
 - NEVER imply HMC accepts walk-in patients like a traditional clinic — we are event/outreach-based
 - NEVER describe HMC as charging for services — all community-facing services are free
 - NEVER send people directly to volunteer.healthmatters.clinic — always send to healthmatters.clinic/get-involved first
-- NEVER link to hmc-hub.healthmatters.clinic — the hub is NOT live. Only link to tools that are live: healthmatters.clinic/resources/check-yourself, healthmatters.clinic/resources/calm-kit, healthmatters.clinic/resources, healthmatters.clinic/resources/eventfinder
+- NEVER link to hmc-hub.healthmatters.clinic — the hub is NOT live. Only link to tools that are live: healthmatters.clinic/resources/check-yourself, teamhmc.github.io/CalmKit/, healthmatters.clinic/resources, healthmatters.clinic/resources/eventfinder
 - NEVER confuse Check Yourself with an SDOH assessment — Check Yourself is a MENTAL HEALTH screening tool (PHQ-9 + GAD-7), not a social determinants check
 - NEVER say "this month" when referring to May events if the current month is April — say "next month" or "in May"
 - NEVER diagnose someone or label their experience with clinical terms they haven't used first

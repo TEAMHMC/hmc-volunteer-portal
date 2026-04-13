@@ -829,6 +829,9 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       if (isTestMode) logSimActivity('screening');
       const resultLabel = trafficResult ? ` — ${trafficResult.label}` : '';
       toastService.success(isTestMode ? `[PRACTICE] Screening logged${resultLabel}` : `Screening logged${resultLabel}`);
+      if (trafficResult?.level === 'critical') {
+        toastService.error('⚠️ CRITICAL READING — Stay with this person. Your Events Lead and clinical team have been notified. Do NOT leave them alone.');
+      }
       logAudit({
         actionType: 'LOG_SCREENING',
         targetSystem: 'HealthScreenings',
@@ -1054,14 +1057,22 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
 
           {/* Live traffic light result */}
           {liveTraffic && tc && (
-            <div className={`${tc.bg} ${tc.border} border rounded-xl px-3 py-2.5 mb-3 flex items-center gap-2.5`}>
-              <div className={`w-3 h-3 rounded-full ${tc.dot} flex-shrink-0`} />
-              <div>
-                <p className={`text-xs font-black ${tc.text}`}>{liveTraffic.label}</p>
-                {liveTraffic.color === 'red' && (
-                  <p className={`text-[10px] ${tc.text} mt-0.5`}>Follow-up flag will be set automatically</p>
-                )}
+            <div className={`${tc.bg} ${tc.border} border rounded-xl px-3 py-2.5 mb-3`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-3 h-3 rounded-full ${tc.dot} flex-shrink-0`} />
+                <div>
+                  <p className={`text-xs font-black ${tc.text}`}>{liveTraffic.label}</p>
+                  {liveTraffic.color === 'red' && (
+                    <p className={`text-[10px] ${tc.text} mt-0.5`}>Follow-up flag will be set automatically</p>
+                  )}
+                </div>
               </div>
+              {liveTraffic.level === 'critical' && (
+                <div className="mt-2 bg-white/70 rounded-lg px-2.5 py-2">
+                  <p className="text-xs font-black text-red-700 mb-1">⚠️ CRITICAL — Action required:</p>
+                  <p className="text-xs text-red-700 leading-relaxed">Stay with this person. Do NOT leave them alone. Logging will notify your Events Lead and clinical team immediately.</p>
+                </div>
+              )}
             </div>
           )}
 
