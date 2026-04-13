@@ -251,17 +251,21 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
   const isClientFacingEvent = !isVolunteerOnlyEvent;
 
   const TABS: { id: OpsTab; label: string; icon: React.ElementType; adminOnly?: boolean; leadOnly?: boolean; logisticsOnly?: boolean; coreTab?: boolean; clientOnly?: boolean }[] = [
-    { id: 'checkin', label: 'Check-In', icon: QrCode, leadOnly: true, coreTab: true },
+    // Phase 1 — Arrive & Prepare
     { id: 'overview', label: 'Brief', icon: BookUser, coreTab: true },
+    { id: 'checkin', label: 'Check-In', icon: QrCode, leadOnly: true, coreTab: true },
     { id: 'checklists', label: 'Tasks', icon: ListChecks, leadOnly: true, coreTab: true },
-    { id: 'screenings', label: 'Screenings', icon: HeartPulse, coreTab: true, clientOnly: true },
-    { id: 'intake', label: 'Referrals', icon: ClipboardPaste, coreTab: true, clientOnly: true },
-    { id: 'tracker', label: 'Supplies', icon: Package, coreTab: true, clientOnly: true },
-    { id: 'signoff', label: 'Finish', icon: UserCheck, coreTab: true },
     { id: 'itinerary', label: 'Itinerary', icon: ClipboardList },
+    // Phase 2 — Active Service
+    { id: 'screenings', label: 'Screenings', icon: HeartPulse, coreTab: true, clientOnly: true },
+    { id: 'tracker', label: 'Supplies', icon: Package, coreTab: true, clientOnly: true },
+    { id: 'intake', label: 'Referrals', icon: ClipboardPaste, coreTab: true, clientOnly: true },
     { id: 'survey', label: 'Survey', icon: FileText, clientOnly: true },
+    // Phase 3 — Wrap Up
     { id: 'logistics', label: 'Loadout', icon: Truck, logisticsOnly: true },
     { id: 'incidents', label: 'Alerts', icon: AlertTriangle },
+    { id: 'signoff', label: 'Finish', icon: UserCheck, coreTab: true },
+    // Admin
     { id: 'audit', label: 'Audit', icon: FileClock, adminOnly: true },
   ];
   const [showAllTabs, setShowAllTabs] = useState(isLead || user.isAdmin);
