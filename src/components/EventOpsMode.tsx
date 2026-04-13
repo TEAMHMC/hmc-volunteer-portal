@@ -3689,8 +3689,8 @@ const SidewalkLayoutCanvas: React.FC<{
                             <polygon points="0 0, 8 3, 0 6" fill="#a1a1aa" />
                         </marker>
                     </defs>
-                    {(flowDirection === 'rtl' ? [...safeStations].reverse() : safeStations).slice(0, -1).map((from, i, arr) => {
-                        const to = arr[i + 1];
+                    {(() => { const orderedStations = flowDirection === 'rtl' ? [...safeStations].reverse() : safeStations; return orderedStations.slice(0, -1).map((from, i) => {
+                        const to = orderedStations[i + 1];
                         const fromW = from.rotation === 90 ? from.height : from.width;
                         const fromH = from.rotation === 90 ? from.width : from.height;
                         const toW = to.rotation === 90 ? to.height : to.width;
@@ -3710,7 +3710,7 @@ const SidewalkLayoutCanvas: React.FC<{
                                 stroke="#a1a1aa" strokeWidth="1.5" strokeDasharray="6 3"
                                 markerEnd="url(#flow-arrow)" />
                         );
-                    })}
+                    }); })()}
                 </svg>
 
                 {/* Station blocks */}
