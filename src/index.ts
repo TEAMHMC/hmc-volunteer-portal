@@ -667,8 +667,8 @@ const emailHeader = (title: string) => `
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9fafb;">
   <div style="max-width: 600px; margin: 0 auto; background: white;">
     <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; padding: 40px 32px; text-align: center;">
-      <div style="width: 72px; height: 72px; background: white; border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-        <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="Health Matters Clinic" width="56" height="56" style="display: block; object-fit: contain;" />
+      <div style="width: 72px; height: 72px; background: white; border-radius: 16px; margin: 0 auto 16px; overflow: hidden; line-height: 0; font-size: 0;">
+        <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="Health Matters Clinic" width="72" height="72" style="display: block; width: 72px; height: 72px; object-fit: cover; border-radius: 16px;" />
       </div>
       <p style="margin: 0 0 4px 0; color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 600; letter-spacing: 0.05em;">HEALTH MATTERS CLINIC</p>
       <h2 style="font-size: 22px; font-weight: 700; margin: 0; color: white;">${title}</h2>
@@ -14542,22 +14542,22 @@ console.log(`[MONITOR] Site monitoring active — hourly checks, daily report at
 // ═══════════════════════════════════════════════════════════════
 
 const WELLNESS_MESSAGES = [
-  `Your presence at our events changes lives — including your own. Take a deep breath today. You're making a difference.`,
-  `Small acts of kindness ripple outward. Thank you for being part of something bigger. Don't forget to pour into yourself too.`,
-  `You showed up for your community, and that matters more than you know. This week, do one thing just for YOU.`,
-  `Health isn't just physical — it's feeling connected, valued, and purposeful. You bring that to every event. We're grateful for you.`,
-  `Rest is productive. Recovery is strength. If you need a week off, take it. We'll be here when you're ready.`,
-  `Every hour you volunteer gives someone hope. But remember — your wellness fuels your impact. Take care of yourself first.`,
-  `You are not just a volunteer. You're a healer, a neighbor, a friend. Your community sees you. We see you.`,
-  `Burnout is real, even when the work feels meaningful. Check in with yourself today: How are YOU doing?`,
-  `Fun fact: volunteering is linked to lower stress and better heart health. You're literally healing yourself while healing others.`,
-  `You don't have to do everything. Showing up once, sharing a post, or sending an encouraging text — it all counts.`,
-  `Wellness check: Have you eaten today? Hydrated? Taken a moment to breathe? Your health matters too.`,
-  `Community isn't built overnight — it's built by people like you showing up, week after week. Thank you for being consistent.`,
-  `This week's reminder: You are enough. Your time is valuable. And what you give to this community comes back tenfold.`,
-  `Movement heals. Whether it's a community walk, stretching at home, or dancing in your kitchen — move your body this week.`,
-  `Gratitude moment: Someone out there is healthier, safer, or more hopeful because of YOU. Let that sink in.`,
-  `Your mental health is just as important as the communities you serve. It's okay to say no. It's okay to rest.`,
+  `You didn't come this far to only come this far. This week, show up fully — for your community and for yourself.`,
+  `Somewhere out there, someone is counting on the version of you that decided not to quit. Be that person this week.`,
+  `You can't pour from an empty cup — but a full one changes everything. Take care of yourself so you can keep showing up.`,
+  `Discipline is doing it on the days it's hard. You chose this work because it matters. That choice is worth honoring today.`,
+  `The most powerful thing you can do for your community is stay well enough to keep serving it. Rest is part of the mission.`,
+  `Your story is someone else's survival guide. Every time you show up, you give somebody permission to believe things can get better.`,
+  `Small consistent actions create enormous change. You may not see it yet — but your community feels it every single week.`,
+  `Don't wait until you feel 100% ready. Show up at 70%. The momentum will meet you there.`,
+  `You are not just a volunteer. You are proof that ordinary people can do extraordinary things — and this community needs that reminder.`,
+  `Energy flows where intention goes. Set your intention for this week: Who do you want to show up as?`,
+  `The work is hard because it matters. Hard things build strong people. You are stronger than you were last Monday.`,
+  `Recovery is not weakness — it's strategy. Rest, refuel, and come back with everything you've got.`,
+  `You chose purpose over comfort. That's rare. Don't take that for granted — it's what separates the ones who change things.`,
+  `Movement is medicine. Whether it's a walk, a stretch, or a deep breath — give your body something to work with today.`,
+  `Every person you serve sees something in you — consistency, compassion, courage. You may not feel it, but they do.`,
+  `You don't need a perfect week. You need a present one. Show up, do the work, and let that be enough.`,
 ];
 
 // One-off scheduled broadcast — send a custom message to all active volunteers
@@ -14694,7 +14694,31 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
     let eventsHtml = '';
     let eventsText = '';
 
-    if (thisWeekEvents.length > 0) {
+    // Featured urgent event: first event happening within 5 days gets a callout card
+    const urgentEvent = thisWeekEvents.find((e: any) => {
+      const daysUntil = (new Date(e.date + 'T00:00:00').getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+      return daysUntil <= 5;
+    });
+
+    if (urgentEvent) {
+      const urgentDate = new Date((urgentEvent as any).date + 'T00:00:00');
+      const urgentDateStr = urgentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const portalUrl = EMAIL_CONFIG.WEBSITE_URL || 'https://volunteer.healthmatters.clinic';
+      eventsHtml += `
+        <div style="background: ${EMAIL_CONFIG.BRAND_COLOR}; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+          <p style="margin: 0 0 4px 0; color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">This Week</p>
+          <p style="margin: 0 0 8px 0; color: white; font-size: 20px; font-weight: 700; line-height: 1.3;">${(urgentEvent as any).title}</p>
+          <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.85); font-size: 14px;">${urgentDateStr}${(urgentEvent as any).time ? ` &nbsp;·&nbsp; ${(urgentEvent as any).time}` : ''}</p>
+          <a href="${portalUrl}?tab=missions" style="display: inline-block; background: white; color: ${EMAIL_CONFIG.BRAND_COLOR}; padding: 12px 28px; border-radius: 24px; text-decoration: none; font-weight: 700; font-size: 14px;">Register Now &rarr;</a>
+        </div>`;
+      eventsText += `THIS WEEK: ${(urgentEvent as any).title} — ${urgentDateStr}${(urgentEvent as any).time ? `, ${(urgentEvent as any).time}` : ''}\nRegister: ${portalUrl}?tab=missions\n\n`;
+      // Show remaining this-week events below the featured card
+      const remaining = thisWeekEvents.filter((e: any) => e !== urgentEvent);
+      if (remaining.length > 0) {
+        eventsHtml += remaining.map(formatEventHtml).join('');
+        eventsText += remaining.map(formatEventText).join('\n') + '\n';
+      }
+    } else if (thisWeekEvents.length > 0) {
       eventsHtml += `
         <p style="font-weight: 600; color: #1f2937; font-size: 16px; margin-bottom: 16px;">This Week</p>
         ${thisWeekEvents.map(formatEventHtml).join('')}
