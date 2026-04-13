@@ -81,8 +81,16 @@ export const SURVEY_KITS: SurveyKit[] = [
       { id: 'sm_gov_assist', type: 'Short Text', question: 'Do you receive government assistance? What services do you receive or would find helpful?', required: false },
     ],
     volunteerScript: {
-      en: `"Hey there! We're here with Health Matters Clinic offering free health screenings, resources, and support. We have meals, hygiene kits, and even housing referrals if you need them. If you're here for a health screening, including HIV testing, we'll have you join this line. If you just need food, hygiene kits, or other resources, you can hop in this line—totally up to you! How can we support you today?"`,
-      es: `"¡Hola! Estamos aquí con Health Matters Clinic ofreciendo exámenes de salud gratuitos, recursos y apoyo. Tenemos comidas, kits de higiene e incluso referencias de vivienda si los necesita. Si está aquí para un examen de salud, incluida la prueba de VIH, lo invitamos a esta fila. Si solo necesita comida, kits de higiene u otros recursos, puede pasar a esta fila—¡usted decide! ¿Cómo podemos apoyarle hoy?"`
+      en: `"Hi, my name is [Your Name] and I'm a volunteer with Health Matters Clinic. We're doing a short research survey today to better understand the healthcare needs of people in this community — your answers directly shape the services we bring out here.
+
+It takes about 10 minutes. It's completely voluntary, everything is anonymous, and you can skip any question or stop at any time. We don't share your responses with any government agency.
+
+Would you be willing to take a few minutes to share your experience with us?"`,
+      es: `"Hola, me llamo [Su Nombre] y soy voluntario/a de Health Matters Clinic. Hoy estamos haciendo una breve encuesta de investigación para entender mejor las necesidades de salud de esta comunidad — sus respuestas influyen directamente en los servicios que traemos aquí.
+
+Tarda unos 10 minutos. Es completamente voluntaria, todo es anónimo, y puede omitir cualquier pregunta o detenerse cuando quiera. No compartimos sus respuestas con ninguna agencia gubernamental.
+
+¿Estaría dispuesto/a a tomarse unos minutos para compartir su experiencia?"`
     },
     tabletSetupChecklist: ['Enable Screen Pinning', 'Load Survey Link in Kiosk Mode', 'Connect to Mobile Hotspot'],
     dedupeRules: { messageEn: 'Please ensure only one survey per person.', messageEs: 'Por favor, asegúrese de que sea solo una encuesta por persona.', uniqueIdentifiers: ['name', 'dob'] }
@@ -979,30 +987,42 @@ I understand I may revoke this authorization in writing at any time.`
 export const SCRIPTS: Script[] = [
     {
         id: 'survey-script-en',
-        title: 'Survey Collection Script (EN)',
-        notice: 'IMPORTANT: Do not deviate. Maintain confidentiality. No medical advice.',
+        title: 'Skid Row Research Survey Script (EN)',
+        notice: 'IMPORTANT: This is a research survey — NOT a service enrollment. Do not make promises of services in exchange for participation. Responses are anonymous. Never share with government agencies.',
         content: `
-"Welcome! Today we are collecting community feedback on health and wellness. 
+"Hi, my name is [Your Name] and I'm a volunteer with Health Matters Clinic.
 
-The survey takes approximately two minutes. Upon completion, you will receive a goodie bag and be entered into our raffle for tablets.
+We're doing a short research survey today to better understand the healthcare needs of people in this community. Your answers help us understand what barriers exist and improve the services we bring out here — this is strictly for research, not for any agency.
 
-You can use the tablet or scan the QR code. Your responses are confidential. There is an option to opt-in for SMS updates, which gives you early access to our new app.
+It takes about 10 minutes. Completely voluntary. Everything is anonymous — we don't collect your name unless you want to share it, and we never share responses with any government agency. You can skip any question or stop at any time, no questions asked.
 
-Do you have any questions before starting?"
+Would you be willing to take a few minutes to share your experience with us?"
+
+[If they ask what happens with the data]
+"The responses go to our research team at HMC. We use them to publish reports that advocate for better healthcare access for this community."
+
+[If they decline]
+"Totally fine — no pressure. Feel free to come back to us if you change your mind or want to access any of our services today."
         `
     },
     {
         id: 'survey-script-es',
-        title: 'Survey Collection Script (ES)',
-        notice: 'IMPORTANTE: No se desvíe. Mantenga la confidencialidad. No dé consejos médicos.',
+        title: 'Skid Row Research Survey Script (ES)',
+        notice: 'IMPORTANTE: Esta es una encuesta de investigación — NO es una inscripción de servicios. No prometa servicios a cambio de participación. Las respuestas son anónimas. Nunca comparta con agencias gubernamentales.',
         content: `
-"¡Bienvenido/a! Hoy estamos recopilando comentarios de la comunidad sobre salud y bienestar.
+"Hola, me llamo [Su Nombre] y soy voluntario/a de Health Matters Clinic.
 
-La encuesta dura aproximadamente dos minutos. Al completarla, recibirá una bolsa de regalos y participará en nuestra rifa de tabletas.
+Hoy estamos haciendo una breve encuesta de investigación para entender mejor las necesidades de salud de esta comunidad. Sus respuestas nos ayudan a entender las barreras que existen y a mejorar los servicios que traemos aquí — es estrictamente para investigación, no para ninguna agencia.
 
-Puede usar la tableta o escanear el código QR. Sus respuestas son confidenciales. Hay una opción para recibir actualizaciones por SMS, lo que le da acceso anticipado a nuestra nueva aplicación.
+Tarda unos 10 minutos. Es completamente voluntaria. Todo es anónimo — no recopilamos su nombre a menos que usted quiera darlo, y nunca compartimos las respuestas con ninguna agencia gubernamental. Puede omitir cualquier pregunta o detenerse cuando quiera, sin ningún problema.
 
-¿Tiene alguna pregunta antes de comenzar?"
+¿Estaría dispuesto/a a tomarse unos minutos para compartir su experiencia?"
+
+[Si pregunta qué pasa con los datos]
+"Las respuestas van a nuestro equipo de investigación en HMC. Las usamos para publicar informes que defienden un mejor acceso a la salud para esta comunidad."
+
+[Si rechaza]
+"Está bien — sin presión. Puede volver con nosotros si cambia de opinión o si desea acceder a alguno de nuestros servicios hoy."
         `
     }
 ];
