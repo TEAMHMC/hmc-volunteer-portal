@@ -12537,6 +12537,90 @@ app.delete('/api/board/meetings/:meetingId', verifyToken, async (req: Request, r
   } catch (e: any) { console.error('[MEETINGS] Delete failed:', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
+// POST /api/dhsp/redcap-submit — Submit county-mandated DHSP demographics to REDCap
+// Required for HIV test kits, Syphilis test kits, and Narcan distribution
+app.post('/api/dhsp/redcap-submit', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const {
+      genderIdentity, raceEthnicity, ageRange, hivTestHistory, zipCode,
+      hivKitCount, syphilisKitCount, narcanCount, referredForTesting, referralLocation,
+      itemName, eventId, loggedBy,
+    } = req.body;
+
+    // Validate required fields
+    if (!genderIdentity || !raceEthnicity || !ageRange || !hivTestHistory || !zipCode) {
+      return res.status(400).json({ error: 'Missing required DHSP demographics fields' });
+    }
+
+    // Log to Firestore for audit trail
+    const logEntry = {
+      submittedAt: new Date().toISOString(),
+      submittedBy: user.uid,
+      eventId,
+      itemName,
+      genderIdentity,
+      raceEthnicity,
+      ageRange,
+      hivTestHistory,
+      zipCode,
+      hivKitCount: hivKitCount ?? 0,
+      syphilisKitCount: syphilisKitCount ?? 0,
+      narcanCount: narcanCount ?? 0,
+      referredForTesting: !!referredForTesting,
+      referralLocation: referredForTesting ? (referralLocation ?? '') : '',
+      redcapStatus: 'pending',
+    };
+    const docRef = await db.collection('dhsp_redcap_logs').add(logEntry);
+
+    // Forward to REDCap API
+    // REDCap project URL: dhspredcap.ph.lacounty.gov/surveys/?s=AKYT9XKPFPJ3YL8E
+    const REDCAP_API_URL = process.env.REDCAP_API_URL;
+    const REDCAP_API_TOKEN = process.env.REDCAP_API_TOKEN;
+
+    if (REDCAP_API_URL && REDCAP_API_TOKEN) {
+      try {
+        const params = new URLSearchParams({
+          token: REDCAP_API_TOKEN,
+          content: 'record',
+          format: 'json',
+          type: 'flat',
+          data: JSON.stringify([{
+            gender_identity: genderIdentity,
+            race_ethnicity: raceEthnicity,
+            age_range: ageRange,
+            hiv_test_history: hivTestHistory,
+            zip_code: zipCode,
+            hiv_kits_given: String(hivKitCount ?? 0),
+            syphilis_kits_given: String(syphilisKitCount ?? 0),
+            narcan_count: String(narcanCount ?? 0),
+            referred_for_testing: referredForTesting ? '1' : '0',
+            referral_location: referralLocation ?? '',
+          }]),
+        });
+        const rcRes = await fetch(REDCAP_API_URL, { method: 'POST', body: params.toString(), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+        if (rcRes.ok) {
+          await docRef.update({ redcapStatus: 'submitted' });
+        } else {
+          await docRef.update({ redcapStatus: 'error', redcapError: await rcRes.text() });
+        }
+      } catch (redcapErr: any) {
+        await docRef.update({ redcapStatus: 'error', redcapError: redcapErr.message });
+        console.error('[DHSP] REDCap submission failed:', redcapErr.message);
+        return res.status(207).json({ success: true, redcapSubmitted: false, logId: docRef.id, warning: 'REDCap submission failed — log saved for manual entry' });
+      }
+    } else {
+      console.warn('[DHSP] REDCAP_API_URL or REDCAP_API_TOKEN not configured — saving to Firestore only');
+      await docRef.update({ redcapStatus: 'manual_required' });
+    }
+
+    res.json({ success: true, redcapSubmitted: !!(REDCAP_API_URL && REDCAP_API_TOKEN), logId: docRef.id });
+  } catch (e: any) {
+    console.error('[DHSP] Submit failed:', e.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get Give or Get data for current user
 app.get('/api/board/give-or-get', verifyToken, async (req: Request, res: Response) => {
   try {

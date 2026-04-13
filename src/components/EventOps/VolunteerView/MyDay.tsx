@@ -53,6 +53,57 @@ interface ResourceForm {
   quantity: number;
 }
 
+// DHSP county-mandated demographics for regulated items (HIV/Syphilis test kits, Narcan)
+const REGULATED_ITEMS = ['HIV Test Kit', 'Syphilis Test Kit', 'Narcan'] as const;
+type RegulatedItem = typeof REGULATED_ITEMS[number];
+
+const DHSP_GENDER_OPTIONS = [
+  { value: 'A', label: 'Male' },
+  { value: 'B', label: 'Female' },
+  { value: 'C', label: 'Transgender Male' },
+  { value: 'D', label: 'Transgender Female' },
+  { value: 'E', label: 'Non-Binary / Gender Non-Conforming' },
+  { value: 'F', label: 'Other' },
+  { value: 'G', label: 'Prefer not to answer' },
+];
+const DHSP_RACE_OPTIONS = [
+  { value: 'A', label: 'American Indian / Alaska Native' },
+  { value: 'B', label: 'Asian' },
+  { value: 'C', label: 'Black / African American' },
+  { value: 'D', label: 'Hispanic / Latino' },
+  { value: 'E', label: 'Native Hawaiian / Pacific Islander' },
+  { value: 'F', label: 'White' },
+  { value: 'G', label: 'Multiracial / Other' },
+];
+const DHSP_AGE_OPTIONS = [
+  { value: 'A', label: '13–17' },
+  { value: 'B', label: '18–24' },
+  { value: 'C', label: '25–34' },
+  { value: 'D', label: '35–44' },
+  { value: 'E', label: '45–54' },
+  { value: 'F', label: '55–64' },
+  { value: 'G', label: '65+' },
+];
+const DHSP_HIV_TEST_OPTIONS = [
+  { value: 'A', label: 'Never tested' },
+  { value: 'B', label: 'Tested more than 12 months ago' },
+  { value: 'C', label: 'Tested within the last 12 months' },
+  { value: 'D', label: 'Prefer not to answer' },
+];
+
+interface DhspDemographics {
+  genderIdentity: string;
+  raceEthnicity: string;
+  ageRange: string;
+  hivTestHistory: string;
+  zipCode: string;
+  hivKitCount: 0 | 1 | 2;
+  syphilisKitCount: 0 | 1 | 2;
+  narcanCount: number;
+  referredForTesting: boolean;
+  referralLocation: string;
+}
+
 type ScreeningType = 'bp' | 'o2' | 'temp' | 'glucose' | 'bmi';
 
 interface ScreeningForm {
@@ -276,10 +327,10 @@ const SIMULATION_SCENARIOS: SimScenario[] = [
     id: 'distribution',
     step: '3 of 5',
     title: 'Client Encounter — Maria',
-    context: "Maria (approx. 30s, female) walks over to your supply table. She says she\'s staying at a nearby shelter.",
-    clientSays: '"Do you have any hygiene stuff? I\'ve been out of toothpaste and clean socks for days."',
-    volunteerSays: '"Of course! We have hygiene kits, socks, and a resource packet with local services. Let me grab you a bag."',
-    action: 'Give her the supplies, then tap "Resources" and log a Distribution.',
+    context: "Maria (approx. 30s, female) walks over to your supply table. She mentions she's staying at a nearby shelter and asks about HIV self-test kits.",
+    clientSays: '"I heard you have those at-home HIV test kits? My partner and I haven\'t been tested in a while and I want to be safe."',
+    volunteerSays: '"Absolutely — we have free HIV self-test kits. Before I give you one, LA County asks us to collect a few anonymous questions. No name needed — it just helps them fund these programs."',
+    action: 'Tap "Resources", select "HIV Test Kit", complete the required DHSP demographics form, and log the distribution.',
     isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'distribution') || (s.simTestLogs ?? []).includes('distribution'),
   },
   {
@@ -752,6 +803,11 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
     return () => clearTimeout(timer);
   }, [clientSearchQuery, isTestMode]);
   const [resourceForm, setResourceForm] = useState<ResourceForm>({ itemName: '', quantity: 1 });
+  const [dhspDemographics, setDhspDemographics] = useState<DhspDemographics>({
+    genderIdentity: '', raceEthnicity: '', ageRange: '', hivTestHistory: '',
+    zipCode: '', hivKitCount: 0, syphilisKitCount: 0, narcanCount: 0,
+    referredForTesting: false, referralLocation: '',
+  });
   const [screeningForm, setScreeningForm] = useState<ScreeningForm>({
     screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false,
   });
@@ -848,31 +904,58 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
     }
   };
 
+  const isRegulatedItem = REGULATED_ITEMS.includes(resourceForm.itemName as RegulatedItem);
+
   const handleLogResource = async () => {
     if (!resourceForm.itemName.trim()) {
       toastService.error('Please enter an item name');
       return;
     }
+    // Validate demographics if regulated item
+    if (isRegulatedItem) {
+      const d = dhspDemographics;
+      if (!d.genderIdentity || !d.raceEthnicity || !d.ageRange || !d.hivTestHistory || !d.zipCode) {
+        toastService.error('County-mandated demographics are required for this item');
+        return;
+      }
+    }
     setLogLoading(true);
     try {
       if (!isTestMode) {
-        await apiService.post(`/api/ops/tracker/${opportunity.id}/distribution`, {
+        const payload: Record<string, any> = {
           item: resourceForm.itemName,
           quantity: resourceForm.quantity,
           shiftId: shift.id,
           loggedBy: user.id,
-        });
+        };
+        if (isRegulatedItem) payload.dhspDemographics = dhspDemographics;
+        await apiService.post(`/api/ops/tracker/${opportunity.id}/distribution`, payload);
+        // Submit to DHSP REDCap if regulated
+        if (isRegulatedItem) {
+          await apiService.post('/api/dhsp/redcap-submit', {
+            ...dhspDemographics,
+            itemName: resourceForm.itemName,
+            eventId: opportunity.id,
+            loggedBy: user.id,
+          }).catch(() => {
+            toastService.error('REDCap submission failed — please log manually at dhspredcap.ph.lacounty.gov');
+          });
+        }
       }
       if (isTestMode) logSimActivity('distribution');
       toastService.success(isTestMode ? '[PRACTICE] Distribution logged' : 'Distribution logged');
+      if (isRegulatedItem && !isTestMode) {
+        toastService.success('DHSP demographics submitted to REDCap');
+      }
       logAudit({
         actionType: 'LOG_DISTRIBUTION',
         targetSystem: 'OpsTracker',
         targetId: opportunity.id,
-        summary: `Volunteer ${user.id} logged ${resourceForm.quantity}x ${resourceForm.itemName}`,
+        summary: `Volunteer ${user.id} logged ${resourceForm.quantity}x ${resourceForm.itemName}${isRegulatedItem ? ' (regulated — DHSP logged)' : ''}`,
       });
       onServiceLogged();
       setResourceForm({ itemName: '', quantity: 1 });
+      setDhspDemographics({ genderIdentity: '', raceEthnicity: '', ageRange: '', hivTestHistory: '', zipCode: '', hivKitCount: 0, syphilisKitCount: 0, narcanCount: 0, referredForTesting: false, referralLocation: '' });
       setActiveLog(null);
     } catch {
       // error shown by apiService
@@ -1120,12 +1203,35 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
     }
 
     if (activeLog === 'resources') {
+      const dd = dhspDemographics;
+      const setDd = (patch: Partial<DhspDemographics>) => setDhspDemographics((f) => ({ ...f, ...patch }));
+      const selectClass = "w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] bg-white";
       return (
         <div className={formBase}>
           <div className="flex flex-col gap-3 mb-3">
+            {/* Quick-select regulated items */}
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-2">Regulated Items (county-mandated)</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {REGULATED_ITEMS.map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => setResourceForm((f) => ({ ...f, itemName: f.itemName === item ? '' : item }))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all ${
+                      resourceForm.itemName === item
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : 'bg-white border-orange-200 text-orange-600'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <input
               type="text"
-              placeholder="Item name (e.g. Hygiene Kit)"
+              placeholder="Or type any item (e.g. Hygiene Kit)"
               value={resourceForm.itemName}
               onChange={(e) => setResourceForm((f) => ({ ...f, itemName: e.target.value }))}
               className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
@@ -1151,6 +1257,104 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
               </div>
             </div>
           </div>
+
+          {/* County-mandated demographics — only for regulated items */}
+          {isRegulatedItem && (
+            <div className="border border-orange-200 rounded-2xl p-3 mb-3 bg-orange-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield size={13} className="text-orange-600 flex-shrink-0" />
+                <p className="text-[10px] font-black text-orange-700 uppercase tracking-wider flex-1">County-Required Demographics (DHSP)</p>
+                <span className="text-[10px] text-orange-500 font-black">Mandatory</span>
+              </div>
+              <p className="text-[10px] text-orange-600 leading-relaxed mb-3">Los Angeles County requires anonymous demographics for HIV/Syphilis test kits and Narcan distribution. Responses go to DHSP REDCap — no names collected.</p>
+
+              <div className="flex flex-col gap-2.5">
+                <div>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">Gender Identity</p>
+                  <select value={dd.genderIdentity} onChange={(e) => setDd({ genderIdentity: e.target.value })} className={selectClass}>
+                    <option value="">Select…</option>
+                    {DHSP_GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">Race / Ethnicity</p>
+                  <select value={dd.raceEthnicity} onChange={(e) => setDd({ raceEthnicity: e.target.value })} className={selectClass}>
+                    <option value="">Select…</option>
+                    {DHSP_RACE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">Age Range</p>
+                  <select value={dd.ageRange} onChange={(e) => setDd({ ageRange: e.target.value })} className={selectClass}>
+                    <option value="">Select…</option>
+                    {DHSP_AGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">Has client ever tested for HIV?</p>
+                  <select value={dd.hivTestHistory} onChange={(e) => setDd({ hivTestHistory: e.target.value })} className={selectClass}>
+                    <option value="">Select…</option>
+                    {DHSP_HIV_TEST_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">Zip Code</p>
+                  <input
+                    type="text" inputMode="numeric" maxLength={5} placeholder="90012"
+                    value={dd.zipCode} onChange={(e) => setDd({ zipCode: e.target.value })}
+                    className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+                  />
+                </div>
+
+                {/* Kit counts — prefill from item selection */}
+                {(resourceForm.itemName === 'HIV Test Kit' || resourceForm.itemName === 'Syphilis Test Kit') && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {resourceForm.itemName === 'HIV Test Kit' && (
+                      <div>
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">HIV Kits Given</p>
+                        <select value={dd.hivKitCount} onChange={(e) => setDd({ hivKitCount: parseInt(e.target.value) as 0 | 1 | 2 })} className={selectClass}>
+                          <option value={0}>0</option><option value={1}>1</option><option value={2}>2</option>
+                        </select>
+                      </div>
+                    )}
+                    {resourceForm.itemName === 'Syphilis Test Kit' && (
+                      <div>
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">Syphilis Kits Given</p>
+                        <select value={dd.syphilisKitCount} onChange={(e) => setDd({ syphilisKitCount: parseInt(e.target.value) as 0 | 1 | 2 })} className={selectClass}>
+                          <option value={0}>0</option><option value={1}>1</option><option value={2}>2</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Referred for HIV/STD testing */}
+                <button
+                  onClick={() => setDd({ referredForTesting: !dd.referredForTesting })}
+                  className={`w-full flex items-center gap-2 rounded-xl px-3 py-2.5 border transition-all ${
+                    dd.referredForTesting ? 'bg-blue-50 border-blue-200' : 'bg-zinc-50 border-zinc-200'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                    dd.referredForTesting ? 'bg-blue-500 border-blue-500' : 'border-zinc-300'
+                  }`}>
+                    {dd.referredForTesting && <CheckCircle className="w-3 h-3 text-white" />}
+                  </div>
+                  <span className={`text-xs font-black ${dd.referredForTesting ? 'text-blue-700' : 'text-zinc-500'}`}>
+                    Referred for HIV/STD Testing
+                  </span>
+                </button>
+                {dd.referredForTesting && (
+                  <input
+                    type="text" placeholder="Referral location (clinic name or address)"
+                    value={dd.referralLocation} onChange={(e) => setDd({ referralLocation: e.target.value })}
+                    className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleLogResource}
             disabled={logLoading}
