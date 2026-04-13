@@ -791,7 +791,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                      <div className="space-y-2">
                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Achievements</h4>
                        <div className="space-y-2">
-                          {selectedVolunteer.achievements.map(a => (
+                          {(selectedVolunteer.achievements || []).map(a => (
                             <div key={a.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-3xl border border-zinc-100">
                                <Award size={16} className="text-amber-400"/>
                                <p className="font-bold text-xs text-zinc-700">{a.title}</p>
@@ -803,7 +803,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                  <div className="space-y-4 md:space-y-6">
                     <div className="bg-zinc-50/70 p-4 md:p-8 rounded-3xl border border-zinc-100 space-y-4 md:space-y-6">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Compliance Checklist</h4>
-                      {Object.values(selectedVolunteer.compliance).map((c: ComplianceStep) => (
+                      {Object.values(selectedVolunteer.compliance || {}).map((c: ComplianceStep) => (
                         <div key={c.id} className="flex items-center gap-4">
                           <div className={`w-8 h-8 rounded-2xl flex items-center justify-center border ${c.status === 'verified' || c.status === 'completed' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-zinc-300 border-zinc-200'}`}><CheckCircle size={16}/></div>
                           <p className={`font-bold text-sm ${c.status === 'verified' || c.status === 'completed' ? 'text-zinc-800' : 'text-zinc-400'}`}>{c.label}</p>
