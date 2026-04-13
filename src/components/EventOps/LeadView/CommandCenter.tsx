@@ -20,6 +20,7 @@ import {
   WifiOff,
   Shield,
   Zap,
+  X,
   UserPlus,
   CheckCircle,
   XCircle,
@@ -683,18 +684,26 @@ const RosterTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ServicesTab: React.FC = () => {
-  const { state, opportunity } = useOps();
+  const { state, opportunity, logClientEncounter } = useOps();
   const [counts, setCounts] = useState<ServiceCounts>({ screenings: null, referrals: null, surveys: null });
   const [loadingCounts, setLoadingCounts] = useState(true);
+  const [showLogForm, setShowLogForm] = useState(false);
+  const [logType, setLogType] = useState<'screening' | 'referral' | 'distribution' | 'survey' | null>(null);
+  const [logLoading, setLogLoading] = useState(false);
+  const [ageRange, setAgeRange] = useState('');
+  const [genderIdentity, setGenderIdentity] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
         const [s, r, sv] = await Promise.all([
-          apiService.get(`/api/health-screenings?eventId=${opportunity.id}`).catch(() => []),
-          apiService.get(`/api/referrals?eventId=${opportunity.id}`).catch(() => []),
-          apiService.get(`/api/client-surveys?eventId=${opportunity.id}`).catch(() => []),
+          apiService.get(`/api/health-screenings?eventId=${opportunity.id}&date=${todayStr}`).catch(() => []),
+          apiService.get(`/api/referrals?eventId=${opportunity.id}&date=${todayStr}`).catch(() => []),
+          apiService.get(`/api/client-surveys?eventId=${opportunity.id}&date=${todayStr}`).catch(() => []),
         ]);
         if (!cancelled) {
           setCounts({
@@ -711,31 +720,68 @@ const ServicesTab: React.FC = () => {
     };
     load();
     return () => { cancelled = true; };
-  }, [opportunity.id]);
+  }, [opportunity.id, todayStr]);
 
   const distributions = state.tracker?.distributions.length ?? 0;
+
+  const handleOpenLog = (type: typeof logType) => {
+    setLogType(type);
+    setAgeRange('');
+    setGenderIdentity('');
+    setNotes('');
+    setShowLogForm(true);
+  };
+
+  const handleSubmitLog = async () => {
+    if (!logType) return;
+    setLogLoading(true);
+    try {
+      await logClientEncounter({
+        type: logType,
+        ageRange,
+        genderIdentity,
+        notes,
+        eventId: opportunity.id,
+        timestamp: new Date().toISOString(),
+      });
+      // Bump local count optimistically
+      setCounts(prev => ({
+        ...prev,
+        screenings: logType === 'screening' ? (prev.screenings ?? 0) + 1 : prev.screenings,
+        referrals: logType === 'referral' ? (prev.referrals ?? 0) + 1 : prev.referrals,
+        surveys: logType === 'survey' ? (prev.surveys ?? 0) + 1 : prev.surveys,
+      }));
+      setShowLogForm(false);
+    } finally {
+      setLogLoading(false);
+    }
+  };
 
   const tiles = [
     {
       label: 'Screenings',
+      type: 'screening' as const,
       value: loadingCounts ? '—' : (counts.screenings ?? 0),
       icon: <HeartPulse size={18} className="text-rose-400" />,
       color: 'rose' as const,
     },
     {
       label: 'Referrals',
+      type: 'referral' as const,
       value: loadingCounts ? '—' : (counts.referrals ?? 0),
-      icon: <ChevronRight size={18} className="text-brand text-[#233DFF]" />,
+      icon: <ChevronRight size={18} className="text-[#233DFF]" />,
       color: 'brand' as const,
     },
     {
       label: 'Distributions',
+      type: 'distribution' as const,
       value: distributions,
       icon: <Activity size={18} className="text-emerald-400" />,
       color: 'emerald' as const,
     },
     {
       label: 'Surveys',
+      type: 'survey' as const,
       value: loadingCounts ? '—' : (counts.surveys ?? 0),
       icon: <ClipboardList size={18} className="text-amber-400" />,
       color: 'amber' as const,
@@ -764,10 +810,49 @@ const ServicesTab: React.FC = () => {
 
   return (
     <div className="pb-6 px-4 pt-4 space-y-4">
-      {/* Metric grid */}
+
+      {/* Quick log form */}
+      {showLogForm && logType && (
+        <div className="bg-white rounded-2xl border-2 border-[#233DFF]/20 p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-black text-zinc-900 uppercase tracking-wider">
+              Log {logType.charAt(0).toUpperCase() + logType.slice(1)}
+            </p>
+            <button onClick={() => setShowLogForm(false)} className="text-zinc-400 hover:text-zinc-700"><X size={16} /></button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Age Range</label>
+              <select value={ageRange} onChange={e => setAgeRange(e.target.value)} className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40">
+                <option value="">Select...</option>
+                {['Under 18','18–24','25–34','35–44','45–54','55–64','65+','Prefer not to say'].map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Gender Identity</label>
+              <select value={genderIdentity} onChange={e => setGenderIdentity(e.target.value)} className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40">
+                <option value="">Select...</option>
+                {['Male','Female','Non-binary','Transgender','Prefer not to say','Other'].map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Notes (optional)</label>
+            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any relevant details..." className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40" />
+          </div>
+          <button onClick={handleSubmitLog} disabled={logLoading} className="w-full py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+            {logLoading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+            {logLoading ? 'Saving...' : 'Save Log'}
+          </button>
+        </div>
+      )}
+
+      {/* Metric grid — tap to log */}
+      <p className="text-[11px] font-black text-zinc-400 uppercase tracking-wider">Today Only — Tap to Log</p>
       <div className="grid grid-cols-2 gap-3">
         {tiles.map(t => (
-          <div key={t.label} className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+          <button key={t.label} onClick={() => handleOpenLog(t.type)}
+            className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm hover:shadow-md hover:border-[#233DFF]/20 active:scale-95 transition-all text-left">
             <div className="flex items-center justify-between mb-2">
               {t.icon}
               <span className="text-xs font-black uppercase tracking-wider text-zinc-400">{t.label}</span>
@@ -780,7 +865,7 @@ const ServicesTab: React.FC = () => {
             }`}>
               {t.value}
             </p>
-          </div>
+          </button>
         ))}
       </div>
 

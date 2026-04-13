@@ -108,6 +108,7 @@ export interface OpsContextValue {
   manualCheckin: (volunteerId: string) => Promise<void>;
   walkInCheckin: (name: string, email?: string) => Promise<void>;
   refreshRoster: () => Promise<void>;
+  logClientEncounter: (data: { type: string; ageRange?: string; genderIdentity?: string; notes?: string; eventId: string; timestamp: string }) => Promise<void>;
 }
 
 export interface OpsProviderProps {
@@ -612,6 +613,10 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
     manualCheckin,
     walkInCheckin,
     refreshRoster,
+    logClientEncounter: async (data) => {
+      if (isTestMode) { console.log('[TEST] logClientEncounter', data); return; }
+      await queueWrite(`/api/client-encounters`, data);
+    },
   };
 
   return (
