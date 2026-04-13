@@ -538,13 +538,18 @@ const verifyGoogleToken = async (credential: string): Promise<GoogleTokenPayload
         console.error('[GOOGLE AUTH] userinfo fetch failed:', userRes.status);
         return null;
       }
-      const userInfo = await userRes.json() as { email: string; email_verified?: boolean | string; name: string; picture?: string; sub: string };
+      const userInfo = await userRes.json() as { email: string; email_verified?: boolean | string; name: string; picture?: string; sub?: string; id?: string };
+      const sub = userInfo.sub || userInfo.id;
+      if (!sub || !userInfo.email) {
+        console.error('[GOOGLE AUTH] Missing required fields (sub/email) in userinfo response', { hasSub: !!userInfo.sub, hasId: !!userInfo.id, hasEmail: !!userInfo.email });
+        return null;
+      }
       payload = {
         email: userInfo.email,
         email_verified: userInfo.email_verified === true || userInfo.email_verified === 'true',
         name: userInfo.name,
         picture: userInfo.picture,
-        sub: userInfo.sub,
+        sub,
         aud: tokenInfo.aud || '',
         iss: 'accounts.google.com',
         exp: tokenInfo.exp ? parseInt(tokenInfo.exp) : Math.floor(Date.now() / 1000) + 3600,

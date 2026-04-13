@@ -117,12 +117,18 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
     try {
       const data = JSON.parse(responseText);
       if (data.token) {
+        try {
           localStorage.setItem('authToken', data.token);
+        } catch (storageErr) {
+          console.error('[Auth] Failed to persist auth token to localStorage:', storageErr);
+          throw new Error('Sign-in succeeded but your browser blocked saving the session. Disable private browsing or clear storage and try again.');
+        }
       }
       return data;
     } catch(e) {
-        console.error("Failed to parse successful response as JSON:", responseText);
-        throw new Error("Received an invalid response from the server.");
+      if ((e as Error).message?.includes('browser blocked')) throw e;
+      console.error("Failed to parse successful response as JSON:", responseText);
+      throw new Error("Received an invalid response from the server.");
     }
 
   } catch (error) {
@@ -138,9 +144,12 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
 
 // Session heartbeat: keeps active sessions alive by pinging the server every 15 min.
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let heartbeatFailures = 0;
+const MAX_HEARTBEAT_FAILURES = 3; // 3 consecutive failures = ~45 min of connectivity issues
 
 function startSessionHeartbeat() {
   stopSessionHeartbeat();
+  heartbeatFailures = 0;
   heartbeatInterval = setInterval(async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -149,10 +158,19 @@ function startSessionHeartbeat() {
     }
     try {
       await request('POST', '/api/auth/refresh-session', {});
-    } catch {
-      // Session refresh failed — the 403 handler in request() will handle redirect
+      heartbeatFailures = 0; // reset on success
+    } catch (e) {
+      heartbeatFailures++;
+      console.warn(`[Session] Heartbeat failed (${heartbeatFailures}/${MAX_HEARTBEAT_FAILURES}):`, e);
+      if (heartbeatFailures >= MAX_HEARTBEAT_FAILURES) {
+        // After 3 consecutive failures, fire session-expired so the app redirects cleanly
+        // rather than letting the user hit a silent wall on the next real action
+        console.error('[Session] Too many heartbeat failures — treating as session expired');
+        window.dispatchEvent(new Event('session-expired'));
+        stopSessionHeartbeat();
+      }
     }
-  }, 15 * 60 * 1000); // 15 minutes (matches the session extension window)
+  }, 15 * 60 * 1000); // 15 minutes
 }
 
 function stopSessionHeartbeat() {

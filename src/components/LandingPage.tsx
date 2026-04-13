@@ -27,7 +27,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
     onSuccess: async (tokenResponse) => {
       setGoogleLoading(true);
       try {
-        await handleGoogleSubmit(tokenResponse.access_token);
+        await handleGoogleSubmit({ credential: tokenResponse.access_token });
       } finally {
         setGoogleLoading(false);
       }
