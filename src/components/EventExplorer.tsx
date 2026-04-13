@@ -152,6 +152,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
   // Deep linking: parse ?event=<id> from URL to auto-select an event
   useEffect(() => {
     if (deepLinkProcessed || opportunities.length === 0) return;
+    setDeepLinkProcessed(true);
     try {
       const params = new URLSearchParams(window.location.search);
       const eventParam = params.get('event') || params.get('eventId');
@@ -161,9 +162,13 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
           const mapped = mapOpportunityToEvent(opp);
           setSelectedEvent(mapped);
         }
+        // Clear the param so closing the modal doesn't reopen it on remount
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('event');
+        newUrl.searchParams.delete('eventId');
+        window.history.replaceState({}, '', newUrl.toString());
       }
     } catch (_) { /* ignore parse errors */ }
-    setDeepLinkProcessed(true);
   }, [opportunities, deepLinkProcessed]);
 
   // Convert live opportunities to events (approved or legacy status)
