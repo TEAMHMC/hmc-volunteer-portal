@@ -340,28 +340,34 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
                 <Pencil size={12} /> Edit Event
               </button>
             )}
-            {/* Volunteer Self Check-In / Check-Out */}
+            {/* Volunteer Self Check-In / Check-Out — for team members only */}
             {checkinStatus && !checkinStatus.checkedIn && (
-              <button
-                onClick={handleCheckIn}
-                disabled={isCheckingIn}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-full text-sm font-black uppercase tracking-wider hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-elevation-2"
-                style={{ minHeight: '44px' }}
-              >
-                {isCheckingIn ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
-                I'm Here
-              </button>
+              <div className="flex flex-col items-end gap-0.5">
+                <button
+                  onClick={handleCheckIn}
+                  disabled={isCheckingIn}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-full text-sm font-black uppercase tracking-wider hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-elevation-2"
+                  style={{ minHeight: '44px' }}
+                >
+                  {isCheckingIn ? <Loader2 size={16} className="animate-spin" /> : <UserCheck size={16} />}
+                  Volunteer Check-In
+                </button>
+                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wide">Team members only</p>
+              </div>
             )}
             {checkinStatus?.checkedIn && !checkinStatus.checkedOut && (
-              <button
-                onClick={handleCheckOut}
-                disabled={isCheckingOut}
-                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-700 text-white rounded-full text-sm font-black uppercase tracking-wider hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-elevation-2"
-                style={{ minHeight: '44px' }}
-              >
-                {isCheckingOut ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-                Check Out
-              </button>
+              <div className="flex flex-col items-end gap-0.5">
+                <button
+                  onClick={handleCheckOut}
+                  disabled={isCheckingOut}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-700 text-white rounded-full text-sm font-black uppercase tracking-wider hover:bg-zinc-800 disabled:opacity-50 transition-all shadow-elevation-2"
+                  style={{ minHeight: '44px' }}
+                >
+                  {isCheckingOut ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                  Volunteer Check-Out
+                </button>
+                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wide">End of shift</p>
+              </div>
             )}
             {checkinStatus?.checkedOut && checkoutResult && (
               <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-black uppercase tracking-wider border border-emerald-200">
@@ -370,7 +376,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
             )}
             {checkinStatus?.checkedIn && !checkinStatus.checkedOut && (
               <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Checked In
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Volunteer Checked In
               </div>
             )}
             {(!checkinStatus || (!checkinStatus.checkedIn && !checkinStatus.checkedOut)) && (
@@ -573,7 +579,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                 <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em]">
                   {isStreetMedicine ? 'Street Medicine — Client Encounter Entry' : 'Client Service Entry'}
                 </p>
-                <p className="text-xs font-bold text-zinc-500 mt-0.5">When a community member approaches, select which service they need</p>
+                <p className="text-xs font-bold text-zinc-500 mt-0.5">When someone walks up, tap what they need — you log it, they don't</p>
               </div>
               <button
                 onClick={() => setShowScript(s => !s)}
@@ -641,7 +647,7 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
 
             <div className="px-6 py-3 bg-zinc-50 border-t border-zinc-100">
               <p className="text-[10px] font-bold text-zinc-400">
-                <span className="text-zinc-600 font-black">Volunteer check-in</span> is separate — use the <span className="text-zinc-600 font-black">"I'm Here"</span> button in the header. These buttons are for <span className="text-zinc-600 font-black">community members</span> only.
+                Community members <span className="text-zinc-600 font-black">walk up — no registration</span>. You log it for them. Use <span className="text-zinc-600 font-black">Volunteer Check-In</span> (top right) only for yourself and your team.
               </p>
             </div>
           </div>
