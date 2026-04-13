@@ -942,7 +942,7 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
                 <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-wider">Practice Mode</span>
               </div>
               <p className="text-zinc-500 font-medium text-sm leading-relaxed">
-                Walk through a real event day — check in, get a buddy assignment, log services, and sign off — in a fully sandboxed simulation. Nothing gets saved to the real system.
+                Walk through a real event day — check in, receive your assignment, log services, and sign off — just like you would on event day.
               </p>
               <ul className="mt-3 space-y-1">
                 {['Experience the volunteer check-in flow', 'Practice logging screenings, referrals, and distributions', 'See what leads see in the Command Center'].map(item => (
@@ -954,9 +954,8 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
               </ul>
             </div>
             <button
-              onClick={onLaunchEventOpsPractice}
-              disabled={!onLaunchEventOpsPractice}
-              className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-wider hover:bg-[#1a2ecc] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm whitespace-nowrap shrink-0"
+              onClick={() => onLaunchEventOpsPractice?.()}
+              className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-[#233DFF] text-white rounded-full text-xs font-black uppercase tracking-wider hover:bg-[#1a2ecc] transition-all shadow-sm whitespace-nowrap shrink-0"
             >
               <Play size={14} />
               Launch Simulation
