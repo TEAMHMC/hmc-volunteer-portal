@@ -549,7 +549,7 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
               <header className="p-4 md:p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
                  <div className="flex items-center gap-6">
                     <div className="w-20 h-20 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-2xl shadow-elevation-2 overflow-hidden">
-                       {selectedVolunteer.avatarUrl ? <img src={selectedVolunteer.avatarUrl} className="w-full h-full object-cover" /> : selectedVolunteer.name.charAt(0)}
+                       {selectedVolunteer.avatarUrl ? <img src={selectedVolunteer.avatarUrl} className="w-full h-full object-cover" alt={`${selectedVolunteer.name} profile photo`} /> : selectedVolunteer.name.charAt(0)}
                     </div>
                     <div>
                        <div className="flex items-center gap-3">

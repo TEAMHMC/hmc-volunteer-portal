@@ -204,7 +204,7 @@ const VolunteerSurveyModal: React.FC<VolunteerSurveyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-label="Volunteer survey" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white max-w-2xl w-full rounded-3xl shadow-elevation-3 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <header className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between shrink-0">

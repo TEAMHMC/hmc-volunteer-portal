@@ -45,8 +45,8 @@ Protected Health Information (PHI) includes any identifiable information about a
     {
         id: 'portal-overview-001',
         category: 'Portal Features & Navigation',
-        title: 'HMC Volunteer Portal — Feature Overview',
-        content: `## HMC Volunteer Portal — Feature Overview
+        title: 'HMC Volunteer Portal: Feature Overview',
+        content: `## HMC Volunteer Portal: Feature Overview
 
 The HMC Volunteer Portal is your all-in-one hub for everything related to your experience as a Health Matters Clinic volunteer or Champion. Below is a summary of every major section.
 
@@ -61,37 +61,52 @@ Your personal home screen. Shows your current XP level, volunteer hours, upcomin
 A list of every HMC event or community mission you are registered for. On the day of an event, the **Enter Event Ops Mode** button appears here so you can check in, log interactions, and check out.
 
 ### Calendar
-A full calendar view of all scheduled HMC events — month, week, or list format. Events you are signed up for are highlighted. Click any event to view details or register.
+A full calendar view of all scheduled HMC events. Events you are signed up for are highlighted. Click any event to view details or register.
 
 ### Training Academy
-All required orientation modules and optional skill tracks. Tier 1 modules (HMC Orientation + Because You're a Champion) must be completed before you can sign up for community missions. Tier 2 modules cover advanced skills (screenings, street medicine, community surveys).
+All required orientation modules and optional skill tracks. Tier 1 modules (HMC Orientation + Because You're a Champion) must be completed before signing up for community missions. Tier 2 modules cover advanced skills.
+
+**Event Day Simulation:** After completing Tier 1 and Tier 2 core modules, you can launch the Event Day Simulation — a guided practice walkthrough of a real outreach shift. You'll move through five scripted client encounters (check-in, health screening, supply distribution, mental health referral, and sign-off) so you know exactly what to do before your first real event. Completing the simulation earns the "Practice Complete" badge.
 
 ### Doc Hub
-This documentation system. Search policies, protocols, glossary terms, runbooks, and reference guides. Admins can add and edit articles directly from the Doc Hub interface.
+This documentation system. Search policies, protocols, glossary terms, runbooks, and reference guides. Admins and coordinators can add and edit articles directly.
 
 ### Communication Hub
 Three tools in one:
 - **Announcements** — Org-wide broadcasts from HMC coordination staff.
 - **Direct Messages** — Private conversations with other portal members.
-- **Support Tickets** — Submit a help request; coordinators respond within 1–2 business days.
+- **Support Tickets** — Submit a help request; coordinators respond within 1-2 business days.
 
 ### Impact Hub
-Your personal volunteer stats: total hours, events attended, XP, badges earned, and your rank on the community leaderboard.
+Your personal volunteer stats: total hours, events attended, XP, badges earned, and your rank on the ambassador leaderboard. Share your personal referral link on Instagram, LinkedIn, or YouTube to earn XP when people register through your link.
 
 ### Referral Hub
-Browse and share HMC health resources, event listings, and community services. Your personal referral link (with your unique code) is shown here — when someone signs up through your link, you earn XP and the referral is tracked to you.
+Browse and share HMC health resources and event links. Your ambassador referral code is here. Share it on social media to drive RSVPs and earn XP. Top 3 ambassadors shown on the leaderboard.
 
 ### Event Ops Mode
-The real-time work environment used on the day of an event. Contains: Check-In / Check-Out, the Mission Brief, Client Survey, Health Screening, Intake, Tracker, Alerts, and end-of-day Debrief.
+The real-time work environment used on the day of an event. Volunteers see a step-by-step guided flow:
+1. **Arrive** — Check in with your lead.
+2. **Brief** — Get your assignment and review the mission.
+3. **Serve** — Log every client interaction using type-specific forms:
+   - **Screenings** — Blood pressure and glucose with automatic traffic-light classification (Normal / Elevated / Stage 1 / Stage 2 / Crisis), plus other screening types.
+   - **Referrals** — Type, agency, urgency level, insurance status, and client consent tracking.
+   - **Distributions** — Supply handouts with item and quantity.
+   - **Surveys** — Community feedback and wellness questionnaires.
+4. **Wrap Up** — Review your service logs and sign off. Hours are recorded automatically.
+
+The **Incident Report** button (red, bottom-right corner) is always available to flag safety issues to the lead.
+
+### Health Screenings *(Licensed Medical staff only)*
+Dedicated view for reviewing flagged screening results and managing clinical follow-up.
+
+### Referral Management *(Licensed Medical and Admin)*
+Full client record management: view all clients seen at HMC events, open referrals, SLA tracking, partner agency directory, and flagged screening follow-up.
 
 ### Project Board *(admin/lead roles)*
-Track HMC team projects and tasks. Create projects, assign them, add notes, mark complete, or delete.
+Track HMC team projects and tasks with a Kanban-style board.
 
 ### Analytics *(senior roles)*
 Volunteer engagement metrics, event data, survey results, and system health monitoring.
-
-### Client Intake / Referrals *(clinical roles)*
-Manage intake forms for clients seen at HMC events and track referrals to partner organizations.
 
 ### Admin Panel *(admin only)*
 Volunteer directory, new applicant review, role assignment, compliance status, and CSV import tools.`,
@@ -277,6 +292,7 @@ If you missed checking in/out, contact your event lead or submit a support ticke
 2. Complete the two Tier 1 orientation modules first: **HMC Orientation** and **Because You're a Champion**.
 3. Once both are complete and your role is approved by an admin, you will be cleared to sign up for community missions.
 4. Additional Tier 2 training modules cover specific skills like health screenings, street medicine, and community surveys. Complete them to unlock advanced event roles.
+5. After finishing Tier 1 + Tier 2 core modules, click **Launch Simulation** to run the Event Day Simulation. This is a guided walkthrough of a real outreach shift with scripted client encounters. Completing it earns a "Practice Complete" badge on your profile and is the best way to prepare for your first real event.
 
 ### Step 5: Using the Calendar
 Click **Calendar** in the sidebar to see a full calendar view of all upcoming HMC events. You can switch between month, week, and list views. Events you are signed up for are highlighted. Click any event to see details.
@@ -293,11 +309,11 @@ You will receive a notification when your ticket is updated.
 Event Ops Mode is the real-time work environment you use on the day of a community health event. Think of it as your digital clipboard and sign-in sheet combined. You only enter it on the actual day of an event you are signed up for.
 
 **What you do in Event Ops Mode:**
-- Check in when you arrive (tap "I'm Here") — this starts your hour tracking and assigns you a buddy pair.
+- Check in when you arrive (tap "I'm Here") — this starts your hour tracking.
 - Review the **Brief** tab to see your mission summary, goals, your assigned role, and the team roster.
-- Use the **Survey**, **Intake**, **Health**, and **Tracker** tabs during the event to log every client interaction.
-- Report any safety issues using the **Alerts** tab — your lead is notified immediately.
-- When done, tap **"Check Out"** and then complete the **Finish** tab to sign off. This saves your hours.
+- Use the **Screenings**, **Referrals**, **Distributions**, and **Surveys** tabs to log every client interaction with detailed, type-specific forms.
+- Use the red **Report Incident** button (bottom-right corner) to flag any safety or medical emergency — your lead is notified immediately.
+- When done, tap **"Begin Wrap-Up"**, review your logs, and sign off. Your hours are recorded automatically.
 
 **You do NOT need Event Ops Mode for:** browsing training, viewing the calendar, sending messages, or submitting support tickets. Those all live in the main portal sidebar.`,
         tags: ['runbook', 'onboarding', 'new volunteer', 'quick start', 'tutorial', 'hours', 'training', 'event ops', 'calendar', 'support ticket']

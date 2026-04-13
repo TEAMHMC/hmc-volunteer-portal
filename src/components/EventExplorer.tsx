@@ -373,7 +373,7 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       {selectedEvent && (
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]" onClick={() => { setSelectedEvent(null); setJustRsvped(false); }} />
-          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-label="Event details" className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
             <div className="bg-white rounded-modal max-w-lg w-full shadow-elevation-3 border border-zinc-100 flex flex-col max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
               <div className="p-4 md:p-6 space-y-5">
                 <div className="flex justify-between items-start">

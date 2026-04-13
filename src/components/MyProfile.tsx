@@ -202,9 +202,9 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
         <div className="flex items-center gap-4 md:gap-8">
           <div className="relative group">
             <div className="w-32 h-32 rounded-2xl bg-brand border-2 border-white shadow-elevation-3 overflow-hidden flex items-center justify-center text-white text-2xl font-black">
-              {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} className="w-full h-full object-cover" /> : currentUser.name.charAt(0)}
+              {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} className="w-full h-full object-cover" alt={`${currentUser.name} profile photo`} /> : currentUser.name.charAt(0)}
             </div>
-            <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-2 -right-2 w-12 h-12 bg-white border border-black rounded-full flex items-center justify-center shadow-elevation-2 hover:scale-110 active:scale-95 transition-all"><Camera size={20} /></button>
+            <button onClick={() => fileInputRef.current?.click()} aria-label="Upload profile photo" className="absolute -bottom-2 -right-2 w-12 h-12 bg-white border border-black rounded-full flex items-center justify-center shadow-elevation-2 hover:scale-110 active:scale-95 transition-all"><Camera size={20} /></button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <div>

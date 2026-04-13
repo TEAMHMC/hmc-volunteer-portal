@@ -592,7 +592,7 @@ const OrgCalendar: React.FC<OrgCalendarProps> = ({ user, opportunities, onNaviga
                       ) : detailIsAttending ? (
                         <><span className="w-2 h-2 rounded-full bg-rose-600" /> Cancel RSVP</>
                       ) : (
-                        <><span className="w-2 h-2 rounded-full bg-white" /> RSVP — I'm Going</>
+                        <><span className="w-2 h-2 rounded-full bg-white" /> RSVP. I'm Going</>
                       )}
                     </button>
                     {!detailIsAttending && detailUserRsvp !== 'tentative' && (

@@ -289,7 +289,7 @@ const BulkUploadEventsModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label="Bulk import events" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
       <div className="bg-white rounded-modal max-w-xl w-full shadow-elevation-3 border border-zinc-100">
         <div className="p-4 md:p-8 border-b border-zinc-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -1288,7 +1288,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
 
        {/* Event Detail Modal */}
        {showEventDetail && (
-         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowEventDetail(null)}>
+         <div role="dialog" aria-modal="true" aria-label="Event details" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowEventDetail(null)}>
            <div className="bg-white rounded-modal max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-elevation-3 border border-zinc-100" onClick={(e) => e.stopPropagation()}>
              <div className="p-4 md:p-8">
                <div className="flex justify-between items-start mb-6">

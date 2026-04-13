@@ -94,6 +94,7 @@ export interface OpsContextValue {
   shift: Shift;
   opportunity: Opportunity;
   user: Volunteer;
+  allVolunteers: Volunteer[];
   isLead: boolean;
   isTestMode: boolean;
 
@@ -106,7 +107,7 @@ export interface OpsContextValue {
   queueWrite: (endpoint: string, payload: unknown, method?: 'POST' | 'PUT') => Promise<void>;
 
   manualCheckin: (volunteerId: string) => Promise<void>;
-  walkInCheckin: (name: string, email?: string, phone?: string, noPhone?: boolean, altContact?: string) => Promise<void>;
+  walkInCheckin: (name: string, email?: string, phone?: string, noPhone?: boolean, altContact?: string, existingClientId?: string) => Promise<void>;
   refreshRoster: () => Promise<void>;
   logClientEncounter: (data: { type: string; ageRange?: string; genderIdentity?: string; notes?: string; eventId: string; timestamp: string }) => Promise<void>;
 }
@@ -177,6 +178,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
   shift,
   opportunity,
   user,
+  allVolunteers = [],
   isTestMode = false,
   onSignoff,
   onUpdateUser,
@@ -605,7 +607,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
   );
 
   const walkInCheckin = useCallback(
-    async (name: string, email?: string, phone?: string, noPhone?: boolean, altContact?: string): Promise<void> => {
+    async (name: string, email?: string, phone?: string, noPhone?: boolean, altContact?: string, existingClientId?: string): Promise<void> => {
       if (!isLead) return;
       if (isTestMode) {
         const mockId = `walkin-${Date.now()}`;
@@ -628,7 +630,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
         return;
       }
       try {
-        await apiService.post(`/api/events/${opportunity.id}/walkin-checkin`, { name, email, phone, noPhone, altContact });
+        await apiService.post(`/api/events/${opportunity.id}/walkin-checkin`, { name, email, phone, noPhone, altContact, existingClientId });
         toastService.success(`Walk-in checked in: ${name}`);
         await refreshRoster();
       } catch (err) {
@@ -649,6 +651,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
     shift,
     opportunity,
     user,
+    allVolunteers,
     isLead,
     isTestMode,
     checkIn,

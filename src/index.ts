@@ -503,19 +503,52 @@ interface GoogleTokenPayload {
 
 const verifyGoogleToken = async (credential: string): Promise<GoogleTokenPayload | null> => {
   try {
-    // Verify with Google's tokeninfo endpoint
-    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-    if (!response.ok) {
-      console.error('[GOOGLE AUTH] Token verification failed:', response.status);
-      return null;
-    }
-    const payload = await response.json() as GoogleTokenPayload;
+    // Detect token type: id_tokens are JWTs (contain dots), access_tokens are opaque strings
+    const isIdToken = credential.includes('.');
 
-    // Verify the token is for our app (check audience matches our client ID)
-    const expectedClientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-    if (expectedClientId && payload.aud !== expectedClientId) {
-      console.error('[GOOGLE AUTH] Token audience mismatch');
-      return null;
+    let payload: GoogleTokenPayload;
+
+    if (isIdToken) {
+      // Verify id_token (from GoogleLogin component)
+      const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+      if (!response.ok) {
+        console.error('[GOOGLE AUTH] id_token verification failed:', response.status);
+        return null;
+      }
+      payload = await response.json() as GoogleTokenPayload;
+      // Verify audience matches our app
+      const expectedClientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+      if (expectedClientId && payload.aud !== expectedClientId) {
+        console.error('[GOOGLE AUTH] Token audience mismatch');
+        return null;
+      }
+    } else {
+      // Verify access_token (from useGoogleLogin custom button)
+      const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${credential}`);
+      if (!tokenRes.ok) {
+        console.error('[GOOGLE AUTH] access_token verification failed:', tokenRes.status);
+        return null;
+      }
+      const tokenInfo = await tokenRes.json() as { aud?: string; exp?: string };
+      // Fetch user profile separately since tokeninfo for access_token doesn't return name/picture
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${credential}` },
+      });
+      if (!userRes.ok) {
+        console.error('[GOOGLE AUTH] userinfo fetch failed:', userRes.status);
+        return null;
+      }
+      const userInfo = await userRes.json() as { email: string; email_verified?: boolean | string; name: string; picture?: string; sub: string };
+      payload = {
+        email: userInfo.email,
+        email_verified: userInfo.email_verified === true || userInfo.email_verified === 'true',
+        name: userInfo.name,
+        picture: userInfo.picture,
+        sub: userInfo.sub,
+        aud: tokenInfo.aud || '',
+        iss: 'accounts.google.com',
+        exp: tokenInfo.exp ? parseInt(tokenInfo.exp) : Math.floor(Date.now() / 1000) + 3600,
+      };
     }
 
     // Check token hasn't expired
@@ -15449,6 +15482,7 @@ YOUR ROLE — DETECT THE USER TYPE AND ADAPT:
 1. CLIENT/COMMUNITY MEMBER: Someone seeking help. Be warm. Ask what they need. Recommend HMC tools and events. Always offer Check Yourself, CalmKit, Resource Directory, or Event Finder when relevant.
 2. CAREGIVER: Someone caring for a family member or loved one with mental illness, disability, or chronic illness. Acknowledge their labor and stress are real. Burnout is real. They need support too, not just resources for their loved one. Ask what THEY need before listing resources.
 3. VOLUNTEER: Someone who wants to help or get involved. ALWAYS direct them to healthmatters.clinic/get-involved FIRST — that's the main entry point. From there they can learn about roles and apply through the volunteer portal. Roles include: Core Volunteers, Street Medicine Leads, Workshop Facilitators, Outreach Leads, Coordinators, Social Media support.
+   UPCOMING VOLUNTEER PORTAL TRAINING SESSION: April 14, 2026 at 7:00 PM Pacific — live virtual walkthrough of the volunteer portal on Zoom. Registration: https://us06web.zoom.us/meeting/register/wiYv31xFQIikya0QARaMMQ — covers dashboard, required training (Tier 1 & 2), finding and registering for missions, client intake, check-in on event day, Referral Hub ambassador links, and logging hours. Anyone who wants a portal preview first: volunteer.healthmatters.clinic/tour
 4. SPONSOR/DONOR: Someone who wants to fund or partner. Be professional but passionate. Mention impact numbers. Direct to healthmatters.clinic/donate or sponsor@healthmatters.clinic. Donations are tax-deductible (EIN: 85-3784250).
 5. MEDIA/PRESS: Be polished. Offer to connect them with the team at unstoppable@healthmatters.clinic.
 6. PARTNER ORG: Another nonprofit or clinic. Talk about collaboration. Direct to partner@healthmatters.clinic.
@@ -15462,7 +15496,8 @@ THIS IS YOUR #1 PRIORITY RIGHT NOW. HMC was selected as a contractor by LACDMH/C
 - HEAL: May 20, 5:45 PM, 123 W Manchester Blvd, Inglewood (Curtis Tucker Center) — Wellness Meetup (music, movement, self-care)
   RSVP: healthmatters.clinic/resources/eventfinder?event=event-1772064063990&rsvp=true
 
-- TRANSFORM: May 27, 7:00-8:00 PM, Virtual on Zoom — Interactive session. Win a MacBook.
+- TRANSFORM — Unstoppable Experience: May 27, 7:00-8:00 PM, Virtual on Zoom (Meeting ID: 830 5319 5114) — Theme: Transform. A live, guided virtual wellness session designed to help you refocus, reflect, and strengthen your mindset in real time. Interactive conversation, structured reflection, and practical strategies you can apply immediately. Log in ready to engage. Leave grounded and recharged.
+  Registration: https://us06web.zoom.us/meeting/register/hEhA6RTuQq-K-SdNnk3YXg
   RSVP: healthmatters.clinic/resources/eventfinder?event=event-1773943614235&rsvp=true
 
 Landing page: healthmatters.clinic/takeactionla
@@ -15471,7 +15506,7 @@ Free Unstoppable tee if you register by May 2nd.
 TAKE ACTION RULES — FOLLOW THESE EVERY CONVERSATION:
 1. EVERY conversation should naturally mention Take Action events within the first 2-3 exchanges — even if they didn't ask about events.
 2. If someone says they're "just exploring" or "looking around" or wants something "fun" → "Perfect timing — we have 3 free events this May. Want me to tell you about them?"
-3. If someone asks about mental health → connect it to HEAL (May 20) or TRANSFORM (May 27)
+3. If someone asks about mental health, mindset, stress, or transformation → connect it to HEAL (May 20) or the Unstoppable Experience — TRANSFORM (May 27, virtual)
 4. If someone asks about fitness/movement/exercise/fun/summer → connect it to MOVE (May 9) or the full lineup
 5. If someone wants to volunteer → mention the Ambassador program (win up to $500) AND core volunteer team, direct to healthmatters.clinic/get-involved
 6. If someone is a donor/sponsor → "We have Take Action LA coming up this May — great opportunity to make an impact"

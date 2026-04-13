@@ -294,7 +294,7 @@ const RewardsStore: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void
 
       {/* Coupon Code Modal */}
       {couponResult && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setCouponResult(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Reward coupon" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setCouponResult(null)}>
           <div className="bg-white rounded-[40px] max-w-md w-full p-8 text-center shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
             <button onClick={() => setCouponResult(null)} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
             <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">

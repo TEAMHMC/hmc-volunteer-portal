@@ -424,10 +424,11 @@ const SignoffModal: React.FC<SignoffModalProps> = ({ onClose, onBack }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RosterTab: React.FC = () => {
-  const { state, manualCheckin, walkInCheckin, refreshRoster } = useOps();
+  const { state, manualCheckin, walkInCheckin, refreshRoster, shift, allVolunteers } = useOps();
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<RosterFilter>('all');
+  const [rosterView, setRosterView] = useState<'attendees' | 'team'>('attendees');
   const [checkingInId, setCheckingInId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [walkInOpen, setWalkInOpen] = useState(false);
@@ -437,6 +438,10 @@ const RosterTab: React.FC = () => {
   const [walkInNoPhone, setWalkInNoPhone] = useState(false);
   const [walkInAltContact, setWalkInAltContact] = useState('');
   const [walkInLoading, setWalkInLoading] = useState(false);
+  const [clientMatches, setClientMatches] = useState<Array<{ id: string; name: string; phone?: string; email?: string; lastEvent?: string }>>([]);
+  const [clientSearchLoading, setClientSearchLoading] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
+  const clientSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const filtered = useMemo(() => {
@@ -456,6 +461,19 @@ const RosterTab: React.FC = () => {
     });
   }, [state.rsvps, search, filter]);
 
+  // Team volunteers: volunteers assigned to this shift, grouped by role
+  const teamByRole = useMemo(() => {
+    const assignedIds = new Set(shift.assignedVolunteerIds ?? []);
+    const teamMembers = allVolunteers.filter(v => assignedIds.has(v.id));
+    const groups: Record<string, typeof teamMembers> = {};
+    for (const v of teamMembers) {
+      const role = v.role || 'Volunteer';
+      if (!groups[role]) groups[role] = [];
+      groups[role].push(v);
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [allVolunteers, shift.assignedVolunteerIds]);
+
   const handleManualCheckin = async (id: string) => {
     setCheckingInId(id);
     setConfirmId(null);
@@ -468,6 +486,40 @@ const RosterTab: React.FC = () => {
     }
   };
 
+  const handleWalkInNameChange = (value: string) => {
+    setWalkInName(value);
+    setSelectedClient(null);
+    if (clientSearchTimeout.current) clearTimeout(clientSearchTimeout.current);
+    if (value.trim().length < 2) { setClientMatches([]); return; }
+    clientSearchTimeout.current = setTimeout(async () => {
+      setClientSearchLoading(true);
+      try {
+        const { apiService } = await import('../../../services/apiService');
+        const data = await apiService.get(`/api/clients?search=${encodeURIComponent(value.trim())}&limit=5`);
+        const list = Array.isArray(data) ? data : (data?.clients ?? []);
+        setClientMatches(list.map((c: any) => ({
+          id: c.id,
+          name: `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim(),
+          phone: c.phone,
+          email: c.email,
+          lastEvent: c.lastEventDate,
+        })));
+      } catch {
+        setClientMatches([]);
+      } finally {
+        setClientSearchLoading(false);
+      }
+    }, 400);
+  };
+
+  const handleSelectExistingClient = (match: { id: string; name: string; phone?: string; email?: string }) => {
+    setSelectedClient({ id: match.id, name: match.name });
+    setWalkInName(match.name);
+    if (match.phone) setWalkInPhone(match.phone);
+    if (match.email) setWalkInEmail(match.email);
+    setClientMatches([]);
+  };
+
   const handleWalkIn = async () => {
     if (!walkInName.trim()) return;
     setWalkInLoading(true);
@@ -478,9 +530,11 @@ const RosterTab: React.FC = () => {
         walkInPhone.trim() || undefined,
         walkInNoPhone || undefined,
         walkInAltContact.trim() || undefined,
+        selectedClient?.id,
       );
       setWalkInName(''); setWalkInEmail(''); setWalkInPhone('');
       setWalkInNoPhone(false); setWalkInAltContact('');
+      setSelectedClient(null); setClientMatches([]);
       setWalkInOpen(false);
     } catch {
       // handled
@@ -519,20 +573,72 @@ const RosterTab: React.FC = () => {
 
   return (
     <div className="pb-6">
-      {/* Search */}
-      <div className="px-4 pt-4 pb-2">
+      {/* View toggle: Attendees / Team */}
+      <div className="flex gap-1 px-4 pt-4 pb-2">
+        <button
+          onClick={() => setRosterView('attendees')}
+          className={`flex-1 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all min-h-[36px] ${rosterView === 'attendees' ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+        >
+          Attendees
+        </button>
+        {teamByRole.length > 0 && (
+          <button
+            onClick={() => setRosterView('team')}
+            className={`flex-1 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all min-h-[36px] ${rosterView === 'team' ? 'bg-[#233DFF] text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+          >
+            Team
+          </button>
+        )}
+      </div>
+
+      {/* Team view */}
+      {rosterView === 'team' && (
+        <div className="px-4 pb-4 space-y-4">
+          {teamByRole.map(([role, members]) => (
+            <div key={role} className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+              <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-100">
+                <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">{role}</p>
+              </div>
+              {members.map(v => (
+                <div key={v.id} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-50 last:border-0">
+                  <div className="w-9 h-9 rounded-full bg-[#233DFF]/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[#233DFF] font-black text-xs">{getInitials(v.name || `${v.legalFirstName || ''} ${v.legalLastName || ''}`.trim())}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-zinc-900 truncate">{v.name || `${v.legalFirstName || ''} ${v.legalLastName || ''}`.trim()}</p>
+                    <p className="text-xs text-zinc-400 truncate">{v.email}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+          {teamByRole.length === 0 && (
+            <div className="text-center py-8">
+              <Users size={32} className="mx-auto text-zinc-200 mb-2" />
+              <p className="text-sm font-medium text-zinc-400">No team members assigned</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Search (attendees view only) */}
+      {rosterView === 'attendees' && (
+      <div className="px-4 pb-2">
         <div className="relative">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
-            placeholder="Search volunteers…"
+            placeholder="Search attendees…"
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-full bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 transition-all min-h-[44px]"
           />
         </div>
       </div>
+      )}
 
+      {/* Attendees view: filter pills + list */}
+      {rosterView === 'attendees' && <>
       {/* Filter pills */}
       <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
         {filters.map(f => (
@@ -550,7 +656,7 @@ const RosterTab: React.FC = () => {
         ))}
       </div>
 
-      {/* Volunteer list */}
+      {/* Attendee list */}
       <div className="bg-white rounded-2xl mx-4 border border-zinc-100 overflow-hidden">
         {filtered.length === 0 ? (
           <div className="py-8 text-center">
@@ -647,13 +753,71 @@ const RosterTab: React.FC = () => {
         ) : (
           <div className="bg-white rounded-2xl border border-zinc-100 p-4 space-y-3">
             <p className="text-xs font-black uppercase tracking-wider text-zinc-400">Walk-In Registration</p>
-            <input
-              type="text"
-              placeholder="Full name *"
-              value={walkInName}
-              onChange={e => setWalkInName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px]"
-            />
+
+            {/* Name with client lookup */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Full name *"
+                value={walkInName}
+                onChange={e => handleWalkInNameChange(e.target.value)}
+                autoComplete="off"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px]"
+              />
+              {clientSearchLoading && (
+                <Loader2 size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-zinc-400" />
+              )}
+              {/* Returning client badge */}
+              {selectedClient && (
+                <div className="mt-1.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
+                  <UserCheck size={13} className="text-emerald-600 flex-shrink-0" />
+                  <span className="text-xs font-bold text-emerald-700">Returning client — record linked</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedClient(null); setWalkInName(''); setWalkInPhone(''); setWalkInEmail(''); }}
+                    className="ml-auto text-emerald-400 hover:text-emerald-700"
+                    aria-label="Clear selection"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+              {/* Dropdown matches */}
+              {clientMatches.length > 0 && !selectedClient && (
+                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white rounded-xl border border-zinc-200 shadow-lg overflow-hidden">
+                  <p className="px-3 py-2 text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100">
+                    Existing clients — select to link
+                  </p>
+                  {clientMatches.map(match => (
+                    <button
+                      key={match.id}
+                      type="button"
+                      onClick={() => handleSelectExistingClient(match)}
+                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-zinc-50 transition-colors text-left border-b border-zinc-50 last:border-0"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#233DFF]/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#233DFF] font-black text-xs">{getInitials(match.name)}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-zinc-900 truncate">{match.name}</p>
+                        <p className="text-xs text-zinc-400 truncate">
+                          {match.phone ?? match.email ?? 'No contact info'}
+                          {match.lastEvent && ` · Last seen ${match.lastEvent}`}
+                        </p>
+                      </div>
+                      <UserCheck size={14} className="text-zinc-300 flex-shrink-0" />
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setClientMatches([])}
+                    className="w-full px-3 py-2 text-xs font-bold text-zinc-400 hover:text-zinc-600 text-center transition-colors"
+                  >
+                    Register as new person
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="email"
@@ -729,6 +893,7 @@ const RosterTab: React.FC = () => {
           Refresh
         </button>
       </div>
+      </>}
     </div>
   );
 };
@@ -1104,18 +1269,57 @@ const ServicesTab: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ChecklistTab: React.FC = () => {
-  const { state, opportunity, checkItem } = useOps();
+  const { state, opportunity, checkItem, isLead } = useOps();
 
+  // Use override if present, else fall back to category template
   const templateId = EVENT_TYPE_TEMPLATE_MAP[opportunity.category];
-  const template = CHECKLIST_TEMPLATES.find(t => t.id === templateId) ?? CHECKLIST_TEMPLATES[0];
+  const defaultTemplate = CHECKLIST_TEMPLATES.find(t => t.id === templateId) ?? CHECKLIST_TEMPLATES[0];
+  const activeTemplate = opportunity.checklistOverride ?? defaultTemplate;
 
   const completedIds = state.opsRun?.completedItems ?? [];
 
-  const stages = Object.entries(template.stages);
+  const stages = Object.entries(activeTemplate.stages);
   const allItems = stages.flatMap(([, stage]) => stage.items);
   const totalItems = allItems.length;
   const completedCount = allItems.filter(item => completedIds.includes(item.id)).length;
   const pct = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+
+  // Edit mode state (leads only)
+  const [editMode, setEditMode] = useState(false);
+  const [editStages, setEditStages] = useState(() => stages.map(([key, stage]) => ({ key, title: stage.title, items: stage.items.map(i => ({ ...i })) })));
+  const [newItemText, setNewItemText] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const handleRemoveItem = (stageKey: string, itemId: string) => {
+    setEditStages(prev => prev.map(s => s.key === stageKey ? { ...s, items: s.items.filter(i => i.id !== itemId) } : s));
+  };
+
+  const handleAddItem = (stageKey: string) => {
+    const text = (newItemText[stageKey] || '').trim();
+    if (!text) return;
+    const newId = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setEditStages(prev => prev.map(s => s.key === stageKey ? { ...s, items: [...s.items, { id: newId, text }] } : s));
+    setNewItemText(prev => ({ ...prev, [stageKey]: '' }));
+  };
+
+  const handleSaveOverride = async () => {
+    setSaving(true);
+    try {
+      const override = {
+        name: activeTemplate.name,
+        stages: Object.fromEntries(editStages.map(s => [s.key, { title: s.title, items: s.items }])),
+      };
+      await apiService.put(`/api/opportunities/${opportunity.id}/checklist-override`, { checklistOverride: override });
+      toastService.success('Checklist saved for this event');
+      setEditMode(false);
+    } catch {
+      toastService.error('Failed to save checklist');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayStages = editMode ? editStages : stages.map(([key, stage]) => ({ key, title: stage.title, items: stage.items }));
 
   return (
     <div className="pb-6">
@@ -1127,47 +1331,93 @@ const ChecklistTab: React.FC = () => {
             <span className="text-base font-black text-zinc-900">{pct}%</span>
           </div>
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-xl font-black tracking-tight text-zinc-900">
             {completedCount} <span className="text-zinc-300">/</span> {totalItems}
           </p>
           <p className="text-xs text-zinc-400 font-medium">tasks complete</p>
-          <p className="text-xs text-zinc-500 font-medium mt-0.5">{template.name}</p>
+          <p className="text-xs text-zinc-500 font-medium mt-0.5 flex items-center gap-1.5">
+            {activeTemplate.name}
+            {opportunity.checklistOverride && (
+              <span className="px-1.5 py-0.5 bg-[#233DFF]/10 text-[#233DFF] rounded-full text-[9px] font-black uppercase tracking-wider">Custom</span>
+            )}
+          </p>
         </div>
+        {isLead && !editMode && (
+          <button
+            onClick={() => { setEditMode(true); setEditStages(stages.map(([key, stage]) => ({ key, title: stage.title, items: stage.items.map(i => ({ ...i })) }))); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-500 text-xs font-black uppercase tracking-wider hover:bg-zinc-200 transition-colors min-h-[32px]"
+          >
+            <Edit3 size={11} /> Edit
+          </button>
+        )}
+        {isLead && editMode && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveOverride}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#233DFF] text-white text-xs font-black uppercase tracking-wider disabled:opacity-50 min-h-[32px]"
+            >
+              {saving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
+              Save
+            </button>
+            <button
+              onClick={() => setEditMode(false)}
+              className="px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-500 text-xs font-black uppercase tracking-wider hover:bg-zinc-200 transition-colors min-h-[32px]"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stages */}
       <div className="px-4 space-y-4">
-        {stages.map(([stageKey, stage]) => {
-          const stageCompleted = stage.items.filter(i => completedIds.includes(i.id)).length;
-          const stagePct = stage.items.length > 0 ? (stageCompleted / stage.items.length) * 100 : 0;
+        {displayStages.map((stage) => {
+          const stageCompleted = editMode ? 0 : stage.items.filter(i => completedIds.includes(i.id)).length;
+          const stagePct = !editMode && stage.items.length > 0 ? (stageCompleted / stage.items.length) * 100 : 0;
 
           return (
-            <div key={stageKey} className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+            <div key={stage.key} className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
               {/* Stage header */}
               <div className="px-4 pt-4 pb-3 border-b border-zinc-50">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-black text-zinc-800">{stage.title}</p>
-                  <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
-                    stagePct === 100
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-zinc-100 text-zinc-500'
-                  }`}>
-                    {stageCompleted}/{stage.items.length}
-                  </span>
+                  {!editMode && (
+                    <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
+                      stagePct === 100
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-zinc-100 text-zinc-500'
+                    }`}>
+                      {stageCompleted}/{stage.items.length}
+                    </span>
+                  )}
                 </div>
-                <div className="h-1 bg-zinc-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#233DFF] rounded-full transition-all duration-500"
-                    style={{ width: `${stagePct}%` }}
-                  />
-                </div>
+                {!editMode && (
+                  <div className="h-1 bg-zinc-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#233DFF] rounded-full transition-all duration-500"
+                      style={{ width: `${stagePct}%` }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Items */}
               {stage.items.map(item => {
-                const done = completedIds.includes(item.id);
-                return (
+                const done = !editMode && completedIds.includes(item.id);
+                return editMode ? (
+                  <div key={item.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-50 last:border-0">
+                    <span className="flex-1 text-sm text-zinc-700">{item.text}</span>
+                    <button
+                      onClick={() => handleRemoveItem(stage.key, item.id)}
+                      className="p-1 text-zinc-300 hover:text-rose-500 transition-colors"
+                      aria-label="Remove item"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
                   <button
                     key={item.id}
                     onClick={() => checkItem(item.id)}
@@ -1190,6 +1440,27 @@ const ChecklistTab: React.FC = () => {
                   </button>
                 );
               })}
+
+              {/* Add item row (edit mode) */}
+              {editMode && (
+                <div className="flex items-center gap-2 px-4 py-2.5 border-t border-zinc-50">
+                  <input
+                    type="text"
+                    placeholder="Add item…"
+                    value={newItemText[stage.key] || ''}
+                    onChange={e => setNewItemText(prev => ({ ...prev, [stage.key]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddItem(stage.key); } }}
+                    className="flex-1 px-3 py-1.5 rounded-lg bg-zinc-50 border border-zinc-200 text-sm outline-none focus:border-[#233DFF]/40 min-h-[36px]"
+                  />
+                  <button
+                    onClick={() => handleAddItem(stage.key)}
+                    disabled={!(newItemText[stage.key] || '').trim()}
+                    className="px-3 py-1.5 bg-[#233DFF] text-white rounded-lg text-xs font-black disabled:opacity-40 min-h-[36px]"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

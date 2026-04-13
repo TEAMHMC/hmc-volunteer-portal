@@ -528,7 +528,7 @@ const OpsTour: React.FC<{ onComplete: () => void; onClose: () => void }> = ({ on
     const isLast = step === opsTourSteps.length - 1;
     const handleNext = () => { if (isLast) onComplete(); else setStep(s => s + 1); };
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={onClose}>
+        <div role="dialog" aria-modal="true" aria-label="Event ops tour" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={onClose}>
             <div className="bg-white max-w-xl w-full rounded-modal shadow-elevation-3 p-4 md:p-8 relative border border-zinc-100" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full text-zinc-400 hover:bg-rose-100 hover:text-rose-500 transition-colors"><X size={20} /></button>
                 <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Ops Tour — Step {step + 1} of {opsTourSteps.length}</p>
@@ -2709,7 +2709,7 @@ const DistributionTrackerView: React.FC<{
             {/* CLIENT SERVICE LOG MODAL                                         */}
             {/* ================================================================ */}
             {showClientForm && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-start justify-center p-4 overflow-y-auto" onClick={() => setShowClientForm(false)}>
+                <div role="dialog" aria-modal="true" aria-label="Client service log" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-start justify-center p-4 overflow-y-auto" onClick={() => setShowClientForm(false)}>
                     <div className="bg-white rounded-modal w-full max-w-lg shadow-elevation-3 border border-zinc-100 my-8" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
                             <div>
@@ -2802,7 +2802,7 @@ const DistributionTrackerView: React.FC<{
             {/* DETAILED DISTRIBUTION LOG MODAL                                  */}
             {/* ================================================================ */}
             {showAddForm && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowAddForm(false)}>
+                <div role="dialog" aria-modal="true" aria-label="Add entry" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShowAddForm(false)}>
                     <div className="bg-white rounded-modal w-full max-w-md shadow-elevation-3 border border-zinc-100" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-6 border-b border-zinc-100">
                             <h3 className="text-lg font-bold text-zinc-900">Log Distribution</h3>

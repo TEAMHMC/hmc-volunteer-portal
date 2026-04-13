@@ -642,7 +642,7 @@ const BriefingView: React.FC<{
                 <MessageSquare size={28} className="text-zinc-300" />
               </div>
               <p className="text-zinc-400 font-bold">No messages yet</p>
-              <p className="text-sm text-zinc-300">Start the conversation!</p>
+              <p className="text-sm text-zinc-400">Send the first message.</p>
             </div>
           )}
           {activeMessages.map(msg => {

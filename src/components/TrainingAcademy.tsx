@@ -970,7 +970,7 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
 
       {/* ===== QUIZ/ASSESSMENT MODAL ===== */}
       {quizMode && activeSession && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
+        <div role="dialog" aria-modal="true" aria-label="Training assessment" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
            <div className="bg-white p-4 md:p-8 rounded-modal max-w-5xl w-full space-y-10 shadow-elevation-3 border border-zinc-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-4">
@@ -1059,7 +1059,7 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
                         onClick={() => handleCompleteModule(activeSession.id, activeSession.title)}
                         className="w-full py-6 bg-emerald-500 border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
-                        <Check size={18} /> I've Watched This — Confirm Completion
+                        <Check size={18} /> I've Watched This. Mark Complete
                       </button>
                     </>
                   )}
@@ -1071,7 +1071,7 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
 
       {/* Core Volunteer Training Completion Modal */}
       {showCompletionMessage && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
+        <div role="dialog" aria-modal="true" aria-label="Training completion" className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 md:p-8 animate-in fade-in">
           <div className="bg-white p-4 md:p-8 rounded-modal max-w-2xl w-full text-center shadow-elevation-3 border border-zinc-100 animate-in zoom-in-95">
             <div className="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-8 shadow-elevation-2">
               <Award size={48} />

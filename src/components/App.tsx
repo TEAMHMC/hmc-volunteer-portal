@@ -51,10 +51,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     return new URLSearchParams(window.location.search).get('checkin');
   });
 
-  const [forceShowTour] = useState<boolean>(() => {
+  const [forceShowTour, setForceShowTour] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('tour') === 'true';
   });
+  const [tourNavTarget, setTourNavTarget] = useState<string | null>(null);
 
   const setAppData = (data: any) => {
       setCurrentUser(data.user);
@@ -264,6 +265,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
         announcements, setAnnouncements, messages, setMessages, gamification,
         initialTab: deepLinkTab || undefined,
+        navigateToTab: tourNavTarget || undefined,
         initialCheckinShiftId: deepLinkCheckin || undefined,
     };
     return (
@@ -272,7 +274,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
           <SystemTour
             onComplete={() => { /* no-op — user came via URL, don't mark completed */ }}
             onClose={() => { window.history.replaceState(null, '', window.location.pathname); }}
-            onNavigateToTraining={() => { window.history.replaceState(null, '', window.location.pathname); }}
+            onNavigateToTraining={() => { window.history.replaceState(null, '', window.location.pathname); setForceShowTour(false); setTourNavTarget('academy'); }}
           />
         )}
         <Dashboard {...dashboardProps} />

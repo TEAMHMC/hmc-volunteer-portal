@@ -488,7 +488,8 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
 
           {(() => {
             const activeBoard = leaderboard.filter(e => e.referrals > 0);
-            const medals = ['🥇', '🥈', '🥉'];
+            const medalColors = ['text-yellow-500', 'text-zinc-400', 'text-amber-600'];
+            const medalLabels = ['1st', '2nd', '3rd'];
             const userEntry = leaderboard.find(e => e.volunteerId === user.id);
             const userActive = userEntry && userEntry.referrals > 0;
 
@@ -518,8 +519,8 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
                         isUser ? 'bg-brand/5 border border-brand/20' : 'hover:bg-zinc-50'
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-lg shrink-0">
-                        {medals[i]}
+                      <div className={`w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center shrink-0`}>
+                        <span className={`text-sm font-black ${medalColors[i]}`}>{medalLabels[i]}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`font-bold text-sm truncate ${isUser ? 'text-brand' : 'text-zinc-900'}`}>

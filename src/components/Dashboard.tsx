@@ -101,6 +101,7 @@ interface DashboardProps {
     referralCount: number;
   } | null;
   initialTab?: string;
+  navigateToTab?: string;
   initialCheckinShiftId?: string;
 }
 
@@ -188,7 +189,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     user: initialUser, allVolunteers, setAllVolunteers, onLogout, onUpdateUser,
     opportunities, setOpportunities, shifts, setShifts, supportTickets, setSupportTickets,
     announcements, setAnnouncements, messages, setMessages, gamification,
-    initialTab, initialCheckinShiftId,
+    initialTab, navigateToTab, initialCheckinShiftId,
   } = props;
 
   const [user, setUser] = useState(initialUser);
@@ -237,6 +238,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
+
+  // Allow external navigation (e.g. from SystemTour CTA) to switch the active tab
+  useEffect(() => {
+    if (navigateToTab) setActiveTab(navigateToTab as any);
+  }, [navigateToTab]);
   const [simulationActive, setSimulationActive] = useState(false);
 
   // Mock shift + opportunity used for the Event Day Simulation in Training Academy
@@ -518,6 +524,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     }
     if (canAccessOperationalTools && medicalRoles.includes(displayUser.role)) {
       roleItems.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
+      roleItems.push({ id: 'referrals', label: 'Referral Management', icon: FileText });
     }
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
       roleItems.push({ id: 'intake', label: 'Client Intake', icon: Send });
@@ -820,7 +827,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
                 <div className="p-8 text-center">
                   <Bell size={28} className="mx-auto text-zinc-200 mb-3" />
                   <p className="text-sm text-zinc-400 font-bold">All caught up!</p>
-                  <p className="text-xs text-zinc-300 mt-1">No new notifications</p>
+                  <p className="text-xs text-zinc-400 mt-1">No new notifications</p>
                 </div>
               ) : (
                 <div className="divide-y divide-zinc-100">
@@ -1165,7 +1172,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'docs' && <TabErrorBoundary tab="docs"><DocumentationHub currentUser={displayUser} /></TabErrorBoundary>}
          <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}><OrgCalendar user={displayUser} opportunities={opportunities} onNavigate={setActiveTab} /></div>
          {activeTab === 'directory' && user.isAdmin && <TabErrorBoundary tab="directory"><AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} /></TabErrorBoundary>}
-         {activeTab === 'referrals' && user.isAdmin && <TabErrorBoundary tab="referrals"><ReferralManagement isAdmin={true} /></TabErrorBoundary>}
+         {activeTab === 'referrals' && (user.isAdmin || medicalRoles.includes(displayUser.role)) && <TabErrorBoundary tab="referrals"><ReferralManagement isAdmin={user.isAdmin} /></TabErrorBoundary>}
          {activeTab === 'resources' && user.isAdmin && <TabErrorBoundary tab="resources"><ResourceDashboard /></TabErrorBoundary>}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <TabErrorBoundary tab="analytics"><AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} /></TabErrorBoundary>}
          {activeTab === 'workflows' && user.isAdmin && <TabErrorBoundary tab="workflows"><AutomatedWorkflows /></TabErrorBoundary>}

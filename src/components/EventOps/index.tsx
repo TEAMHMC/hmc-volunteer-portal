@@ -262,19 +262,23 @@ const InnerShell: React.FC<InnerShellProps> = ({
 }) => {
   const { isLead, isTestMode } = useOps();
 
+  // In simulation mode always show the volunteer experience —
+  // the simulation trains volunteers regardless of the launcher's actual role
+  const showVolunteerView = isTestMode || !isLead;
+
   return (
     <div className={isTestMode ? 'pt-11' : undefined}>
-      {isLead ? (
+      {showVolunteerView ? (
+        <VolunteerMyDay
+          onBack={onBack}
+          onNavigateToAcademy={onNavigateToAcademy}
+        />
+      ) : (
         <LeadCommandCenter
           onBack={onBack}
           allVolunteers={allVolunteers}
           onEditEvent={onEditEvent}
           canEdit={canEdit}
-        />
-      ) : (
-        <VolunteerMyDay
-          onBack={onBack}
-          onNavigateToAcademy={onNavigateToAcademy}
         />
       )}
       <IncidentFab />
