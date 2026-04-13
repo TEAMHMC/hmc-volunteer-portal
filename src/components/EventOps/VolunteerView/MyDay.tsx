@@ -43,13 +43,86 @@ type ServiceLogType = 'screening' | 'resources' | 'referral' | 'survey' | null;
 
 interface ReferralForm {
   clientName: string;
+  clientId?: string;
   needType: string;
+  consentGiven: boolean;
 }
 
 interface ResourceForm {
   itemName: string;
   quantity: number;
 }
+
+type ScreeningType = 'bp' | 'o2' | 'temp' | 'glucose' | 'bmi';
+
+interface ScreeningForm {
+  screeningType: ScreeningType;
+  systolic: string;
+  diastolic: string;
+  o2: string;
+  temp: string;
+  glucose: string;
+  bmi: string;
+  followUp: boolean;
+}
+
+type TrafficLevel = 'normal' | 'elevated' | 'high' | 'critical';
+
+interface TrafficResult {
+  level: TrafficLevel;
+  color: 'green' | 'yellow' | 'red';
+  label: string;
+  flagKey?: 'bloodPressure' | 'glucose';
+}
+
+function getBpTraffic(sys: number, dia: number): TrafficResult {
+  if (sys >= 180 || dia >= 120) return { level: 'critical', color: 'red', label: 'Hypertensive Crisis — 911 if symptoms', flagKey: 'bloodPressure' };
+  if (sys >= 140 || dia >= 90) return { level: 'high', color: 'red', label: 'Stage 2 High — Flag for follow-up', flagKey: 'bloodPressure' };
+  if (sys >= 130 || dia >= 80) return { level: 'elevated', color: 'yellow', label: 'Stage 1 High — Recommend doctor visit', flagKey: 'bloodPressure' };
+  if (sys >= 120) return { level: 'elevated', color: 'yellow', label: 'Elevated — Monitor, lifestyle advice', flagKey: 'bloodPressure' };
+  return { level: 'normal', color: 'green', label: 'Normal — No action needed', flagKey: 'bloodPressure' };
+}
+
+function getO2Traffic(o2: number): TrafficResult {
+  if (o2 < 90) return { level: 'critical', color: 'red', label: 'Critical — Needs immediate attention' };
+  if (o2 < 95) return { level: 'elevated', color: 'yellow', label: 'Low — Monitor, refer if persistent' };
+  return { level: 'normal', color: 'green', label: 'Normal' };
+}
+
+function getTempTraffic(temp: number): TrafficResult {
+  if (temp > 103 || temp < 96) return { level: 'critical', color: 'red', label: 'Critical — Immediate medical attention' };
+  if (temp > 100.4 || temp < 97) return { level: 'high', color: 'red', label: 'Fever / Hypothermia — Flag for follow-up' };
+  if (temp > 99.5) return { level: 'elevated', color: 'yellow', label: 'Low-grade fever — Monitor' };
+  return { level: 'normal', color: 'green', label: 'Normal' };
+}
+
+function getGlucoseTraffic(g: number): TrafficResult {
+  if (g >= 200 || g < 54) return { level: 'critical', color: 'red', label: 'Critical — Flag for immediate follow-up', flagKey: 'glucose' };
+  if (g >= 126 || g < 70) return { level: 'high', color: 'red', label: 'High / Low — Flag for follow-up', flagKey: 'glucose' };
+  if (g >= 100) return { level: 'elevated', color: 'yellow', label: 'Pre-diabetic range — Recommend doctor visit', flagKey: 'glucose' };
+  return { level: 'normal', color: 'green', label: 'Normal', flagKey: 'glucose' };
+}
+
+function getBmiTraffic(bmi: number): TrafficResult {
+  if (bmi >= 40 || bmi < 15) return { level: 'critical', color: 'red', label: 'Critical range — Medical referral recommended' };
+  if (bmi >= 30 || bmi < 18.5) return { level: 'high', color: 'red', label: 'Outside healthy range — Suggest provider visit' };
+  if (bmi >= 25) return { level: 'elevated', color: 'yellow', label: 'Overweight — Lifestyle guidance' };
+  return { level: 'normal', color: 'green', label: 'Healthy weight' };
+}
+
+const TRAFFIC_COLORS = {
+  green: { dot: 'bg-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
+  yellow: { dot: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700' },
+  red: { dot: 'bg-red-500', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', badge: 'bg-red-100 text-red-700' },
+};
+
+const BP_REFERENCE = [
+  { color: 'green' as const, label: 'Normal', range: '< 120 / < 80' },
+  { color: 'yellow' as const, label: 'Elevated', range: '120–129 / < 80' },
+  { color: 'yellow' as const, label: 'Stage 1 High', range: '130–139 / 80–89' },
+  { color: 'red' as const, label: 'Stage 2 High', range: '≥ 140 / ≥ 90' },
+  { color: 'red' as const, label: 'Crisis', range: '≥ 180 / ≥ 120' },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -163,6 +236,13 @@ interface SimScenario {
   clientSays?: string;
   volunteerSays?: string;
   action: string;
+  mockReading?: {
+    label: string;
+    value: string;
+    color: 'green' | 'yellow' | 'red';
+    meaning: string;
+    doNext: string;
+  };
   isComplete: (state: any) => boolean;
 }
 
@@ -182,8 +262,15 @@ const SIMULATION_SCENARIOS: SimScenario[] = [
     context: "You're walking the outreach area near 5th & San Pedro. Raymond (approx. 50s, male) is sitting on a crate. He looks tired but makes eye contact.",
     clientSays: '"My blood pressure has been acting up and I haven\'t seen a doctor in two years. I don\'t know what to do."',
     volunteerSays: '"Hi Raymond, I\'m with Health Matters Clinic. We have a free health station set up right here — can I check your BP right now? Takes about two minutes."',
-    action: 'After taking his blood pressure reading, tap "Screenings" and log the result.',
-    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'screening'),
+    mockReading: {
+      label: "Raymond's BP reading",
+      value: '158 / 96 mmHg',
+      color: 'red',
+      meaning: 'RED — Stage 2 High Blood Pressure (≥ 140/90). This is above normal and needs follow-up.',
+      doNext: 'Tell Raymond: "Your blood pressure is higher than it should be. That\'s something a doctor should look at soon — we can connect you with a free clinic today." Log the screening and check "Follow-up needed."',
+    },
+    action: 'Tap "Screening" below, enter the BP reading, and log the result.',
+    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'screening') || (s.simTestLogs ?? []).includes('screening'),
   },
   {
     id: 'distribution',
@@ -193,7 +280,7 @@ const SIMULATION_SCENARIOS: SimScenario[] = [
     clientSays: '"Do you have any hygiene stuff? I\'ve been out of toothpaste and clean socks for days."',
     volunteerSays: '"Of course! We have hygiene kits, socks, and a resource packet with local services. Let me grab you a bag."',
     action: 'Give her the supplies, then tap "Resources" and log a Distribution.',
-    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'distribution'),
+    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'distribution') || (s.simTestLogs ?? []).includes('distribution'),
   },
   {
     id: 'referral',
@@ -203,7 +290,7 @@ const SIMULATION_SCENARIOS: SimScenario[] = [
     clientSays: '"I\'ve been feeling really low lately... can\'t sleep, can\'t focus. I heard you all know about mental health help."',
     volunteerSays: '"James, thank you for trusting me. You deserve real support — we connect people with mental health services. Can I get your verbal consent to set up a referral for you?"',
     action: 'After getting his verbal consent, tap "Referrals" and log the referral (Mental Health Services). Check the consent box.',
-    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'referral'),
+    isComplete: (s) => (s.tracker?.clientLogs ?? []).some((l: any) => l.type === 'referral') || (s.simTestLogs ?? []).includes('referral'),
   },
   {
     id: 'wrapup',
@@ -285,6 +372,30 @@ function SimulationGuide() {
           <p className="text-xs text-zinc-700 italic leading-relaxed">{scenario.volunteerSays}</p>
         </div>
       )}
+
+      {/* Mock reading + traffic light */}
+      {scenario.mockReading && (() => {
+        const r = scenario.mockReading!;
+        const colorMap = {
+          green: { dot: 'bg-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', label: 'text-emerald-600' },
+          yellow: { dot: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', label: 'text-amber-600' },
+          red: { dot: 'bg-red-500', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', label: 'text-red-600' },
+        }[r.color];
+        return (
+          <div className={`${colorMap.bg} ${colorMap.border} border rounded-xl p-3 mb-2`}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className={`w-3 h-3 rounded-full ${colorMap.dot} flex-shrink-0`} />
+              <p className={`text-[10px] font-black uppercase tracking-wider ${colorMap.label}`}>{r.label}</p>
+            </div>
+            <p className={`text-lg font-black ${colorMap.text} mb-1`}>{r.value}</p>
+            <p className={`text-xs font-bold ${colorMap.text} mb-2 leading-relaxed`}>{r.meaning}</p>
+            <div className="bg-white/60 rounded-lg p-2">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-1">What to do:</p>
+              <p className="text-xs text-zinc-700 leading-relaxed italic">{r.doNext}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Action */}
       <div className="flex items-start gap-2 mt-2 bg-amber-100 rounded-xl px-3 py-2">
@@ -605,13 +716,45 @@ interface StepServingProps {
 }
 
 function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepServingProps) {
-  const { state, opportunity, shift, user, isTestMode, checkItem, logAudit } = useOps();
+  const { state, opportunity, shift, user, isTestMode, checkItem, logAudit, logSimActivity } = useOps();
   const [activeLog, setActiveLog] = useState<ServiceLogType>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
   const [showSurveyKiosk, setShowSurveyKiosk] = useState(false);
-  const [referralForm, setReferralForm] = useState<ReferralForm>({ clientName: '', needType: '' });
+  const [referralForm, setReferralForm] = useState<ReferralForm>({ clientName: '', clientId: undefined, needType: '', consentGiven: false });
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [clientSearchResults, setClientSearchResults] = useState<any[]>([]);
+  const [clientSearchLoading, setClientSearchLoading] = useState(false);
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
+
+  // Debounced client search
+  useEffect(() => {
+    if (isTestMode || clientSearchQuery.trim().length < 2) {
+      setClientSearchResults([]);
+      setClientSearchOpen(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setClientSearchLoading(true);
+      try {
+        const res = await apiService.post('/api/clients/search', { name: clientSearchQuery.trim() });
+        if (res?.multiple) setClientSearchResults(res.results);
+        else if (res?.id) setClientSearchResults([res]);
+        else setClientSearchResults([]);
+        setClientSearchOpen(true);
+      } catch {
+        setClientSearchResults([]);
+        setClientSearchOpen(true); // show "not found" state
+      } finally {
+        setClientSearchLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [clientSearchQuery, isTestMode]);
   const [resourceForm, setResourceForm] = useState<ResourceForm>({ itemName: '', quantity: 1 });
+  const [screeningForm, setScreeningForm] = useState<ScreeningForm>({
+    screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false,
+  });
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -638,24 +781,62 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
   // ── Service log handlers ──
 
   const handleLogScreening = async () => {
+    // Compute traffic result and flags to send to API
+    const sf = screeningForm;
+    let trafficResult: TrafficResult | null = null;
+    const payload: Record<string, any> = {
+      eventId: opportunity.id,
+      shiftId: shift.id,
+      loggedBy: user.id,
+      type: sf.screeningType,
+      followUpNeeded: sf.followUp,
+      flags: {} as Record<string, any>,
+    };
+
+    if (sf.screeningType === 'bp') {
+      const sys = parseInt(sf.systolic), dia = parseInt(sf.diastolic);
+      if (!isNaN(sys) && !isNaN(dia)) {
+        payload.systolic = sys;
+        payload.diastolic = dia;
+        trafficResult = getBpTraffic(sys, dia);
+        if (trafficResult.flagKey) payload.flags.bloodPressure = { level: trafficResult.level, label: trafficResult.label };
+        if (trafficResult.color === 'red') payload.followUpNeeded = true;
+      }
+    } else if (sf.screeningType === 'o2') {
+      const val = parseFloat(sf.o2);
+      if (!isNaN(val)) { payload.oxygenSaturation = val; trafficResult = getO2Traffic(val); }
+    } else if (sf.screeningType === 'temp') {
+      const val = parseFloat(sf.temp);
+      if (!isNaN(val)) { payload.temperature = val; trafficResult = getTempTraffic(val); }
+    } else if (sf.screeningType === 'glucose') {
+      const val = parseInt(sf.glucose);
+      if (!isNaN(val)) {
+        payload.glucose = val;
+        trafficResult = getGlucoseTraffic(val);
+        if (trafficResult.flagKey) payload.flags.glucose = { level: trafficResult.level, label: trafficResult.label };
+        if (trafficResult.color === 'red') payload.followUpNeeded = true;
+      }
+    } else if (sf.screeningType === 'bmi') {
+      const val = parseFloat(sf.bmi);
+      if (!isNaN(val)) { payload.bmi = val; trafficResult = getBmiTraffic(val); }
+    }
+
     setLogLoading(true);
     try {
       if (!isTestMode) {
-        await apiService.post('/api/health-screenings/create', {
-          eventId: opportunity.id,
-          shiftId: shift.id,
-          loggedBy: user.id,
-          type: 'general',
-        });
+        await apiService.post('/api/screenings/create', payload);
       }
-      toastService.success(isTestMode ? '[PRACTICE] Screening logged' : 'Screening logged');
+      if (isTestMode) logSimActivity('screening');
+      const resultLabel = trafficResult ? ` — ${trafficResult.label}` : '';
+      toastService.success(isTestMode ? `[PRACTICE] Screening logged${resultLabel}` : `Screening logged${resultLabel}`);
       logAudit({
         actionType: 'LOG_SCREENING',
         targetSystem: 'HealthScreenings',
         targetId: opportunity.id,
-        summary: `Volunteer ${user.id} logged a screening for event ${opportunity.id}`,
+        summary: `Volunteer ${user.id} logged a ${sf.screeningType} screening for event ${opportunity.id}`,
       });
       onServiceLogged();
+      setScreeningForm({ screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false });
       setActiveLog(null);
     } catch {
       // error shown by apiService
@@ -679,6 +860,7 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
           loggedBy: user.id,
         });
       }
+      if (isTestMode) logSimActivity('distribution');
       toastService.success(isTestMode ? '[PRACTICE] Distribution logged' : 'Distribution logged');
       logAudit({
         actionType: 'LOG_DISTRIBUTION',
@@ -701,17 +883,24 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       toastService.error('Please fill out all fields');
       return;
     }
+    if (!referralForm.consentGiven) {
+      toastService.error('Verbal consent must be confirmed before logging a referral');
+      return;
+    }
     setLogLoading(true);
     try {
       if (!isTestMode) {
         await apiService.post('/api/referrals/create', {
           clientName: referralForm.clientName,
+          ...(referralForm.clientId ? { clientId: referralForm.clientId } : {}),
           needType: referralForm.needType,
+          consentGiven: true,
           eventId: opportunity.id,
           shiftId: shift.id,
           loggedBy: user.id,
         });
       }
+      if (isTestMode) logSimActivity('referral');
       toastService.success(isTestMode ? '[PRACTICE] Referral logged' : 'Referral logged');
       logAudit({
         actionType: 'LOG_REFERRAL',
@@ -720,7 +909,10 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
         summary: `Volunteer ${user.id} logged referral: ${referralForm.needType} for ${referralForm.clientName}`,
       });
       onServiceLogged();
-      setReferralForm({ clientName: '', needType: '' });
+      setReferralForm({ clientName: '', clientId: undefined, needType: '', consentGiven: false });
+      setClientSearchQuery('');
+      setClientSearchResults([]);
+      setClientSearchOpen(false);
       setActiveLog(null);
     } catch {
       // error shown by apiService
@@ -749,15 +941,165 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       'mt-4 pt-4 border-t border-zinc-100 animate-in fade-in slide-in-from-bottom-2 duration-200';
 
     if (activeLog === 'screening') {
+      const sf = screeningForm;
+      // Compute live traffic light
+      let liveTraffic: TrafficResult | null = null;
+      if (sf.screeningType === 'bp') {
+        const sys = parseInt(sf.systolic), dia = parseInt(sf.diastolic);
+        if (!isNaN(sys) && !isNaN(dia) && sys > 0 && dia > 0) liveTraffic = getBpTraffic(sys, dia);
+      } else if (sf.screeningType === 'o2') {
+        const v = parseFloat(sf.o2); if (!isNaN(v)) liveTraffic = getO2Traffic(v);
+      } else if (sf.screeningType === 'temp') {
+        const v = parseFloat(sf.temp); if (!isNaN(v)) liveTraffic = getTempTraffic(v);
+      } else if (sf.screeningType === 'glucose') {
+        const v = parseInt(sf.glucose); if (!isNaN(v)) liveTraffic = getGlucoseTraffic(v);
+      } else if (sf.screeningType === 'bmi') {
+        const v = parseFloat(sf.bmi); if (!isNaN(v)) liveTraffic = getBmiTraffic(v);
+      }
+      const tc = liveTraffic ? TRAFFIC_COLORS[liveTraffic.color] : null;
+
+      const TYPE_LABELS: Record<ScreeningType, string> = { bp: 'BP', o2: 'O₂', temp: 'Temp', glucose: 'Glucose', bmi: 'BMI' };
+
+      // Pre-fill from simulation mock reading if in test mode and BP
+      const showMockHint = isTestMode && sf.screeningType === 'bp' && !sf.systolic && !sf.diastolic;
+
       return (
         <div className={formBase}>
-          <p className="text-xs text-zinc-500 font-medium mb-3">
-            Log one health screening (BP, BMI, O2, temp, or glucose)
-          </p>
+          {/* Type selector */}
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-2">Screening type</p>
+          <div className="flex gap-1.5 mb-4 flex-wrap">
+            {(['bp', 'o2', 'temp', 'glucose', 'bmi'] as ScreeningType[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setScreeningForm((f) => ({ ...f, screeningType: t }))}
+                className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
+                  sf.screeningType === t
+                    ? 'bg-[#233DFF] text-white shadow-sm'
+                    : 'bg-zinc-100 text-zinc-500'
+                }`}
+              >
+                {TYPE_LABELS[t]}
+              </button>
+            ))}
+          </div>
+
+          {/* Mock hint for simulation */}
+          {showMockHint && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 flex items-start gap-2">
+              <AlertCircle size={12} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 font-medium">Practice: enter Raymond's reading — <strong>158 / 96</strong></p>
+            </div>
+          )}
+
+          {/* Inputs */}
+          {sf.screeningType === 'bp' && (
+            <div className="flex gap-3 mb-3">
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">Systolic</p>
+                <input
+                  type="number" inputMode="numeric" placeholder="e.g. 120"
+                  value={sf.systolic}
+                  onChange={(e) => setScreeningForm((f) => ({ ...f, systolic: e.target.value }))}
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-lg font-black text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] text-center"
+                />
+              </div>
+              <div className="flex items-end pb-2.5 text-zinc-300 font-black text-xl">/</div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">Diastolic</p>
+                <input
+                  type="number" inputMode="numeric" placeholder="e.g. 80"
+                  value={sf.diastolic}
+                  onChange={(e) => setScreeningForm((f) => ({ ...f, diastolic: e.target.value }))}
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-lg font-black text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] text-center"
+                />
+              </div>
+            </div>
+          )}
+          {sf.screeningType === 'o2' && (
+            <div className="mb-3">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">O₂ Saturation (%)</p>
+              <input type="number" inputMode="decimal" placeholder="e.g. 97" value={sf.o2}
+                onChange={(e) => setScreeningForm((f) => ({ ...f, o2: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-lg font-black text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] text-center"
+              />
+            </div>
+          )}
+          {sf.screeningType === 'temp' && (
+            <div className="mb-3">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">Temperature (°F)</p>
+              <input type="number" inputMode="decimal" placeholder="e.g. 98.6" value={sf.temp}
+                onChange={(e) => setScreeningForm((f) => ({ ...f, temp: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-lg font-black text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] text-center"
+              />
+            </div>
+          )}
+          {sf.screeningType === 'glucose' && (
+            <div className="mb-3">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">Glucose (mg/dL)</p>
+              <input type="number" inputMode="numeric" placeholder="e.g. 95" value={sf.glucose}
+                onChange={(e) => setScreeningForm((f) => ({ ...f, glucose: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-lg font-black text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] text-center"
+              />
+            </div>
+          )}
+          {sf.screeningType === 'bmi' && (
+            <div className="mb-3">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">BMI</p>
+              <input type="number" inputMode="decimal" placeholder="e.g. 22.5" value={sf.bmi}
+                onChange={(e) => setScreeningForm((f) => ({ ...f, bmi: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-lg font-black text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] text-center"
+              />
+            </div>
+          )}
+
+          {/* Live traffic light result */}
+          {liveTraffic && tc && (
+            <div className={`${tc.bg} ${tc.border} border rounded-xl px-3 py-2.5 mb-3 flex items-center gap-2.5`}>
+              <div className={`w-3 h-3 rounded-full ${tc.dot} flex-shrink-0`} />
+              <div>
+                <p className={`text-xs font-black ${tc.text}`}>{liveTraffic.label}</p>
+                {liveTraffic.color === 'red' && (
+                  <p className={`text-[10px] ${tc.text} mt-0.5`}>Follow-up flag will be set automatically</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* BP reference guide */}
+          {sf.screeningType === 'bp' && (
+            <div className="mb-3 border border-zinc-100 rounded-xl overflow-hidden">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider px-3 py-2 bg-zinc-50">BP Traffic Light Reference</p>
+              {BP_REFERENCE.map((r) => (
+                <div key={r.label} className="flex items-center gap-2 px-3 py-1.5 border-t border-zinc-100">
+                  <div className={`w-2.5 h-2.5 rounded-full ${TRAFFIC_COLORS[r.color].dot} flex-shrink-0`} />
+                  <span className="text-xs font-black text-zinc-600 w-24 flex-shrink-0">{r.label}</span>
+                  <span className="text-xs text-zinc-400 font-mono">{r.range}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Follow-up override */}
+          <button
+            onClick={() => setScreeningForm((f) => ({ ...f, followUp: !f.followUp }))}
+            className={`w-full flex items-center gap-2 rounded-xl px-3 py-2.5 mb-3 border transition-all ${
+              sf.followUp ? 'bg-red-50 border-red-200' : 'bg-zinc-50 border-zinc-200'
+            }`}
+          >
+            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+              sf.followUp ? 'bg-red-500 border-red-500' : 'border-zinc-300'
+            }`}>
+              {sf.followUp && <CheckCircle className="w-3 h-3 text-white" />}
+            </div>
+            <span className={`text-xs font-black ${sf.followUp ? 'text-red-700' : 'text-zinc-500'}`}>
+              Flag for follow-up
+            </span>
+          </button>
+
           <button
             onClick={handleLogScreening}
             disabled={logLoading}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+            className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95 disabled:opacity-50"
           >
             {logLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
             Log Screening
@@ -811,34 +1153,141 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
     }
 
     if (activeLog === 'referral') {
+      const hasSelectedClient = !!referralForm.clientId;
       return (
         <div className={formBase}>
           <div className="flex flex-col gap-3 mb-3">
-            <input
-              type="text"
-              placeholder="Client first name or initials"
-              value={referralForm.clientName}
-              onChange={(e) => setReferralForm((f) => ({ ...f, clientName: e.target.value }))}
-              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]"
-            />
-            <select
-              value={referralForm.needType}
-              onChange={(e) => setReferralForm((f) => ({ ...f, needType: e.target.value }))}
-              className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] bg-white"
+
+            {/* Client lookup */}
+            <div className="relative">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">Client</p>
+              {hasSelectedClient ? (
+                <div className="flex items-center gap-2 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-xl px-4 py-2.5">
+                  <UserCheck className="w-4 h-4 text-[#233DFF] flex-shrink-0" />
+                  <span className="text-sm font-black text-zinc-800 flex-1">{referralForm.clientName}</span>
+                  <button
+                    onClick={() => {
+                      setReferralForm((f) => ({ ...f, clientName: '', clientId: undefined }));
+                      setClientSearchQuery('');
+                      setClientSearchResults([]);
+                      setClientSearchOpen(false);
+                    }}
+                    className="text-zinc-400 hover:text-zinc-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder={isTestMode ? 'Practice: type "James"' : 'Search by name...'}
+                      value={clientSearchQuery}
+                      onChange={(e) => {
+                        setClientSearchQuery(e.target.value);
+                        setReferralForm((f) => ({ ...f, clientName: e.target.value, clientId: undefined }));
+                      }}
+                      className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] pr-9"
+                    />
+                    {clientSearchLoading && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+                    )}
+                  </div>
+
+                  {/* Search results dropdown */}
+                  {clientSearchOpen && (
+                    <div className="mt-1 border border-zinc-200 rounded-xl overflow-hidden shadow-md bg-white">
+                      {clientSearchResults.length > 0 ? (
+                        <>
+                          {clientSearchResults.map((c: any) => (
+                            <button
+                              key={c.id}
+                              onClick={() => {
+                                const name = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+                                setReferralForm((f) => ({ ...f, clientName: name, clientId: c.id }));
+                                setClientSearchQuery(name);
+                                setClientSearchOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 hover:bg-zinc-50 border-b border-zinc-100 last:border-0"
+                            >
+                              <p className="text-sm font-black text-zinc-800">{c.firstName} {c.lastName}</p>
+                              {(c.dob || c.phone) && (
+                                <p className="text-xs text-zinc-400 mt-0.5">{c.dob ? `DOB: ${c.dob}` : ''}{c.dob && c.phone ? ' · ' : ''}{c.phone ? `${c.phone.slice(-4).padStart(c.phone.length, '·')}` : ''}</p>
+                              )}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              setReferralForm((f) => ({ ...f, clientName: clientSearchQuery, clientId: undefined }));
+                              setClientSearchOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-xs text-zinc-400 hover:bg-zinc-50"
+                          >
+                            Not listed — use name as entered
+                          </button>
+                        </>
+                      ) : (
+                        <div className="px-4 py-3">
+                          <p className="text-xs text-zinc-500 font-medium">No client found — they may not be registered yet.</p>
+                          <button
+                            onClick={() => {
+                              setReferralForm((f) => ({ ...f, clientName: clientSearchQuery, clientId: undefined }));
+                              setClientSearchOpen(false);
+                            }}
+                            className="mt-1 text-xs font-black text-[#233DFF] underline underline-offset-2"
+                          >
+                            Continue with name only
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">Need type</p>
+              <select
+                value={referralForm.needType}
+                onChange={(e) => setReferralForm((f) => ({ ...f, needType: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] bg-white"
+              >
+                <option value="">Select need type...</option>
+                <option value="Housing">Housing</option>
+                <option value="Mental Health Services">Mental Health Services</option>
+                <option value="Substance Use Treatment">Substance Use Treatment</option>
+                <option value="Medical / Primary Care">Medical / Primary Care</option>
+                <option value="Food / Nutrition">Food / Nutrition</option>
+                <option value="Benefits / SSI">Benefits / SSI</option>
+                <option value="Legal">Legal</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Consent confirmation */}
+            <button
+              onClick={() => setReferralForm((f) => ({ ...f, consentGiven: !f.consentGiven }))}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2.5 border transition-all ${
+                referralForm.consentGiven ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50 border-zinc-200'
+              }`}
             >
-              <option value="">Select need type...</option>
-              <option value="Housing">Housing</option>
-              <option value="Mental Health">Mental Health</option>
-              <option value="Substance Use">Substance Use</option>
-              <option value="Medical">Medical</option>
-              <option value="Food">Food</option>
-              <option value="Other">Other</option>
-            </select>
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                referralForm.consentGiven ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-300'
+              }`}>
+                {referralForm.consentGiven && <CheckCircle className="w-3 h-3 text-white" />}
+              </div>
+              <span className={`text-xs font-black ${referralForm.consentGiven ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                Verbal consent obtained from client
+              </span>
+            </button>
           </div>
+
           <button
             onClick={handleLogReferral}
-            disabled={logLoading}
-            className="w-full flex items-center justify-center gap-2 bg-purple-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+            disabled={logLoading || !referralForm.consentGiven}
+            className="w-full flex items-center justify-center gap-2 bg-purple-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95 disabled:opacity-50"
           >
             {logLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
             Log Referral
@@ -962,7 +1411,7 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
             <div>
               <p className="font-black text-amber-900 text-sm">Survey Kiosk Active</p>
               <p className="text-amber-700 font-medium text-xs mt-1">
-                Hand the device to the participant. Navigate to the survey link in your browser. Remind them: voluntary, anonymous, ~10 minutes.
+                Walk through the survey <strong>with</strong> the participant — keep the device in your hands at all times. Read each question aloud and enter their answers. Remind them: voluntary, anonymous, ~10 minutes.
               </p>
               <button
                 onClick={() => setShowSurveyKiosk(false)}

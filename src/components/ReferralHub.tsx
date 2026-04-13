@@ -112,8 +112,8 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
       const shareUrls: Record<string, string> = {
         linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
         // Instagram and YouTube don't have web share intents — copy text to clipboard instead
-        instagram: `https://www.instagram.com/healthmattersclinic`,
-        youtube: `https://www.youtube.com/@healthmattersclinic`,
+        instagram: `https://www.instagram.com/healthmatters.clinic`,
+        youtube: `https://www.youtube.com/@healthmatters.clinic`,
       };
 
       if (platform === 'instagram' || platform === 'youtube') {

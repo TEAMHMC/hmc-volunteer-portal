@@ -818,7 +818,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToLanding }) => {
                 <p className="font-bold text-zinc-400">No upcoming events right now.</p>
                 <p className="text-sm text-zinc-400 mt-1">Follow us on Instagram for updates.</p>
                 <a
-                  href="https://instagram.com/healthmattersclinic"
+                  href="https://instagram.com/healthmatters.clinic"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#233DFF] text-white font-black uppercase tracking-wider rounded-full text-xs hover:bg-[#1a2de0] transition-colors"
