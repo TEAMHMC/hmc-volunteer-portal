@@ -197,7 +197,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
     try {
       await apiService.post('/api/ops/checklist', { runId: opsRun.id, completedItems: updatedItems });
     } catch (error) {
-      console.error("Field sync failed");
+      toastService.error('Checklist sync failed — changes may not be saved. Please check your connection.');
     }
   };
 
@@ -469,7 +469,7 @@ const EventOpsMode: React.FC<EventOpsModeProps> = ({ shift, opportunity, user, o
           {activeTab === 'tracker' && <DistributionTrackerView user={user} shift={shift} opportunity={opportunity} onLog={handleLogAndSetAudit} />}
           {activeTab === 'logistics' && <LogisticsView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} />}
           {activeTab === 'itinerary' && <ItineraryView user={user} opportunity={opportunity} shift={shift} allVolunteers={allVolunteers || []} eventShifts={eventShifts || []} isLead={isLead} />}
-          {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); apiService.post('/api/incidents/create', r).catch(() => { toastService.error('Failed to save incident report to server. Report recorded locally only.'); }); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
+          {activeTab === 'incidents' && <IncidentReportingView user={user} shift={shift} onReport={(r) => { setIncidents(prev => [r, ...prev]); handleLogAndSetAudit({ actionType: 'CREATE_INCIDENT', targetSystem: 'FIRESTORE', targetId: r.id, summary: `Field Incident: ${r.type}` }); }} incidents={incidents} />}
           {activeTab === 'signoff' && <SignoffView shift={shift} opsRun={opsRun} onSignoff={async (sig) => {
                 try {
                   await apiService.post('/api/ops/signoff', {
@@ -1122,6 +1122,16 @@ p{font-size:18px;color:#666;margin-bottom:8px}.scan{font-size:22px;font-weight:6
 const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport: (r: IncidentReport) => void, incidents: IncidentReport[] }> = ({ user, shift, onReport, incidents }) => {
     const [isReporting, setIsReporting] = useState(false);
     const [form, setForm] = useState<Partial<IncidentReport>>({ type: 'Other' });
+    const [pendingIncident, setPendingIncident] = useState<IncidentReport | null>(null);
+    const [retrying, setRetrying] = useState(false);
+
+    const submitToApi = async (report: IncidentReport) => {
+        await apiService.post('/api/incidents/create', report);
+        onReport(report);
+        setPendingIncident(null);
+        setIsReporting(false);
+        setForm({ type: 'Other' });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -1136,9 +1146,23 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
             whoNotified: form.whoNotified || '',
             status: 'reported'
         };
-        onReport(report);
-        setIsReporting(false);
-        setForm({ type: 'Other' });
+        try {
+            await submitToApi(report);
+        } catch {
+            setPendingIncident(report);
+        }
+    };
+
+    const handleRetry = async () => {
+        if (!pendingIncident) return;
+        setRetrying(true);
+        try {
+            await submitToApi(pendingIncident);
+        } catch {
+            // keep pendingIncident so banner remains visible
+        } finally {
+            setRetrying(false);
+        }
     };
 
     return (
@@ -1147,6 +1171,19 @@ const IncidentReportingView: React.FC<{ user: Volunteer, shift: Shift, onReport:
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Incident Engine</h2>
                 <button onClick={() => setIsReporting(true)} className="px-6 py-3 bg-brand text-white border border-black rounded-full font-bold text-base shadow-elevation-2 hover:opacity-90 transition-all flex items-center gap-2 uppercase tracking-wide"><span className="w-2 h-2 rounded-full bg-white" /><Plus size={16}/> New Incident</button>
             </header>
+
+            {pendingIncident && (
+                <div className="flex items-center justify-between gap-4 p-4 bg-red-600 text-white rounded-2xl">
+                    <p className="text-sm font-bold">Failed to save — report not yet sent to server.</p>
+                    <button
+                        onClick={handleRetry}
+                        disabled={retrying}
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 rounded-full text-xs font-black uppercase tracking-wide hover:bg-red-50 disabled:opacity-50 shrink-0"
+                    >
+                        {retrying ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Retry
+                    </button>
+                </div>
+            )}
 
             {isReporting && (
                 <form onSubmit={handleSubmit} className="p-8 bg-zinc-50 border-2 border-rose-100 rounded-3xl space-y-6 animate-in slide-in-from-top-4">
@@ -1393,6 +1430,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     const [clientInfo, setClientInfo] = useState({ firstName: '', lastName: '', phone: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [canReset, setCanReset] = useState(false);
     const [consentGiven, setConsentGiven] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
 
@@ -1439,7 +1477,9 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
             });
 
             setResponseCount(prev => prev + 1);
+            setCanReset(false);
             setIsSubmitted(true);
+            setTimeout(() => setCanReset(true), 2000);
         } catch (error) {
             console.error('Error submitting survey:', error);
             toastService.error('Failed to submit survey. Please try again.');
@@ -1450,6 +1490,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
 
     const resetForm = () => {
         setIsSubmitted(false);
+        setCanReset(false);
         setSubmission({});
         setClientInfo({ firstName: '', lastName: '', phone: '' });
         setConsentGiven(false);
@@ -1461,7 +1502,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
             <h3 className="font-black text-2xl uppercase tracking-tight">Sync Complete</h3>
             <p className="text-zinc-400 text-sm mt-2 font-bold">Data transmitted to Registry Cloud.</p>
             <p className="text-emerald-600 text-sm font-bold mt-4">{responseCount} surveys collected this session</p>
-            <button onClick={resetForm} className="mt-12 px-10 py-4 bg-brand text-white border border-black rounded-full font-bold text-base shadow-elevation-2 flex items-center justify-center gap-2 mx-auto uppercase tracking-wide"><span className="w-2 h-2 rounded-full bg-white" /> Next Participant</button>
+            <button onClick={resetForm} disabled={!canReset} className="mt-12 px-10 py-4 bg-brand text-white border border-black rounded-full font-bold text-base shadow-elevation-2 flex items-center justify-center gap-2 mx-auto uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"><span className="w-2 h-2 rounded-full bg-white" /> Next Participant</button>
         </div>
     );
 
@@ -2411,6 +2452,15 @@ const DistributionTrackerView: React.FC<{
 
     if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-brand" size={32} /></div>;
 
+    if (!hasOperationalClearance(user)) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <p className="text-zinc-500 font-bold">Operational clearance required</p>
+          <p className="text-xs text-zinc-400 max-w-sm">Complete Core Volunteer training to access supply distribution logging.</p>
+        </div>
+      );
+    }
+
     return (
         <div className="space-y-12 animate-in fade-in">
             <h2 className="text-2xl font-black text-zinc-900 tracking-tight uppercase">Street Medicine Event Tracker</h2>
@@ -3342,12 +3392,13 @@ const BuddyPairBuilder: React.FC<{
         const cores = remaining.filter(v => detectPairType(v) === 'core');
         const ordered = [...leads, ...cores];
 
+        let idx = 0;
         while (ordered.length >= 2) {
             const v1 = ordered.shift()!;
             const v2 = ordered.shift()!;
             const pairType = detectPairType(v1) !== 'core' ? detectPairType(v1) : detectPairType(v2);
             newPairs.push({
-                id: `pair-${Date.now()}-${newPairs.length}`,
+                id: `pair-${Date.now()}-${idx++}`,
                 volunteerId1: v1.id,
                 volunteerId2: v2.id,
                 currentRoles: { [v1.id]: 'hands_on', [v2.id]: 'observer' },
