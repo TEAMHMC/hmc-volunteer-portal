@@ -602,7 +602,8 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
               </div>
             )}
 
-            <div className="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <p className="text-[11px] font-bold text-zinc-400 mb-3 px-4 md:px-6 pt-4 md:pt-6">One person can use multiple services — log each one separately</p>
+            <div className="px-4 md:px-6 pb-4 md:pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Screening Line */}
               <button
                 onClick={() => onNavigate('screenings')}
@@ -647,11 +648,26 @@ const OverviewTab: React.FC<{ user: Volunteer; opportunity: Opportunity; shift: 
                 </div>
                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-wider flex items-center gap-1">Open Intake <ArrowRight size={10} /></span>
               </button>
+
+              {/* Survey Only */}
+              <button
+                onClick={() => onNavigate('survey')}
+                className="group flex flex-col items-start gap-3 p-5 bg-white rounded-2xl border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all text-left shadow-sm hover:shadow-md active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+                  <FileText size={20} className="text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-zinc-900">Research Survey</p>
+                  <p className="text-[11px] font-bold text-zinc-400 mt-1 leading-snug">Community health survey · 10 min · voluntary</p>
+                </div>
+                <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">Open Survey <ArrowRight size={10} /></span>
+              </button>
             </div>
 
             <div className="px-6 py-3 bg-zinc-50 border-t border-zinc-100">
               <p className="text-[10px] font-bold text-zinc-400">
-                Community members <span className="text-zinc-600 font-black">walk up — no registration</span>. You log it for them. Use <span className="text-zinc-600 font-black">Volunteer Check-In</span> (top right) only for yourself and your team.
+                Community members <span className="text-zinc-600 font-black">walk up — no registration needed</span>. A single visit may need multiple logs: screen them → Screenings, give supplies → Supplies, need follow-up → Referrals. Log each service separately.
               </p>
             </div>
           </div>
@@ -4359,10 +4375,10 @@ const StationRotationPlanner: React.FC<{
     const isLeadUser = user.isAdmin || LEAD_ROLES.includes(user.role);
 
     const sections = [
-        { key: 'pairs' as const, label: 'Buddy Pairs', icon: Users },
-        { key: 'layout' as const, label: 'Layout', icon: Layout },
-        { key: 'schedule' as const, label: 'Schedule', icon: Calendar },
-        { key: 'live' as const, label: 'Live Ops', icon: Radio },
+        { key: 'pairs' as const, label: '1. Buddy Pairs', icon: Users },
+        { key: 'layout' as const, label: '2. Layout', icon: Layout },
+        { key: 'schedule' as const, label: '3. Schedule', icon: Calendar },
+        { key: 'live' as const, label: '4. Live Ops', icon: Radio },
     ];
 
     if (isLoading) {
