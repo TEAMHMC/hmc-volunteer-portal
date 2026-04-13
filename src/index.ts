@@ -9711,9 +9711,10 @@ app.get('/api/notifications', verifyToken, async (req: Request, res: Response) =
         const user = (req as any).user;
         const snap = await db.collection('notifications')
             .where('recipientId', '==', user.uid)
-            .where('read', '==', false)
             .get();
-        const results = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const results = snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as any))
+            .filter((n: any) => n.read !== true); // exclude read; also catches missing read field
         results.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         res.json(results.slice(0, 50));
     } catch (e: any) {
