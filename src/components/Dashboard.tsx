@@ -237,6 +237,21 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
+  const [simulationActive, setSimulationActive] = useState(false);
+
+  // Mock shift + opportunity used for the Event Day Simulation in Training Academy
+  const MOCK_SIMULATION_SHIFT = {
+    id: 'sim-shift-001', opportunityId: 'sim-opp-001', roleType: 'Core Volunteer',
+    startTime: '09:00', endTime: '14:00', date: new Date().toISOString().split('T')[0],
+    assignedVolunteerIds: [initialUser.id], maxVolunteers: 10, status: 'active',
+  } as any;
+  const MOCK_SIMULATION_OPP = {
+    id: 'sim-opp-001', title: 'Street Medicine Outreach — Training Simulation',
+    date: new Date().toISOString().split('T')[0], time: '9:00 AM – 2:00 PM',
+    address: '545 S San Pedro St', city: 'Los Angeles', state: 'CA',
+    serviceLocation: '545 S San Pedro St, Los Angeles, CA 90013',
+    category: 'street medicine', status: 'active', approvalStatus: 'approved',
+  } as any;
 
   useEffect(() => { setUser(initialUser); }, [initialUser]);
 
@@ -1127,7 +1142,19 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          )}
 
          <Suspense fallback={<LazyFallback />}>
-         {activeTab === 'academy' && <TabErrorBoundary tab="academy"><TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} /></TabErrorBoundary>}
+         {activeTab === 'academy' && !simulationActive && <TabErrorBoundary tab="academy"><TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} onLaunchEventOpsPractice={() => setSimulationActive(true)} /></TabErrorBoundary>}
+         {activeTab === 'academy' && simulationActive && (
+           <Suspense fallback={<LazyFallback />}>
+             {React.createElement(lazy(() => import('./EventOps')), {
+               shift: MOCK_SIMULATION_SHIFT,
+               opportunity: MOCK_SIMULATION_OPP,
+               user: displayUser,
+               onBack: () => setSimulationActive(false),
+               onUpdateUser: handleUpdateUser,
+               isTestMode: true,
+             })}
+           </Suspense>
+         )}
          {activeTab === 'missions' && canAccessMissions && <TabErrorBoundary tab="missions"><ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} initialCheckinShiftId={initialCheckinShiftId} /></TabErrorBoundary>}
 
          {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <TabErrorBoundary tab="my-team"><CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /></TabErrorBoundary>}
