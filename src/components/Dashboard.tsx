@@ -53,11 +53,19 @@ class TabErrorBoundary extends Component<{ tab: string; children: React.ReactNod
   componentDidCatch(error: Error, info: React.ErrorInfo) { console.error(`[Tab crash: ${this.props.tab}]`, error, info); }
   render() {
     if (this.state.error) {
+      const isChunkError = this.state.error.message?.includes('Loading chunk') || this.state.error.message?.includes('dynamically imported module') || this.state.error.name === 'ChunkLoadError';
       return (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <p className="text-zinc-500 font-bold">This tab encountered an error.</p>
-          <p className="text-xs text-zinc-400 font-mono max-w-md text-center">{this.state.error.message}</p>
-          <button onClick={() => this.setState({ error: null })} className="px-6 py-3 bg-brand text-white rounded-full font-bold text-sm border border-black">Retry</button>
+          <p className="text-zinc-500 font-bold">{isChunkError ? 'New version available' : 'This tab encountered an error.'}</p>
+          <p className="text-xs text-zinc-400 font-mono max-w-md text-center">
+            {isChunkError ? 'The app was updated. Please reload to get the latest version.' : this.state.error.message}
+          </p>
+          <button
+            onClick={() => isChunkError ? window.location.reload() : this.setState({ error: null })}
+            className="px-6 py-3 bg-brand text-white rounded-full font-bold text-sm border border-black"
+          >
+            {isChunkError ? 'Reload App' : 'Retry'}
+          </button>
         </div>
       );
     }
@@ -1112,45 +1120,45 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          )}
 
          <Suspense fallback={<LazyFallback />}>
-         {activeTab === 'academy' && <TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} />}
-         {activeTab === 'missions' && canAccessMissions && <ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} />}
+         {activeTab === 'academy' && <TabErrorBoundary tab="academy"><TrainingAcademy user={displayUser} onUpdate={handleUpdateUser} /></TabErrorBoundary>}
+         {activeTab === 'missions' && canAccessMissions && <TabErrorBoundary tab="missions"><ShiftsComponent userMode={displayUser.isAdmin ? 'admin' : isCoordinatorOrLead ? 'coordinator' : 'volunteer'} user={displayUser} shifts={shifts} setShifts={setShifts} onUpdate={handleUpdateUser} opportunities={opportunities} setOpportunities={setOpportunities} allVolunteers={allVolunteers} setAllVolunteers={setAllVolunteers} /></TabErrorBoundary>}
 
-         {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} />}
-         {activeTab === 'impact' && <ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} />}
-         {activeTab === 'referral-hub' && <ReferralHub user={displayUser} />}
-         {activeTab === 'briefing' && <CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} />}
-         {activeTab === 'profile' && <MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} />}
-         {activeTab === 'docs' && <DocumentationHub currentUser={displayUser} />}
+         {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <TabErrorBoundary tab="my-team"><CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /></TabErrorBoundary>}
+         {activeTab === 'impact' && <TabErrorBoundary tab="impact"><ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} /></TabErrorBoundary>}
+         {activeTab === 'referral-hub' && <TabErrorBoundary tab="referral-hub"><ReferralHub user={displayUser} /></TabErrorBoundary>}
+         {activeTab === 'briefing' && <TabErrorBoundary tab="briefing"><CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} /></TabErrorBoundary>}
+         {activeTab === 'profile' && <TabErrorBoundary tab="profile"><MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} /></TabErrorBoundary>}
+         {activeTab === 'docs' && <TabErrorBoundary tab="docs"><DocumentationHub currentUser={displayUser} /></TabErrorBoundary>}
          <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}><OrgCalendar user={displayUser} opportunities={opportunities} onNavigate={setActiveTab} /></div>
-         {activeTab === 'directory' && user.isAdmin && <AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} />}
-         {activeTab === 'referrals' && user.isAdmin && <ReferralManagement isAdmin={true} />}
-         {activeTab === 'resources' && user.isAdmin && <ResourceDashboard />}
-         {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} />}
-         {activeTab === 'workflows' && user.isAdmin && <AutomatedWorkflows />}
-         {activeTab === 'forms' && (user.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <FormBuilder />}
+         {activeTab === 'directory' && user.isAdmin && <TabErrorBoundary tab="directory"><AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} /></TabErrorBoundary>}
+         {activeTab === 'referrals' && user.isAdmin && <TabErrorBoundary tab="referrals"><ReferralManagement isAdmin={true} /></TabErrorBoundary>}
+         {activeTab === 'resources' && user.isAdmin && <TabErrorBoundary tab="resources"><ResourceDashboard /></TabErrorBoundary>}
+         {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <TabErrorBoundary tab="analytics"><AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} /></TabErrorBoundary>}
+         {activeTab === 'workflows' && user.isAdmin && <TabErrorBoundary tab="workflows"><AutomatedWorkflows /></TabErrorBoundary>}
+         {activeTab === 'forms' && (user.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <TabErrorBoundary tab="forms"><FormBuilder /></TabErrorBoundary>}
          {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (
-           <HealthScreeningsView
+           <TabErrorBoundary tab="screenings"><HealthScreeningsView
              user={displayUser}
              shift={{ id: 'dashboard-session', opportunityId: '', startTime: new Date().toISOString(), endTime: '', roleType: 'Clinical', slotsTotal: 1, slotsFilled: 0, assignedVolunteerIds: [] }}
              onLog={() => {}}
-           />
+           /></TabErrorBoundary>
          )}
          {activeTab === 'intake' && canAccessOperationalTools && ['Core Volunteer', 'Licensed Medical Professional', 'Medical Admin', 'Volunteer Lead'].includes(displayUser.role) && (
-           <IntakeReferralsView
+           <TabErrorBoundary tab="intake"><IntakeReferralsView
              user={displayUser}
              shift={{ id: 'dashboard-session', opportunityId: '', startTime: new Date().toISOString(), endTime: '', roleType: 'Clinical', slotsTotal: 1, slotsFilled: 0, assignedVolunteerIds: [] }}
              onLog={() => {}}
-           />
+           /></TabErrorBoundary>
          )}
          {activeTab === 'governance' && GOVERNANCE_ROLES.includes(displayUser.role) && (
-           <BoardGovernance user={displayUser} />
+           <TabErrorBoundary tab="governance"><BoardGovernance user={displayUser} /></TabErrorBoundary>
          )}
          {activeTab === 'meetings' && (
-           <BoardGovernance user={displayUser} meetingsOnly />
+           <TabErrorBoundary tab="meetings"><BoardGovernance user={displayUser} meetingsOnly /></TabErrorBoundary>
          )}
          {/* Live Chat hidden — feature not production-ready */}
          {activeTab === 'event-management' && (displayUser.isAdmin || (canAccessOperationalTools && EVENT_MANAGEMENT_ROLES.includes(displayUser.role))) && (
-           <EventManagementView
+           <TabErrorBoundary tab="event-management"><EventManagementView
              user={displayUser}
              opportunities={opportunities}
              setOpportunities={setOpportunities}
@@ -1159,9 +1167,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
              allVolunteers={allVolunteers}
              setAllVolunteers={setAllVolunteers}
              onUpdateUser={handleUpdateUser}
-           />
+           /></TabErrorBoundary>
          )}
-         {activeTab === 'projects' && <ProjectBoard user={displayUser} allVolunteers={allVolunteers} />}
+         {activeTab === 'projects' && <TabErrorBoundary tab="projects"><ProjectBoard user={displayUser} allVolunteers={allVolunteers} /></TabErrorBoundary>}
          {activeTab === 'website-cms' && user.isAdmin && <TabErrorBoundary tab="website-cms"><WebflowCMS /></TabErrorBoundary>}
          </Suspense>
 
