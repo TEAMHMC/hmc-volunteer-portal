@@ -106,7 +106,7 @@ export interface OpsContextValue {
   queueWrite: (endpoint: string, payload: unknown, method?: 'POST' | 'PUT') => Promise<void>;
 
   manualCheckin: (volunteerId: string) => Promise<void>;
-  walkInCheckin: (name: string, email?: string) => Promise<void>;
+  walkInCheckin: (name: string, email?: string, phone?: string, noPhone?: boolean, altContact?: string) => Promise<void>;
   refreshRoster: () => Promise<void>;
   logClientEncounter: (data: { type: string; ageRange?: string; genderIdentity?: string; notes?: string; eventId: string; timestamp: string }) => Promise<void>;
 }
@@ -545,6 +545,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
   );
 
   const refreshRoster = useCallback(async (): Promise<void> => {
+    if (isTestMode) return;
     try {
       const [stats, rsvps] = await Promise.all([
         apiService.get(`/api/events/${opportunity.id}/rsvp-stats`),
@@ -558,11 +559,24 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
       toastService.error(msg);
       throw err;
     }
-  }, [opportunity.id]);
+  }, [isTestMode, opportunity.id]);
 
   const manualCheckin = useCallback(
     async (volunteerId: string): Promise<void> => {
       if (!isLead) return;
+      if (isTestMode) {
+        setState(prev => ({
+          ...prev,
+          rsvps: prev.rsvps.map(r =>
+            r.id === volunteerId ? { ...r, checkedIn: true, checkedInAt: new Date().toISOString() } : r
+          ),
+          rsvpStats: prev.rsvpStats
+            ? { ...prev.rsvpStats, checkedIn: (prev.rsvpStats.checkedIn ?? 0) + 1 }
+            : prev.rsvpStats,
+        }));
+        toastService.success('[Practice] Volunteer checked in');
+        return;
+      }
       try {
         await apiService.post(`/api/events/${opportunity.id}/manual-checkin`, { volunteerId });
         toastService.success('Volunteer checked in');
@@ -573,14 +587,34 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
         throw err;
       }
     },
-    [isLead, opportunity.id, refreshRoster],
+    [isLead, isTestMode, opportunity.id, refreshRoster],
   );
 
   const walkInCheckin = useCallback(
-    async (name: string, email?: string): Promise<void> => {
+    async (name: string, email?: string, phone?: string, noPhone?: boolean, altContact?: string): Promise<void> => {
       if (!isLead) return;
+      if (isTestMode) {
+        const mockId = `walkin-${Date.now()}`;
+        setState(prev => ({
+          ...prev,
+          rsvps: [...prev.rsvps, {
+            id: mockId, name, email: email ?? '', phone, noPhone, altContact,
+            checkedIn: true, checkedInAt: new Date().toISOString(), walkin: true,
+          } as any],
+          rsvpStats: prev.rsvpStats
+            ? {
+                ...prev.rsvpStats,
+                walkins: (prev.rsvpStats.walkins ?? 0) + 1,
+                checkedIn: (prev.rsvpStats.checkedIn ?? 0) + 1,
+                total: (prev.rsvpStats.total ?? 0) + 1,
+              }
+            : prev.rsvpStats,
+        }));
+        toastService.success(`[Practice] Walk-in registered: ${name}`);
+        return;
+      }
       try {
-        await apiService.post(`/api/events/${opportunity.id}/walkin-checkin`, { name, email });
+        await apiService.post(`/api/events/${opportunity.id}/walkin-checkin`, { name, email, phone, noPhone, altContact });
         toastService.success(`Walk-in checked in: ${name}`);
         await refreshRoster();
       } catch (err) {
@@ -589,7 +623,7 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
         throw err;
       }
     },
-    [isLead, opportunity.id, refreshRoster],
+    [isLead, isTestMode, opportunity.id, refreshRoster],
   );
 
   // ─────────────────────────────────────────────────────────────────────────

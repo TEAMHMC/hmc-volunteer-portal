@@ -84,8 +84,19 @@ function formatRelativeTime(timestamp: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function parseShiftTime(timeStr: string): number {
+  // Try full ISO parse first
+  const direct = new Date(timeStr).getTime();
+  if (!isNaN(direct)) return direct;
+  // Handle time-only strings like "14:00" or "2:00 PM" — assume today's date
+  const today = new Date().toDateString();
+  const parsed = new Date(`${today} ${timeStr}`).getTime();
+  return isNaN(parsed) ? NaN : parsed;
+}
+
 function formatTimeUntilEnd(endTime: string): string {
-  const end = new Date(endTime).getTime();
+  const end = parseShiftTime(endTime);
+  if (isNaN(end)) return '';
   const now = Date.now();
   const diff = end - now;
   if (diff <= 0) return 'Shift ended';
@@ -97,7 +108,8 @@ function formatTimeUntilEnd(endTime: string): string {
 }
 
 function isShiftEndingSoon(endTime: string): boolean {
-  const end = new Date(endTime).getTime();
+  const end = parseShiftTime(endTime);
+  if (isNaN(end)) return false;
   const now = Date.now();
   return end - now <= 30 * 60 * 1000 && end > now;
 }
@@ -421,6 +433,9 @@ const RosterTab: React.FC = () => {
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [walkInName, setWalkInName] = useState('');
   const [walkInEmail, setWalkInEmail] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('');
+  const [walkInNoPhone, setWalkInNoPhone] = useState(false);
+  const [walkInAltContact, setWalkInAltContact] = useState('');
   const [walkInLoading, setWalkInLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -457,9 +472,15 @@ const RosterTab: React.FC = () => {
     if (!walkInName.trim()) return;
     setWalkInLoading(true);
     try {
-      await walkInCheckin(walkInName.trim(), walkInEmail.trim() || undefined);
-      setWalkInName('');
-      setWalkInEmail('');
+      await walkInCheckin(
+        walkInName.trim(),
+        walkInEmail.trim() || undefined,
+        walkInPhone.trim() || undefined,
+        walkInNoPhone || undefined,
+        walkInAltContact.trim() || undefined,
+      );
+      setWalkInName(''); setWalkInEmail(''); setWalkInPhone('');
+      setWalkInNoPhone(false); setWalkInAltContact('');
       setWalkInOpen(false);
     } catch {
       // handled
@@ -633,13 +654,46 @@ const RosterTab: React.FC = () => {
               onChange={e => setWalkInName(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px]"
             />
-            <input
-              type="email"
-              placeholder="Email (optional)"
-              value={walkInEmail}
-              onChange={e => setWalkInEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px]"
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="email"
+                placeholder="Email (optional)"
+                value={walkInEmail}
+                onChange={e => setWalkInEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px]"
+              />
+              <input
+                type="tel"
+                placeholder={walkInNoPhone ? 'No phone' : 'Phone (optional)'}
+                value={walkInPhone}
+                onChange={e => setWalkInPhone(e.target.value)}
+                disabled={walkInNoPhone}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px] disabled:opacity-40"
+              />
+            </div>
+            {/* Housing / no phone toggle */}
+            <button
+              type="button"
+              onClick={() => { setWalkInNoPhone(v => !v); setWalkInPhone(''); }}
+              className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium text-left flex items-center gap-2 transition-colors min-h-[44px] ${walkInNoPhone ? 'bg-amber-50 border-amber-300 text-amber-800' : 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:border-zinc-300'}`}
+            >
+              <span className={`w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 transition-colors ${walkInNoPhone ? 'bg-amber-500 border-amber-500' : 'border-zinc-300'}`}>
+                {walkInNoPhone && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </span>
+              No phone / Currently experiencing homelessness
+            </button>
+            {walkInNoPhone && (
+              <div>
+                <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">How should we follow up with them?</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Visit drop-in center on Tues, call shelter, check back at next event..."
+                  value={walkInAltContact}
+                  onChange={e => setWalkInAltContact(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-100 text-sm font-medium text-zinc-800 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-[#233DFF]/20 min-h-[44px]"
+                />
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleWalkIn}
@@ -650,7 +704,7 @@ const RosterTab: React.FC = () => {
                 Register
               </button>
               <button
-                onClick={() => { setWalkInOpen(false); setWalkInName(''); setWalkInEmail(''); }}
+                onClick={() => { setWalkInOpen(false); setWalkInName(''); setWalkInEmail(''); setWalkInPhone(''); setWalkInNoPhone(false); setWalkInAltContact(''); }}
                 className="px-4 min-h-[44px] bg-zinc-100 text-zinc-500 font-black uppercase tracking-wider rounded-full text-sm hover:bg-zinc-200 transition-colors"
               >
                 Cancel
@@ -683,6 +737,32 @@ const RosterTab: React.FC = () => {
 // Tab: Services
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Shared options ──────────────────────────────────────────────────────────
+const AGE_RANGES = ['Under 18','18–24','25–34','35–44','45–54','55–64','65+','Prefer not to say'];
+const GENDER_OPTIONS = ['Male','Female','Non-binary / Gender non-conforming','Transgender','Prefer not to say','Other'];
+const RACE_OPTIONS = ['Hispanic / Latino','Black / African American','White / Caucasian','Asian','American Indian / Alaska Native','Native Hawaiian / Pacific Islander','Two or more races','Other / Unknown','Prefer not to say'];
+const LANGUAGE_OPTIONS = ['English','Spanish','Armenian','Korean','Tagalog','Mandarin','Vietnamese','Other'];
+
+interface FSelect { label: string; field: string; options: string[]; required?: boolean; value: string; onChange: (v: string) => void }
+const FSelect: React.FC<FSelect> = ({ label, options, required, value, onChange }) => (
+  <div>
+    <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">{label}</label>
+    <select value={value} onChange={e => onChange(e.target.value)} className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40">
+      <option value="">{required ? 'Select...' : 'Select (optional)'}</option>
+      {options.map(o => <option key={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
+interface FInput { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }
+const FInput: React.FC<FInput> = ({ label, value, onChange, placeholder, type = 'text' }) => (
+  <div>
+    <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">{label}</label>
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40" />
+  </div>
+);
+// ────────────────────────────────────────────────────────────────────────────
+
 const ServicesTab: React.FC = () => {
   const { state, opportunity, logClientEncounter } = useOps();
   const [counts, setCounts] = useState<ServiceCounts>({ screenings: null, referrals: null, surveys: null });
@@ -690,9 +770,9 @@ const ServicesTab: React.FC = () => {
   const [showLogForm, setShowLogForm] = useState(false);
   const [logType, setLogType] = useState<'screening' | 'referral' | 'distribution' | 'survey' | null>(null);
   const [logLoading, setLogLoading] = useState(false);
-  const [ageRange, setAgeRange] = useState('');
-  const [genderIdentity, setGenderIdentity] = useState('');
-  const [notes, setNotes] = useState('');
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [consentGiven, setConsentGiven] = useState(false);
+  const setField = (key: string, val: string) => setFormData(prev => ({ ...prev, [key]: val }));
 
   const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -726,25 +806,28 @@ const ServicesTab: React.FC = () => {
 
   const handleOpenLog = (type: typeof logType) => {
     setLogType(type);
-    setAgeRange('');
-    setGenderIdentity('');
-    setNotes('');
+    setFormData({});
+    setConsentGiven(false);
     setShowLogForm(true);
   };
 
+  const canSubmit = (): boolean => {
+    if (logType === 'screening') return !!formData.screeningType;
+    if (logType === 'referral') return !!formData.referralType && consentGiven;
+    return true;
+  };
+
   const handleSubmitLog = async () => {
-    if (!logType) return;
+    if (!logType || !canSubmit()) return;
     setLogLoading(true);
     try {
       await logClientEncounter({
         type: logType,
-        ageRange,
-        genderIdentity,
-        notes,
+        ...formData,
+        ...(logType === 'referral' ? { consentGiven: 'yes' } : {}),
         eventId: opportunity.id,
         timestamp: new Date().toISOString(),
       });
-      // Bump local count optimistically
       setCounts(prev => ({
         ...prev,
         screenings: logType === 'screening' ? (prev.screenings ?? 0) + 1 : prev.screenings,
@@ -788,21 +871,17 @@ const ServicesTab: React.FC = () => {
     },
   ];
 
-  const recentLogs = (state.tracker?.clientLogs ?? []).slice(0, 10) as Array<{
-    id?: string;
-    timestamp?: string;
-    loggedByName?: string;
-    genderIdentity?: string;
-    ageRange?: string;
-    resourcesOnly?: boolean;
-    healthScreeningOnly?: boolean;
-    fullConsult?: boolean;
-    referralGiven?: boolean;
-  }>;
+  const recentLogs = (state.tracker?.clientLogs ?? []).slice(0, 10) as Array<Record<string, any>>;
 
-  const describeLog = (log: typeof recentLogs[0]): string => {
+  const describeLog = (log: Record<string, any>): string => {
+    const t = log.type ?? '';
+    if (t === 'screening') return `Screening — ${log.screeningType ?? 'Health screening'}`;
+    if (t === 'referral') return `Referral — ${log.referralType ?? 'Service referral'}${log.referredTo ? ` (${log.referredTo})` : ''}`;
+    if (t === 'survey') return `Survey — ${log.surveyType ?? 'Survey'}`;
+    if (t === 'distribution') return `Distribution — ${log.resourceType ?? 'Resource'}${log.quantity ? ` ×${log.quantity}` : ''}`;
+    // Legacy shape
     if (log.fullConsult) return 'Full consult';
-    if (log.healthScreeningOnly) return 'Health screening only';
+    if (log.healthScreeningOnly) return 'Health screening';
     if (log.resourcesOnly) return 'Resources distributed';
     if (log.referralGiven) return 'Referral given';
     return 'Service logged';
@@ -811,39 +890,90 @@ const ServicesTab: React.FC = () => {
   return (
     <div className="pb-6 px-4 pt-4 space-y-4">
 
-      {/* Quick log form */}
+      {/* Type-specific log form */}
       {showLogForm && logType && (
-        <div className="bg-white rounded-2xl border-2 border-[#233DFF]/20 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-2xl border-2 border-[#233DFF]/20 p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between mb-1">
             <p className="text-sm font-black text-zinc-900 uppercase tracking-wider">
-              Log {logType.charAt(0).toUpperCase() + logType.slice(1)}
+              Log {logType === 'distribution' ? 'Distribution' : logType === 'screening' ? 'Health Screening' : logType === 'referral' ? 'Referral' : 'Survey'}
             </p>
             <button onClick={() => setShowLogForm(false)} className="text-zinc-400 hover:text-zinc-700"><X size={16} /></button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Age Range</label>
-              <select value={ageRange} onChange={e => setAgeRange(e.target.value)} className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40">
-                <option value="">Select...</option>
-                {['Under 18','18–24','25–34','35–44','45–54','55–64','65+','Prefer not to say'].map(o => <option key={o}>{o}</option>)}
-              </select>
+
+          {/* SCREENING */}
+          {logType === 'screening' && (<>
+            <FSelect label="Screening Type *" field="screeningType" options={['Blood Pressure','Blood Glucose','BMI / Weight','Vision','Hearing','Mental Health Screen (PHQ-2/PHQ-9)','Dental / Oral Health','HIV / STI','Other']} required value={formData.screeningType ?? ''} onChange={v => setField('screeningType', v)} />
+            <FSelect label="Result / Finding" field="result" options={['Within Normal Range','Borderline — Monitor','Abnormal — Referred for Follow-up','Declined / Not Recorded']} value={formData.result ?? ''} onChange={v => setField('result', v)} />
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Age Range" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
+              <FSelect label="Gender Identity" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />
             </div>
-            <div>
-              <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Gender Identity</label>
-              <select value={genderIdentity} onChange={e => setGenderIdentity(e.target.value)} className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40">
-                <option value="">Select...</option>
-                {['Male','Female','Non-binary','Transgender','Prefer not to say','Other'].map(o => <option key={o}>{o}</option>)}
-              </select>
+            <FSelect label="Race / Ethnicity" field="raceEthnicity" options={RACE_OPTIONS} value={formData.raceEthnicity ?? ''} onChange={v => setField('raceEthnicity', v)} />
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Primary Language" field="language" options={LANGUAGE_OPTIONS} value={formData.language ?? ''} onChange={v => setField('language', v)} />
+              <FSelect label="Referred Out?" field="referredOut" options={['No','Yes — to HMC provider','Yes — external referral']} value={formData.referredOut ?? ''} onChange={v => setField('referredOut', v)} />
             </div>
-          </div>
-          <div>
-            <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Notes (optional)</label>
-            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any relevant details..." className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40" />
-          </div>
-          <button onClick={handleSubmitLog} disabled={logLoading} className="w-full py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+            <FInput label="Notes (optional)" value={formData.notes ?? ''} onChange={v => setField('notes', v)} placeholder="Any relevant clinical details..." />
+          </>)}
+
+          {/* REFERRAL */}
+          {logType === 'referral' && (<>
+            <FSelect label="Referral Type *" field="referralType" options={['Mental Health Services','Housing / Shelter','Food Assistance','Medical / Primary Care','Substance Use Treatment','Domestic Violence Services','Child / Family Services','Employment / Job Training','Legal Aid','Benefits Enrollment (Medi-Cal, CalFresh)','Other']} required value={formData.referralType ?? ''} onChange={v => setField('referralType', v)} />
+            <FInput label="Referred To — Agency or Provider" value={formData.referredTo ?? ''} onChange={v => setField('referredTo', v)} placeholder="e.g. Kedren, St. John's, PATH, DMH..." />
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Urgency" field="urgency" options={['Immediate / Crisis','Within 7 Days','Routine / Scheduled']} value={formData.urgency ?? ''} onChange={v => setField('urgency', v)} />
+              <FSelect label="Insurance Status" field="insuranceStatus" options={['Uninsured','Medi-Cal','Medicare','Private Insurance','Unknown']} value={formData.insuranceStatus ?? ''} onChange={v => setField('insuranceStatus', v)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Age Range" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
+              <FSelect label="Gender Identity" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />
+            </div>
+            <FSelect label="Race / Ethnicity" field="raceEthnicity" options={RACE_OPTIONS} value={formData.raceEthnicity ?? ''} onChange={v => setField('raceEthnicity', v)} />
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Primary Language" field="language" options={LANGUAGE_OPTIONS} value={formData.language ?? ''} onChange={v => setField('language', v)} />
+              <FInput label="ZIP Code" value={formData.zipCode ?? ''} onChange={v => setField('zipCode', v)} placeholder="90001" />
+            </div>
+            <FInput label="Follow-up Plan (optional)" value={formData.followUp ?? ''} onChange={v => setField('followUp', v)} placeholder="e.g. Client will call agency Mon, volunteer will follow up at next event..." />
+            {/* Consent — required */}
+            <button type="button" onClick={() => setConsentGiven(v => !v)}
+              className={`w-full px-3.5 py-3 rounded-xl border text-sm font-medium text-left flex items-center gap-3 transition-colors ${consentGiven ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}>
+              <span className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-colors ${consentGiven ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-300'}`}>
+                {consentGiven && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </span>
+              <span><span className="font-black">Client verbal consent obtained *</span><br /><span className="text-xs text-zinc-400">Required before submitting a referral</span></span>
+            </button>
+          </>)}
+
+          {/* SURVEY */}
+          {logType === 'survey' && (<>
+            <FSelect label="Survey Type" field="surveyType" options={['Client Satisfaction','Health Needs Assessment','Wellness Check-In','Post-Service Follow-up']} value={formData.surveyType ?? ''} onChange={v => setField('surveyType', v)} />
+            <FSelect label="Method" field="method" options={['Paper Form','Digital / Tablet','Verbal / Assisted']} value={formData.method ?? ''} onChange={v => setField('method', v)} />
+            <FSelect label="Completion Status" field="status" options={['Completed','Partial — Client Stopped','Client Declined']} value={formData.status ?? ''} onChange={v => setField('status', v)} />
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Age Range" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
+              <FSelect label="Gender Identity" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />
+            </div>
+            <FInput label="Notes (optional)" value={formData.notes ?? ''} onChange={v => setField('notes', v)} placeholder="Any relevant details..." />
+          </>)}
+
+          {/* DISTRIBUTION */}
+          {logType === 'distribution' && (<>
+            <FSelect label="Resource Type" field="resourceType" options={['Health Supplies (BP cuffs, glucose strips, etc.)','Food / Nutrition','Hygiene Kit','Clothing / Footwear','Resource Guide / Referral Packets','Naloxone (Narcan)','COVID / Flu Test Kit','Other']} value={formData.resourceType ?? ''} onChange={v => setField('resourceType', v)} />
+            <FInput label="Quantity" value={formData.quantity ?? ''} onChange={v => setField('quantity', v)} placeholder="e.g. 1" type="number" />
+            <div className="grid grid-cols-2 gap-3">
+              <FSelect label="Age Range (optional)" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
+              <FSelect label="Gender Identity (optional)" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />
+            </div>
+            <FInput label="Notes (optional)" value={formData.notes ?? ''} onChange={v => setField('notes', v)} placeholder="Any relevant details..." />
+          </>)}
+
+          <button onClick={handleSubmitLog} disabled={logLoading || !canSubmit()} className="w-full py-3 bg-[#233DFF] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 mt-1">
             {logLoading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
             {logLoading ? 'Saving...' : 'Save Log'}
           </button>
+          {logType === 'referral' && !consentGiven && (
+            <p className="text-[11px] text-amber-600 font-medium text-center">Client consent required before saving a referral</p>
+          )}
         </div>
       )}
 
