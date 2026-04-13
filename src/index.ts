@@ -9711,6 +9711,7 @@ app.get('/api/notifications', verifyToken, async (req: Request, res: Response) =
         const user = (req as any).user;
         const snap = await db.collection('notifications')
             .where('recipientId', '==', user.uid)
+            .where('read', '==', false)
             .get();
         const results = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         results.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
