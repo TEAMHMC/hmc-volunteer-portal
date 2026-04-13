@@ -1594,22 +1594,15 @@ class EmailService {
         html: rendered.html,
         text: rendered.text,
       });
-      let response = await fetch(EMAIL_SERVICE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: emailBody,
-        redirect: 'manual',
-      });
-      if (response.status === 301 || response.status === 302) {
+      const emailHeaders = { 'Content-Type': 'application/json; charset=utf-8' };
+      let emailUrl = EMAIL_SERVICE_URL;
+      let maxRedirects = 5;
+      let response = await fetch(emailUrl, { method: 'POST', headers: emailHeaders, body: emailBody, redirect: 'manual' });
+      while ((response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) && maxRedirects-- > 0) {
         const redirectUrl = response.headers.get('location');
-        if (redirectUrl) {
-          response = await fetch(redirectUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: emailBody,
-            redirect: 'follow',
-          });
-        }
+        if (!redirectUrl) break;
+        emailUrl = redirectUrl;
+        response = await fetch(emailUrl, { method: 'POST', headers: emailHeaders, body: emailBody, redirect: 'manual' });
       }
 
       const responseText = await response.text();
@@ -1644,10 +1637,14 @@ const sendEmailRaw = async (toEmail: string, subject: string, html: string, text
   if (!EMAIL_SERVICE_URL) return;
   const body = JSON.stringify({ type: 'prerendered', toEmail, subject, html, text });
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
-  let response = await fetch(EMAIL_SERVICE_URL, { method: 'POST', headers, body, redirect: 'manual' });
-  if (response.status === 301 || response.status === 302) {
+  let url = EMAIL_SERVICE_URL;
+  let maxRedirects = 5;
+  let response = await fetch(url, { method: 'POST', headers, body, redirect: 'manual' });
+  while ((response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) && maxRedirects-- > 0) {
     const loc = response.headers.get('location');
-    if (loc) response = await fetch(loc, { method: 'POST', headers, body, redirect: 'follow' });
+    if (!loc) break;
+    url = loc;
+    response = await fetch(url, { method: 'POST', headers, body, redirect: 'manual' });
   }
 };
 
