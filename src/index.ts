@@ -14232,7 +14232,7 @@ const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || '';
 
 interface MonitorResult {
   name: string;
-  status: 'pass' | 'fail';
+  status: 'pass' | 'fail' | 'warn';
   responseTime: number;
   error?: string;
 }
@@ -14321,6 +14321,10 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
   // ── Events API: lightweight ping first (no Spreadsheet read, responds in <2s)
   // Full event data fetch is done separately with a longer timeout and is WARNING-only.
   const eventsAvailable = await (async () => {
+    if (!APPS_SCRIPT_EVENTS_URL) {
+      results.push({ name: 'Events API', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
+      return false;
+    }
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const start = Date.now();
@@ -14362,7 +14366,9 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
 
   // ── RSVP endpoint: reuse Events API availability result to avoid double-pinging Apps Script
   // Apps Script rate-limits rapid successive calls from the same origin, causing false failures.
-  if (eventsAvailable) {
+  if (!APPS_SCRIPT_EVENTS_URL) {
+    results.push({ name: 'RSVP Submit', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
+  } else if (eventsAvailable) {
     results.push({ name: 'RSVP Submit', status: 'pass', responseTime: 0 });
   } else {
     // Events API already failed — RSVP endpoint is also down
@@ -14412,6 +14418,8 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
 };
 
 const sendMonitorAlert = async (failures: MonitorResult[]) => {
+  // Only alert on actual failures, not configuration warnings
+  failures = failures.filter(f => f.status === 'fail');
   if (failures.length === 0) return;
   const failList = failures.map(f => `[FAIL] ${f.name}: ${f.error}`).join('\n');
   const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
