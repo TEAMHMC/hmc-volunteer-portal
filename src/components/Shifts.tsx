@@ -5,7 +5,7 @@ import { analyticsService } from '../services/analyticsService';
 import { Clock, Check, Calendar, MapPin, ChevronRight, UserPlus, XCircle, Mail, Plus, Users, Upload, X, FileText, Loader2, Download, Pencil, Trash2, RefreshCw, Package, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
 import { EVENT_CATEGORIES, SERVICE_OFFERINGS, TIER_1_IDS, TIER_2_CORE_IDS, PROGRAM_TRAINING_REQUIREMENTS, hasCompletedAllModules, ALL_TRAINING_MODULES } from '../constants';
 import { APP_CONFIG } from '../config';
-import EventOpsMode from './EventOpsMode';
+import EventOps from './EventOps';
 import EventBuilder from './EventBuilder';
 import StaffingSuggestions from './StaffingSuggestions';
 import { apiService } from '../services/apiService';
@@ -1254,7 +1254,7 @@ const ShiftsComponent: React.FC<ShiftsProps> = ({ userMode, user, shifts, setShi
     return (
       <>
         <EventOpsErrorBoundary onBack={() => setSelectedShiftId(null)}>
-          <EventOpsMode shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
+          <EventOps shift={selectedShift} opportunity={selectedOpp} user={user} onBack={() => setSelectedShiftId(null)} onUpdateUser={onUpdate} allVolunteers={allVolunteers} eventShifts={eventShifts} setOpportunities={setOpportunities} canEdit={canManageEvents} onEditEvent={(opp) => setEditingEvent(opp)} />
         </EventOpsErrorBoundary>
         {editingEvent && <EditEventModal event={editingEvent} shifts={shifts} onClose={() => setEditingEvent(null)} onSave={handleUpdateEvent} />}
       </>
