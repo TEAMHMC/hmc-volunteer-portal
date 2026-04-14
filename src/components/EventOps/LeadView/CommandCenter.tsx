@@ -1181,7 +1181,7 @@ const ServicesTab: React.FC = () => {
 
           {/* DISTRIBUTION */}
           {logType === 'distribution' && (<>
-            <FSelect label="Resource Type" field="resourceType" options={['Health Supplies (BP cuffs, glucose strips, etc.)','Food / Nutrition','Hygiene Kit','Clothing / Footwear','Resource Guide / Referral Packets','Naloxone (Narcan)','COVID / Flu Test Kit','Other']} value={formData.resourceType ?? ''} onChange={v => setField('resourceType', v)} />
+            <FSelect label="Resource Type" field="resourceType" options={['Food / Nutrition','Hygiene Kit','Clothing / Footwear','Resource Guide / Referral Packets','Naloxone (Narcan)','COVID / Flu Test Kit','Other']} value={formData.resourceType ?? ''} onChange={v => setField('resourceType', v)} />
             <FInput label="Quantity" value={formData.quantity ?? ''} onChange={v => setField('quantity', v)} placeholder="e.g. 1" type="number" />
             <div className="grid grid-cols-2 gap-3">
               <FSelect label="Age Range (optional)" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
