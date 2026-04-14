@@ -5297,6 +5297,118 @@ const handleVolunteerMatch = async (
   }
 };
 
+// GET /checkin — Server-rendered check-in page (linked from confirmation email)
+// Reads ?token=xxx, calls volunteer-checkin-status logic inline, renders branded HTML
+app.get('/checkin', rateLimit(120, 60000), async (req: Request, res: Response) => {
+  const token = typeof req.query.token === 'string' ? req.query.token.trim() : '';
+  const BRAND = '#233DFF';
+
+  const page = (title: string, icon: string, heading: string, body: string, btnText?: string, btnHref?: string) => `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} | Health Matters Clinic</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box}body{font-family:Inter,-apple-system,sans-serif;margin:0;padding:48px 24px;background:linear-gradient(160deg,#f0f4ff 0%,#e8ecff 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:white;border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 8px 40px rgba(35,61,255,.1);max-width:400px;width:100%}.logo{width:72px;height:72px;border-radius:18px;margin:0 auto 24px;display:block;box-shadow:0 4px 16px rgba(0,0,0,.1)}.icon{font-size:52px;margin-bottom:16px;display:block}.h1{color:#1a1a1a;margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.5px}.sub{color:#666;margin:0 0 24px;font-size:15px;line-height:1.5}.meta{background:#f8f9ff;border-radius:12px;padding:16px;margin:0 0 24px;text-align:left}.meta-row{display:flex;gap:8px;margin-bottom:6px;font-size:14px}.meta-label{color:#999;font-weight:600;min-width:60px}.meta-val{color:#1a1a1a;font-weight:500}.btn{display:inline-block;background:${BRAND};color:white;padding:16px 36px;border-radius:100px;text-decoration:none;font-weight:700;font-size:15px;margin-top:4px}.btn-ghost{display:inline-block;color:${BRAND};padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:600;font-size:14px;border:2px solid ${BRAND};margin-top:8px}.footer{text-align:center;color:#aaa;font-size:11px;margin-top:24px;font-weight:500;letter-spacing:.5px}</style>
+</head><body><div class="card">
+<img class="logo" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="HMC">
+<span class="icon">${icon}</span>
+<h1 class="h1">${heading}</h1>
+<p class="sub">${body}</p>
+${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
+</div><p class="footer">HEALTH MATTERS CLINIC</p></body></html>`;
+
+  if (!token) {
+    return res.send(page('Check In', '❓', 'Missing Token', 'This check-in link is incomplete. Please use the link from your confirmation email.', 'Visit Website', 'https://www.healthmatters.clinic'));
+  }
+
+  try {
+    const rsvpSnap = await db.collection('public_rsvps').where('checkinToken', '==', token).limit(1).get();
+
+    if (rsvpSnap.empty) {
+      return res.status(404).send(page('Check In', '🔍', 'Registration Not Found', 'We couldn\'t find a registration linked to this check-in code. Please make sure you\'re using the original confirmation email link.', 'Register Now', 'https://www.healthmatters.clinic/resources/eventfinder'));
+    }
+
+    const doc = rsvpSnap.docs[0];
+    const d = doc.data();
+    const now = new Date();
+
+    let eventStart: Date | null = null;
+    let eventEnd: Date | null = null;
+    let eventTime = d.eventDate || '';
+    let eventLocation = '';
+
+    if (d.eventId) {
+      try {
+        const evDoc = await db.collection('opportunities').doc(d.eventId).get();
+        const evData = evDoc.data();
+        if (evData?.time) eventTime = evData.time;
+        if (evData?.serviceLocation) eventLocation = evData.serviceLocation;
+        if (evData?.date) {
+          const parsed = new Date(evData.date + (evData.date.includes('T') ? '' : 'T06:00:00'));
+          if (!isNaN(parsed.getTime())) { eventStart = parsed; eventEnd = new Date(parsed.getTime() + 8 * 60 * 60 * 1000); }
+        }
+        const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', d.eventId).limit(1).get();
+        if (!shiftsSnap.empty) {
+          const sd = shiftsSnap.docs[0].data();
+          if (sd.startTime) eventStart = new Date(sd.startTime);
+          if (sd.endTime) eventEnd = new Date(sd.endTime);
+        }
+      } catch { /* non-critical */ }
+    }
+
+    const metaHtml = `<div class="meta">
+      ${d.eventTitle ? `<div class="meta-row"><span class="meta-label">Event</span><span class="meta-val">${d.eventTitle}</span></div>` : ''}
+      ${d.eventDate ? `<div class="meta-row"><span class="meta-label">Date</span><span class="meta-val">${d.eventDate}</span></div>` : ''}
+      ${eventTime ? `<div class="meta-row"><span class="meta-label">Time</span><span class="meta-val">${eventTime}</span></div>` : ''}
+      ${eventLocation ? `<div class="meta-row"><span class="meta-label">Location</span><span class="meta-val">${eventLocation}</span></div>` : ''}
+      <div class="meta-row"><span class="meta-label">Name</span><span class="meta-val">${d.name || 'Guest'}</span></div>
+      ${d.guests ? `<div class="meta-row"><span class="meta-label">Guests</span><span class="meta-val">+${d.guests}</span></div>` : ''}
+    </div>`;
+
+    const windowOpen = eventStart ? new Date(eventStart.getTime() - 45 * 60 * 1000) : null;
+
+    if (windowOpen && now < windowOpen) {
+      const timeStr = eventStart!.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+      return res.send(page('See You Soon', '📅', `See You ${d.eventDate ? 'on ' + d.eventDate : 'Soon'}!`,
+        `You're registered — check in opens 45 minutes before the event starts at ${timeStr}. Bookmark this page and come back when you arrive.`)
+        .replace('<p class="sub">', metaHtml + '<p class="sub" style="display:none">'));
+    }
+
+    if (eventEnd && now > eventEnd) {
+      return res.send(page('Event Ended', '🎉', 'Thanks for Coming!',
+        `${d.eventTitle || 'This event'} has ended. We hope to see you at the next one!`, 'Find More Events', 'https://www.healthmatters.clinic/resources/eventfinder'));
+    }
+
+    if (d.checkedIn) {
+      return res.send(page('Already Checked In', '✅', 'You\'re Already Checked In!',
+        `Welcome, ${d.name?.split(' ')[0] || 'friend'}! You've already checked in${d.checkedInAt ? ' at ' + new Date(d.checkedInAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : ''}. Head inside — the team is ready for you.`)
+        .replace('<p class="sub">', metaHtml + '<p class="sub" style="display:none">'));
+    }
+
+    // ── Check in now ──
+    await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(doc.ref);
+      if (fresh.data()?.checkedIn) return;
+      tx.update(doc.ref, { checkedIn: true, checkedInAt: now.toISOString() });
+      if (d.eventId) {
+        tx.update(db.collection('opportunities').doc(d.eventId), {
+          checkinCount: admin.firestore.FieldValue.increment(1 + (d.guests || 0)),
+        });
+      }
+    });
+    console.log(`[CHECKIN] Public RSVP ${doc.id} checked in via /checkin page for event ${d.eventId}`);
+
+    const firstName = (d.name || 'friend').split(' ')[0];
+    const guestsLine = d.guests ? `You and ${d.guests} guest${d.guests > 1 ? 's' : ''} are all set.` : '';
+    return res.send(page('Checked In!', '🎉', `Welcome, ${firstName}!`,
+      `You're checked in for ${d.eventTitle || 'today\'s event'}! ${guestsLine} Show this screen to the check-in volunteer at the entrance.`)
+      .replace('<p class="sub">', metaHtml + '<p class="sub" style="display:none">'));
+
+  } catch (e: any) {
+    console.error('[CHECKIN PAGE]', e.message);
+    return res.status(500).send(page('Error', '⚠️', 'Something Went Wrong', 'We\'re having trouble verifying your check-in. Please show your confirmation email to the check-in volunteer.'));
+  }
+});
+
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
 app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Response) => {
     try {
@@ -5401,11 +5513,11 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
         }
 
-        // Send confirmation email to registrant — includes check-in button with token
+        // Send confirmation email to registrant — check-in button points to portal /checkin page
         if (email) {
-            const checkinPageUrl = EMAIL_SERVICE_URL
-              ? `${EMAIL_SERVICE_URL}?token=${checkinToken}`
-              : `${EMAIL_CONFIG.WEBSITE_URL}`;
+            // Use portal's own /checkin page (NOT the email service URL)
+            const portalBase = process.env.PORTAL_URL || 'https://volunteer.healthmatters.clinic';
+            const checkinPageUrl = `${portalBase}/checkin?token=${checkinToken}`;
             const guestLine = guests ? `<p style="margin:0 0 8px 0;"><strong>Guests:</strong> +${guests}</p>` : '';
             const confirmHtml = `${emailHeader(`You're Registered!`)}
               <p>Hi ${name},</p>
@@ -5418,12 +5530,31 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
               <p>On the day of the event, tap the button below when you arrive to check in — no need to print anything or wait in line.</p>
               ${actionButton('Check In on Event Day', checkinPageUrl)}
               <p style="text-align:center;font-size:13px;color:#9ca3af;margin-top:-16px;">Use this button when you arrive at the venue.</p>
-              <p>We'll send you a reminder before the event. Questions? Reply to this email or reach us at <a href="mailto:unstoppable@healthmatters.clinic" style="color:${EMAIL_CONFIG.BRAND_COLOR};">unstoppable@healthmatters.clinic</a>.</p>
+              <p>Questions? Reply to this email or reach us at <a href="mailto:unstoppable@healthmatters.clinic" style="color:${EMAIL_CONFIG.BRAND_COLOR};">unstoppable@healthmatters.clinic</a>.</p>
               <p>See you there!</p>
             ${emailFooter()}`;
             const confirmText = `Hi ${name}, you're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. Check in on event day: ${checkinPageUrl}`;
             sendEmailRaw(email, `You're registered: ${eventTitle || 'HMC Event'}`, confirmHtml, confirmText)
               .catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
+        }
+
+        // Sync to Google Sheet via Apps Script (async, non-blocking)
+        const appsScriptUrl = APPS_SCRIPT_EVENTS_URL;
+        if (appsScriptUrl) {
+            const sheetParams = new URLSearchParams({
+                action: 'preregister',
+                eventId,
+                name,
+                email: email || '',
+                phone: phone || '',
+                guests: String(guests || 0),
+                eventTitle: eventTitle || '',
+                eventDate: eventDate || '',
+                source: source || 'event-finder-tool',
+                skipEmail: 'true', // portal already sends confirmation
+            });
+            fetch(`${appsScriptUrl}?${sheetParams}`, { signal: AbortSignal.timeout(10000) })
+              .catch(err => console.warn('[PUBLIC RSVP] Sheet sync failed (non-critical):', err.message));
         }
 
         // Notify rsvp@healthmatters.clinic for all public event RSVPs
