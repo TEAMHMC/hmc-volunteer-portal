@@ -265,7 +265,7 @@ const DashboardView: React.FC<{
                   r.status === 'In Progress' ? 'bg-brand/50' :
                   r.status === 'Pending' ? 'bg-amber-500' : 'bg-zinc-400'
                 }`}>
-                  {r.clientName.charAt(0)}
+                  {(r.clientName || '?').charAt(0)}
                 </div>
                 <div>
                   <p className="font-bold text-zinc-900">{r.clientName}</p>
@@ -763,7 +763,7 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRe
   const medicalSubcategories = Array.from(new Set(resources.filter(r => r['Service Category'] === 'Medical' && r['Medical Subcategory']).map(r => r['Medical Subcategory']!).filter(Boolean))).sort();
 
   const filteredResources = resources.filter(r => {
-    const matchesSearch = !searchQuery || r['Resource Name'].toLowerCase().includes(searchQuery.toLowerCase()) || r['Service Category']?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = !searchQuery || (r['Resource Name'] || '').toLowerCase().includes(searchQuery.toLowerCase()) || r['Service Category']?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !categoryFilter || r['Service Category'] === categoryFilter;
     const matchesMedSub = !medicalSubFilter || r['Medical Subcategory'] === medicalSubFilter;
     return matchesSearch && matchesCategory && matchesMedSub;
