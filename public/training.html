@@ -568,42 +568,51 @@ img{display:block;max-width:100%}
     <section class="content-section" id="client-intake">
       <div class="section-header">
         <div class="section-eyebrow">Step 7 — Core Workflow</div>
-        <h2 class="section-title">Adding a Client</h2>
-        <p class="section-intro">At outreach events, you'll add clients to the HMC system using the Client Intake form. This captures the information we need to connect them with services and track our community impact.</p>
+        <h2 class="section-title">Client Intake &amp; Referrals</h2>
+        <p class="section-intro">At outreach events, you'll find or add clients using the Client Intake tab, then create referrals to connect them with services. Always search first — returning clients may already be in the system.</p>
       </div>
 
       <div class="callout warn">
         <div class="callout-icon">⚠</div>
-        <div class="callout-body"><strong>Before you begin:</strong> This section of the portal is accessible on event day through your dashboard or the Client Intake tab. Make sure your device is charged and connected to the internet or the event's WiFi before starting.</div>
+        <div class="callout-body"><strong>Before you begin:</strong> The Client Intake tab is only available during an active shift. Make sure your device is charged and connected before the event starts. Core Volunteer Training must be complete before this tab unlocks.</div>
       </div>
 
       <div class="steps">
-        <div class="step">
+        <div class="step highlight">
           <div class="step-badge">1</div>
           <div class="step-body">
-            <div class="step-title">Navigate to Client Intake</div>
-            <div class="step-desc">In the portal sidebar, look for <strong>Client Intake</strong>. On event day, a shortcut may also appear on your dashboard under "Active Mission Tools."</div>
+            <div class="step-title">Search for the client first</div>
+            <div class="step-desc">In the <strong>Client Intake</strong> tab, use the search bar to look up the client by phone number, email, or name. If they're already in the system, pull up their record — don't create a duplicate.</div>
           </div>
         </div>
-        <div class="step highlight">
+        <div class="step">
           <div class="step-badge">2</div>
           <div class="step-body">
-            <div class="step-title">Click "Add New Client"</div>
-            <div class="step-desc">This opens a blank intake form. Each client gets their own form — never add multiple clients on one form.</div>
+            <div class="step-title">If new — click "New Client" and fill in the intake form</div>
+            <div class="step-desc">Each client gets their own record. Collect what they're comfortable sharing — required fields are marked. If a client declines to share their name, record them as "Anonymous" with ZIP code and service needs.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-badge">3</div>
           <div class="step-body">
-            <div class="step-title">Fill in the client's basic information</div>
-            <div class="step-desc">Collect what the client is comfortable sharing. Required fields are marked — everything else is optional but helpful.</div>
+            <div class="step-title">Create a referral for their service need</div>
+            <div class="step-desc">Select the service category that best matches what they need:<br><br>
+              Mental Health Services · Housing / Shelter · Food Assistance · Medical / Primary Care · Substance Use Treatment · Domestic Violence Services · Child / Family Services · Employment / Job Training · Legal Aid · Benefits Enrollment (Medi-Cal, CalFresh) · Other<br><br>
+              Set the <strong>urgency level</strong>: Immediate / Crisis, Within 7 Days, or Routine / Scheduled.</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Confirm client verbal consent — required</div>
+            <div class="step-desc">Before submitting any referral, you must check the <strong>Client Verbal Consent</strong> box. Read the consent statement to the client and confirm they agree to be contacted by the referred agency. <strong>You cannot submit without this.</strong></div>
           </div>
         </div>
         <div class="step">
-          <div class="step-badge">4</div>
+          <div class="step-badge">5</div>
           <div class="step-body">
-            <div class="step-title">Submit the form</div>
-            <div class="step-desc">Click <strong>Save Client</strong> or <strong>Submit</strong> at the bottom of the form. You'll see a confirmation and the client record will be created. Then proceed to the Wellness Questionnaire.</div>
+            <div class="step-title">Submit and note any follow-up</div>
+            <div class="step-desc">Click <strong>Submit Referral</strong>. Add follow-up notes if the client has specific instructions or timing needs. The referral is now tracked in the system with a 72-hour SLA for response.</div>
           </div>
         </div>
       </div>
@@ -663,19 +672,24 @@ img{display:block;max-width:100%}
             <td>Multi-select. Check all that apply: mental health, food, housing, medical, etc.</td>
           </tr>
           <tr>
-            <td>How did they hear about us?</td>
+            <td>Primary Language</td>
             <td><span class="opt-badge">Optional</span></td>
-            <td>Referral source tracking — helps us understand outreach effectiveness</td>
+            <td>Used to match language-appropriate services and follow-up</td>
           </tr>
           <tr>
-            <td>Consent to Contact</td>
-            <td><span class="req-badge">Required</span></td>
-            <td>Must be confirmed before saving. Read the consent statement to the client</td>
+            <td>Insurance Status</td>
+            <td><span class="opt-badge">Optional</span></td>
+            <td>Uninsured, Medi-Cal, Medicare, Private — helps match to appropriate providers</td>
+          </tr>
+          <tr>
+            <td>Client Verbal Consent</td>
+            <td><span class="req-badge">Required for referrals</span></td>
+            <td>Must be checked before any referral can be submitted. Read consent statement aloud.</td>
           </tr>
           <tr>
             <td>Notes</td>
             <td><span class="opt-badge">Optional</span></td>
-            <td>Anything else relevant — language preference, urgent needs, referrals made</td>
+            <td>Anything else relevant — language needs, urgent concerns, referral context</td>
           </tr>
         </tbody>
       </table>
@@ -686,112 +700,145 @@ img{display:block;max-width:100%}
       </div>
     </section>
 
-    <!-- SECTION 8: QUESTIONNAIRE -->
+    <!-- SECTION 8: SURVEYS -->
     <section class="content-section" id="questionnaire">
       <div class="section-header">
         <div class="section-eyebrow">Step 8 — Core Workflow</div>
-        <h2 class="section-title">Completing the Wellness Questionnaire</h2>
-        <p class="section-intro">After adding a client, you'll walk them through the wellness questionnaire. This is a standardized set of questions that helps us assess their current wellbeing and connect them with the right resources.</p>
+        <h2 class="section-title">Logging Surveys</h2>
+        <p class="section-intro">Surveys capture client experience and community health data. There are four survey types available in the portal — your coordinator will tell you which one(s) to use at each event. Surveys are logged through the event Command Center.</p>
       </div>
 
       <div class="steps">
-        <div class="step">
+        <div class="step highlight">
           <div class="step-badge">1</div>
           <div class="step-body">
-            <div class="step-title">Open the questionnaire from the client's record</div>
-            <div class="step-desc">After saving the client, you'll see a <strong>Start Questionnaire</strong> or <strong>Complete Survey</strong> button. Click it to begin. The questionnaire is linked to this specific client record.</div>
+            <div class="step-title">Open the Log form and select "Survey"</div>
+            <div class="step-desc">In the event Command Center, click <strong>Log</strong> and select <strong>Survey</strong> as the log type. Then choose the survey type your coordinator assigned for this event.</div>
           </div>
         </div>
-        <div class="step highlight">
+        <div class="step">
           <div class="step-badge">2</div>
           <div class="step-body">
-            <div class="step-title">Read each question aloud to the client</div>
-            <div class="step-desc">This is a conversational process — you're the one entering responses, they're answering verbally. Speak clearly, go at their pace, and don't rush. Most questionnaires take 5–8 minutes.</div>
+            <div class="step-title">Choose a survey type</div>
+            <div class="step-desc">Four types are available:<br><br>
+              <strong>Client Satisfaction</strong> — Post-service feedback on today's event experience.<br>
+              <strong>Health Needs Assessment</strong> — Comprehensive 22-question community health and social needs screening.<br>
+              <strong>Wellness Check-In</strong> — Brief 4-question general wellbeing check.<br>
+              <strong>Post-Service Follow-up</strong> — Follow-up on services received at a previous event.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-badge">3</div>
           <div class="step-body">
-            <div class="step-title">Select or type their answers</div>
-            <div class="step-desc">Most questions are multiple choice or scale-based (e.g., 1–10 or Never/Sometimes/Often). A few questions may have free-text fields — type their response as they give it. Don't interpret or paraphrase.</div>
+            <div class="step-title">Select the method</div>
+            <div class="step-desc">Choose how you're collecting responses:<br><br>
+              <strong>Digital / Tablet</strong> — Client answers on-screen or you enter responses live.<br>
+              <strong>Verbal / Assisted</strong> — You read questions aloud, client answers verbally, you enter their responses.<br>
+              <strong>Paper Form</strong> — Client completes a paper form. Mark completion status only (Completed, Partial, or Declined) — no inline questions.</div>
           </div>
         </div>
-        <div class="step">
+        <div class="step highlight">
           <div class="step-badge">4</div>
           <div class="step-body">
-            <div class="step-title">Flag urgent needs if prompted</div>
-            <div class="step-desc">Some answers will trigger a yellow or red flag in the system (e.g., housing crisis, mental health risk). If you see a flag, <strong>notify your on-site coordinator immediately</strong> — do not try to handle this alone. The system will also show next steps.</div>
+            <div class="step-title">Complete the survey inline (Digital or Verbal method)</div>
+            <div class="step-desc">The full survey appears on the same screen. Work through each question with the client — rating scales, multiple choice, checkboxes, and short text. Required questions are marked. Go at the client's pace and don't rush or interpret their answers.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-badge">5</div>
           <div class="step-body">
-            <div class="step-title">Submit the questionnaire</div>
-            <div class="step-desc">Click <strong>Submit</strong> at the bottom. The client's record now shows the completed questionnaire and any resource recommendations generated by the system. Share those recommendations with the client before they leave.</div>
+            <div class="step-title">Add demographics and submit</div>
+            <div class="step-desc">Fill in the optional age range and gender identity fields, then click <strong>Log Survey</strong>. The survey count in the Command Center updates immediately. All responses are stored for program reporting.</div>
           </div>
         </div>
       </div>
 
       <div class="callout tip">
         <div class="callout-icon">✓</div>
-        <div class="callout-body"><strong>Handling sensitive questions:</strong> If a client seems uncomfortable with a question, it's okay to skip it — mark it as "Declined." Your job is to make them feel safe, not to complete a perfect form. A partial questionnaire is always better than no questionnaire.</div>
+        <div class="callout-body"><strong>Handling sensitive questions:</strong> If a client is uncomfortable with a question, skip it — don't pressure anyone to answer. A partial survey is always better than no survey. For the Health Needs Assessment, note if the client stopped early so your coordinator knows.</div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body"><strong>Paper forms:</strong> If a client fills out a paper form, log it in the portal the same day using the Paper Form method. This ensures the count is captured for reporting even if individual responses are entered later.</div>
       </div>
     </section>
 
-    <!-- SECTION 9: CHECK IN -->
+    <!-- SECTION 9: CHECK IN + DISTRIBUTIONS -->
     <section class="content-section" id="checkin">
       <div class="section-header">
         <div class="section-eyebrow">Step 9 — Event Day</div>
-        <h2 class="section-title">Checking In a Client</h2>
-        <p class="section-intro">Client check-in is how we track who attended each outreach event. It's a quick process — your coordinator will confirm the workflow at the event briefing, but here's what it looks like in the portal.</p>
+        <h2 class="section-title">Check-In &amp; Logging Distributions</h2>
+        <p class="section-intro">On event day, volunteers check in clients through the portal and log any resources distributed. Both happen through the event tools in your My Missions tab or the Command Center (for leads).</p>
       </div>
+
+      <h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">Client Check-In</h3>
 
       <div class="steps">
         <div class="step">
           <div class="step-badge">1</div>
           <div class="step-body">
-            <div class="step-title">On event day, go to the event in My Missions</div>
-            <div class="step-desc">Find the active event under <strong>My Assignments</strong>. On event day, it will show an <strong>Event Day</strong> badge or active status. Click it to open the event tools.</div>
+            <div class="step-title">Open the active event in My Missions</div>
+            <div class="step-desc">Find the event under <strong>My Assignments</strong>. On event day it will show an active status badge. Click it to open the event tools.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-badge">2</div>
           <div class="step-body">
             <div class="step-title">Search for the client by name</div>
-            <div class="step-desc">If the client is already in the system from a previous event, search their name to pull up their existing record. This saves time and links their check-in history.</div>
+            <div class="step-desc">Search their name or phone number to pull up an existing record. Returning clients are already in the system — linking them saves time and maintains their service history.</div>
           </div>
         </div>
         <div class="step highlight">
           <div class="step-badge">3</div>
           <div class="step-body">
-            <div class="step-title">If it's their first time — add them as a new client</div>
-            <div class="step-desc">Click <strong>New Client</strong>, complete the intake form (Step 7), then return here to finish check-in. New clients should be added before marking them as checked in.</div>
+            <div class="step-title">New client? Add them first (Step 7), then check in</div>
+            <div class="step-desc">Click <strong>New Client</strong>, complete the intake form, then return to mark them as checked in. New clients must be created before check-in can be recorded.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-badge">4</div>
           <div class="step-body">
             <div class="step-title">Click "Check In"</div>
-            <div class="step-desc">Once you've found or created their record, click the <strong>Check In</strong> button. Their status will change to "Checked In" with a timestamp. The attendance counter on the event updates in real time.</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-badge">5</div>
-          <div class="step-body">
-            <div class="step-title">Complete the wellness questionnaire (if not done)</div>
-            <div class="step-desc">If the client hasn't done a questionnaire recently, the system may prompt you to complete one now or flag it as recommended. Do this while the client is still at your station.</div>
+            <div class="step-desc">Their status changes to Checked In with a timestamp. The attendance counter updates in real time. If their contact info or housing status changed since last time, click <strong>Edit Client</strong> to update it first.</div>
           </div>
         </div>
       </div>
 
-      <div class="callout info">
-        <div class="callout-icon">ℹ</div>
-        <div class="callout-body"><strong>Returning clients:</strong> If a returning client's information has changed — new phone number, new address, housing situation — update their record at check-in. Click <strong>Edit Client</strong> before checking them in.</div>
+      <div class="divider"></div>
+
+      <h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">Logging Distributions</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">When your station distributes resources to clients, log each distribution in the Command Center so totals are tracked for reporting.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Open Log → select "Distribution"</div>
+            <div class="step-desc">In the Command Center, click <strong>Log</strong> and choose <strong>Distribution</strong> as the log type.</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Select the resource type and quantity</div>
+            <div class="step-desc">Choose what was distributed:<br><br>
+              <strong>Food / Nutrition</strong> · <strong>Hygiene Kit</strong> · <strong>Clothing / Footwear</strong> · <strong>Resource Guide / Referral Packets</strong> · <strong>Naloxone (Narcan)</strong> · <strong>COVID / Flu Test Kit</strong> · <strong>Other</strong><br><br>
+              Enter the quantity given and any optional notes.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Submit — counts update instantly</div>
+            <div class="step-desc">Click <strong>Log Distribution</strong>. The distribution total in the Command Center dashboard updates immediately for your coordinator to track.</div>
+          </div>
+        </div>
       </div>
 
       <div class="callout warn">
         <div class="callout-icon">⚠</div>
-        <div class="callout-body"><strong>Internet issues?</strong> If the portal is loading slowly on-site, try refreshing or switching to your phone's hotspot. If it's completely down, use the paper backup forms your coordinator will have on hand — all paper records get entered into the system within 24 hours.</div>
+        <div class="callout-body"><strong>Internet issues?</strong> If the portal is loading slowly on-site, try refreshing or switching to your phone's hotspot. If it's completely down, use paper backup forms — your coordinator will have them on hand. All paper records get entered into the system within 24 hours.</div>
       </div>
     </section>
 
@@ -890,12 +937,20 @@ img{display:block;max-width:100%}
             <td>Try searching by first name only. If still not found, add them as a new client.</td>
           </tr>
           <tr>
-            <td>Questionnaire won't submit</td>
-            <td>Check for unanswered required fields (highlighted in red). Fill them in and try again.</td>
+            <td>Survey won't submit</td>
+            <td>Check for unanswered required questions (highlighted in red). All required fields must be filled before the Log Survey button activates.</td>
           </tr>
           <tr>
             <td>Can't access Client Intake tab</td>
-            <td>This tab is only active on event day during an active shift. Contact your coordinator to confirm you're on the roster.</td>
+            <td>This tab is only active during an active shift. Core Volunteer Training must also be complete. Contact your coordinator to confirm both.</td>
+          </tr>
+          <tr>
+            <td>Referral submit button is greyed out</td>
+            <td>The Client Verbal Consent checkbox is required. Make sure you've read the consent statement to the client and checked the box before submitting.</td>
+          </tr>
+          <tr>
+            <td>Can't find a client in search</td>
+            <td>Try searching by first name only, or by phone number. If still not found, add them as a new client — don't skip intake.</td>
           </tr>
         </tbody>
       </table>
