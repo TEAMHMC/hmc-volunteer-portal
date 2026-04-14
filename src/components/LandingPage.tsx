@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Globe, Shield, Heart, HeartPulse, ChevronRight, Activity, Zap, Users, LogIn, Eye, EyeOff, Loader2, Mail, AlertTriangle } from 'lucide-react';
 import { APP_CONFIG } from '../config';
 import { GoogleLogin } from '@react-oauth/google';
@@ -22,6 +22,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(400);
+  useEffect(() => {
+    if (!googleBtnRef.current) return;
+    const obs = new ResizeObserver(entries => {
+      const w = Math.floor(entries[0].contentRect.width);
+      if (w > 0) setGoogleBtnWidth(Math.min(400, w));
+    });
+    obs.observe(googleBtnRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   const handleAdminLoginClick = () => {
     setIsAdmin(true);
@@ -135,7 +146,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 
                 {googleClientId && (
                   <div className="pb-6 border-b border-zinc-100 space-y-4">
-                    <div className="w-full flex justify-center [&>div]:w-full [&>div>div]:w-full [&_iframe]:w-full">
+                    <div ref={googleBtnRef} className="w-full flex justify-center overflow-hidden">
                       <GoogleLogin
                         onSuccess={async (credentialResponse) => {
                           if (credentialResponse.credential) {
@@ -152,7 +163,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                         size="large"
                         text="continue_with"
                         shape="pill"
-                        width="400"
+                        width={String(googleBtnWidth)}
                       />
                     </div>
                     <p className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Or continue with email</p>

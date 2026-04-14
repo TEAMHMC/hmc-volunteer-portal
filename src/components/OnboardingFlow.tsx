@@ -282,7 +282,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         const requiredConsents = ['ageVerified', 'backgroundCheckConsent', 'ssnAuthorizationConsent', 'termsAgreed'];
         if (formData.selectedRole?.includes('Medical')) requiredConsents.push('hipaaAcknowledgment');
         if (requiredConsents.some(c => !formData[c])) errors.compliance = "You must agree to all required terms to proceed.";
-        if (!formData.signature || formData.signature.trim().toLowerCase() !== `${formData.legalFirstName} ${formData.legalLastName}`.trim().toLowerCase()) errors.signature = "Your signature must exactly match your full legal name.";
+        const normSig = (s: string) => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const expectedSig = normSig(`${formData.legalFirstName} ${formData.legalLastName}`);
+        if (!formData.signature || normSig(formData.signature) !== expectedSig) errors.signature = `Your signature must exactly match your full legal name: "${(formData.legalFirstName || '').trim()} ${(formData.legalLastName || '').trim()}".`;
     }
     
     setFormErrors(errors);
@@ -547,12 +549,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
        <div className={`max-w-4xl w-full bg-white rounded-2xl shadow-elevation-3 border border-zinc-100 ${step === 'account' ? 'p-4 md:p-8' : 'p-4 md:p-8'} relative overflow-hidden`}>
         {renderStepContent()}
         {step !== 'account' && (
-          <div className="flex items-center gap-4 pt-6 md:pt-8 mt-6 md:mt-8 border-t border-zinc-100">
-            {currentStepIndex > 0 && <button onClick={prevStep} className="py-5 px-10 bg-white border border-black text-zinc-900 rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
+          <div className="flex items-center gap-3 pt-6 md:pt-8 mt-6 md:mt-8 border-t border-zinc-100 pb-safe" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+            {currentStepIndex > 0 && <button onClick={prevStep} className="py-4 px-6 md:py-5 md:px-10 bg-white border border-black text-zinc-900 rounded-full font-bold text-xs uppercase tracking-wide flex items-center gap-2 hover:scale-105 active:scale-95 transition-all min-h-[52px]">
               <div className="w-2 h-2 rounded-full bg-black" />
               Back
             </button>}
-            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {step !== 'orientation' && <button onClick={validateAndProceed} disabled={isStepLoading} className="flex-1 py-4 md:py-5 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all min-h-[52px]">
               {isStepLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Continue <ArrowRight className="group-hover:translate-x-2 transition-transform" /></>}
               </button>}
           </div>
@@ -1456,8 +1458,8 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
       <div className="pt-4">
         <label className="text-sm font-bold text-zinc-600 block mb-2">Electronic Signature *</label>
         <p className="text-xs text-zinc-500 mb-3">Please type your full legal name exactly as it appears above to serve as your electronic signature.</p>
-        <input type="text" value={data.signature || ''} onChange={e => onChange('signature', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder={`${data.legalFirstName || 'First'} ${data.legalLastName || 'Last'}`} />
-        {data.signature && data.signature.trim().toLowerCase() === `${data.legalFirstName} ${data.legalLastName}`.trim().toLowerCase() && (
+        <input type="text" value={data.signature || ''} onChange={e => onChange('signature', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg" placeholder={`${(data.legalFirstName || 'First').trim()} ${(data.legalLastName || 'Last').trim()}`} />
+        {data.signature && (s => s.trim().toLowerCase().replace(/\s+/g,' '))(data.signature) === (s => s.trim().toLowerCase().replace(/\s+/g,' '))(`${data.legalFirstName} ${data.legalLastName}`) && (
           <p className="text-emerald-600 text-xs font-bold mt-2 flex items-center gap-2"><Check size={14} /> Signature verified</p>
         )}
       </div>
