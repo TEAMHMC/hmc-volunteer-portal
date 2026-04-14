@@ -5368,9 +5368,9 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
 
     if (windowOpen && now < windowOpen) {
       const timeStr = eventStart!.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
-      return res.send(page('See You Soon', '📅', `See You ${d.eventDate ? 'on ' + d.eventDate : 'Soon'}!`,
-        `You're registered — check in opens 45 minutes before the event starts at ${timeStr}. Bookmark this page and come back when you arrive.`)
-        .replace('<p class="sub">', metaHtml + '<p class="sub" style="display:none">'));
+      return res.send(page('Not Yet', '📅', `Not Yet — See You ${d.eventDate ? 'on ' + d.eventDate : 'Soon'}!`,
+        `Check-in opens 45 minutes before the event starts at ${timeStr}. Your spot is confirmed — bookmark this page and come back when you arrive!`)
+        .replace('<p class="sub">', metaHtml + '<p class="sub">'));
     }
 
     if (eventEnd && now > eventEnd) {
@@ -5385,16 +5385,20 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
     }
 
     // ── Check in now ──
+    // Step 1: atomically mark the RSVP as checked in (always succeeds)
     await db.runTransaction(async (tx) => {
       const fresh = await tx.get(doc.ref);
       if (fresh.data()?.checkedIn) return;
       tx.update(doc.ref, { checkedIn: true, checkedInAt: now.toISOString() });
-      if (d.eventId) {
-        tx.update(db.collection('opportunities').doc(d.eventId), {
-          checkinCount: admin.firestore.FieldValue.increment(1 + (d.guests || 0)),
-        });
-      }
     });
+    // Step 2: best-effort counter on the portal Opportunities doc (may not exist for external events)
+    if (d.eventId) {
+      const oppRef = db.collection('opportunities').doc(d.eventId);
+      const oppSnap = await oppRef.get().catch(() => null);
+      if (oppSnap?.exists) {
+        await oppRef.update({ checkinCount: admin.firestore.FieldValue.increment(1 + (d.guests || 0)) }).catch(() => {});
+      }
+    }
     console.log(`[CHECKIN] Public RSVP ${doc.id} checked in via /checkin page for event ${d.eventId}`);
 
     const firstName = (d.name || 'friend').split(' ')[0];
