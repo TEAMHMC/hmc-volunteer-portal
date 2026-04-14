@@ -1172,7 +1172,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'docs' && <TabErrorBoundary tab="docs"><DocumentationHub currentUser={displayUser} /></TabErrorBoundary>}
          <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}><OrgCalendar user={displayUser} opportunities={opportunities} onNavigate={setActiveTab} /></div>
          {activeTab === 'directory' && user.isAdmin && <TabErrorBoundary tab="directory"><AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} /></TabErrorBoundary>}
-         {activeTab === 'referrals' && (user.isAdmin || medicalRoles.includes(displayUser.role)) && <TabErrorBoundary tab="referrals"><ReferralManagement isAdmin={user.isAdmin} /></TabErrorBoundary>}
+         {activeTab === 'referrals' && (user.isAdmin || ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role)) && <TabErrorBoundary tab="referrals"><ReferralManagement isAdmin={user.isAdmin} /></TabErrorBoundary>}
          {activeTab === 'resources' && user.isAdmin && <TabErrorBoundary tab="resources"><ResourceDashboard /></TabErrorBoundary>}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <TabErrorBoundary tab="analytics"><AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} /></TabErrorBoundary>}
          {activeTab === 'workflows' && user.isAdmin && <TabErrorBoundary tab="workflows"><AutomatedWorkflows /></TabErrorBoundary>}
