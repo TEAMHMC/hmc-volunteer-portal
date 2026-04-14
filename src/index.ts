@@ -8101,7 +8101,7 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
             // because TrainingAcademy sets them when a volunteer completes training.
             // The backend registration endpoint independently validates training gates.
             const { isAdmin, isTeamLead, compliance, points, hoursContributed, status,
-                    applicationStatus,
+                    applicationStatus, isNewUser, onboardingProgress, joinedDate,
                     volunteerRole, role, appliedRole, appliedRoleStatus,
                     ...safeUpdates } = updates;
             finalUpdates = safeUpdates;
