@@ -34,8 +34,26 @@ import {
 import { useOps } from '../OpsContext';
 import { apiService } from '../../../services/apiService';
 import { toastService } from '../../../services/toastService';
-import { CHECKLIST_TEMPLATES, EVENT_TYPE_TEMPLATE_MAP } from '../../../constants';
-import type { Opportunity, Volunteer, IncidentReport } from '../../../types';
+import { CHECKLIST_TEMPLATES, EVENT_TYPE_TEMPLATE_MAP, SURVEY_KITS } from '../../../constants';
+import type { Opportunity, Volunteer, IncidentReport, FormField } from '../../../types';
+
+// Inline survey questions per survey type — pulls from SURVEY_KITS where available
+const SURVEY_TYPE_QUESTIONS: Record<string, FormField[]> = {
+  'Client Satisfaction': SURVEY_KITS.find(k => k.id === 'sk_default_health_fair_2026')?.formStructure ?? [],
+  'Health Needs Assessment': SURVEY_KITS.find(k => k.id === 'sk_street_medicine_outreach_2026')?.formStructure ?? [],
+  'Wellness Check-In': [
+    { id: 'wc_health', type: 'Rating', question: 'How would you rate your current health today?', options: ['1','2','3','4','5'], required: true },
+    { id: 'wc_physical', type: 'Multiple Choice', question: 'Any physical health concerns today?', options: ['None','Pain or Discomfort','Fatigue','Illness','Other'], required: false },
+    { id: 'wc_mental', type: 'Multiple Choice', question: 'How would you describe your mental/emotional wellbeing?', options: ['Good','Fair','Poor','In Crisis'], required: true },
+    { id: 'wc_referral', type: 'Multiple Choice', question: 'Would you like a referral to any services?', options: ['Yes','No','Maybe'], required: false },
+  ],
+  'Post-Service Follow-up': [
+    { id: 'psf_used', type: 'Multiple Choice', question: 'Did you use the referral or service you received?', options: ['Yes','No','Not Yet'], required: true },
+    { id: 'psf_helpful', type: 'Multiple Choice', question: 'Was the referral helpful?', options: ['Very Helpful','Somewhat Helpful','Not Helpful','N/A'], required: false },
+    { id: 'psf_return', type: 'Multiple Choice', question: 'Would you come back to a Health Matters Clinic event?', options: ['Definitely','Probably','Unsure'], required: true },
+    { id: 'psf_feedback', type: 'Short Text', question: 'Any additional feedback?', required: false },
+  ],
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -936,6 +954,7 @@ const ServicesTab: React.FC = () => {
   const [logType, setLogType] = useState<'screening' | 'referral' | 'distribution' | 'survey' | null>(null);
   const [logLoading, setLogLoading] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [surveyAnswers, setSurveyAnswers] = useState<Record<string, string | string[]>>({});
   const [consentGiven, setConsentGiven] = useState(false);
   const setField = (key: string, val: string) => setFormData(prev => ({ ...prev, [key]: val }));
 
@@ -972,6 +991,7 @@ const ServicesTab: React.FC = () => {
   const handleOpenLog = (type: typeof logType) => {
     setLogType(type);
     setFormData({});
+    setSurveyAnswers({});
     setConsentGiven(false);
     setShowLogForm(true);
   };
@@ -979,6 +999,13 @@ const ServicesTab: React.FC = () => {
   const canSubmit = (): boolean => {
     if (logType === 'screening') return !!formData.screeningType;
     if (logType === 'referral') return !!formData.referralType && consentGiven;
+    if (logType === 'survey' && formData.surveyType && formData.method !== 'Paper Form') {
+      const questions = SURVEY_TYPE_QUESTIONS[formData.surveyType] ?? [];
+      return questions.filter(q => q.required).every(q => {
+        const ans = surveyAnswers[q.id];
+        return Array.isArray(ans) ? ans.length > 0 : !!ans;
+      });
+    }
     return true;
   };
 
@@ -990,6 +1017,9 @@ const ServicesTab: React.FC = () => {
         type: logType,
         ...formData,
         ...(logType === 'referral' ? { consentGiven: 'yes' } : {}),
+        ...(logType === 'survey' && Object.keys(surveyAnswers).length > 0
+          ? { surveyResponses: JSON.stringify(surveyAnswers) }
+          : {}),
         eventId: opportunity.id,
         timestamp: new Date().toISOString(),
       });
@@ -1168,16 +1198,107 @@ const ServicesTab: React.FC = () => {
           </>)}
 
           {/* SURVEY */}
-          {logType === 'survey' && (<>
-            <FSelect label="Survey Type" field="surveyType" options={['Client Satisfaction','Health Needs Assessment','Wellness Check-In','Post-Service Follow-up']} value={formData.surveyType ?? ''} onChange={v => setField('surveyType', v)} />
-            <FSelect label="Method" field="method" options={['Paper Form','Digital / Tablet','Verbal / Assisted']} value={formData.method ?? ''} onChange={v => setField('method', v)} />
-            <FSelect label="Completion Status" field="status" options={['Completed','Partial — Client Stopped','Client Declined']} value={formData.status ?? ''} onChange={v => setField('status', v)} />
-            <div className="grid grid-cols-2 gap-3">
-              <FSelect label="Age Range" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
-              <FSelect label="Gender Identity" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />
-            </div>
-            <FInput label="Notes (optional)" value={formData.notes ?? ''} onChange={v => setField('notes', v)} placeholder="Any relevant details..." />
-          </>)}
+          {logType === 'survey' && (() => {
+            const surveyQuestions = SURVEY_TYPE_QUESTIONS[formData.surveyType ?? ''] ?? [];
+            const showInline = !!formData.surveyType && formData.method !== 'Paper Form';
+            const requiredDone = surveyQuestions.filter(q => q.required).filter(q => {
+              const a = surveyAnswers[q.id];
+              return Array.isArray(a) ? a.length > 0 : !!a;
+            }).length;
+            const requiredTotal = surveyQuestions.filter(q => q.required).length;
+            return (<>
+              <FSelect label="Survey Type" field="surveyType"
+                options={['Client Satisfaction','Health Needs Assessment','Wellness Check-In','Post-Service Follow-up']}
+                value={formData.surveyType ?? ''}
+                onChange={v => { setField('surveyType', v); setSurveyAnswers({}); }} />
+              <FSelect label="Method" field="method"
+                options={['Digital / Tablet','Verbal / Assisted','Paper Form']}
+                value={formData.method ?? ''}
+                onChange={v => setField('method', v)} />
+
+              {/* Inline questions */}
+              {showInline && surveyQuestions.length > 0 && (<>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-wider text-zinc-400">Survey Questions</p>
+                  {requiredTotal > 0 && (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${requiredDone === requiredTotal ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      {requiredDone}/{requiredTotal} required
+                    </span>
+                  )}
+                </div>
+                {surveyQuestions.map(q => (
+                  <div key={q.id} className="bg-zinc-50 rounded-xl p-3 border border-zinc-100">
+                    <p className="text-xs font-semibold text-zinc-700 mb-2.5 leading-snug">
+                      {q.question}{q.required && <span className="text-rose-500 ml-0.5">*</span>}
+                    </p>
+                    {q.type === 'Rating' && (
+                      <div className="flex gap-1.5">
+                        {(q.options ?? ['1','2','3','4','5']).map(opt => (
+                          <button key={opt} type="button"
+                            onClick={() => setSurveyAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                            className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${surveyAnswers[q.id] === opt ? 'bg-[#233DFF] text-white border-[#233DFF]' : 'bg-white text-zinc-600 border-zinc-200 hover:border-[#233DFF]/40'}`}>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {q.type === 'Multiple Choice' && (
+                      <div className="flex flex-col gap-1.5">
+                        {(q.options ?? []).map(opt => (
+                          <button key={opt} type="button"
+                            onClick={() => setSurveyAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors ${surveyAnswers[q.id] === opt ? 'bg-[#233DFF]/10 border-[#233DFF] text-[#233DFF] font-semibold' : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300'}`}>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {q.type === 'Checkboxes' && (
+                      <div className="flex flex-col gap-1.5">
+                        {(q.options ?? []).map(opt => {
+                          const cur = Array.isArray(surveyAnswers[q.id]) ? surveyAnswers[q.id] as string[] : [];
+                          const sel = cur.includes(opt);
+                          return (
+                            <button key={opt} type="button"
+                              onClick={() => setSurveyAnswers(prev => {
+                                const prev_arr = Array.isArray(prev[q.id]) ? prev[q.id] as string[] : [];
+                                return { ...prev, [q.id]: sel ? prev_arr.filter(x => x !== opt) : [...prev_arr, opt] };
+                              })}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm border flex items-center gap-2 transition-colors ${sel ? 'bg-[#233DFF]/10 border-[#233DFF] text-[#233DFF]' : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300'}`}>
+                              <span className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center ${sel ? 'bg-[#233DFF] border-[#233DFF]' : 'border-zinc-300'}`}>
+                                {sel && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </span>
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {q.type === 'Short Text' && (
+                      <input type="text"
+                        value={typeof surveyAnswers[q.id] === 'string' ? surveyAnswers[q.id] as string : ''}
+                        onChange={e => setSurveyAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        placeholder="Type response..."
+                        className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF]" />
+                    )}
+                  </div>
+                ))}
+              </>)}
+
+              {/* Paper form — just metadata, no inline questions */}
+              {!showInline && !!formData.surveyType && (
+                <FSelect label="Completion Status" field="status"
+                  options={['Completed','Partial — Client Stopped','Client Declined']}
+                  value={formData.status ?? ''} onChange={v => setField('status', v)} />
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <FSelect label="Age Range" field="ageRange" options={AGE_RANGES} value={formData.ageRange ?? ''} onChange={v => setField('ageRange', v)} />
+                <FSelect label="Gender Identity" field="genderIdentity" options={GENDER_OPTIONS} value={formData.genderIdentity ?? ''} onChange={v => setField('genderIdentity', v)} />
+              </div>
+              <FInput label="Notes (optional)" value={formData.notes ?? ''} onChange={v => setField('notes', v)} placeholder="Any relevant details..." />
+            </>);
+          })()}
 
           {/* DISTRIBUTION */}
           {logType === 'distribution' && (<>
