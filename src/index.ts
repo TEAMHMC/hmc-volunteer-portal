@@ -5333,7 +5333,7 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
 
     let eventStart: Date | null = null;
     let eventEnd: Date | null = null;
-    let eventTime = d.eventDate || '';
+    let eventTime = '';
     let eventLocation = '';
 
     if (d.eventId) {
@@ -5353,6 +5353,17 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
           if (sd.endTime) eventEnd = new Date(sd.endTime);
         }
       } catch { /* non-critical */ }
+    }
+
+    // Fallback: if eventStart not found in Firestore, parse from the eventDate string stored on the RSVP
+    // (covers external events like Take Action LA that don't live in portal Firestore)
+    if (!eventStart && d.eventDate) {
+      const parsed = new Date(d.eventDate);
+      if (!isNaN(parsed.getTime())) {
+        // Treat the event date as an all-day event in Pacific time (noon PT = 19:00 UTC)
+        eventStart = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0);
+        eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000); // 8-hour window
+      }
     }
 
     const metaHtml = `<div class="meta">
