@@ -5303,28 +5303,27 @@ app.get('/checkin', rateLimit(120, 60000), async (req: Request, res: Response) =
   const token = typeof req.query.token === 'string' ? req.query.token.trim() : '';
   const BRAND = '#233DFF';
 
-  const page = (title: string, icon: string, heading: string, body: string, btnText?: string, btnHref?: string) => `<!DOCTYPE html>
+  const page = (title: string, heading: string, body: string, btnText?: string, btnHref?: string) => `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} | Health Matters Clinic</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box}body{font-family:Inter,-apple-system,sans-serif;margin:0;background:linear-gradient(160deg,#f0f4ff 0%,#e8ecff 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}.card{background:white;border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 8px 40px rgba(35,61,255,.1);max-width:420px;width:100%}.logo{width:72px;height:72px;border-radius:18px;margin:0 auto 24px;display:block;box-shadow:0 4px 16px rgba(0,0,0,.1)}.icon{font-size:52px;margin-bottom:16px;display:block}.h1{color:#1a1a1a;margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.5px}.sub{color:#666;margin:0 0 24px;font-size:15px;line-height:1.5}.meta{background:#f8f9ff;border-radius:12px;padding:16px;margin:0 0 20px;text-align:left}.meta-row{display:flex;gap:8px;margin-bottom:6px;font-size:14px}.meta-label{color:#999;font-weight:600;min-width:64px;flex-shrink:0}.meta-val{color:#1a1a1a;font-weight:500}.btn{display:inline-block;background:${BRAND};color:white;padding:16px 36px;border-radius:100px;text-decoration:none;font-weight:700;font-size:15px;margin-top:4px}.btn-ghost{display:inline-block;color:${BRAND};padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:600;font-size:14px;border:2px solid ${BRAND};margin-top:8px}.footer{text-align:center;color:#aaa;font-size:11px;margin-top:20px;font-weight:500;letter-spacing:.5px}</style>
+<style>*{box-sizing:border-box}body{font-family:Inter,-apple-system,sans-serif;margin:0;background:linear-gradient(160deg,#f0f4ff 0%,#e8ecff 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}.card{background:white;border-radius:24px;padding:40px 32px;text-align:center;box-shadow:0 8px 40px rgba(35,61,255,.1);max-width:420px;width:100%}.logo{width:72px;height:72px;border-radius:18px;margin:0 auto 24px;display:block;box-shadow:0 4px 16px rgba(0,0,0,.1)}.h1{color:#1a1a1a;margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.5px}.sub{color:#666;margin:0 0 24px;font-size:15px;line-height:1.5}.meta{background:#f8f9ff;border-radius:12px;padding:16px;margin:0 0 20px;text-align:left}.meta-row{display:flex;gap:8px;margin-bottom:6px;font-size:14px}.meta-label{color:#999;font-weight:600;min-width:64px;flex-shrink:0}.meta-val{color:#1a1a1a;font-weight:500}.btn{display:inline-block;background:${BRAND};color:white;padding:16px 36px;border-radius:100px;text-decoration:none;font-weight:700;font-size:15px;margin-top:4px}.btn-ghost{display:inline-block;color:${BRAND};padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:600;font-size:14px;border:2px solid ${BRAND};margin-top:8px}.footer{text-align:center;color:#aaa;font-size:11px;margin-top:20px;font-weight:500;letter-spacing:.5px}</style>
 </head><body><div class="card">
 <img class="logo" src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="HMC">
-<span class="icon">${icon}</span>
 <h1 class="h1">${heading}</h1>
 <p class="sub">${body}</p>
 ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
 </div><p class="footer">HEALTH MATTERS CLINIC</p></body></html>`;
 
   if (!token) {
-    return res.send(page('Check In', '❓', 'Missing Token', 'This check-in link is incomplete. Please use the link from your confirmation email.', 'Visit Website', 'https://www.healthmatters.clinic'));
+    return res.send(page('Check In', 'Missing Token', 'This check-in link is incomplete. Please use the link from your confirmation email.', 'Visit Website', 'https://www.healthmatters.clinic'));
   }
 
   try {
     const rsvpSnap = await db.collection('public_rsvps').where('checkinToken', '==', token).limit(1).get();
 
     if (rsvpSnap.empty) {
-      return res.status(404).send(page('Check In', '🔍', 'Registration Not Found', 'We couldn\'t find a registration linked to this check-in code. Please make sure you\'re using the original confirmation email link.', 'Register Now', 'https://www.healthmatters.clinic/resources/eventfinder'));
+      return res.status(404).send(page('Check In', 'Registration Not Found', 'We couldn\'t find a registration linked to this check-in code. Please make sure you\'re using the original confirmation email link.', 'Register Now', 'https://www.healthmatters.clinic/resources/eventfinder'));
     }
 
     const doc = rsvpSnap.docs[0];
@@ -5357,12 +5356,16 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
 
     // Fallback: if eventStart not found in Firestore, parse from the eventDate string stored on the RSVP
     // (covers external events like Take Action LA that don't live in portal Firestore)
+    // We set the window to midnight–midnight PT so the "not yet" gate works without fabricating a time.
+    const eventTimeKnown = !!eventStart; // only show a specific time if Firestore gave us a real start time
     if (!eventStart && d.eventDate) {
-      const parsed = new Date(d.eventDate);
+      // Use noon PT (19:00 UTC) as eventStart for the "not yet" window guard
+      // We will NOT display this fabricated time to the user
+      const parsed = new Date(d.eventDate + 'T19:00:00Z'); // noon PT = 19:00 UTC
       if (!isNaN(parsed.getTime())) {
-        // Treat the event date as an all-day event in Pacific time (noon PT = 19:00 UTC)
-        eventStart = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0);
-        eventEnd = new Date(eventStart.getTime() + 8 * 60 * 60 * 1000); // 8-hour window
+        eventStart = parsed;
+        // End of event day: 23:59 UTC on the same calendar date (covers ~4 PM PT)
+        eventEnd = new Date(d.eventDate + 'T23:59:59Z');
       }
     }
 
@@ -5378,19 +5381,23 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
     const windowOpen = eventStart ? new Date(eventStart.getTime() - 45 * 60 * 1000) : null;
 
     if (windowOpen && now < windowOpen) {
-      const timeStr = eventStart!.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
-      return res.send(page('Not Yet', '📅', `Not Yet — See You ${d.eventDate ? 'on ' + d.eventDate : 'Soon'}!`,
-        `Check-in opens 45 minutes before the event starts at ${timeStr}. Your spot is confirmed — bookmark this page and come back when you arrive!`)
+      const timeStr = eventTimeKnown
+        ? eventStart!.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })
+        : null;
+      const notYetBody = timeStr
+        ? `Check-in opens 45 minutes before the event starts at ${timeStr}. Your spot is confirmed — bookmark this page and come back when you arrive!`
+        : `Check-in opens 45 minutes before the event starts. Your spot is confirmed — bookmark this page and come back when you arrive!`;
+      return res.send(page('Not Yet', `Not Yet — See You ${d.eventDate ? 'on ' + d.eventDate : 'Soon'}!`, notYetBody)
         .replace('<p class="sub">', metaHtml + '<p class="sub">'));
     }
 
     if (eventEnd && now > eventEnd) {
-      return res.send(page('Event Ended', '🎉', 'Thanks for Coming!',
+      return res.send(page('Event Ended', 'Thanks for Coming!',
         `${d.eventTitle || 'This event'} has ended. We hope to see you at the next one!`, 'Find More Events', 'https://www.healthmatters.clinic/resources/eventfinder'));
     }
 
     if (d.checkedIn) {
-      return res.send(page('Already Checked In', '✅', 'You\'re Already Checked In!',
+      return res.send(page('Already Checked In', 'You\'re Already Checked In!',
         `Welcome, ${d.name?.split(' ')[0] || 'friend'}! You've already checked in${d.checkedInAt ? ' at ' + new Date(d.checkedInAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : ''}. Head inside — the team is ready for you.`)
         .replace('<p class="sub">', metaHtml + '<p class="sub" style="display:none">'));
     }
@@ -5414,13 +5421,13 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
 
     const firstName = (d.name || 'friend').split(' ')[0];
     const guestsLine = d.guests ? `You and ${d.guests} guest${d.guests > 1 ? 's' : ''} are all set.` : '';
-    return res.send(page('Checked In!', '🎉', `Welcome, ${firstName}!`,
+    return res.send(page('Checked In!', `Welcome, ${firstName}!`,
       `You're checked in for ${d.eventTitle || 'today\'s event'}! ${guestsLine} Show this screen to the check-in volunteer at the entrance.`)
       .replace('<p class="sub">', metaHtml + '<p class="sub" style="display:none">'));
 
   } catch (e: any) {
     console.error('[CHECKIN PAGE]', e.message);
-    return res.status(500).send(page('Error', '⚠️', 'Something Went Wrong', 'We\'re having trouble verifying your check-in. Please show your confirmation email to the check-in volunteer.'));
+    return res.status(500).send(page('Error', 'Something Went Wrong', 'We\'re having trouble verifying your check-in. Please show your confirmation email to the check-in volunteer.'));
   }
 });
 
