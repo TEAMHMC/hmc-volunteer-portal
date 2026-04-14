@@ -15046,7 +15046,7 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
       // SMS wellness text
       const phone = normalizePhone(vol.phone || vol.phoneNumber);
       if (phone && vol.notificationPrefs?.smsAlerts !== false) {
-        const smsBody = `HMC Wellness 💙\n\n${motivationalQuote}\n\n${allUpcoming.length > 0 ? `${allUpcoming.length} upcoming opportunity${allUpcoming.length > 1 ? 's' : ''} — check your email or the portal for details!` : 'No events coming up — rest up and recharge.'}\n\nReply STOP to opt out.`;
+        const smsBody = `HMC Wellness 💙\n\n${motivationalQuote}\n\n${allUpcoming.length > 0 ? `${allUpcoming.length} upcoming opportunit${allUpcoming.length > 1 ? 'ies' : 'y'} — check your email or the portal for details!` : 'No events coming up — rest up and recharge.'}\n\nReply STOP to opt out.`;
         try {
           const smsResult = await sendSMS(vol.id, `+1${phone}`, smsBody);
           if (smsResult.sent) results.textsSent++;
