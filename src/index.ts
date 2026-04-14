@@ -8089,6 +8089,11 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
             existingData.isNewUser === true &&
             updates.isNewUser === false &&
             !existingData._onboardingAlertSent;
+        // Detect repeat onboarding attempt (already sent alerts but isNewUser got reset by a bug)
+        const isRepeatOnboarding = existingData &&
+            existingData.isNewUser === true &&
+            updates.isNewUser === false &&
+            existingData._onboardingAlertSent === true;
 
         let finalUpdates: any;
         if (isOnboardingCompletion) {
@@ -8105,6 +8110,13 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
                     volunteerRole, role, appliedRole, appliedRoleStatus,
                     ...safeUpdates } = updates;
             finalUpdates = safeUpdates;
+            // If this is a repeat onboarding (isNewUser was incorrectly reset), flip it back to false
+            // so the user isn't routed to onboarding indefinitely. No new admin notifications fired.
+            if (isRepeatOnboarding) {
+                finalUpdates.isNewUser = false;
+                finalUpdates.applicationStatus = 'pendingReview';
+                console.log(`[VOLUNTEER] Repeat onboarding detected for ${docId} — flipping isNewUser to false without re-alerting`);
+            }
         }
 
         // Encrypt SSN if being updated
@@ -8114,6 +8126,8 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
         if (isOnboardingCompletion) {
             finalUpdates._onboardingAlertSent = true;
         }
+        const hasPersonalFields = !!(finalUpdates.legalFirstName || finalUpdates.legalLastName || finalUpdates.dob || finalUpdates.phone);
+        console.log(`[VOLUNTEER PUT] docId=${docId} isOnboardingCompletion=${isOnboardingCompletion} isRepeatOnboarding=${isRepeatOnboarding} hasPersonalFields=${hasPersonalFields} keys=${Object.keys(finalUpdates).join(',')}`);
         await db.collection('volunteers').doc(docId).set(finalUpdates, { merge: true });
         const updated = (await db.collection('volunteers').doc(docId).get()).data();
 
