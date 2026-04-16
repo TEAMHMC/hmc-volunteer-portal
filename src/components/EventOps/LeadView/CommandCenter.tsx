@@ -958,6 +958,31 @@ const ServicesTab: React.FC = () => {
   const [consentGiven, setConsentGiven] = useState(false);
   const setField = (key: string, val: string) => setFormData(prev => ({ ...prev, [key]: val }));
 
+  // Client search for screening/referral linking
+  const [linkedClientId, setLinkedClientId] = useState<string | undefined>(undefined);
+  const [linkedClientName, setLinkedClientName] = useState('');
+  const [isWalkIn, setIsWalkIn] = useState(false);
+  const [clientQuery, setClientQuery] = useState('');
+  const [clientResults, setClientResults] = useState<any[]>([]);
+  const [clientLoading, setClientLoading] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
+
+  useEffect(() => {
+    if (clientQuery.trim().length < 2) { setClientResults([]); setClientOpen(false); return; }
+    const t = setTimeout(async () => {
+      setClientLoading(true);
+      try {
+        const res = await apiService.post('/api/clients/search', { name: clientQuery.trim() });
+        if (res?.multiple) setClientResults(res.results);
+        else if (res?.id) setClientResults([res]);
+        else setClientResults([]);
+        setClientOpen(true);
+      } catch { setClientResults([]); setClientOpen(true); }
+      finally { setClientLoading(false); }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [clientQuery]);
+
   const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
   useEffect(() => {
@@ -993,6 +1018,12 @@ const ServicesTab: React.FC = () => {
     setFormData({});
     setSurveyAnswers({});
     setConsentGiven(false);
+    setLinkedClientId(undefined);
+    setLinkedClientName('');
+    setIsWalkIn(false);
+    setClientQuery('');
+    setClientResults([]);
+    setClientOpen(false);
     setShowLogForm(true);
   };
 
@@ -1020,6 +1051,8 @@ const ServicesTab: React.FC = () => {
         ...(logType === 'survey' && Object.keys(surveyAnswers).length > 0
           ? { surveyResponses: JSON.stringify(surveyAnswers) }
           : {}),
+        ...(isWalkIn ? { isWalkIn: 'true' } : {}),
+        ...(linkedClientId ? { clientId: linkedClientId, clientName: linkedClientName } : linkedClientName ? { clientName: linkedClientName } : {}),
         eventId: opportunity.id,
         timestamp: new Date().toISOString(),
       });
@@ -1094,6 +1127,59 @@ const ServicesTab: React.FC = () => {
             </p>
             <button onClick={() => setShowLogForm(false)} className="text-zinc-400 hover:text-zinc-700"><X size={16} /></button>
           </div>
+
+          {/* CLIENT SEARCH — shown for screening and referral */}
+          {(logType === 'screening' || logType === 'referral') && (
+            <div className="relative">
+              <label className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block mb-1">Client</label>
+              {isWalkIn ? (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+                  <UserCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span className="text-sm font-black text-amber-800 flex-1">Walk-in / No Contact Info</span>
+                  <button onClick={() => { setIsWalkIn(false); setLinkedClientName(''); setLinkedClientId(undefined); }} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                </div>
+              ) : linkedClientId ? (
+                <div className="flex items-center gap-2 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-xl px-4 py-2.5">
+                  <UserCheck className="w-4 h-4 text-[#233DFF] flex-shrink-0" />
+                  <span className="text-sm font-black text-zinc-800 flex-1">{linkedClientName}</span>
+                  <button onClick={() => { setLinkedClientId(undefined); setLinkedClientName(''); setClientQuery(''); setClientResults([]); setClientOpen(false); }} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <input type="text" placeholder="Search by name..." value={clientQuery}
+                      onChange={e => { setClientQuery(e.target.value); setLinkedClientName(e.target.value); setLinkedClientId(undefined); }}
+                      className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:border-[#233DFF]/40 pr-8"
+                    />
+                    {clientLoading && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />}
+                  </div>
+                  {clientOpen && (
+                    <div className="mt-1 border border-zinc-200 rounded-xl overflow-hidden shadow-md bg-white z-10 relative">
+                      {clientResults.length > 0 ? (<>
+                        {clientResults.map((c: any) => (
+                          <button key={c.id} onClick={() => { const n = `${c.firstName||''} ${c.lastName||''}`.trim(); setLinkedClientId(c.id); setLinkedClientName(n); setClientQuery(n); setClientOpen(false); }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-zinc-50 border-b border-zinc-100 last:border-0">
+                            <p className="text-sm font-black text-zinc-800">{c.firstName} {c.lastName}</p>
+                            {(c.dob||c.phone) && <p className="text-xs text-zinc-400 mt-0.5">{c.dob?`DOB: ${c.dob}`:''}{c.dob&&c.phone?' · ':''}{c.phone||''}</p>}
+                          </button>
+                        ))}
+                        <button onClick={() => { setLinkedClientId(undefined); setClientOpen(false); }} className="w-full text-left px-4 py-2.5 text-xs text-zinc-400 hover:bg-zinc-50">Not listed — use name as entered</button>
+                      </>) : (
+                        <div className="px-4 py-3">
+                          <p className="text-xs text-zinc-500 font-medium">No client found.</p>
+                          <button onClick={() => setClientOpen(false)} className="mt-1 text-xs font-black text-[#233DFF] underline underline-offset-2">Continue with name only</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button onClick={() => { setIsWalkIn(true); setLinkedClientName(''); setLinkedClientId(undefined); }}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 rounded-xl py-2 hover:bg-amber-100 transition-colors">
+                    Walk-in / No Contact Info
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* SCREENING */}
           {logType === 'screening' && (<>
