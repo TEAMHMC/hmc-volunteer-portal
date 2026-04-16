@@ -115,6 +115,9 @@ interface ScreeningForm {
   glucose: string;
   bmi: string;
   followUp: boolean;
+  clientName: string;
+  clientId?: string;
+  isWalkIn: boolean;
 }
 
 type TrafficLevel = 'normal' | 'elevated' | 'high' | 'critical';
@@ -810,7 +813,36 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
   });
   const [screeningForm, setScreeningForm] = useState<ScreeningForm>({
     screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false,
+    clientName: '', clientId: undefined, isWalkIn: false,
   });
+  const [screeningClientQuery, setScreeningClientQuery] = useState('');
+  const [screeningClientResults, setScreeningClientResults] = useState<any[]>([]);
+  const [screeningClientLoading, setScreeningClientLoading] = useState(false);
+  const [screeningClientOpen, setScreeningClientOpen] = useState(false);
+
+  useEffect(() => {
+    if (isTestMode || screeningClientQuery.trim().length < 2) {
+      setScreeningClientResults([]);
+      setScreeningClientOpen(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setScreeningClientLoading(true);
+      try {
+        const res = await apiService.post('/api/clients/search', { name: screeningClientQuery.trim() });
+        if (res?.multiple) setScreeningClientResults(res.results);
+        else if (res?.id) setScreeningClientResults([res]);
+        else setScreeningClientResults([]);
+        setScreeningClientOpen(true);
+      } catch {
+        setScreeningClientResults([]);
+        setScreeningClientOpen(true);
+      } finally {
+        setScreeningClientLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [screeningClientQuery, isTestMode]);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -847,6 +879,8 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       type: sf.screeningType,
       followUpNeeded: sf.followUp,
       flags: {} as Record<string, any>,
+      ...(sf.isWalkIn ? { isWalkIn: true } : {}),
+      ...(sf.clientId ? { clientId: sf.clientId, clientName: sf.clientName } : sf.clientName ? { clientName: sf.clientName } : {}),
     };
 
     if (sf.screeningType === 'bp') {
@@ -895,7 +929,10 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
         summary: `Volunteer ${user.id} logged a ${sf.screeningType} screening for event ${opportunity.id}`,
       });
       onServiceLogged();
-      setScreeningForm({ screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false });
+      setScreeningForm({ screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false, clientName: '', clientId: undefined, isWalkIn: false });
+      setScreeningClientQuery('');
+      setScreeningClientResults([]);
+      setScreeningClientOpen(false);
       setActiveLog(null);
     } catch {
       // error shown by apiService
@@ -1049,8 +1086,106 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       // Pre-fill from simulation mock reading if in test mode and BP
       const showMockHint = isTestMode && sf.screeningType === 'bp' && !sf.systolic && !sf.diastolic;
 
+      const hasSelectedScreeningClient = !!screeningForm.clientId || screeningForm.isWalkIn;
+
       return (
         <div className={formBase}>
+          {/* Client lookup */}
+          <div className="relative mb-4">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1.5">Client</p>
+            {screeningForm.isWalkIn ? (
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+                <UserCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span className="text-sm font-black text-amber-800 flex-1">Walk-in / No Contact Info</span>
+                <button
+                  onClick={() => setScreeningForm((f) => ({ ...f, isWalkIn: false, clientName: '', clientId: undefined }))}
+                  className="text-zinc-400 hover:text-zinc-600"
+                ><X size={14} /></button>
+              </div>
+            ) : hasSelectedScreeningClient ? (
+              <div className="flex items-center gap-2 bg-[#233DFF]/5 border border-[#233DFF]/20 rounded-xl px-4 py-2.5">
+                <UserCheck className="w-4 h-4 text-[#233DFF] flex-shrink-0" />
+                <span className="text-sm font-black text-zinc-800 flex-1">{screeningForm.clientName}</span>
+                <button
+                  onClick={() => {
+                    setScreeningForm((f) => ({ ...f, clientName: '', clientId: undefined, isWalkIn: false }));
+                    setScreeningClientQuery('');
+                    setScreeningClientResults([]);
+                    setScreeningClientOpen(false);
+                  }}
+                  className="text-zinc-400 hover:text-zinc-600"
+                ><X size={14} /></button>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={isTestMode ? 'Practice: type "James"' : 'Search by name...'}
+                    value={screeningClientQuery}
+                    onChange={(e) => {
+                      setScreeningClientQuery(e.target.value);
+                      setScreeningForm((f) => ({ ...f, clientName: e.target.value, clientId: undefined }));
+                    }}
+                    className="w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] pr-9"
+                  />
+                  {screeningClientLoading && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+                  )}
+                </div>
+                {screeningClientOpen && (
+                  <div className="mt-1 border border-zinc-200 rounded-xl overflow-hidden shadow-md bg-white z-10 relative">
+                    {screeningClientResults.length > 0 ? (
+                      <>
+                        {screeningClientResults.map((c: any) => (
+                          <button
+                            key={c.id}
+                            onClick={() => {
+                              const name = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+                              setScreeningForm((f) => ({ ...f, clientName: name, clientId: c.id }));
+                              setScreeningClientQuery(name);
+                              setScreeningClientOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-zinc-50 border-b border-zinc-100 last:border-0"
+                          >
+                            <p className="text-sm font-black text-zinc-800">{c.firstName} {c.lastName}</p>
+                            {(c.dob || c.phone) && (
+                              <p className="text-xs text-zinc-400 mt-0.5">{c.dob ? `DOB: ${c.dob}` : ''}{c.dob && c.phone ? ' · ' : ''}{c.phone ? c.phone : ''}</p>
+                            )}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setScreeningForm((f) => ({ ...f, clientName: screeningClientQuery, clientId: undefined }));
+                            setScreeningClientOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs text-zinc-400 hover:bg-zinc-50"
+                        >Not listed — use name as entered</button>
+                      </>
+                    ) : (
+                      <div className="px-4 py-3">
+                        <p className="text-xs text-zinc-500 font-medium">No client found — they may not be registered yet.</p>
+                        <button
+                          onClick={() => {
+                            setScreeningForm((f) => ({ ...f, clientName: screeningClientQuery, clientId: undefined }));
+                            setScreeningClientOpen(false);
+                          }}
+                          className="mt-1 text-xs font-black text-[#233DFF] underline underline-offset-2"
+                        >Continue with name only</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <button
+                  onClick={() => setScreeningForm((f) => ({ ...f, isWalkIn: true, clientName: '', clientId: undefined }))}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 rounded-xl py-2 hover:bg-amber-100 transition-colors"
+                >
+                  Walk-in / No Contact Info
+                </button>
+              </>
+            )}
+          </div>
+
           {/* Type selector */}
           <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-2">Screening type</p>
           <div className="flex gap-1.5 mb-4 flex-wrap">
