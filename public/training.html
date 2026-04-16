@@ -247,6 +247,9 @@ img{display:block;max-width:100%}
       <a href="#after" class="sidebar-link" onclick="setActive(this)">
         <span class="step-num">10</span> After the Event
       </a>
+      <a href="#practice" class="sidebar-link" onclick="setActive(this)">
+        <span class="step-icon">🟢</span> Practice Mode
+      </a>
       <a href="#help" class="sidebar-link" onclick="setActive(this)">
         <span class="step-num">?</span> Getting Help
       </a>
@@ -840,6 +843,50 @@ img{display:block;max-width:100%}
         <div class="callout-icon">⚠</div>
         <div class="callout-body"><strong>Internet issues?</strong> If the portal is loading slowly on-site, try refreshing or switching to your phone's hotspot. If it's completely down, use paper backup forms — your coordinator will have them on hand. All paper records get entered into the system within 24 hours.</div>
       </div>
+
+      <div class="divider"></div>
+
+      <h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">Logging Health Screenings</h3>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">At street medicine and health fair events, volunteers at screening stations log readings directly in the portal. Each screening is linked to a specific client so results can be tracked over time and flagged for follow-up care.</p>
+
+      <div class="steps">
+        <div class="step highlight">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <div class="step-title">Tap "LOG HEALTH SCREENING" in your event view</div>
+            <div class="step-desc">In your My Day event panel, scroll to the service log buttons and tap <strong>LOG HEALTH SCREENING</strong>. The screening form will open below.</div>
+          </div>
+        </div>
+        <div class="step highlight">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <div class="step-title">Search for the client by name</div>
+            <div class="step-desc">Type the client's name in the <strong>Client</strong> field at the top. The system will search for existing records as you type. Select the correct match to link the screening to their record. If they don't appear, you can continue with the name only and a new record can be created later.<br><br>
+              <strong>Unhoused or no ID?</strong> Tap <strong>Walk-in / No Contact Info</strong> — the screening will still be logged and counted without requiring a linked record.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <div class="step-title">Select the screening type and enter the reading</div>
+            <div class="step-desc">Choose from <strong>BP</strong>, <strong>O₂</strong>, <strong>Temp</strong>, <strong>Glucose</strong>, or <strong>BMI</strong>. Enter the reading. A color-coded result (green / yellow / red) will appear immediately based on clinical thresholds.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">4</div>
+          <div class="step-body">
+            <div class="step-title">Critical readings escalate automatically</div>
+            <div class="step-desc">Red readings automatically set a follow-up flag. If the reading is <strong>critical</strong> (e.g., BP ≥ 180/120), an alert will prompt you to stay with the client — your Events Lead and clinical team are notified immediately. Do not leave a critical-reading client alone.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-badge">5</div>
+          <div class="step-body">
+            <div class="step-title">Tap "Log Screening"</div>
+            <div class="step-desc">Submit the reading. It saves instantly. You can log multiple screening types for the same client (e.g., BP then glucose) by repeating these steps.</div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- SECTION 10: AFTER EVENT -->
@@ -874,6 +921,46 @@ img{display:block;max-width:100%}
       </ul>
     </section>
 
+    <!-- PRACTICE MODE -->
+    <section class="content-section" id="practice">
+      <div class="section-header">
+        <div class="section-eyebrow">Before Your First Event</div>
+        <h2 class="section-title">Practice Mode — Run a Simulation</h2>
+        <p class="section-intro">The portal includes a built-in Practice Mode that lets you go through a full event workflow with simulated data — no real clients, no real logs, no consequences. Your Events Lead can activate it for any training session or pre-event walkthrough.</p>
+      </div>
+
+      <div class="callout" style="border-color:rgba(35,61,255,.3);background:rgba(35,61,255,.08)">
+        <div class="callout-icon" style="color:var(--brand)">ℹ</div>
+        <div class="callout-body">Practice Mode is enabled by your coordinator — you don't turn it on yourself. When it's active, you'll see a blue <strong>[PRACTICE]</strong> banner in your event view. Everything works exactly like a real event, but nothing is saved to the live system.</div>
+      </div>
+
+      <h3 style="font-size:14px;font-weight:700;color:#fff;margin:20px 0 12px">What to practice</h3>
+
+      <ul class="checklist">
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Log a health screening.</strong> Your coordinator will give you a mock BP reading to enter (e.g., 158 / 96). Walk through the client search, select the simulated client, enter the reading, and observe the traffic light result.</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Create a referral.</strong> Search for the practice client by name, select a need type, and submit. Practice what to say when asking for a client's consent.</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Check in a client.</strong> Use the check-in flow to mark the simulated client as arrived. Practice the walk-in flow for someone without ID.</div>
+        </li>
+        <li>
+          <div class="check-box">→</div>
+          <div><strong>Handle a critical reading.</strong> Enter a BP of 185 / 125 and observe the critical alert. Practice what to do: stay with the person, do not leave, notify your Events Lead.</div>
+        </li>
+      </ul>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠</div>
+        <div class="callout-body"><strong>If you don't see the [PRACTICE] banner</strong>, the event is live. Only log real screenings and real client interactions. Never enter fake data in a live event — it goes into the clinical record.</div>
+      </div>
+    </section>
+
     <!-- HELP -->
     <section class="content-section" id="help">
       <div class="section-header">
@@ -901,7 +988,7 @@ img{display:block;max-width:100%}
         </div>
         <div class="qr-card">
           <div class="qr-label">General Email</div>
-          <div class="qr-value"><a href="mailto:volunteers@healthmatters.clinic">volunteers@healthmatters.clinic</a></div>
+          <div class="qr-value"><a href="mailto:volunteer@healthmatters.clinic">volunteer@healthmatters.clinic</a></div>
         </div>
         <div class="qr-card">
           <div class="qr-label">Documentation</div>
@@ -959,7 +1046,7 @@ img{display:block;max-width:100%}
     <!-- FOOTER -->
     <footer class="training-footer">
       <div class="footer-logo">Health Matters Clinic · Volunteer Portal</div>
-      <div class="footer-note">Questions about this training? Email <a href="mailto:volunteers@healthmatters.clinic" class="footer-link">volunteers@healthmatters.clinic</a></div>
+      <div class="footer-note">Questions about this training? Email <a href="mailto:volunteer@healthmatters.clinic" class="footer-link">volunteer@healthmatters.clinic</a></div>
       <div style="font-size:12px;color:var(--text-3)">volunteer.healthmatters.clinic/training</div>
     </footer>
 
