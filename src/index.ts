@@ -5535,30 +5535,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
         }
 
-        // Send confirmation email to registrant — check-in button points to portal /checkin page
-        if (email) {
-            // Use portal's own /checkin page (NOT the email service URL)
-            const portalBase = process.env.PORTAL_URL || 'https://volunteer.healthmatters.clinic';
-            const checkinPageUrl = `${portalBase}/checkin?token=${checkinToken}`;
-            const guestLine = guests ? `<p style="margin:0 0 8px 0;"><strong>Guests:</strong> +${guests}</p>` : '';
-            const confirmHtml = `${emailHeader(`You're Registered!`)}
-              <p>Hi ${name},</p>
-              <p>You're confirmed for:</p>
-              <div style="background:#f0f9ff;padding:24px;border-radius:12px;margin:24px 0;border-left:4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
-                <h3 style="margin:0 0 12px 0;color:${EMAIL_CONFIG.BRAND_COLOR};">${eventTitle || 'Community Event'}</h3>
-                ${eventDate ? `<p style="margin:0 0 8px 0;"><strong>Date:</strong> ${eventDate}</p>` : ''}
-                ${guestLine}
-              </div>
-              <p>On the day of the event, tap the button below when you arrive to check in — no need to print anything or wait in line.</p>
-              ${actionButton('Check In on Event Day', checkinPageUrl)}
-              <p style="text-align:center;font-size:13px;color:#9ca3af;margin-top:-16px;">Use this button when you arrive at the venue.</p>
-              <p>Questions? Reply to this email or reach us at <a href="mailto:unstoppable@healthmatters.clinic" style="color:${EMAIL_CONFIG.BRAND_COLOR};">unstoppable@healthmatters.clinic</a>.</p>
-              <p>See you there!</p>
-            ${emailFooter()}`;
-            const confirmText = `Hi ${name}, you're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. Check in on event day: ${checkinPageUrl}`;
-            sendEmailRaw(email, `You're registered: ${eventTitle || 'HMC Event'}`, confirmHtml, confirmText)
-              .catch(err => console.error('[PUBLIC RSVP] Confirmation email failed:', err));
-        }
+        // Confirmation email is sent by Google Apps Script (primary writer) — portal does not send a duplicate.
 
         // Sync to Google Sheet via Apps Script (async, non-blocking)
         const appsScriptUrl = APPS_SCRIPT_EVENTS_URL;
