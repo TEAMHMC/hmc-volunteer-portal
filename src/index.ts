@@ -5348,8 +5348,8 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
         const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', d.eventId).limit(1).get();
         if (!shiftsSnap.empty) {
           const sd = shiftsSnap.docs[0].data();
-          if (sd.startTime) eventStart = new Date(sd.startTime);
-          if (sd.endTime) eventEnd = new Date(sd.endTime);
+          if (sd.startTime) eventStart = new Date(ensurePacificTime(sd.startTime));
+          if (sd.endTime) eventEnd = new Date(ensurePacificTime(sd.endTime));
         }
       } catch { /* non-critical */ }
     }
@@ -5691,8 +5691,8 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
                 slotsTotal: 10,
                 slotsFilled: 0,
                 assignedVolunteerIds: [],
-                startTime: `${event.date}T${startTime}`,
-                endTime: `${event.date}T${endTime}`,
+                startTime: pacificDateTimeISO(event.date, startTime),
+                endTime: pacificDateTimeISO(event.date, endTime),
             };
             await db.collection('shifts').add(defaultShift);
 
@@ -5816,8 +5816,8 @@ app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (re
             .where('opportunityId', '==', d.eventId).limit(1).get();
           if (!shiftsSnap.empty) {
             const sd = shiftsSnap.docs[0].data();
-            if (sd.startTime) eventStart = new Date(sd.startTime);
-            if (sd.endTime)   eventEnd   = new Date(sd.endTime);
+            if (sd.startTime) eventStart = new Date(ensurePacificTime(sd.startTime));
+            if (sd.endTime)   eventEnd   = new Date(ensurePacificTime(sd.endTime));
           }
         } catch { /* non-critical */ }
       }
@@ -5890,8 +5890,8 @@ app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (re
 
     const doc2 = volSnap.docs[0];
     const d2 = doc2.data();
-    const shiftStart = d2.shiftStartTime ? new Date(d2.shiftStartTime) : null;
-    const shiftEnd   = d2.shiftEndTime   ? new Date(d2.shiftEndTime)   : null;
+    const shiftStart = d2.shiftStartTime ? new Date(ensurePacificTime(d2.shiftStartTime)) : null;
+    const shiftEnd   = d2.shiftEndTime   ? new Date(ensurePacificTime(d2.shiftEndTime))   : null;
     const windowOpen2 = shiftStart ? new Date(shiftStart.getTime() - 45 * 60 * 1000) : null;
 
     if (windowOpen2 && now < windowOpen2) {
@@ -8470,8 +8470,8 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
         const eventDate = opportunity.date || getPacificDate();
         const startTimePart = opportunity.startTime || '09:00:00';
         const endTimePart = opportunity.endTime || '14:00:00';
-        const defaultStartTime = `${eventDate}T${startTimePart}`;
-        const defaultEndTime = `${eventDate}T${endTimePart}`;
+        const defaultStartTime = pacificDateTimeISO(eventDate, startTimePart);
+        const defaultEndTime = pacificDateTimeISO(eventDate, endTimePart);
 
         if (opportunity.staffingQuotas && opportunity.staffingQuotas.length > 0) {
             for (const quota of opportunity.staffingQuotas) {
@@ -8575,10 +8575,10 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             const eventDate = sanitizedUpdates.date || (await db.collection('opportunities').doc(id).get()).data()?.date;
             shiftsSnap.docs.forEach(shiftDoc => {
                 const shiftUpdates: any = {};
-                if (sanitizedUpdates.startTime) shiftUpdates.startTime = `${eventDate}T${sanitizedUpdates.startTime}`;
-                else if (sanitizedUpdates.date) shiftUpdates.startTime = `${eventDate}T${shiftDoc.data().startTime?.split('T')[1] || '09:00:00'}`;
-                if (sanitizedUpdates.endTime) shiftUpdates.endTime = `${eventDate}T${sanitizedUpdates.endTime}`;
-                else if (sanitizedUpdates.date) shiftUpdates.endTime = `${eventDate}T${shiftDoc.data().endTime?.split('T')[1] || '14:00:00'}`;
+                if (sanitizedUpdates.startTime) shiftUpdates.startTime = pacificDateTimeISO(eventDate, sanitizedUpdates.startTime);
+                else if (sanitizedUpdates.date) shiftUpdates.startTime = pacificDateTimeISO(eventDate, shiftDoc.data().startTime?.split('T')[1]?.replace(/[+-]\d\d:\d\d$/, '') || '09:00:00');
+                if (sanitizedUpdates.endTime) shiftUpdates.endTime = pacificDateTimeISO(eventDate, sanitizedUpdates.endTime);
+                else if (sanitizedUpdates.date) shiftUpdates.endTime = pacificDateTimeISO(eventDate, shiftDoc.data().endTime?.split('T')[1]?.replace(/[+-]\d\d:\d\d$/, '') || '14:00:00');
                 if (Object.keys(shiftUpdates).length > 0) batch.update(shiftDoc.ref, shiftUpdates);
             });
             await batch.commit();
@@ -8842,8 +8842,8 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
             importedEvents.push({ id: opportunityId, ...opportunity });
 
             // Create shifts for each staffing quota
-            const defaultStartTime = `${eventDate}T${startTimePart}`;
-            const defaultEndTime = `${eventDate}T${endTimePart}`;
+            const defaultStartTime = pacificDateTimeISO(eventDate, startTimePart);
+            const defaultEndTime = pacificDateTimeISO(eventDate, endTimePart);
 
             for (const quota of staffingQuotas) {
                 const shift = {
@@ -9053,8 +9053,8 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
                     const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', existing.id).get();
                     for (const shiftDoc of shiftsSnap.docs) {
                         await shiftDoc.ref.update({
-                            startTime: `${dateStr}T${parsed.startTime}`,
-                            endTime: `${dateStr}T${parsed.endTime}`,
+                            startTime: pacificDateTimeISO(dateStr, parsed.startTime),
+                            endTime: pacificDateTimeISO(dateStr, parsed.endTime),
                         });
                     }
                 }
@@ -9108,8 +9108,8 @@ app.post('/api/events/sync-from-finder', verifyToken, async (req: Request, res: 
                 slotsTotal: 10,
                 slotsFilled: 0,
                 assignedVolunteerIds: [],
-                startTime: `${event.date}T${startTime}`,
-                endTime: `${event.date}T${endTime}`,
+                startTime: pacificDateTimeISO(event.date, startTime),
+                endTime: pacificDateTimeISO(event.date, endTime),
             };
             const shiftRef = await db.collection('shifts').add(shift);
 
@@ -9435,7 +9435,7 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
             const shiftDoc = await db.collection('shifts').doc(shiftId).get();
             const st = shiftDoc.data()?.startTime;
             if (st) {
-              const d = new Date(st);
+              const d = new Date(ensurePacificTime(st));
               if (!isNaN(d.getTime())) eventTimeForEmail = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
             }
           } catch { /* non-critical */ }
@@ -10415,6 +10415,26 @@ function getPacificDate(offsetDays = 0): string {
   return pacific.toISOString().split('T')[0]; // YYYY-MM-DD in Pacific time
 }
 
+// Returns current Pacific UTC offset: "-07:00" (PDT) or "-08:00" (PST)
+function getPacificOffset(): string {
+  const utcMs = Date.now();
+  const laStr = new Date(utcMs).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', timeZoneName: 'short' });
+  return laStr.includes('PDT') ? '-07:00' : '-08:00';
+}
+
+// Build a timezone-aware ISO string from a YYYY-MM-DD date and HH:mm:ss time (Pacific).
+// Prevents the 7-hour offset bug where Cloud Run (UTC) misreads naive datetimes as UTC.
+function pacificDateTimeISO(dateStr: string, timeStr: string): string {
+  return `${dateStr}T${timeStr}${getPacificOffset()}`;
+}
+
+// If a stored startTime string has no timezone marker, treat it as Pacific.
+function ensurePacificTime(dt: string): string {
+  if (!dt) return dt;
+  if (dt.includes('+') || dt.endsWith('Z') || /[+-]\d\d:\d\d$/.test(dt)) return dt;
+  return dt + getPacificOffset();
+}
+
 const WORKFLOW_DEFAULTS: Record<string, { enabled: boolean }> = {
   w1: { enabled: true },
   w2: { enabled: true },
@@ -11110,7 +11130,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
     for (const event of allEvents) {
       const opp = event.data;
       const eventDate = opp.date; // YYYY-MM-DD
-      const eventDateTime = new Date(eventDate + 'T' + (opp.time || opp.startTime || '09:00'));
+      const eventDateTime = new Date(ensurePacificTime(eventDate + 'T' + (opp.time || opp.startTime || '09:00')));
       const hoursUntil = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       const daysUntil = hoursUntil / 24;
 
@@ -14149,10 +14169,10 @@ async function queryAllEvents(filters: { callerRole?: string; isAdmin?: boolean;
     const opp = oppsById[s.opportunityId] || {};
     const shiftDate = s.startTime ? (s.startTime.includes('T') ? s.startTime.split('T')[0] : s.startTime) : '';
     const shiftStartTime = s.startTime && s.startTime.includes('T')
-      ? new Date(s.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      ? new Date(ensurePacificTime(s.startTime)).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })
       : '';
     const shiftEndTime = s.endTime && s.endTime.includes('T')
-      ? new Date(s.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      ? new Date(ensurePacificTime(s.endTime)).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })
       : '';
     return {
       id: d.id,
