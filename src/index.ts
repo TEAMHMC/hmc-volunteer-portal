@@ -11973,6 +11973,55 @@ app.post('/api/cron/run-sms-check', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/events/force-3h-sms-today — Find today's event automatically and force Stage 5 SMS
+app.post('/api/admin/events/force-3h-sms-today', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const today = getPacificDate(0);
+    const titleFilter: string | undefined = (req.query.title as string)?.toLowerCase();
+    const oppsSnap = await db.collection('opportunities').where('date', '==', today).get();
+    if (oppsSnap.empty) return res.status(404).json({ error: `No events found for ${today}` });
+
+    let opp: any = null;
+    let oppId: string = '';
+    for (const doc of oppsSnap.docs) {
+      const d = doc.data();
+      if (!titleFilter || (d.title || '').toLowerCase().includes(titleFilter)) {
+        opp = d; oppId = doc.id; break;
+      }
+    }
+    if (!opp) return res.status(404).json({ error: 'No matching event found for today' });
+
+    const startTime = ensurePacificTime(opp.startTime || opp.date);
+    const eventDate = new Date(startTime);
+    const location = opp.location || 'location TBD';
+    const time = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+
+    const regsSnap = await db.collection('event_registrations')
+      .where('opportunityId', '==', oppId)
+      .where('status', '==', 'registered')
+      .get();
+
+    let sent = 0, skipped = 0, failed = 0;
+    for (const reg of regsSnap.docs) {
+      const volId = reg.data().volunteerId;
+      const volDoc = await db.collection('volunteers').doc(volId).get();
+      if (!volDoc.exists) { skipped++; continue; }
+      const vol = volDoc.data()!;
+      const phone = normalizePhone(vol.phone);
+      if (!phone) { skipped++; continue; }
+      const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
+      try {
+        const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+        if (smsResult.sent) { await logReminderSent(volId, oppId, 5); sent++; }
+        else { skipped++; }
+      } catch { failed++; }
+    }
+    res.json({ success: true, event: opp.title, eventId: oppId, time, location, sent, skipped, failed });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/admin/events/:eventId/force-3h-sms — Force Stage 5 SMS for a specific event (bypasses dedup)
 app.post('/api/admin/events/:eventId/force-3h-sms', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   const { eventId } = req.params;
