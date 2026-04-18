@@ -11973,7 +11973,7 @@ app.post('/api/cron/run-sms-check', async (req: Request, res: Response) => {
   }
 });
 
-async function forceStage5SMS(oppId: string, opp: any): Promise<{ sent: number; skipped: number; failed: number; time: string; location: string }> {
+async function forceStage5SMS(oppId: string, opp: any, customMessage?: string): Promise<{ sent: number; skipped: number; failed: number; time: string; location: string }> {
   const timeStr = opp.time || (opp.startTime ? opp.startTime.split('T')[1]?.substring(0, 5) : null) || '09:00';
   const eventDateTime = new Date(ensurePacificTime(`${opp.date}T${timeStr}`));
   const time = eventDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
@@ -12015,9 +12015,9 @@ async function forceStage5SMS(oppId: string, opp: any): Promise<{ sent: number; 
   let sent = 0, skipped = 0, failed = 0;
   for (const volDoc of allVolDocs) {
     const vol = volDoc.data()!;
-    const phone = normalizePhone(vol.phone);
+    const phone = normalizePhone(vol.phone || vol.phoneNumber);
     if (!phone) { skipped++; continue; }
-    const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
+    const msg = customMessage || `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
     try {
       const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
       if (smsResult.sent) { await logReminderSent(volDoc.id, oppId, 5); sent++; }
@@ -12043,7 +12043,8 @@ app.post('/api/admin/events/force-3h-sms-today', verifyToken, requireAdmin, asyn
     }
     if (!opp) return res.status(404).json({ error: 'No matching event found for today' });
 
-    const r = await forceStage5SMS(oppId, opp);
+    const customMessage = req.body?.message;
+    const r = await forceStage5SMS(oppId, opp, customMessage);
     res.json({ success: true, event: opp.title, eventId: oppId, ...r });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
