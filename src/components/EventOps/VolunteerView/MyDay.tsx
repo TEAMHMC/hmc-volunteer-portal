@@ -880,7 +880,7 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       followUpNeeded: sf.followUp,
       flags: {} as Record<string, any>,
       ...(sf.isWalkIn ? { isWalkIn: true } : {}),
-      ...(sf.clientId ? { clientId: sf.clientId, clientName: sf.clientName } : sf.clientName ? { clientName: sf.clientName } : {}),
+      ...(sf.clientId ? { clientId: sf.clientId, clientName: sf.clientName } : { clientName: sf.clientName || (sf.isWalkIn ? 'Walk-in' : '') }),
     };
 
     if (sf.screeningType === 'bp') {
