@@ -12004,6 +12004,14 @@ async function forceStage5SMS(oppId: string, opp: any): Promise<{ sent: number; 
     }
   } catch {}
 
+  // Admins also receive event reminders (matches cron behavior)
+  try {
+    const adminSnap = await db.collection('volunteers').where('isAdmin', '==', true).get();
+    for (const adminDoc of adminSnap.docs) {
+      if (!registeredIds.has(adminDoc.id)) { allVolDocs.push(adminDoc); registeredIds.add(adminDoc.id); }
+    }
+  } catch {}
+
   let sent = 0, skipped = 0, failed = 0;
   for (const volDoc of allVolDocs) {
     const vol = volDoc.data()!;
