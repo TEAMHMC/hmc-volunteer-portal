@@ -355,26 +355,34 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shift.id, opportunity.id, user.id]);
 
-  // ── Roster polling for leads ──
+  // ── Roster + tracker polling for leads ──
   useEffect(() => {
     if (!isLead || isTestMode) return;
 
     const poll = async () => {
       if (!isMounted.current) return;
       try {
-        const [stats, rsvps] = await Promise.all([
+        const [stats, rsvps, trackerData] = await Promise.all([
           apiService.get(`/api/events/${opportunity.id}/rsvp-stats`),
           apiService.get(`/api/events/${opportunity.id}/public-rsvps`),
+          apiService.get(`/api/ops/tracker/${opportunity.id}`).catch(() => null),
         ]);
         if (isMounted.current) {
-          setState(prev => ({ ...prev, rsvpStats: stats, rsvps: rsvps ?? [] }));
+          setState(prev => ({
+            ...prev,
+            rsvpStats: stats,
+            rsvps: rsvps ?? [],
+            ...(trackerData ? { tracker: trackerData } : {}),
+          }));
         }
       } catch {
         // Silent fail on poll
       }
     };
 
-    const intervalId = setInterval(poll, 30_000);
+    // Poll immediately then every 20s so lead sees live activity
+    poll();
+    const intervalId = setInterval(poll, 20_000);
     return () => clearInterval(intervalId);
   }, [isLead, isTestMode, opportunity.id]);
 

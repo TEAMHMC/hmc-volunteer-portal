@@ -1023,6 +1023,7 @@ const ServicesTab: React.FC = () => {
           apiService.get(`/api/client-surveys?eventId=${opportunity.id}&date=${todayStr}`).catch(() => []),
         ]);
         if (!cancelled) {
+          setCountsError(false);
           setCounts({
             screenings: Array.isArray(s) ? s.length : (s?.total ?? 0),
             referrals: Array.isArray(r) ? r.length : (r?.total ?? 0),
@@ -1036,7 +1037,8 @@ const ServicesTab: React.FC = () => {
       }
     };
     load();
-    return () => { cancelled = true; };
+    const pollId = setInterval(load, 20_000);
+    return () => { cancelled = true; clearInterval(pollId); };
   }, [opportunity.id, todayStr]);
 
   const distributions = state.tracker?.distributions.length ?? 0;

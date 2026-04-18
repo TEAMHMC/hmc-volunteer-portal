@@ -10318,6 +10318,19 @@ app.post('/api/admin/add-volunteer', verifyToken, requireAdmin, async (req: Requ
         res.status(500).json({ error: 'Failed to add volunteer' });
     }
 });
+// POST /api/admin/grant-clinical-access — Grant full ops + screenings access by email (no training gate)
+app.post('/api/admin/grant-clinical-access', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    const { email, role } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const snap = await db.collection('volunteers').where('email', '==', email.toLowerCase().trim()).limit(1).get();
+    if (snap.empty) return res.status(404).json({ error: `No volunteer found with email ${email}` });
+    const doc = snap.docs[0];
+    const grantedRole = role || 'Program Coordinator';
+    await doc.ref.update({ role: grantedRole, volunteerRole: grantedRole, coreVolunteerStatus: true, completedHIPAATraining: true });
+    console.log(`[ADMIN] Clinical access granted to ${email} (role: ${grantedRole}) by ${(req as any).user?.profile?.email}`);
+    res.json({ success: true, id: doc.id, role: grantedRole });
+});
+
 app.post('/api/admin/update-volunteer-profile', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     const { volunteer } = req.body;
     if (!volunteer?.id) return res.status(400).json({ error: 'Volunteer ID required' });
