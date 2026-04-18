@@ -1450,7 +1450,9 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     }, [eventId, surveyKit.id]);
 
     // Guard AFTER hooks to comply with React Rules of Hooks
-    if (!hasOperationalClearance(user)) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
+    // Surveys are accessible to any Core Volunteer role, not just fully-trained leads
+    const canDoSurveys = hasOperationalClearance(user) || user.role === 'Core Volunteer';
+    if (!canDoSurveys) return <AccessGate requiredTraining="Core Volunteer Training (Training Academy)" />;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

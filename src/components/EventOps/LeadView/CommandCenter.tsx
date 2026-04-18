@@ -1860,6 +1860,7 @@ const CommandCenter: React.FC<LeadCommandCenterProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showSignoff, setShowSignoff] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [serviceCounts, setServiceCounts] = useState({ screenings: 0, referrals: 0 });
 
   // Clock
   useEffect(() => {
@@ -1868,11 +1869,29 @@ const CommandCenter: React.FC<LeadCommandCenterProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch actual service counts for "Served Today" stat
+  useEffect(() => {
+    if (!opportunity?.id) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const fetch = () => Promise.all([
+      apiService.get(`/api/health-screenings?eventId=${opportunity.id}&date=${todayStr}`).catch(() => []),
+      apiService.get(`/api/referrals?eventId=${opportunity.id}&date=${todayStr}`).catch(() => []),
+    ]).then(([s, r]) => {
+      setServiceCounts({
+        screenings: Array.isArray(s) ? s.length : (s?.total ?? 0),
+        referrals: Array.isArray(r) ? r.length : (r?.total ?? 0),
+      });
+    }).catch(() => {});
+    fetch();
+    const poll = setInterval(fetch, 30000);
+    return () => clearInterval(poll);
+  }, [opportunity?.id]);
+
   // ── Derived stats ──
   const checkedIn = state.rsvpStats?.checkedIn ?? 0;
   const total = state.rsvpStats?.total ?? 0;
   const walkins = state.rsvpStats?.walkins ?? 0;
-  const served = state.tracker?.participantsServed ?? 0;
+  const served = serviceCounts.screenings + serviceCounts.referrals + (state.tracker?.distributions?.length ?? 0);
   const openIncidents = state.incidents.filter(i => i.status !== 'resolved').length;
 
   const checkinPct = total > 0 ? (checkedIn / total) * 100 : 0;
