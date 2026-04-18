@@ -950,6 +950,7 @@ const ServicesTab: React.FC = () => {
   const { state, opportunity, logClientEncounter } = useOps();
   const [counts, setCounts] = useState<ServiceCounts>({ screenings: null, referrals: null, surveys: null });
   const [loadingCounts, setLoadingCounts] = useState(true);
+  const [countsError, setCountsError] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
   const [logType, setLogType] = useState<'screening' | 'referral' | 'distribution' | 'survey' | null>(null);
   const [logLoading, setLogLoading] = useState(false);
@@ -1002,7 +1003,7 @@ const ServicesTab: React.FC = () => {
           });
         }
       } catch {
-        // fail silently — zeros shown
+        if (!cancelled) setCountsError(true);
       } finally {
         if (!cancelled) setLoadingCounts(false);
       }
@@ -1072,14 +1073,14 @@ const ServicesTab: React.FC = () => {
     {
       label: 'Screenings',
       type: 'screening' as const,
-      value: loadingCounts ? '—' : (counts.screenings ?? 0),
+      value: loadingCounts ? '—' : countsError ? '?' : (counts.screenings ?? 0),
       icon: <HeartPulse size={18} className="text-rose-400" />,
       color: 'rose' as const,
     },
     {
       label: 'Referrals',
       type: 'referral' as const,
-      value: loadingCounts ? '—' : (counts.referrals ?? 0),
+      value: loadingCounts ? '—' : countsError ? '?' : (counts.referrals ?? 0),
       icon: <ChevronRight size={18} className="text-[#233DFF]" />,
       color: 'brand' as const,
     },
@@ -1093,7 +1094,7 @@ const ServicesTab: React.FC = () => {
     {
       label: 'Surveys',
       type: 'survey' as const,
-      value: loadingCounts ? '—' : (counts.surveys ?? 0),
+      value: loadingCounts ? '—' : countsError ? '?' : (counts.surveys ?? 0),
       icon: <ClipboardList size={18} className="text-amber-400" />,
       color: 'amber' as const,
     },

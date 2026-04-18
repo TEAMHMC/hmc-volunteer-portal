@@ -145,7 +145,7 @@ const request = async (method: string, endpoint: string, body?: any, timeout = 3
 // Session heartbeat: keeps active sessions alive by pinging the server every 15 min.
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let heartbeatFailures = 0;
-const MAX_HEARTBEAT_FAILURES = 3; // 3 consecutive failures = ~45 min of connectivity issues
+const MAX_HEARTBEAT_FAILURES = 999; // Never kick volunteers out mid-event due to connectivity
 
 function startSessionHeartbeat() {
   stopSessionHeartbeat();

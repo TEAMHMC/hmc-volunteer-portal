@@ -596,17 +596,26 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
         toastService.success('[Practice] Volunteer checked in');
         return;
       }
+      // Optimistic update first
+      setState(prev => ({
+        ...prev,
+        rsvps: prev.rsvps.map(r =>
+          r.id === volunteerId ? { ...r, checkedIn: true, checkedInAt: new Date().toISOString() } : r
+        ),
+        rsvpStats: prev.rsvpStats
+          ? { ...prev.rsvpStats, checkedIn: (prev.rsvpStats.checkedIn ?? 0) + 1 }
+          : prev.rsvpStats,
+      }));
       try {
         await apiService.post(`/api/events/${opportunity.id}/manual-checkin`, { volunteerId });
         toastService.success('Volunteer checked in');
         await refreshRoster();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Manual check-in failed';
-        toastService.error(msg);
-        throw err;
+        void queueWrite(`/api/events/${opportunity.id}/manual-checkin`, { volunteerId });
+        toastService.success('Volunteer checked in (will sync when online)');
       }
     },
-    [isLead, isTestMode, opportunity.id, refreshRoster],
+    [isLead, isTestMode, opportunity.id, refreshRoster, queueWrite],
   );
 
   const walkInCheckin = useCallback(
@@ -632,17 +641,33 @@ export const OpsProvider: React.FC<OpsProviderProps> = ({
         toastService.success(`[Practice] Walk-in registered: ${name}`);
         return;
       }
+      // Optimistic update first
+      const mockId = `walkin-${Date.now()}`;
+      setState(prev => ({
+        ...prev,
+        rsvps: [...prev.rsvps, {
+          id: mockId, name, email: email ?? '',
+          checkedIn: true, checkedInAt: new Date().toISOString(), walkin: true,
+        }],
+        rsvpStats: prev.rsvpStats
+          ? {
+              ...prev.rsvpStats,
+              walkins: (prev.rsvpStats.walkins ?? 0) + 1,
+              checkedIn: (prev.rsvpStats.checkedIn ?? 0) + 1,
+              total: (prev.rsvpStats.total ?? 0) + 1,
+            }
+          : prev.rsvpStats,
+      }));
       try {
         await apiService.post(`/api/events/${opportunity.id}/walkin-checkin`, { name, email, phone, noPhone, altContact, existingClientId });
         toastService.success(`Walk-in checked in: ${name}`);
         await refreshRoster();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Walk-in check-in failed';
-        toastService.error(msg);
-        throw err;
+      } catch {
+        void queueWrite(`/api/events/${opportunity.id}/walkin-checkin`, { name, email, phone, noPhone, altContact, existingClientId });
+        toastService.success(`Walk-in checked in: ${name} (will sync when online)`);
       }
     },
-    [isLead, isTestMode, opportunity.id, refreshRoster],
+    [isLead, isTestMode, opportunity.id, refreshRoster, queueWrite],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
