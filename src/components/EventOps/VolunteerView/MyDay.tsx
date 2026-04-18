@@ -880,7 +880,7 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       followUpNeeded: sf.followUp,
       flags: {} as Record<string, any>,
       ...(sf.isWalkIn ? { isWalkIn: true } : {}),
-      ...(sf.clientId ? { clientId: sf.clientId, clientName: sf.clientName } : { clientName: sf.clientName || (sf.isWalkIn ? 'Walk-in' : '') }),
+      ...(sf.clientId ? { clientId: sf.clientId, clientName: sf.clientName } : sf.clientName ? { clientName: sf.clientName } : {}),
     };
 
     if (sf.screeningType === 'bp') {
@@ -1325,10 +1325,13 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
             </span>
           </button>
 
+          {!screeningForm.clientName.trim() && !screeningForm.clientId && (
+            <p className="text-xs font-black text-rose-500 text-center -mb-1">Client name required</p>
+          )}
           <button
             onClick={handleLogScreening}
-            disabled={logLoading}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95 disabled:opacity-50"
+            disabled={logLoading || (!screeningForm.clientName.trim() && !screeningForm.clientId)}
+            className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {logLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
             Log Screening
