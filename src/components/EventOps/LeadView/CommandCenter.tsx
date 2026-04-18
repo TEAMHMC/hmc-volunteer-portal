@@ -442,7 +442,7 @@ const SignoffModal: React.FC<SignoffModalProps> = ({ onClose, onBack }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RosterTab: React.FC = () => {
-  const { state, manualCheckin, walkInCheckin, refreshRoster, shift, allVolunteers } = useOps();
+  const { state, manualCheckin, walkInCheckin, refreshRoster, opportunity, shift, allVolunteers } = useOps();
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<RosterFilter>('all');
@@ -461,6 +461,7 @@ const RosterTab: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
   const clientSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const filtered = useMemo(() => {
     return state.rsvps.filter(r => {
@@ -569,6 +570,21 @@ const RosterTab: React.FC = () => {
       // handled
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleResetCheckins = async () => {
+    if (!window.confirm('Clear ALL check-in records for this event? Volunteers will need to check in again. Use this to fix a dry-run or stale data issue.')) return;
+    setResetting(true);
+    try {
+      await apiService.delete(`/api/ops/volunteer-checkin/${opportunity.id}/reset-all`);
+      toastService.success('Check-ins reset — volunteers can now check in fresh');
+      await refreshRoster();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Reset failed';
+      toastService.error(msg);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -902,14 +918,25 @@ const RosterTab: React.FC = () => {
           {state.rsvpStats?.checkedIn ?? 0} of {state.rsvpStats?.total ?? 0} checked in
           {(state.rsvpStats?.walkins ?? 0) > 0 && ` · ${state.rsvpStats?.walkins} walk-in${state.rsvpStats?.walkins !== 1 ? 's' : ''}`}
         </p>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-[#233DFF] font-black uppercase tracking-wider transition-colors min-h-[32px] px-2"
-        >
-          <RotateCw size={12} className={refreshing ? 'animate-spin' : ''} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-[#233DFF] font-black uppercase tracking-wider transition-colors min-h-[32px] px-2"
+          >
+            <RotateCw size={12} className={refreshing ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+          <button
+            onClick={handleResetCheckins}
+            disabled={resetting}
+            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-rose-500 font-black uppercase tracking-wider transition-colors min-h-[32px] px-2"
+            title="Clear stale check-in data (dry run fix)"
+          >
+            <RotateCw size={12} className={resetting ? 'animate-spin' : ''} />
+            Reset
+          </button>
+        </div>
       </div>
       </>}
     </div>

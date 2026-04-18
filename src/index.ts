@@ -7655,6 +7655,26 @@ app.get('/api/ops/volunteer-checkin/:eventId/status', verifyToken, async (req: R
     }
 });
 
+// DELETE /api/ops/volunteer-checkin/:eventId/reset-all — Lead resets all check-ins (clears stale dry-run data)
+app.delete('/api/ops/volunteer-checkin/:eventId/reset-all', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const userProfile = (req as any).user?.profile;
+        const LEAD_ROLES_SET = new Set(['Events Lead', 'Events Coordinator', 'Volunteer Lead', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead']);
+        if (!userProfile?.isAdmin && !LEAD_ROLES_SET.has(userProfile?.role)) {
+            return res.status(403).json({ error: 'Lead access required' });
+        }
+        const snap = await db.collection('volunteer_checkins')
+            .where('eventId', '==', req.params.eventId)
+            .get();
+        const batch = db.batch();
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        res.json({ success: true, cleared: snap.size });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // GET /api/ops/volunteer-checkin/:eventId/all — Get all check-ins for an event (for leads)
 app.get('/api/ops/volunteer-checkin/:eventId/all', verifyToken, async (req: Request, res: Response) => {
     try {
