@@ -11958,6 +11958,61 @@ app.post('/api/admin/workflows/test-debrief', async (req: Request, res: Response
   }
 });
 
+// POST /api/cron/run-sms-check — Manually trigger the Stage 5 (3h SMS) workflow
+app.post('/api/cron/run-sms-check', async (req: Request, res: Response) => {
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (cronSecret && providedSecret !== cronSecret) {
+    return res.status(403).json({ error: 'Invalid cron secret' });
+  }
+  try {
+    const result = await executeEventReminderCadence(true);
+    res.json({ success: true, result });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/events/:eventId/force-3h-sms — Force Stage 5 SMS for a specific event (bypasses dedup)
+app.post('/api/admin/events/:eventId/force-3h-sms', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  const { eventId } = req.params;
+  try {
+    const oppSnap = await db.collection('opportunities').doc(eventId).get();
+    if (!oppSnap.exists) return res.status(404).json({ error: 'Event not found' });
+    const opp = oppSnap.data()!;
+    const startTime = ensurePacificTime(opp.startTime || opp.date);
+    const eventDate = new Date(startTime);
+    const location = opp.location || 'location TBD';
+    const time = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+
+    const regsSnap = await db.collection('event_registrations')
+      .where('opportunityId', '==', eventId)
+      .where('status', '==', 'registered')
+      .get();
+
+    let sent = 0, skipped = 0, failed = 0;
+    for (const reg of regsSnap.docs) {
+      const volId = reg.data().volunteerId;
+      const volDoc = await db.collection('volunteers').doc(volId).get();
+      if (!volDoc.exists) { skipped++; continue; }
+      const vol = volDoc.data()!;
+      const phone = normalizePhone(vol.phone);
+      if (!phone) { skipped++; continue; }
+      const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
+      try {
+        const smsResult = await sendSMS(volId, `+1${phone}`, msg);
+        if (smsResult.sent) {
+          await logReminderSent(volId, eventId, 5);
+          sent++;
+        } else { skipped++; }
+      } catch { failed++; }
+    }
+    res.json({ success: true, sent, skipped, failed, time, location });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const runsSnap = await db.collection('workflow_runs')
