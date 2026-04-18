@@ -11973,6 +11973,52 @@ app.post('/api/cron/run-sms-check', async (req: Request, res: Response) => {
   }
 });
 
+async function forceStage5SMS(oppId: string, opp: any): Promise<{ sent: number; skipped: number; failed: number; time: string; location: string }> {
+  const timeStr = opp.time || (opp.startTime ? opp.startTime.split('T')[1]?.substring(0, 5) : null) || '09:00';
+  const eventDateTime = new Date(ensurePacificTime(`${opp.date}T${timeStr}`));
+  const time = eventDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+  const location = opp.serviceLocation || opp.location || 'the event location';
+
+  // Collect all registered volunteer docs from all sources
+  const registeredIds = new Set<string>();
+  const allVolDocs: admin.firestore.DocumentSnapshot[] = [];
+
+  const volsSnap = await db.collection('volunteers').where('rsvpedEventIds', 'array-contains', oppId).get();
+  for (const d of volsSnap.docs) { registeredIds.add(d.id); allVolDocs.push(d); }
+
+  for (const rsvp of (opp.rsvps || [])) {
+    const rid = rsvp.odId || rsvp.userId;
+    if (rid && rsvp.status === 'attending' && !registeredIds.has(rid)) {
+      try { const vd = await db.collection('volunteers').doc(rid).get(); if (vd.exists) { allVolDocs.push(vd); registeredIds.add(rid); } } catch {}
+    }
+  }
+
+  try {
+    const shiftsSnap = await db.collection('shifts').where('opportunityId', '==', oppId).get();
+    for (const shiftDoc of shiftsSnap.docs) {
+      for (const vid of (shiftDoc.data().assignedVolunteerIds || [])) {
+        if (!registeredIds.has(vid)) {
+          try { const vd = await db.collection('volunteers').doc(vid).get(); if (vd.exists) { allVolDocs.push(vd); registeredIds.add(vid); } } catch {}
+        }
+      }
+    }
+  } catch {}
+
+  let sent = 0, skipped = 0, failed = 0;
+  for (const volDoc of allVolDocs) {
+    const vol = volDoc.data()!;
+    const phone = normalizePhone(vol.phone);
+    if (!phone) { skipped++; continue; }
+    const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
+    try {
+      const smsResult = await sendSMS(volDoc.id, `+1${phone}`, msg);
+      if (smsResult.sent) { await logReminderSent(volDoc.id, oppId, 5); sent++; }
+      else { skipped++; }
+    } catch { failed++; }
+  }
+  return { sent, skipped, failed, time, location };
+}
+
 // POST /api/admin/events/force-3h-sms-today — Find today's event automatically and force Stage 5 SMS
 app.post('/api/admin/events/force-3h-sms-today', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -11982,41 +12028,15 @@ app.post('/api/admin/events/force-3h-sms-today', verifyToken, requireAdmin, asyn
     if (oppsSnap.empty) return res.status(404).json({ error: `No events found for ${today}` });
 
     let opp: any = null;
-    let oppId: string = '';
+    let oppId = '';
     for (const doc of oppsSnap.docs) {
       const d = doc.data();
-      if (!titleFilter || (d.title || '').toLowerCase().includes(titleFilter)) {
-        opp = d; oppId = doc.id; break;
-      }
+      if (!titleFilter || (d.title || '').toLowerCase().includes(titleFilter)) { opp = d; oppId = doc.id; break; }
     }
     if (!opp) return res.status(404).json({ error: 'No matching event found for today' });
 
-    const startTime = ensurePacificTime(opp.startTime || opp.date);
-    const eventDate = new Date(startTime);
-    const location = opp.location || 'location TBD';
-    const time = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
-
-    const regsSnap = await db.collection('event_registrations')
-      .where('opportunityId', '==', oppId)
-      .where('status', '==', 'registered')
-      .get();
-
-    let sent = 0, skipped = 0, failed = 0;
-    for (const reg of regsSnap.docs) {
-      const volId = reg.data().volunteerId;
-      const volDoc = await db.collection('volunteers').doc(volId).get();
-      if (!volDoc.exists) { skipped++; continue; }
-      const vol = volDoc.data()!;
-      const phone = normalizePhone(vol.phone);
-      if (!phone) { skipped++; continue; }
-      const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
-      try {
-        const smsResult = await sendSMS(volId, `+1${phone}`, msg);
-        if (smsResult.sent) { await logReminderSent(volId, oppId, 5); sent++; }
-        else { skipped++; }
-      } catch { failed++; }
-    }
-    res.json({ success: true, event: opp.title, eventId: oppId, time, location, sent, skipped, failed });
+    const r = await forceStage5SMS(oppId, opp);
+    res.json({ success: true, event: opp.title, eventId: oppId, ...r });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
@@ -12029,38 +12049,13 @@ app.post('/api/admin/events/:eventId/force-3h-sms', verifyToken, requireAdmin, a
     const oppSnap = await db.collection('opportunities').doc(eventId).get();
     if (!oppSnap.exists) return res.status(404).json({ error: 'Event not found' });
     const opp = oppSnap.data()!;
-    const startTime = ensurePacificTime(opp.startTime || opp.date);
-    const eventDate = new Date(startTime);
-    const location = opp.location || 'location TBD';
-    const time = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
-
-    const regsSnap = await db.collection('event_registrations')
-      .where('opportunityId', '==', eventId)
-      .where('status', '==', 'registered')
-      .get();
-
-    let sent = 0, skipped = 0, failed = 0;
-    for (const reg of regsSnap.docs) {
-      const volId = reg.data().volunteerId;
-      const volDoc = await db.collection('volunteers').doc(volId).get();
-      if (!volDoc.exists) { skipped++; continue; }
-      const vol = volDoc.data()!;
-      const phone = normalizePhone(vol.phone);
-      if (!phone) { skipped++; continue; }
-      const msg = `HMC: ${opp.title} starts at ${time}. See you at ${location}!`;
-      try {
-        const smsResult = await sendSMS(volId, `+1${phone}`, msg);
-        if (smsResult.sent) {
-          await logReminderSent(volId, eventId, 5);
-          sent++;
-        } else { skipped++; }
-      } catch { failed++; }
-    }
-    res.json({ success: true, sent, skipped, failed, time, location });
+    const r = await forceStage5SMS(eventId, opp);
+    res.json({ success: true, event: opp.title, eventId, ...r });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 app.get('/api/admin/workflows/runs', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
