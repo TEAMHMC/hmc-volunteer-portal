@@ -1471,7 +1471,7 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                 eventId: eventId || 'unknown',
                 eventTitle: eventTitle || 'Unknown Event',
                 collectedBy: user.id,
-                collectedByName: user.name || 'Unknown Volunteer',
+                collectedByName: user.preferredFirstName ? `${user.preferredFirstName} ${user.legalLastName || ''}`.trim() : `${user.legalFirstName || ''} ${user.legalLastName || ''}`.trim() || 'Unknown Volunteer',
                 responses: submission,
                 consentGiven: true
             });

@@ -13650,7 +13650,9 @@ app.post('/api/screenings/create', verifyToken, async (req: Request, res: Respon
         const screeningData = req.body;
         const user = (req as any).user;
         const createdAt = new Date().toISOString();
-        const screening = { ...screeningData, performedBy: user.uid, performedByName: user.profile?.name || 'Unknown', createdAt };
+        const _p = user.profile;
+        const _pName = _p?.preferredFirstName ? `${_p.preferredFirstName} ${_p.legalLastName || ''}`.trim() : `${_p?.legalFirstName || ''} ${_p?.legalLastName || ''}`.trim() || 'Unknown';
+        const screening = { ...screeningData, performedBy: user.uid, performedByName: _pName, createdAt };
 
         // Look up client name for display
         if (screening.clientId) {
