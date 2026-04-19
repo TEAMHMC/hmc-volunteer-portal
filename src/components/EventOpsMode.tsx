@@ -3,7 +3,7 @@ import { Volunteer, Shift, Opportunity, ChecklistTemplate, Script, MissionOpsRun
 import { CHECKLIST_TEMPLATES, SCRIPTS, SURVEY_KITS, EVENTS, EVENT_TYPE_TEMPLATE_MAP, hasCompletedModule, SERVICE_OFFERINGS } from '../constants';
 import { apiService } from '../services/apiService';
 import {
-  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck, MoreHorizontal, Camera, Info
+  ArrowLeft, CheckSquare, FileText, ListChecks, MessageSquare, Send, Square, AlertTriangle, X, Shield, Loader2, QrCode, ClipboardPaste, UserPlus, HeartPulse, Search, UserCheck, Lock, HardDrive, BookUser, FileClock, Save, CheckCircle, Smartphone, Plus, UserPlus2, Navigation, Clock, Users, Target, Briefcase, Pencil, Trash2, RotateCcw, RotateCw, Check, Package, Minus, ClipboardList, Copy, Printer, RefreshCw, Sparkles, Shuffle, Layout, Calendar, Radio, MapPin, UserMinus, Play, Pause, ArrowRight, Zap, Eye, Hand, Grid3X3, Share2, Truck, MoreHorizontal, Camera, Info, Tablet
 } from 'lucide-react';
 import HealthScreeningsView from './HealthScreeningsView';
 import IntakeReferralsView from './IntakeReferralsView';
@@ -1433,6 +1433,10 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
     const [canReset, setCanReset] = useState(false);
     const [consentGiven, setConsentGiven] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
+    const [isKioskMode, setIsKioskMode] = useState(false);
+    const [kioskSurveyCount, setKioskSurveyCount] = useState(0);
+    const [kioskThankYou, setKioskThankYou] = useState(false);
+    const exitHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Load existing survey count for this event from backend
     useEffect(() => {
@@ -1478,10 +1482,27 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                 consentGiven: true
             });
 
-            setResponseCount(prev => prev + 1);
+            const newCount = responseCount + 1;
+            setResponseCount(newCount);
             setCanReset(false);
             setIsSubmitted(true);
-            setTimeout(() => setCanReset(true), 2000);
+
+            if (isKioskMode) {
+                const newKioskCount = kioskSurveyCount + 1;
+                setKioskSurveyCount(newKioskCount);
+                setKioskThankYou(true);
+                // After 3 seconds, hide thank-you and auto-reset form for next participant
+                setTimeout(() => {
+                    setKioskThankYou(false);
+                    setIsSubmitted(false);
+                    setCanReset(false);
+                    setSubmission({});
+                    setClientInfo({ firstName: '', lastName: '', phone: '' });
+                    setConsentGiven(false);
+                }, 3000);
+            } else {
+                setTimeout(() => setCanReset(true), 2000);
+            }
         } catch (error) {
             console.error('Error submitting survey:', error);
             toastService.error('Failed to submit survey. Please try again.');
@@ -1498,7 +1519,40 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
         setConsentGiven(false);
     };
 
-    if(isSubmitted) return (
+    // Press-and-hold handlers for the hidden kiosk exit button
+    const handleExitHoldStart = () => {
+        exitHoldTimerRef.current = setTimeout(() => {
+            setIsKioskMode(false);
+            setKioskSurveyCount(0);
+            setKioskThankYou(false);
+            setIsSubmitted(false);
+            setCanReset(false);
+            setSubmission({});
+            setClientInfo({ firstName: '', lastName: '', phone: '' });
+            setConsentGiven(false);
+        }, 3000);
+    };
+    const handleExitHoldEnd = () => {
+        if (exitHoldTimerRef.current) {
+            clearTimeout(exitHoldTimerRef.current);
+            exitHoldTimerRef.current = null;
+        }
+    };
+
+    // ── Kiosk Mode: full-screen thank-you splash ──
+    if (isKioskMode && kioskThankYou) return (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center animate-in fade-in duration-300" style={{ backgroundColor: '#233DFF' }}>
+            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-8">
+                <CheckCircle size={52} className="text-white" />
+            </div>
+            <h2 className="text-4xl font-black text-white uppercase tracking-tight mb-3">Thank You!</h2>
+            <p className="text-white/80 text-lg font-bold mb-2">Survey #{kioskSurveyCount} complete</p>
+            <p className="text-white/60 text-sm font-medium">Preparing next form…</p>
+        </div>
+    );
+
+    // ── Non-kiosk submitted state ──
+    if(isSubmitted && !isKioskMode) return (
         <div className="text-center py-32 animate-in fade-in scale-110">
             <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-emerald-100"><CheckCircle size={40} className="text-emerald-500" /></div>
             <h3 className="font-black text-2xl uppercase tracking-tight">Sync Complete</h3>
@@ -1508,6 +1562,123 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
         </div>
     );
 
+    // ── Kiosk Mode: full-screen survey form ──
+    if (isKioskMode) return (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: '#233DFF' }}>
+            {/* Hidden press-and-hold exit button in top-right corner */}
+            <button
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center opacity-30 hover:opacity-60 transition-opacity select-none"
+                onMouseDown={handleExitHoldStart}
+                onMouseUp={handleExitHoldEnd}
+                onMouseLeave={handleExitHoldEnd}
+                onTouchStart={handleExitHoldStart}
+                onTouchEnd={handleExitHoldEnd}
+                title="Hold 3s to exit kiosk"
+                type="button"
+            >
+                <X size={16} className="text-white" />
+            </button>
+
+            <div className="max-w-xl mx-auto px-6 py-10 space-y-8">
+                {/* Kiosk header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">Survey Kiosk</h2>
+                        <p className="text-white/60 text-xs font-bold mt-1">{surveyKit.name}</p>
+                    </div>
+                    <div className="px-4 py-2 bg-white/15 rounded-full">
+                        <span className="text-xs font-bold text-white">{kioskSurveyCount} completed</span>
+                    </div>
+                </div>
+
+                {/* Script card */}
+                <div className="p-6 bg-white/10 rounded-3xl border border-white/20">
+                    <h3 className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] flex items-center gap-2 mb-4"><Smartphone size={14}/> Approved Script</h3>
+                    <p className="text-base font-bold text-white leading-relaxed">{surveyKit.volunteerScript.en}</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Client Info */}
+                    <div className="p-6 bg-white/10 rounded-3xl border border-white/20 space-y-4">
+                        <h4 className="text-xs font-bold text-white/80 uppercase tracking-wider">Participant Info (Optional)</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input
+                                type="text"
+                                placeholder="First Name"
+                                value={clientInfo.firstName}
+                                onChange={e => setClientInfo({...clientInfo, firstName: e.target.value})}
+                                className="w-full p-4 bg-white/20 border-2 border-white/20 rounded-2xl text-sm font-bold outline-none focus:border-white/50 text-white placeholder-white/50"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Last Name"
+                                value={clientInfo.lastName}
+                                onChange={e => setClientInfo({...clientInfo, lastName: e.target.value})}
+                                className="w-full p-4 bg-white/20 border-2 border-white/20 rounded-2xl text-sm font-bold outline-none focus:border-white/50 text-white placeholder-white/50"
+                            />
+                        </div>
+                        <input
+                            type="tel"
+                            placeholder="Phone (for follow-up)"
+                            value={clientInfo.phone}
+                            onChange={e => setClientInfo({...clientInfo, phone: e.target.value})}
+                            className="w-full p-4 bg-white/20 border-2 border-white/20 rounded-2xl text-sm font-bold outline-none focus:border-white/50 text-white placeholder-white/50"
+                        />
+                    </div>
+
+                    {surveyKit.formStructure.map(field => (
+                        <div key={field.id} className="space-y-4">
+                            <label className="text-sm font-black text-white leading-tight flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-lg bg-white/20 text-white flex items-center justify-center text-[9px] italic shrink-0">?</div>
+                                {field.question} {field.required && <span className="text-rose-300">*</span>}
+                            </label>
+                            {field.type === 'Short Text' && <textarea value={submission[field.id] || ''} onChange={e => setSubmission({...submission, [field.id]: e.target.value})} className="w-full p-6 bg-white/10 border-2 border-white/20 rounded-2xl text-sm font-bold focus:bg-white/20 focus:border-white/40 outline-none transition-all text-white placeholder-white/50" rows={3} />}
+                            {field.type === 'Rating' && <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-14 h-14 rounded-2xl shrink-0 font-black transition-all border-2 ${submission[field.id] === opt ? 'bg-white text-brand border-white shadow-elevation-2 scale-110' : 'bg-white/10 text-white/60 border-white/20 hover:border-white/40'}`}>{opt}</button>)}</div>}
+                            {field.type === 'Multiple Choice' && <div className="space-y-2">{field.options?.map(opt => <button type="button" key={opt} onClick={() => setSubmission({...submission, [field.id]: opt})} className={`w-full p-4 rounded-2xl text-left text-sm font-bold transition-all border-2 ${submission[field.id] === opt ? 'bg-white text-brand border-white' : 'bg-white/10 border-white/20 text-white hover:border-white/40'}`}>{opt}</button>)}</div>}
+                            {field.type === 'Checkboxes' && <div className="space-y-2">{field.options?.map(opt => {
+                                const selected = (submission[field.id] || []).includes(opt);
+                                return <button type="button" key={opt} onClick={() => {
+                                    const current = submission[field.id] || [];
+                                    setSubmission({...submission, [field.id]: selected ? current.filter((v: string) => v !== opt) : [...current, opt]});
+                                }} className={`w-full p-4 rounded-2xl text-left text-sm font-bold transition-all border-2 flex items-center gap-3 ${selected ? 'bg-white text-brand border-white' : 'bg-white/10 border-white/20 text-white hover:border-white/40'}`}>
+                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selected ? 'bg-brand border-brand' : 'border-white/40'}`}>
+                                        {selected && <CheckSquare size={12} className="text-white" />}
+                                    </div>
+                                    {opt}
+                                </button>
+                            })}</div>}
+                        </div>
+                    ))}
+
+                    {/* Consent */}
+                    <div className="p-6 bg-amber-400/20 rounded-3xl border border-amber-300/40">
+                        <label className="flex items-start gap-4 cursor-pointer">
+                            <button
+                                type="button"
+                                onClick={() => setConsentGiven(!consentGiven)}
+                                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${consentGiven ? 'bg-amber-400 border-amber-400' : 'border-amber-300/60 bg-white/10'}`}
+                            >
+                                {consentGiven && <CheckSquare size={14} className="text-white" />}
+                            </button>
+                            <span className="text-sm text-amber-100">
+                                <strong>Verbal Consent Obtained:</strong> I confirm the participant has given verbal consent to collect and store this information for health services coordination.
+                            </span>
+                        </label>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || !consentGiven}
+                        className="w-full py-6 bg-white text-brand border-2 border-white font-bold text-base rounded-full shadow-elevation-1 hover:scale-[1.02] transition-all active:scale-95 mt-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wide"
+                    >
+                        {isSubmitting ? <><Loader2 className="animate-spin" size={18} /> Syncing...</> : <><span className="w-2 h-2 rounded-full bg-brand" /> Sync Entry</>}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+
+    // ── Normal (non-kiosk) view ──
     return (
         <div className="space-y-12 animate-in fade-in">
             <div className="flex items-center justify-between">
@@ -1516,6 +1687,16 @@ const SurveyStationView: React.FC<{surveyKit: SurveyKit, user: Volunteer, eventI
                     <span className="text-xs font-bold text-emerald-700">{responseCount} collected</span>
                 </div>
             </div>
+
+            {/* Kiosk Mode toggle */}
+            <button
+                onClick={() => { setIsKioskMode(true); setKioskSurveyCount(0); }}
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 text-brand font-bold text-sm uppercase tracking-wide hover:bg-brand/10 hover:border-brand/50 transition-all"
+            >
+                <Tablet size={18} />
+                Start Kiosk Mode
+            </button>
+
             <div className="p-8 bg-zinc-50 rounded-3xl border border-zinc-100 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full blur-3xl pointer-events-none group-hover:bg-brand/10 transition-all" />
                 <div className="flex items-center justify-between mb-6">
