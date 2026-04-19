@@ -20,6 +20,8 @@ import {
   Navigation,
   X,
   MessageSquare,
+  Camera,
+  Image,
 } from 'lucide-react';
 import { useOps } from '../OpsContext';
 import {
@@ -118,6 +120,7 @@ interface ScreeningForm {
   clientName: string;
   clientId?: string;
   isWalkIn: boolean;
+  notes: string;
 }
 
 type TrafficLevel = 'normal' | 'elevated' | 'high' | 'critical';
@@ -813,8 +816,11 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
   });
   const [screeningForm, setScreeningForm] = useState<ScreeningForm>({
     screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false,
-    clientName: '', clientId: undefined, isWalkIn: false,
+    clientName: '', clientId: undefined, isWalkIn: false, notes: '',
   });
+  const [screeningPhoto, setScreeningPhoto] = useState<string | null>(null);
+  const [screeningPhotoName, setScreeningPhotoName] = useState<string>('');
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [screeningClientQuery, setScreeningClientQuery] = useState('');
   const [screeningClientResults, setScreeningClientResults] = useState<any[]>([]);
   const [screeningClientLoading, setScreeningClientLoading] = useState(false);
@@ -881,6 +887,8 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       flags: {} as Record<string, any>,
       ...(sf.isWalkIn ? { isWalkIn: true } : {}),
       ...(sf.clientId ? { clientId: sf.clientId, clientName: sf.clientName } : sf.clientName ? { clientName: sf.clientName } : {}),
+      ...(sf.notes.trim() ? { notes: sf.notes.trim() } : {}),
+      ...(screeningPhoto ? { photo: { data: screeningPhoto, fileName: screeningPhotoName, contentType: 'image/jpeg' } } : {}),
     };
 
     if (sf.screeningType === 'bp') {
@@ -929,7 +937,9 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
         summary: `Volunteer ${user.id} logged a ${sf.screeningType} screening for event ${opportunity.id}`,
       });
       onServiceLogged();
-      setScreeningForm({ screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false, clientName: '', clientId: undefined, isWalkIn: false });
+      setScreeningForm({ screeningType: 'bp', systolic: '', diastolic: '', o2: '', temp: '', glucose: '', bmi: '', followUp: false, clientName: '', clientId: undefined, isWalkIn: false, notes: '' });
+      setScreeningPhoto(null);
+      setScreeningPhotoName('');
       setScreeningClientQuery('');
       setScreeningClientResults([]);
       setScreeningClientOpen(false);
@@ -939,6 +949,23 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
     } finally {
       setLogLoading(false);
     }
+  };
+
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toastService.error('Photo too large. Maximum 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setScreeningPhoto(base64);
+      setScreeningPhotoName(file.name);
+    };
+    reader.readAsDataURL(file);
+    if (photoInputRef.current) photoInputRef.current.value = '';
   };
 
   const isRegulatedItem = REGULATED_ITEMS.includes(resourceForm.itemName as RegulatedItem);
@@ -1324,6 +1351,35 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
               Flag for follow-up
             </span>
           </button>
+
+          {/* Notes */}
+          <textarea
+            rows={2}
+            placeholder="Additional notes (optional)"
+            value={screeningForm.notes}
+            onChange={(e) => setScreeningForm((f) => ({ ...f, notes: e.target.value }))}
+            className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#233DFF]/20 focus:border-[#233DFF] resize-none mb-1"
+          />
+
+          {/* Photo capture */}
+          <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoCapture} className="hidden" />
+          {screeningPhoto ? (
+            <div className="flex items-center gap-2 mb-3 bg-zinc-50 rounded-xl px-3 py-2">
+              <Image className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+              <span className="text-xs text-zinc-500 truncate flex-1">{screeningPhotoName}</span>
+              <button type="button" onClick={() => { setScreeningPhoto(null); setScreeningPhotoName(''); }} className="p-1 hover:bg-red-50 rounded-full transition-colors">
+                <X className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-zinc-200 rounded-xl py-2 text-xs font-black text-zinc-400 mb-3 hover:border-[#233DFF]/30 hover:text-[#233DFF] transition-all"
+            >
+              <Camera className="w-4 h-4" /> Attach Photo / Form
+            </button>
+          )}
 
           {!screeningForm.clientName.trim() && !screeningForm.clientId && (
             <p className="text-xs font-black text-rose-500 text-center -mb-1">Client name required</p>
