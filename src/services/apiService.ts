@@ -184,6 +184,7 @@ export const apiService = {
   get: (endpoint: string) => request('GET', endpoint),
   post: (endpoint: string, body: any, timeout?: number) => request('POST', endpoint, body, timeout),
   put: (endpoint: string, body: any) => request('PUT', endpoint, body),
+  patch: (endpoint: string, body: any) => request('PATCH', endpoint, body),
   delete: (endpoint: string) => request('DELETE', endpoint),
   startSessionHeartbeat,
   stopSessionHeartbeat,

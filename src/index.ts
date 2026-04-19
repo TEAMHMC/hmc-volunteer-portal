@@ -13711,6 +13711,19 @@ app.post('/api/screenings/create', verifyToken, async (req: Request, res: Respon
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
+// PATCH /api/screenings/:id/refusal — attach refusal-of-care data to an existing screening
+app.patch('/api/screenings/:id/refusal', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { refusalOfCare, refusalData } = req.body;
+        if (!refusalOfCare || !refusalData?.witness1Name || !refusalData?.witness2Name) {
+            return res.status(400).json({ error: 'refusalOfCare, witness1Name, and witness2Name are required' });
+        }
+        await db.collection('screenings').doc(id).update({ refusalOfCare: true, refusalData });
+        res.json({ ok: true });
+    } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
+});
+
 app.get('/api/screenings', verifyToken, async (req: Request, res: Response) => {
     try {
         const { clientId, shiftId } = req.query;

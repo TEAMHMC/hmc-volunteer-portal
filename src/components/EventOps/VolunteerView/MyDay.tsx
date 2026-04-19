@@ -778,6 +778,11 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
   const [tasksOpen, setTasksOpen] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
   const [showSurveyKiosk, setShowSurveyKiosk] = useState(false);
+  const [escalationScreeningId, setEscalationScreeningId] = useState<string | null>(null);
+  const [escalationClientName, setEscalationClientName] = useState('');
+  const [showRefusalForm, setShowRefusalForm] = useState(false);
+  const [refusalSubmitting, setRefusalSubmitting] = useState(false);
+  const [refusalForm, setRefusalForm] = useState({ reason: '', witness1Name: '', witness1Sig: '', witness2Name: '', witness2Sig: '' });
   const [referralForm, setReferralForm] = useState<ReferralForm>({ clientName: '', clientId: undefined, needType: '', consentGiven: false });
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [clientSearchResults, setClientSearchResults] = useState<any[]>([]);
@@ -921,14 +926,19 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
 
     setLogLoading(true);
     try {
+      let screeningId: string | undefined;
       if (!isTestMode) {
-        await apiService.post('/api/screenings/create', payload);
+        const result = await apiService.post('/api/screenings/create', payload);
+        screeningId = result?.id;
       }
       if (isTestMode) logSimActivity('screening');
       const resultLabel = trafficResult ? ` — ${trafficResult.label}` : '';
       toastService.success(isTestMode ? `[PRACTICE] Screening logged${resultLabel}` : `Screening logged${resultLabel}`);
-      if (trafficResult?.level === 'critical') {
-        toastService.error('⚠️ CRITICAL READING — Stay with this person. Your Events Lead and clinical team have been notified. Do NOT leave them alone.');
+      const isCritical = trafficResult?.level === 'critical';
+      if (isCritical && !isTestMode) {
+        setEscalationScreeningId(screeningId ?? null);
+        setEscalationClientName(sf.clientName || 'Client');
+        setActiveLog(null);
       }
       logAudit({
         actionType: 'LOG_SCREENING',
@@ -943,11 +953,41 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
       setScreeningClientQuery('');
       setScreeningClientResults([]);
       setScreeningClientOpen(false);
-      setActiveLog(null);
+      if (!isCritical) setActiveLog(null);
     } catch {
       // error shown by apiService
     } finally {
       setLogLoading(false);
+    }
+  };
+
+  const handleRefusalSubmit = async () => {
+    if (!escalationScreeningId) return;
+    if (!refusalForm.witness1Name.trim() || !refusalForm.witness2Name.trim()) {
+      toastService.error('Both witness names are required.');
+      return;
+    }
+    setRefusalSubmitting(true);
+    try {
+      await apiService.patch(`/api/screenings/${escalationScreeningId}/refusal`, {
+        refusalOfCare: true,
+        refusalData: {
+          reason: refusalForm.reason,
+          witness1Name: refusalForm.witness1Name,
+          witness1Signature: refusalForm.witness1Sig,
+          witness2Name: refusalForm.witness2Name,
+          witness2Signature: refusalForm.witness2Sig,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      toastService.success('Refusal of care documented.');
+      setShowRefusalForm(false);
+      setEscalationScreeningId(null);
+      setRefusalForm({ reason: '', witness1Name: '', witness1Sig: '', witness2Name: '', witness2Sig: '' });
+    } catch {
+      // error shown by apiService
+    } finally {
+      setRefusalSubmitting(false);
     }
   };
 
@@ -1811,6 +1851,137 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
         </div>
         {renderInlineForm()}
       </div>
+
+      {/* Critical reading escalation card */}
+      {escalationScreeningId && !showRefusalForm && (
+        <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-black text-red-800 text-sm">⚠️ Critical Reading — {escalationClientName}</p>
+              <p className="text-red-700 text-xs mt-1 font-medium">Stay with this person. Do NOT leave them alone.</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-red-200">
+              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-black text-zinc-700">Medical team &amp; Events Lead notified</span>
+            </div>
+            <a
+              href={`https://maps.apple.com/?q=urgent+care&sll=&near=Current+Location`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-red-200 w-full text-left"
+              onClick={e => {
+                e.preventDefault();
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    window.open(`https://maps.apple.com/?q=urgent+care&sll=${latitude},${longitude}&z=14`, '_blank');
+                  }, () => {
+                    window.open('https://maps.apple.com/?q=urgent+care+near+me', '_blank');
+                  });
+                } else {
+                  window.open('https://maps.apple.com/?q=urgent+care+near+me', '_blank');
+                }
+              }}
+            >
+              <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
+              <span className="text-xs font-black text-blue-700">Find Nearest Open Urgent Care</span>
+              <ArrowRight className="w-3 h-3 text-blue-400 ml-auto" />
+            </a>
+            <button
+              onClick={() => setShowRefusalForm(true)}
+              className="w-full flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-red-200"
+            >
+              <X className="w-4 h-4 text-red-500 shrink-0" />
+              <span className="text-xs font-black text-red-700">Client Refused Follow-up Care</span>
+              <ArrowRight className="w-3 h-3 text-red-400 ml-auto" />
+            </button>
+          </div>
+          <button
+            onClick={() => setEscalationScreeningId(null)}
+            className="mt-3 text-xs text-red-400 font-black uppercase tracking-wider underline underline-offset-2 w-full text-center"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Refusal of care form */}
+      {showRefusalForm && (
+        <div className="bg-white border-2 border-red-300 rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center gap-2 mb-4">
+            <X className="w-5 h-5 text-red-600" />
+            <p className="font-black text-red-800 text-sm">Refusal of Care — {escalationClientName}</p>
+          </div>
+          <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+            Document that <strong>{escalationClientName}</strong> voluntarily refused follow-up care. Two witnesses required. This will be added to their screening record.
+          </p>
+          <div className="space-y-3">
+            <textarea
+              rows={2}
+              placeholder="Reason for refusal (optional)"
+              value={refusalForm.reason}
+              onChange={e => setRefusalForm(f => ({ ...f, reason: e.target.value }))}
+              className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 resize-none"
+            />
+            <div className="border border-zinc-100 rounded-xl p-3 space-y-2">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Witness 1</p>
+              <input
+                type="text"
+                placeholder="Full name *"
+                value={refusalForm.witness1Name}
+                onChange={e => setRefusalForm(f => ({ ...f, witness1Name: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+              />
+              <input
+                type="text"
+                placeholder="Type your name to sign"
+                value={refusalForm.witness1Sig}
+                onChange={e => setRefusalForm(f => ({ ...f, witness1Sig: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm italic focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+              />
+            </div>
+            <div className="border border-zinc-100 rounded-xl p-3 space-y-2">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Witness 2</p>
+              <input
+                type="text"
+                placeholder="Full name *"
+                value={refusalForm.witness2Name}
+                onChange={e => setRefusalForm(f => ({ ...f, witness2Name: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+              />
+              <input
+                type="text"
+                placeholder="Type your name to sign"
+                value={refusalForm.witness2Sig}
+                onChange={e => setRefusalForm(f => ({ ...f, witness2Sig: e.target.value }))}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm italic focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+              />
+            </div>
+            <p className="text-[10px] text-zinc-400 leading-relaxed px-1">
+              By submitting, both witnesses confirm they observed {escalationClientName} verbally decline follow-up care of their own free will, and that HMC and its volunteers are released from liability related to this decision.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowRefusalForm(false)}
+                className="flex-1 py-2.5 border border-zinc-200 rounded-full text-xs font-black text-zinc-600 uppercase tracking-wider"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleRefusalSubmit}
+                disabled={refusalSubmitting || !refusalForm.witness1Name.trim() || !refusalForm.witness2Name.trim()}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-full text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {refusalSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                Confirm Refusal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Survey kiosk notice */}
       {showSurveyKiosk && (
