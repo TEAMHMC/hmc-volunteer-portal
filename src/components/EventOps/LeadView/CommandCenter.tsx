@@ -30,6 +30,11 @@ import {
   Bell,
   ChevronRight,
   Edit3,
+  Thermometer,
+  Droplets,
+  Package,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import { useOps } from '../OpsContext';
 import { apiService } from '../../../services/apiService';
@@ -1846,6 +1851,241 @@ const IncidentsTab: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SupplyChecklist: Weather-aware pre-event supply checklist (leads only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface WeatherResult {
+  tempF: number;
+  weathercode: number;
+}
+
+const SupplyChecklist: React.FC = () => {
+  const { opportunity, shift, state } = useOps();
+
+  const lat = opportunity.locationCoordinates?.lat;
+  const lng = opportunity.locationCoordinates?.lng;
+
+  // Derive volunteer count: confirmed (checked-in) or total assigned
+  const volunteerCount =
+    (state.rsvpStats?.checkedIn ?? 0) > 0
+      ? (state.rsvpStats?.checkedIn ?? 0)
+      : (shift.assignedVolunteerIds?.length ?? state.rsvpStats?.total ?? 1);
+
+  const [weather, setWeather] = useState<WeatherResult | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState(false);
+
+  // Checklist tick state — keyed by item id
+  const [ticked, setTicked] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setTicked(prev => ({ ...prev, [id]: !prev[id] }));
+
+  useEffect(() => {
+    if (!lat || !lng) return;
+    setWeatherLoading(true);
+    setWeatherError(false);
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode&temperature_unit=fahrenheit`
+    )
+      .then(r => r.json())
+      .then(data => {
+        const tempF: number = data?.current?.temperature_2m ?? 0;
+        const weathercode: number = data?.current?.weathercode ?? 0;
+        setWeather({ tempF, weathercode });
+      })
+      .catch(() => setWeatherError(true))
+      .finally(() => setWeatherLoading(false));
+  }, [lat, lng]);
+
+  // Derived supply quantities
+  const waterBottles =
+    weather === null
+      ? volunteerCount * 2 // fallback
+      : weather.tempF > 80
+      ? volunteerCount * 3
+      : weather.tempF >= 65
+      ? volunteerCount * 2
+      : volunteerCount * 1;
+
+  const tissueBoxes = Math.ceil((volunteerCount > 0 ? volunteerCount : 1) / 20);
+  const glovePairs = volunteerCount * 2;
+
+  // Weather flag styling
+  const weatherFlag =
+    weather === null
+      ? null
+      : weather.tempF > 80
+      ? { label: 'HOT WEATHER', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', dot: 'bg-rose-500' }
+      : weather.tempF >= 65
+      ? { label: 'WARM CONDITIONS', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' }
+      : { label: 'COOL CONDITIONS', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' };
+
+  const items: { id: string; label: string; qty: string; icon: React.ReactNode }[] = [
+    {
+      id: 'water',
+      label: 'Water bottles',
+      qty: `${waterBottles} bottles`,
+      icon: <Droplets size={15} className="text-blue-400" />,
+    },
+    ...(weather !== null && weather.tempF > 80
+      ? [{ id: 'cooler', label: 'Cooler with ice', qty: '1 cooler', icon: <Package size={15} className="text-cyan-500" /> }]
+      : []),
+    {
+      id: 'tissues',
+      label: 'Tissue boxes',
+      qty: `${tissueBoxes} box${tissueBoxes !== 1 ? 'es' : ''} (1 per 20 people)`,
+      icon: <Package size={15} className="text-zinc-400" />,
+    },
+    {
+      id: 'sanitizer',
+      label: 'Hand sanitizer',
+      qty: '1 per station',
+      icon: <Package size={15} className="text-emerald-400" />,
+    },
+    {
+      id: 'gloves',
+      label: 'Gloves',
+      qty: `${glovePairs} pairs (2 per volunteer)`,
+      icon: <Package size={15} className="text-zinc-400" />,
+    },
+  ];
+
+  const checkedCount = items.filter(i => ticked[i.id]).length;
+
+  return (
+    <div className="mx-4 mb-3 bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-100">
+        <ClipboardList size={15} className="text-[#233DFF] flex-shrink-0" />
+        <h3 className="text-xs font-black uppercase tracking-wider text-zinc-700 flex-1">Pre-Event Supply Checklist</h3>
+        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">
+          {checkedCount}/{items.length} ready
+        </span>
+      </div>
+
+      {/* Weather badge */}
+      <div className="px-4 pt-3 pb-1">
+        {weatherLoading && (
+          <div className="flex items-center gap-2 mb-3 text-xs text-zinc-400 font-medium">
+            <Loader2 size={12} className="animate-spin" /> Fetching weather…
+          </div>
+        )}
+        {!weatherLoading && weather !== null && weatherFlag && (
+          <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-xl border ${weatherFlag.bg} ${weatherFlag.border}`}>
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${weatherFlag.dot}`} />
+            <Thermometer size={13} className={weatherFlag.text} />
+            <span className={`text-xs font-black uppercase tracking-wider ${weatherFlag.text}`}>
+              {weatherFlag.label}
+            </span>
+            <span className={`text-xs font-medium ${weatherFlag.text} ml-auto`}>
+              {Math.round(weather.tempF)}°F
+            </span>
+          </div>
+        )}
+        {!weatherLoading && weatherError && (
+          <p className="text-[11px] text-zinc-400 italic mb-2">Weather unavailable — showing standard quantities</p>
+        )}
+        {!weatherLoading && !weather && !weatherError && !lat && (
+          <p className="text-[11px] text-zinc-400 italic mb-2">No location coordinates — showing standard quantities</p>
+        )}
+      </div>
+
+      {/* Items */}
+      <ul className="px-4 pb-4 space-y-2">
+        {items.map(item => (
+          <li key={item.id}>
+            <button
+              onClick={() => toggle(item.id)}
+              className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors text-left min-h-[44px] ${
+                ticked[item.id]
+                  ? 'bg-emerald-50 border border-emerald-200'
+                  : 'bg-zinc-50 border border-zinc-100 hover:bg-zinc-100'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors ${
+                ticked[item.id] ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-300 bg-white'
+              }`}>
+                {ticked[item.id] && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              <span className="flex-shrink-0">{item.icon}</span>
+              <span className={`flex-1 text-xs font-bold ${ticked[item.id] ? 'line-through text-zinc-400' : 'text-zinc-800'}`}>
+                {item.label}
+              </span>
+              <span className="text-[11px] text-zinc-400 font-medium flex-shrink-0">{item.qty}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAQueue: Patient wait-queue counter for leads during active event
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PAQueue: React.FC = () => {
+  const [count, setCount] = useState(0);
+
+  const increment = () => setCount(n => n + 1);
+  const decrement = () => setCount(n => Math.max(0, n - 1));
+
+  const colorClass =
+    count >= 6
+      ? 'text-rose-600'
+      : count >= 3
+      ? 'text-amber-500'
+      : 'text-emerald-600';
+
+  const bgClass =
+    count >= 6
+      ? 'bg-rose-50 border-rose-200'
+      : count >= 3
+      ? 'bg-amber-50 border-amber-200'
+      : 'bg-emerald-50 border-emerald-200';
+
+  const label =
+    count === 0
+      ? 'No patients waiting'
+      : count === 1
+      ? '1 patient waiting'
+      : `${count} patients waiting`;
+
+  return (
+    <div className={`mx-4 mb-3 rounded-2xl border px-4 py-3 ${bgClass}`}>
+      <div className="flex items-center gap-3">
+        <HeartPulse size={15} className={`flex-shrink-0 ${colorClass}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-0.5">PA Queue</p>
+          <p className={`text-sm font-black ${colorClass} leading-tight`}>{label}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={decrement}
+            disabled={count === 0}
+            aria-label="Patient seen — remove from queue"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shadow-sm"
+          >
+            <Minus size={14} className="text-zinc-600" />
+          </button>
+          <span className={`text-2xl font-black w-10 text-center ${colorClass}`}>{count}</span>
+          <button
+            onClick={increment}
+            aria-label="Add patient to queue"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors shadow-sm"
+          >
+            <Plus size={14} className="text-zinc-600" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2052,6 +2292,10 @@ const CommandCenter: React.FC<LeadCommandCenterProps> = ({
           <p className="text-sm font-medium text-rose-700 flex-1">Failed to load data — {state.error}</p>
         </div>
       )}
+
+      {/* ── PRE-EVENT SUPPLY CHECKLIST + PA QUEUE (leads only) ── */}
+      <SupplyChecklist />
+      <PAQueue />
 
       {/* ── TABS ── */}
       <div className="sticky top-[57px] z-30 bg-white border-b border-zinc-100">
