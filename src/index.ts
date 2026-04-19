@@ -14773,7 +14773,10 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     results.push({ name: 'Event Finder HTML', status: 'fail', responseTime: 0, error: e.message });
   }
 
-  // ── Events API: fetch events list (the only valid Apps Script action)
+  // ── Events API: ping Apps Script then verify JSON body
+  // Apps Script redirects via 302 (script.google.com → script.googleusercontent.com).
+  // Server-side fetches can get HTML on the redirect if content-type sniffing is too strict,
+  // so we parse the body as JSON regardless of content-type and validate the shape instead.
   const eventsAvailable = await (async () => {
     if (!APPS_SCRIPT_EVENTS_URL) {
       results.push({ name: 'Events API', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
@@ -14782,13 +14785,17 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const start = Date.now();
-        const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, { signal: AbortSignal.timeout(30000), redirect: 'follow' });
-        const contentType = res.headers.get('content-type') ?? '';
-        if (!contentType.includes('application/json') && !contentType.includes('text/plain')) {
-          throw new Error('Apps Script returned non-JSON response (HTML error page)');
-        }
-        const data: any = await res.json();
+        const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, {
+          signal: AbortSignal.timeout(30000),
+          redirect: 'follow',
+          headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'HMC-Monitor/1.0' },
+        });
         const responseTime = Date.now() - start;
+        const body = await res.text();
+        let data: any;
+        try { data = JSON.parse(body); } catch {
+          throw new Error(`Apps Script returned non-JSON (status ${res.status}): ${body.substring(0, 120)}`);
+        }
         if (data.success && Array.isArray(data.events)) {
           const today = new Date().toISOString().split('T')[0];
           const upcoming = data.events.filter((e: any) => e.date >= today);
@@ -14796,6 +14803,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
           results.push({ name: `Events Data (${data.events.length} total, ${upcoming.length} upcoming)`, status: upcoming.length > 0 ? 'pass' : 'warn' as any, responseTime: 0 });
           return true;
         }
+        throw new Error(`Apps Script responded but data invalid: ${JSON.stringify(data).substring(0, 120)}`);
       } catch (e: any) {
         if (attempt === 2) {
           results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
@@ -14807,29 +14815,29 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     return false;
   })();
 
-  // ── RSVP endpoint: reuse Events API availability result to avoid double-pinging Apps Script
-  // Apps Script rate-limits rapid successive calls from the same origin, causing false failures.
+  // ── RSVP endpoint: reuse Events API result — same script, same availability
   if (!APPS_SCRIPT_EVENTS_URL) {
     results.push({ name: 'RSVP Submit', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
   } else if (eventsAvailable) {
     results.push({ name: 'RSVP Submit', status: 'pass', responseTime: 0 });
   } else {
-    // Events API already failed — RSVP endpoint is also likely down
+    // Events API already failed — do one more attempt specifically for RSVP path
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const start = Date.now();
-        const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, {
+        const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, {
           signal: AbortSignal.timeout(30000),
           redirect: 'follow',
+          headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'HMC-Monitor/1.0' },
         });
         const responseTime = Date.now() - start;
-        const contentType = rsvpRes.headers.get('content-type') ?? '';
-        if (!contentType.includes('application/json') && !contentType.includes('text/plain')) {
-          throw new Error('Apps Script returned non-JSON response');
+        const body = await rsvpRes.text();
+        let data: any;
+        try { data = JSON.parse(body); } catch {
+          throw new Error(`Apps Script non-JSON (status ${rsvpRes.status}): ${body.substring(0, 120)}`);
         }
-        const data: any = await rsvpRes.json();
-        const rsvpOk = data.success && Array.isArray(data.events);
-        results.push({ name: 'RSVP Submit', status: rsvpOk ? 'pass' : 'fail', responseTime, ...(rsvpOk ? {} : { error: 'Apps Script returned unexpected response' }) });
+        const rsvpOk = data.ok === true || (data.success && Array.isArray(data.events));
+        results.push({ name: 'RSVP Submit', status: rsvpOk ? 'pass' : 'fail', responseTime, ...(rsvpOk ? {} : { error: 'Apps Script ping returned unexpected response' }) });
         break;
       } catch (e: any) {
         if (attempt === 2) {
