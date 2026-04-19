@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Camera,
   Image,
+  Tablet,
 } from 'lucide-react';
 import { useOps } from '../OpsContext';
 import {
@@ -778,6 +779,10 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
   const [tasksOpen, setTasksOpen] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
   const [showSurveyKiosk, setShowSurveyKiosk] = useState(false);
+  const [launchKioskMode, setLaunchKioskMode] = useState(false);
+  const [kioskSurveyCount, setKioskSurveyCount] = useState(0);
+  const [kioskThankYou, setKioskThankYou] = useState(false);
+  const kioskExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [escalationScreeningId, setEscalationScreeningId] = useState<string | null>(null);
   const [escalationClientName, setEscalationClientName] = useState('');
   const [showRefusalForm, setShowRefusalForm] = useState(false);
@@ -1120,6 +1125,20 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
     });
     setShowSurveyKiosk(true);
     setActiveLog(null);
+  };
+
+  const handleKioskExitHoldStart = () => {
+    kioskExitTimerRef.current = setTimeout(() => {
+      setLaunchKioskMode(false);
+      setKioskSurveyCount(0);
+      setKioskThankYou(false);
+    }, 3000);
+  };
+  const handleKioskExitHoldEnd = () => {
+    if (kioskExitTimerRef.current) {
+      clearTimeout(kioskExitTimerRef.current);
+      kioskExitTimerRef.current = null;
+    }
   };
 
   // ── Service log forms ──
@@ -1751,13 +1770,22 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
           <p className="text-xs text-zinc-500 font-medium mb-3">
             Open the survey kiosk for a community participant
           </p>
-          <button
-            onClick={handleStartSurvey}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
-          >
-            <Star className="w-4 h-4" />
-            Start Survey
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleStartSurvey}
+              className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+            >
+              <Star className="w-4 h-4" />
+              Start Survey
+            </button>
+            <button
+              onClick={() => { setLaunchKioskMode(true); setActiveLog(null); }}
+              className="w-full flex items-center justify-center gap-2 bg-[#233DFF] text-white rounded-full font-black uppercase tracking-wider min-h-[44px] text-sm transition-all active:scale-95"
+            >
+              <Tablet className="w-4 h-4" />
+              Launch Kiosk Mode
+            </button>
+          </div>
         </div>
       );
     }
@@ -1799,6 +1827,63 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Kiosk Mode overlay */}
+      {launchKioskMode && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: '#233DFF' }}>
+          {/* Hidden press-and-hold exit button */}
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center opacity-30 hover:opacity-60 transition-opacity select-none"
+            onMouseDown={handleKioskExitHoldStart}
+            onMouseUp={handleKioskExitHoldEnd}
+            onMouseLeave={handleKioskExitHoldEnd}
+            onTouchStart={handleKioskExitHoldStart}
+            onTouchEnd={handleKioskExitHoldEnd}
+            title="Hold 3s to exit kiosk"
+            type="button"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+
+          {kioskThankYou ? (
+            /* Thank-you splash */
+            <div className="flex flex-col items-center justify-center min-h-screen animate-in fade-in duration-300">
+              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-8">
+                <CheckCircle className="w-14 h-14 text-white" />
+              </div>
+              <h2 className="text-4xl font-black text-white uppercase tracking-tight mb-3">Thank You!</h2>
+              <p className="text-white/80 text-lg font-bold mb-2">Survey #{kioskSurveyCount} complete</p>
+              <p className="text-white/60 text-sm font-medium">Preparing next form…</p>
+            </div>
+          ) : (
+            /* Kiosk survey prompt */
+            <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6">
+                <Tablet className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-3xl font-black text-white uppercase tracking-tight mb-3">Survey Station</h2>
+              <p className="text-white/70 font-medium mb-2">Kiosk Mode Active</p>
+              {kioskSurveyCount > 0 && (
+                <p className="text-white/60 text-sm font-bold mb-6">{kioskSurveyCount} surveys collected this session</p>
+              )}
+              <p className="text-white/60 text-sm max-w-xs mb-10">
+                Use the Survey tab in the event ops panel to conduct each survey. This kiosk will auto-reset after each submission.
+              </p>
+              <button
+                onClick={() => {
+                  const newCount = kioskSurveyCount + 1;
+                  setKioskSurveyCount(newCount);
+                  setKioskThankYou(true);
+                  setTimeout(() => setKioskThankYou(false), 3000);
+                }}
+                className="px-10 py-4 bg-white text-[#233DFF] rounded-full font-black uppercase tracking-wider text-sm shadow-lg active:scale-95 transition-all"
+              >
+                Mark Survey Complete
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Live status bar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5 min-h-[32px]">
