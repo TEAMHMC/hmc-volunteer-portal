@@ -6,7 +6,7 @@ import {
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
-  Bell, Menu, CalendarDays, Megaphone, Share2, Globe, Target
+  Bell, Menu, CalendarDays, Megaphone, Share2, Globe, Target, PenLine
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -22,6 +22,7 @@ const CommunicationHub = lazy(() => import('./CommunicationHub'));
 const MyProfile = lazy(() => import('./MyProfile'));
 const AdminVolunteerDirectory = lazy(() => import('./AdminVolunteerDirectory'));
 const ImpactHub = lazy(() => import('./ImpactHub'));
+const ContentStudioPanel = lazy(() => import('./ImpactHub').then(m => ({ default: m.ContentStudioPanel })));
 const AnalyticsDashboard = lazy(() => import('./AnalyticsDashboard'));
 const AutomatedWorkflows = lazy(() => import('./AutomatedWorkflows'));
 const FormBuilder = lazy(() => import('./FormBuilder'));
@@ -236,7 +237,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects' | 'content-studio'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   // Allow external navigation (e.g. from SystemTour CTA) to switch the active tab
@@ -496,6 +497,9 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       { id: 'academy', label: 'Training Academy', icon: GraduationCap },
       { id: 'docs', label: 'Doc Hub', icon: BookOpen },
     ];
+    if (['Newsletter & Content Writer', 'Content Writer', 'Social Media Team'].includes(displayUser.role)) {
+      toolItems.push({ id: 'content-studio', label: 'Content Studio', icon: PenLine });
+    }
     if (!displayUser.isAdmin && canAccessOperationalTools && COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) {
       toolItems.push({ id: 'forms', label: 'Forms', icon: FileText });
     }
@@ -1166,6 +1170,17 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
 
          {activeTab === 'my-team' && (displayUser.role === 'Volunteer Lead' || displayUser.isTeamLead) && canAccessOperationalTools && <TabErrorBoundary tab="my-team"><CoordinatorView user={displayUser} allVolunteers={allVolunteers} onNavigate={setActiveTab} /></TabErrorBoundary>}
          {activeTab === 'impact' && <TabErrorBoundary tab="impact"><ImpactHub user={displayUser} allVolunteers={allVolunteers} onUpdate={handleUpdateUser} /></TabErrorBoundary>}
+         {activeTab === 'content-studio' && (
+           <TabErrorBoundary tab="content-studio">
+             <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
+               <div className="max-w-xl">
+                 <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic">Content Studio</h2>
+                 <p className="text-zinc-500 mt-4 font-medium text-sm md:text-lg leading-relaxed">Draft fundraising emails and social media posts for HMC's channels.</p>
+               </div>
+               <ContentStudioPanel user={displayUser} />
+             </div>
+           </TabErrorBoundary>
+         )}
          {activeTab === 'referral-hub' && <TabErrorBoundary tab="referral-hub"><ReferralHub user={displayUser} /></TabErrorBoundary>}
          {activeTab === 'briefing' && <TabErrorBoundary tab="briefing"><CommunicationHub user={displayUser} userMode={displayUser.isAdmin ? 'admin' : 'volunteer'} allVolunteers={allVolunteers} announcements={announcements} setAnnouncements={setAnnouncements} messages={messages} setMessages={setMessages} supportTickets={supportTickets} setSupportTickets={setSupportTickets} initialTab={commHubTab} /></TabErrorBoundary>}
          {activeTab === 'profile' && <TabErrorBoundary tab="profile"><MyProfile currentUser={displayUser} onUpdate={handleUpdateUser} /></TabErrorBoundary>}

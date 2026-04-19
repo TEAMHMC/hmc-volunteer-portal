@@ -338,4 +338,5 @@ const RewardsStore: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void
   );
 };
 
+export { ContentStudioPanel };
 export default ImpactHub;
