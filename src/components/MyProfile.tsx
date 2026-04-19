@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Volunteer, Task } from '../types';
 import {
-  Save, Edit3, Mail, Phone, Calendar, Globe, Clock, Smartphone, Bell, Zap, ClipboardList, Check, TrendingUp, Award, CheckCircle2, Star, Camera, Upload, Shield, XCircle, Plus, Trash2
+  Save, Edit3, Mail, Phone, Calendar, Globe, Clock, Smartphone, Bell, Zap, ClipboardList, Check, TrendingUp, Award, CheckCircle2, Star, Camera, Upload, Shield, XCircle, Plus, Trash2, Activity, AlertCircle
 } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
@@ -167,6 +167,28 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
     return daysSinceUpdate >= 7;
   });
 
+  // ── Clinical Skills Gap ────────────────────────────────────────────────────
+  const CLINICAL_SKILLS = [
+    { key: 'wound_care',  label: 'Wound Care & Dressing Changes',       trainingIds: ['wound_care_signoff', 'wound-care', 'wound_care'] },
+    { key: 'bp',          label: 'Blood Pressure Measurement',           trainingIds: ['bp_signoff', 'blood_pressure', 'bp'] },
+    { key: 'glucose',     label: 'Blood Glucose Testing',                trainingIds: ['glucose_signoff', 'glucose', 'blood_glucose'] },
+    { key: 'o2',          label: 'Oxygen Saturation (Pulse Oximetry)',   trainingIds: ['o2_signoff', 'pulse_ox', 'o2', 'oximetry'] },
+    { key: 'first_aid',   label: 'Basic First Aid & CPR',                trainingIds: ['first_aid_signoff', 'cpr', 'first_aid', 'basicfirstaid'] },
+    { key: 'narcan',      label: 'Naloxone (Narcan) Administration',     trainingIds: ['narcan_signoff', 'naloxone', 'narcan'] },
+  ] as const;
+
+  const completedIds = new Set((currentUser.completedTrainingIds ?? []).map(id => id.toLowerCase()));
+
+  const skillStatuses = CLINICAL_SKILLS.map(skill => ({
+    ...skill,
+    signedOff: skill.trainingIds.some(tid => completedIds.has(tid.toLowerCase())),
+  }));
+
+  const signedOffCount = skillStatuses.filter(s => s.signedOff).length;
+  const allComplete   = signedOffCount === CLINICAL_SKILLS.length;
+  const anyPending    = signedOffCount < CLINICAL_SKILLS.length;
+  // ── End Clinical Skills Gap ────────────────────────────────────────────────
+
   return (
     <div className="space-y-4 md:space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Weekly Availability Reminder Banner */}
@@ -206,6 +228,12 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
             </div>
             <button onClick={() => fileInputRef.current?.click()} aria-label="Upload profile photo" className="absolute -bottom-2 -right-2 w-12 h-12 bg-white border border-black rounded-full flex items-center justify-center shadow-elevation-2 hover:scale-110 active:scale-95 transition-all"><Camera size={20} /></button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+            {anyPending && (
+              <div title={`${CLINICAL_SKILLS.length - signedOffCount} clinical skill(s) need in-person sign-off`} className="absolute -top-2 -right-2 flex items-center gap-1 bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full shadow-elevation-2 border border-white">
+                <AlertCircle size={10} />
+                Skills Needed
+              </div>
+            )}
           </div>
           <div>
             {isEditing ? (
@@ -399,6 +427,60 @@ const MyProfile: React.FC<{ currentUser: Volunteer; onUpdate: (u: Volunteer) => 
           </div>
         </div>
       )}
+
+      {/* ── Clinical Skills Sign-Off ─────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl md:rounded-[40px] p-4 md:p-8 border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+        <div className="flex items-center gap-4 mb-4 md:mb-6">
+          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 shadow-elevation-1">
+            <Activity size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base md:text-xl font-black text-zinc-900 tracking-tight">Clinical Skills Sign-Off</h3>
+            <p className="text-xs text-zinc-400 font-bold">Hands-on skills requiring in-person verification</p>
+          </div>
+          <span className="text-sm font-black text-zinc-700 shrink-0">{signedOffCount}/{CLINICAL_SKILLS.length}</span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full h-2.5 bg-zinc-100 rounded-full mb-6 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${allComplete ? 'bg-emerald-500' : 'bg-amber-400'}`}
+            style={{ width: `${(signedOffCount / CLINICAL_SKILLS.length) * 100}%` }}
+          />
+        </div>
+
+        {/* All-complete banner */}
+        {allComplete && (
+          <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
+            <p className="text-sm font-black text-emerald-800">All Clinical Skills Complete — great work!</p>
+          </div>
+        )}
+
+        {/* Skill rows */}
+        <div className="space-y-2">
+          {skillStatuses.map(skill => (
+            <div key={skill.key} className="flex items-center justify-between gap-4 p-3 rounded-2xl hover:bg-zinc-50 transition-colors">
+              <p className={`text-sm font-bold ${skill.signedOff ? 'text-zinc-900' : 'text-zinc-500'}`}>{skill.label}</p>
+              {skill.signedOff ? (
+                <span className="shrink-0 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  Signed Off
+                </span>
+              ) : (
+                <span className="shrink-0 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                  Needs Sign-Off
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer note */}
+        <p className="mt-6 text-[11px] text-zinc-400 font-bold leading-relaxed border-t border-zinc-100 pt-4">
+          Hands-on skills require in-person verification by a Licensed Medical Professional. Complete the online training module first, then attend a skills session.
+        </p>
+      </div>
+      {/* ── End Clinical Skills Sign-Off ──────────────────────────────────────── */}
 
       {/* Signed Clinical Documents */}
       {currentUser.clinicalOnboarding?.documents && Object.values(currentUser.clinicalOnboarding.documents).some((d: any) => d?.signed) && (
