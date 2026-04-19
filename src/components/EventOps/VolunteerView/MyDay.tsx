@@ -1868,7 +1868,7 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
               <span className="text-xs font-black text-zinc-700">Medical team &amp; Events Lead notified</span>
             </div>
             <a
-              href={`https://maps.apple.com/?q=urgent+care&sll=&near=Current+Location`}
+              href="https://www.google.com/maps/search/urgent+care+open+now+near+me"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-red-200 w-full text-left"
@@ -1877,12 +1877,12 @@ function StepServing({ onBeginWrapUp, serviceLogsCount, onServiceLogged }: StepS
                 if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(pos => {
                     const { latitude, longitude } = pos.coords;
-                    window.open(`https://maps.apple.com/?q=urgent+care&sll=${latitude},${longitude}&z=14`, '_blank');
+                    window.open(`https://www.google.com/maps/search/urgent+care+open+now/@${latitude},${longitude},14z`, '_blank');
                   }, () => {
-                    window.open('https://maps.apple.com/?q=urgent+care+near+me', '_blank');
+                    window.open('https://www.google.com/maps/search/urgent+care+open+now+near+me', '_blank');
                   });
                 } else {
-                  window.open('https://maps.apple.com/?q=urgent+care+near+me', '_blank');
+                  window.open('https://www.google.com/maps/search/urgent+care+open+now+near+me', '_blank');
                 }
               }}
             >
