@@ -23,6 +23,7 @@ export const LEAD_ROLES: string[] = [
   'General Operations Coordinator',
   'Operations Coordinator',
   'Outreach & Engagement Lead',
+  'Team Lead',
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
