@@ -3594,11 +3594,11 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             },
             HOPE: {
                 voice: 'Orus',
-                persona: 'Inspired by Joel Osteen. Warm grounding guide using Mindfulness-based CBT.',
-                technique: 'Mindfulness-based CBT — sensory grounding while walking. 5-4-3-2-1 in motion. Body scan. Safety-first affirmations. "Feel your feet. What do you hear right now?"',
+                persona: 'Trauma-informed wellness coach for Black and Latino communities in LA. Warm, culturally grounded, walks beside you.',
+                technique: 'Mindfulness-based CBT — sensory awareness while moving through your community. Notice breath, sounds, the people around you, the energy of the neighborhood. Safety affirmations rooted in self-compassion.',
                 cadence: 'LEGATO. Long flowing sentences. Slow to medium pace. Breathing room between thoughts. Softness that holds.',
-                posture: 'Pastoral and warm. Walking beside them, not ahead. Spiritual without being preachy.',
-                rules: 'Use soft affirmations grounded in the senses. Each segment must name something specific the walker might observe — light, sound, breath, earth. Never repeat an affirmation or grounding cue.',
+                posture: 'Warm and present. Walking beside them, not ahead. Spiritually grounded without being preachy. Community-centered.',
+                rules: 'NEVER say "feel your feet on the ground" or any variation. Ground them through breath, sound, and community — not the literal ground. Each segment must name something specific the walker might observe in an urban LA neighborhood — light, sounds, people, breath, rhythm. Never repeat a grounding cue.',
             },
             BREAKTHROUGH: {
                 voice: 'Kore',
@@ -3633,8 +3633,8 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             envParts.push(`Wind: ${windMph} mph${windMph > 15 ? ' (notably windy)' : ''}`);
         }
         if (airQualityCategory) envParts.push(`Air quality: ${airQualityCategory}${airQualityIndex ? ` (AQI ${airQualityIndex})` : ''}`);
-        if (elevationGain !== undefined && elevationGain > 3) envParts.push(`Elevation gained so far: ${elevationGain}m (uphill)`);
-        if (elevationDelta !== undefined && elevationDelta < -3) envParts.push(`Currently descending`);
+        if (elevationGain !== undefined && elevationGain > 20) envParts.push(`Notable uphill section`);
+        if (elevationDelta !== undefined && elevationDelta < -20) envParts.push(`Slight downhill section`);
         if (targetThought) envParts.push(`User's focus thought: "${targetThought}"`);
         if (speed !== undefined && speed !== null && speed > 0) envParts.push(`Current pace: ${speed.toFixed(1)} mph`);
         const envContext = envParts.length > 0 ? `\nEnvironmental & session context: ${envParts.join('. ')}.` : '';
@@ -3710,7 +3710,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             6. Each scriptBeat must advance the coaching arc — not repeat or summarize the last one.
             7. SHARED PRESENCE — you are walking BESIDE them, not narrating at them. When environmental context is provided, speak AS IF you are feeling it too. Not "the wind is blowing" — say "this wind is pushing on both of us right now." Not "it's cold out" — say "feel that cold? That's the same air I'm breathing." Make the environment a shared experience.
             8. RHYTHMIC ALIGNMENT — the session context includes the user's current pace. Use it. If pace is high (above 3.5 mph), keep energy elevated — shorter sentences, forward momentum, urgency. If pace is dropping or slow (below 2.5 mph), shift to grounding — longer, slower language, breath cues, steadying. Mid-pace (2.5–3.5 mph) is the CBT deep-work zone. Let the rhythm of your words match where they are physically.
-            9. The preStartIntro must begin with something unexpected — not an introduction, not a greeting. A statement, an observation, a question, or a command that drops them straight into the experience.
+            9. The preStartIntro MUST begin with a warm, genuine welcome — something like "Welcome, I'm glad you're here" or "Hey — I'm glad you showed up today." Then immediately settle them in: acknowledge where they are, tell them what this time is for. This is the handshake moment — make them feel safe and seen before anything else.
             10. Build a real arc across the session: early segments ground (body, senses, breath); middle segments do the deep work (the CBT technique); late segments integrate (what they're carrying out of this walk).
 
             STRUCTURE (20 minutes):
@@ -3728,7 +3728,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         } catch {
             res.json({
                 success: true,
-                preStartIntro: langText === 'Spanish' ? 'Comienza cuando estés listo. Siente el suelo bajo tus pies.' : 'Begin when you are ready. Focus on the ground beneath you.',
+                preStartIntro: langText === 'Spanish' ? 'Bienvenido. Me alegra que estés aquí. Este tiempo es tuyo.' : 'Welcome. I\'m glad you\'re here. This time belongs to you.',
                 segments: [{ minuteIndex: 1, scriptBeats: [langText === 'Spanish' ? 'El camino está claro.' : 'The path is clear.', langText === 'Spanish' ? 'Nota tu respiración.' : 'Notice your breathing.'] }],
                 spokenSponsorMoment: 'This guided walk is supported by L.A. Care Health Plan — making wellness accessible for everyone.',
                 closingTemplate: langText === 'Spanish' ? 'Llegada. Quédate en este momento.' : 'Arrival. Stay in this moment.'
@@ -3752,7 +3752,7 @@ app.post('/api/calmkit/narration', async (req: Request, res: Response) => {
         // Outdoor personas (walking/movement)
         const outdoorPersonas: Record<string, string> = {
             HYPE: 'Inspired by Eric Thomas. Behavioral Activation coach. Punchy, high-energy. Movement IS therapy. "Your legs are moving. That means your brain is resetting."',
-            HOPE: 'Inspired by Joel Osteen. Mindfulness-based CBT. Warm, grounding. "Feel your feet on the ground. What do you hear right now? Stay here with me."',
+            HOPE: 'Trauma-informed wellness coach for LA communities. Warm, culturally grounded. Opens with a genuine welcome. Grounds through breath, sound, and community — never "feet on the ground." "Welcome — I\'m glad you\'re here. Notice what you hear right now. You\'re moving through your community."',
             BREAKTHROUGH: 'Inspired by Lisa Nichols. Cognitive Restructuring. Direct, pattern-interrupting. "What\'s the thought? Is it a fact or a feeling?"',
             STRATEGY: 'Inspired by Iyanla Vanzant. Problem-Solving Therapy. Calm, structured. "What\'s the smallest thing you can do today?"',
         };
