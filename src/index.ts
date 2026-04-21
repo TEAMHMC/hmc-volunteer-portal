@@ -13811,6 +13811,12 @@ app.get('/api/screenings/flagged', verifyToken, requireAdmin, async (req: Reques
             // Filter by date
             if (s.createdAt && s.createdAt < cutoffISO) continue;
 
+            // Skip cleared screenings — already resolved
+            if (s.clinicalAction === 'Cleared') continue;
+
+            // Skip screenings with no real clientId (test/orphaned records)
+            if (!s.clientId) continue;
+
             // Must have a flag or follow-up needed
             const hasBPFlag = s.flags?.bloodPressure?.level && s.flags.bloodPressure.level !== 'normal';
             const hasGlucoseFlag = s.flags?.glucose?.level && s.flags.glucose.level !== 'normal';
