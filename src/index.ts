@@ -8482,6 +8482,20 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
         if (!opportunity.rsvps) {
             opportunity.rsvps = [];
         }
+
+        // Dedup: reject if an event with same title + date already exists
+        if (opportunity.title && opportunity.date) {
+            const existing = await db.collection('opportunities')
+                .where('title', '==', opportunity.title)
+                .where('date', '==', opportunity.date)
+                .limit(1)
+                .get();
+            if (!existing.empty) {
+                const dup = existing.docs[0];
+                return res.status(409).json({ error: 'duplicate', message: 'An event with this title and date already exists.', existingId: dup.id });
+            }
+        }
+
         const docRef = await db.collection('opportunities').add(opportunity);
         const opportunityId = docRef.id;
 
@@ -8856,6 +8870,17 @@ app.post('/api/events/bulk-import', verifyToken, async (req: Request, res: Respo
                 createdAt: new Date().toISOString(),
                 createdBy: userProfile?.id || 'bulk-import',
             };
+
+            // Dedup: skip if same title + date already exists
+            const dupCheck = await db.collection('opportunities')
+                .where('title', '==', opportunity.title)
+                .where('date', '==', opportunity.date)
+                .limit(1)
+                .get();
+            if (!dupCheck.empty) {
+                console.warn(`[EVENTS] Skipping duplicate: "${opportunity.title}" on ${opportunity.date}`);
+                continue;
+            }
 
             const docRef = await db.collection('opportunities').add(opportunity);
             const opportunityId = docRef.id;
