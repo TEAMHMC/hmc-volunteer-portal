@@ -5809,6 +5809,7 @@ app.get('/api/public/flyer/:id', async (req: Request, res: Response) => {
         const buffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
         res.set('Content-Type', mimeType || 'image/jpeg');
         res.set('Cache-Control', 'public, max-age=86400');
+        res.set('Cross-Origin-Resource-Policy', 'cross-origin');
         res.send(buffer);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
