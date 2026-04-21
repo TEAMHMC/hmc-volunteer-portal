@@ -5775,6 +5775,39 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
     }
 });
 
+// POST /api/public/upload-flyer — accepts base64 image, stores in Firestore, returns a permanent URL
+app.post('/api/public/upload-flyer', rateLimit(20, 60000), async (req: Request, res: Response) => {
+    try {
+        const { eventId, imageData, mimeType } = req.body;
+        if (!imageData) return res.status(400).json({ success: false, error: 'imageData is required' });
+        const id = eventId || `flyer-${Date.now()}`;
+        await db.collection('event_flyers').doc(id).set({
+            imageData,
+            mimeType: mimeType || 'image/jpeg',
+            updatedAt: new Date().toISOString(),
+        });
+        const url = `${process.env.WEBSITE_URL || 'https://hmc-volunteer-portal-172668994130.us-central1.run.app'}/api/public/flyer/${id}`;
+        res.json({ success: true, url });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// GET /api/public/flyer/:id — serve stored flyer image
+app.get('/api/public/flyer/:id', async (req: Request, res: Response) => {
+    try {
+        const doc = await db.collection('event_flyers').doc(req.params.id).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Flyer not found' });
+        const { imageData, mimeType } = doc.data() as any;
+        const buffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        res.set('Content-Type', mimeType || 'image/jpeg');
+        res.set('Cache-Control', 'public, max-age=86400');
+        res.send(buffer);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET /api/public/volunteer-checkin-status — called by Apps Script doGet to validate a check-in token.
 // Handles BOTH public Event Finder RSVPs (public_rsvps) and volunteer shift registrations (volunteer_checkin_tokens).
 app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (req: Request, res: Response) => {
