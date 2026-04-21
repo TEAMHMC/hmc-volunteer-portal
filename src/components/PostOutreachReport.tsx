@@ -216,7 +216,10 @@ export default function PostOutreachReport({ user }: { user: User }) {
     if (clientDocs[clientId]) return;
     try {
       const res = await fetch(`/api/clients/${clientId}/documents`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) setClientDocs(prev => ({ ...prev, [clientId]: await res.json() }));
+      if (res.ok) {
+        const docs = await res.json();
+        setClientDocs(prev => ({ ...prev, [clientId]: docs }));
+      }
     } catch {}
   };
 
