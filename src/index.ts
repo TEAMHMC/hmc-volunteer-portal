@@ -16108,6 +16108,198 @@ app.get('/training', (req: Request, res: Response) => {
   res.sendFile(path.join(buildPath, 'training.html'));
 });
 
+// --- POST-OUTREACH REPORT ---
+app.get('/api/outreach-report', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        const allowedRoles = ['Licensed Medical Professional', 'Medical Admin', 'Outreach & Engagement Lead'];
+        if (!callerData?.isAdmin && !allowedRoles.includes(callerData?.role)) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const { eventId, dateFrom, dateTo } = req.query as Record<string, string>;
+        const now = new Date();
+
+        // Build date range
+        const fromDate = dateFrom ? new Date(dateFrom) : (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d; })();
+        const toDate = dateTo ? new Date(dateTo) : now;
+        const fromISO = fromDate.toISOString();
+        const toISO = toDate.toISOString();
+
+        // Fetch all data in parallel
+        const [clientsSnap, referralsSnap, screeningsSnap, flagsSnap, oppsSnap] = await Promise.all([
+            eventId
+                ? db.collection('clients').where('eventId', '==', eventId).get()
+                : db.collection('clients').where('createdAt', '>=', fromISO).where('createdAt', '<=', toISO).get(),
+            eventId
+                ? db.collection('referrals').where('eventId', '==', eventId).get()
+                : db.collection('referrals').where('createdAt', '>=', fromISO).where('createdAt', '<=', toISO).get(),
+            eventId
+                ? db.collection('screenings').where('eventId', '==', eventId).get()
+                : db.collection('screenings').where('createdAt', '>=', fromISO).where('createdAt', '<=', toISO).get(),
+            db.collection('referral_flags').where('createdAt', '>=', fromISO).get(),
+            db.collection('opportunities').orderBy('date', 'desc').limit(30).get(),
+        ]);
+
+        const clients = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const referrals = referralsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const screenings = screeningsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const flags = flagsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+        const events = oppsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+
+        // Referral stats
+        const pendingReferrals = referrals.filter((r: any) => r.status === 'Pending' || r.status === 'In Progress');
+        const urgentReferrals = referrals.filter((r: any) => r.urgency === 'Urgent' || r.urgency === 'Emergency');
+        const overdueReferrals = pendingReferrals.filter((r: any) => {
+            const deadline = new Date(new Date(r.createdAt).getTime() + 72 * 60 * 60 * 1000);
+            return now > deadline;
+        });
+
+        // SLA compliance
+        const completed = referrals.filter((r: any) => r.firstContactDate);
+        const compliant = completed.filter((r: any) => {
+            const hrs = (new Date(r.firstContactDate).getTime() - new Date(r.createdAt).getTime()) / 3600000;
+            return hrs <= 72;
+        });
+
+        // Demographics breakdown
+        const demographics = { housing: {} as Record<string, number>, insurance: {} as Record<string, number>, language: {} as Record<string, number>, needs: {} as Record<string, number> };
+        clients.forEach((c: any) => {
+            if (c.housingStatus) demographics.housing[c.housingStatus] = (demographics.housing[c.housingStatus] || 0) + 1;
+            if (c.insuranceStatus) demographics.insurance[c.insuranceStatus] = (demographics.insurance[c.insuranceStatus] || 0) + 1;
+            if (c.primaryLanguage || c.language) { const lang = c.primaryLanguage || c.language; demographics.language[lang] = (demographics.language[lang] || 0) + 1; }
+            if (Array.isArray(c.needs)) c.needs.forEach((n: string) => { demographics.needs[n] = (demographics.needs[n] || 0) + 1; });
+        });
+
+        // Abnormal screenings needing review
+        const abnormalScreenings = screenings.filter((s: any) =>
+            s.systolic > 140 || s.diastolic > 90 || s.glucose > 126 || s.oxygenSat < 94
+        );
+
+        // Action items: clients with pending referrals — build lookup
+        const clientReferralMap: Record<string, any[]> = {};
+        referrals.forEach((r: any) => {
+            if (!clientReferralMap[r.clientId]) clientReferralMap[r.clientId] = [];
+            clientReferralMap[r.clientId].push(r);
+        });
+
+        const actionItems = clients
+            .filter((c: any) => {
+                const clientRefs = clientReferralMap[c.id] || [];
+                const hasFlag = flags.some((f: any) => f.clientId === c.id);
+                const hasPending = clientRefs.some((r: any) => r.status === 'Pending' || r.status === 'In Progress');
+                const abnormal = screenings.some((s: any) => s.clientId === c.id && (s.systolic > 140 || s.diastolic > 90 || s.glucose > 126 || s.oxygenSat < 94));
+                return hasPending || hasFlag || abnormal;
+            })
+            .map((c: any) => ({
+                clientId: c.id,
+                clientName: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
+                pendingReferrals: (clientReferralMap[c.id] || []).filter((r: any) => r.status === 'Pending' || r.status === 'In Progress').length,
+                urgentReferrals: (clientReferralMap[c.id] || []).filter((r: any) => r.urgency === 'Urgent' || r.urgency === 'Emergency').length,
+                flagged: flags.some((f: any) => f.clientId === c.id),
+                abnormalScreening: screenings.some((s: any) => s.clientId === c.id && (s.systolic > 140 || s.diastolic > 90 || s.glucose > 126 || s.oxygenSat < 94)),
+            }));
+
+        res.json({
+            generatedAt: now.toISOString(),
+            dateRange: { from: fromISO, to: toISO },
+            eventId: eventId || null,
+            summary: {
+                totalClients: clients.length,
+                totalScreenings: screenings.length,
+                abnormalScreenings: abnormalScreenings.length,
+                totalReferrals: referrals.length,
+                pendingReferrals: pendingReferrals.length,
+                urgentReferrals: urgentReferrals.length,
+                overdueReferrals: overdueReferrals.length,
+                slaCompliance: completed.length > 0 ? Math.round((compliant.length / completed.length) * 100) : null,
+            },
+            demographics,
+            actionItems,
+            events: events.map(e => ({ id: e.id, title: e.title, date: e.date, location: e.location })),
+        });
+    } catch (error) {
+        console.error('[OUTREACH-REPORT] Failed:', error);
+        res.status(500).json({ error: 'Failed to generate outreach report' });
+    }
+});
+
+// --- CLIENT DOCUMENT UPLOAD ---
+app.post('/api/clients/:clientId/documents', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const callerData = user.profile;
+        const allowedRoles = ['Licensed Medical Professional', 'Medical Admin', 'Outreach & Engagement Lead', 'Core Volunteer', 'Volunteer Lead'];
+        if (!callerData?.isAdmin && !allowedRoles.includes(callerData?.role)) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const { clientId } = req.params;
+        const { fileName, fileType, fileData, documentType, notes } = req.body;
+        if (!fileName || !fileData) return res.status(400).json({ error: 'fileName and fileData are required' });
+
+        const docRef = await db.collection('client_documents').add({
+            clientId,
+            fileName,
+            fileType: fileType || 'application/octet-stream',
+            fileData, // base64
+            documentType: documentType || 'General',
+            notes: notes || '',
+            uploadedBy: user.uid,
+            uploadedByName: callerData?.name || 'Unknown',
+            createdAt: new Date().toISOString(),
+        });
+        res.json({ id: docRef.id, clientId, fileName, documentType });
+    } catch (error) {
+        console.error('[CLIENT-DOCS] Upload failed:', error);
+        res.status(500).json({ error: 'Failed to upload document' });
+    }
+});
+
+app.get('/api/clients/:clientId/documents', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('client_documents').where('clientId', '==', req.params.clientId).get();
+        res.json(snap.docs.map(d => ({ id: d.id, clientId: d.data().clientId, fileName: d.data().fileName, fileType: d.data().fileType, documentType: d.data().documentType, notes: d.data().notes, uploadedBy: d.data().uploadedByName, createdAt: d.data().createdAt })));
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+});
+
+app.get('/api/clients/:clientId/documents/:docId', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const doc = await db.collection('client_documents').doc(req.params.docId).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Document not found' });
+        res.json({ id: doc.id, ...doc.data() });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch document' });
+    }
+});
+
+// --- ADMIN: TOTAL CLIENTS STAT ---
+app.get('/api/admin/stats/clients', verifyToken, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const [totalSnap, weekSnap, monthSnap, pendingReferralsSnap] = await Promise.all([
+            db.collection('clients').get(),
+            db.collection('clients').where('createdAt', '>=', weekAgo.toISOString()).get(),
+            db.collection('clients').where('createdAt', '>=', monthAgo.toISOString()).get(),
+            db.collection('referrals').where('status', 'in', ['Pending', 'In Progress']).get(),
+        ]);
+
+        res.json({
+            totalClients: totalSnap.size,
+            clientsThisWeek: weekSnap.size,
+            clientsThisMonth: monthSnap.size,
+            pendingReferrals: pendingReferralsSnap.size,
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch client stats' });
+    }
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {

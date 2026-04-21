@@ -41,6 +41,7 @@ const ReferralHub = lazy(() => import('./ReferralHub'));
 const VolunteerSurveyModal = lazy(() => import('./VolunteerSurveyModal'));
 const WebflowCMS = lazy(() => import('./WebflowCMS'));
 const ProjectBoard = lazy(() => import('./ProjectBoard'));
+const PostOutreachReport = lazy(() => import('./PostOutreachReport'));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center py-32">
@@ -237,7 +238,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects' | 'content-studio'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects' | 'content-studio' | 'outreach-report'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   // Allow external navigation (e.g. from SystemTour CTA) to switch the active tab
@@ -529,6 +530,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     if (canAccessOperationalTools && medicalRoles.includes(displayUser.role)) {
       roleItems.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
       roleItems.push({ id: 'referrals', label: 'Referral Management', icon: FileText });
+      roleItems.push({ id: 'outreach-report', label: 'Outreach Report', icon: Activity });
     }
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
       roleItems.push({ id: 'intake', label: 'Client Intake', icon: Send });
@@ -559,6 +561,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           { id: 'meetings', label: 'Meetings', icon: Calendar },
           { id: 'directory', label: 'Directory', icon: Users, badge: newApplicantsCount },
           { id: 'referrals', label: 'Referral Mgmt', icon: Send },
+          { id: 'outreach-report', label: 'Outreach Report', icon: Activity },
           { id: 'resources', label: 'Resources', icon: Database },
           { id: 'analytics', label: 'Analytics', icon: BarChart3 },
           { id: 'workflows', label: 'Workflows', icon: Zap },
@@ -1188,6 +1191,11 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          <div style={{ display: activeTab === 'calendar' ? 'block' : 'none' }}><OrgCalendar user={displayUser} opportunities={opportunities} onNavigate={setActiveTab} /></div>
          {activeTab === 'directory' && user.isAdmin && <TabErrorBoundary tab="directory"><AdminVolunteerDirectory volunteers={allVolunteers} setVolunteers={setAllVolunteers} currentUser={user} /></TabErrorBoundary>}
          {activeTab === 'referrals' && (user.isAdmin || ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role)) && <TabErrorBoundary tab="referrals"><ReferralManagement isAdmin={user.isAdmin} /></TabErrorBoundary>}
+         {activeTab === 'outreach-report' && (user.isAdmin || ['Licensed Medical Professional', 'Medical Admin', 'Outreach & Engagement Lead'].includes(displayUser.role)) && (
+           <TabErrorBoundary tab="outreach-report">
+             <PostOutreachReport user={displayUser} />
+           </TabErrorBoundary>
+         )}
          {activeTab === 'resources' && user.isAdmin && <TabErrorBoundary tab="resources"><ResourceDashboard /></TabErrorBoundary>}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <TabErrorBoundary tab="analytics"><AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} /></TabErrorBoundary>}
          {activeTab === 'workflows' && user.isAdmin && <TabErrorBoundary tab="workflows"><AutomatedWorkflows /></TabErrorBoundary>}
