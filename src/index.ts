@@ -5731,6 +5731,13 @@ app.get('/api/admin/volunteers-missing-phone', verifyToken, async (req: Request,
     }
 });
 
+// POST /api/public/bust-events-cache — called after admin saves an event to force immediate refresh
+app.post('/api/public/bust-events-cache', rateLimit(20, 60000), (_req: Request, res: Response) => {
+    _gasEventsCache = null;
+    console.log('[PUBLIC EVENTS] Cache busted by admin save');
+    res.json({ success: true });
+});
+
 // POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
