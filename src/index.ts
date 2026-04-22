@@ -5297,6 +5297,186 @@ const handleVolunteerMatch = async (
   }
 };
 
+// GET /privacy — Volunteer Portal Privacy Notice
+app.get('/privacy', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Volunteer Portal Privacy Notice | Health Matters Clinic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f9f9f8; color: #1a1a1a; line-height: 1.7; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+    .logo-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
+    .logo-bar img { width: 36px; height: 36px; border-radius: 50%; }
+    .logo-bar span { font-size: 13px; font-weight: 700; color: #233dff; letter-spacing: 0.02em; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: #6b7280; margin-bottom: 40px; }
+    h2 { font-size: 15px; font-weight: 700; margin: 36px 0 10px; color: #1a1a1a; }
+    p { font-size: 14px; color: #374151; margin-bottom: 12px; }
+    ul { font-size: 14px; color: #374151; padding-left: 20px; margin-bottom: 12px; }
+    ul li { margin-bottom: 6px; }
+    .pill { display: inline-block; background: #eff2ff; color: #233dff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin: 2px 4px 2px 0; }
+    .highlight { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13px; color: #374151; }
+    .contact-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-top: 40px; font-size: 13px; }
+    .contact-box a { color: #233dff; text-decoration: none; font-weight: 600; }
+    footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; }
+    footer a { color: #6b7280; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo-bar">
+    <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="HMC" />
+    <span>Health Matters Clinic — Volunteer Portal</span>
+  </div>
+
+  <h1>Volunteer Portal Privacy Notice</h1>
+  <p class="meta">Effective Date: April 1, 2026 &nbsp;·&nbsp; Applies to: volunteer.healthmatters.clinic</p>
+
+  <p>This Privacy Notice explains how Health Matters Clinic ("HMC") collects, uses, stores, and protects your personal information when you use the Volunteer Portal. This notice is specific to the portal — for our general site privacy policy, visit <a href="https://www.healthmatters.clinic/privacy-policy" style="color:#233dff;font-weight:600;">healthmatters.clinic/privacy-policy</a>.</p>
+
+  <h2>1. What We Collect and Why</h2>
+
+  <p><strong>Account & Identity</strong></p>
+  <ul>
+    <li>Legal name, preferred name, email address, phone number</li>
+    <li>Date of birth (to verify age eligibility)</li>
+    <li>Address / zip code</li>
+    <li>Gender identity and pronouns (optional)</li>
+    <li>Emergency contact name and phone number</li>
+    <li>Profile photo (optional)</li>
+  </ul>
+
+  <p><strong>Application & Eligibility</strong></p>
+  <ul>
+    <li>Skills, certifications, languages spoken, volunteer role interests</li>
+    <li>Availability (days/times)</li>
+    <li>Background check authorization and results (via third-party provider)</li>
+    <li>SSN authorization consent (required for background screening only — HMC does not store your SSN)</li>
+    <li>Uploaded documents (certifications, IDs if required)</li>
+  </ul>
+
+  <p><strong>Participation & Activity</strong></p>
+  <ul>
+    <li>Shift history, hours logged, attendance records</li>
+    <li>Role assignments and team lead assignments</li>
+    <li>XP points earned and milestone achievements</li>
+    <li>Training module completion status</li>
+    <li>Survey and feedback responses</li>
+    <li>Check-in timestamps and check-in method (QR, token link, manual)</li>
+    <li>Post-event outreach reports submitted</li>
+  </ul>
+
+  <p><strong>Compliance Acknowledgments</strong></p>
+  <ul>
+    <li>Waiver & Release agreement (with timestamp)</li>
+    <li>HIPAA Confidentiality acknowledgment (with timestamp)</li>
+    <li>Media/photo consent status</li>
+    <li>Intellectual property agreement</li>
+    <li>Terms of Service agreement (with timestamp)</li>
+  </ul>
+
+  <p><strong>Communications</strong></p>
+  <ul>
+    <li>Email delivery and open status (for portal notifications)</li>
+    <li>SMS delivery status (for shift reminders and urgent alerts)</li>
+    <li>SMS consent status and opt-out history</li>
+  </ul>
+
+  <h2>2. SMS Text Messages</h2>
+  <div class="highlight">
+    By providing your phone number during onboarding, you consent to receive SMS text messages from Health Matters Clinic related to scheduling, shift reminders, onboarding updates, event alerts, and urgent communications. Message frequency varies. Message and data rates may apply. Reply <strong>STOP</strong> at any time to opt out. Reply <strong>HELP</strong> for assistance. Your phone number will not be shared with third parties for their marketing purposes.
+  </div>
+
+  <h2>3. Technical Data Collected Automatically</h2>
+  <ul>
+    <li>Login timestamps and session activity</li>
+    <li>IP address and browser/device type (for security and rate limiting)</li>
+    <li>Portal feature usage (pages visited, actions taken) — used in aggregate to improve the portal</li>
+    <li>reCAPTCHA v3 scores (bot detection on form submissions — no CAPTCHA shown to you)</li>
+  </ul>
+
+  <h2>4. HIPAA-Adjacent Information</h2>
+  <p>Volunteers in clinical or client-facing roles may encounter protected health information (PHI) during events. The portal does not store client PHI. Your HIPAA acknowledgment is recorded, and all volunteers are required to complete HIPAA training before accessing client-facing roles. Any PHI encountered during service must be kept strictly confidential per HMC policy and applicable law.</p>
+
+  <h2>5. How We Use Your Information</h2>
+  <ul>
+    <li>Process and review your volunteer application</li>
+    <li>Verify eligibility and conduct background screening</li>
+    <li>Assign you to appropriate roles and shifts</li>
+    <li>Send shift reminders, scheduling updates, and urgent alerts</li>
+    <li>Track participation hours for grant reporting and compliance</li>
+    <li>Award XP and recognize milestones</li>
+    <li>Improve the portal and volunteer experience</li>
+    <li>Comply with legal, grant, and contractual obligations</li>
+  </ul>
+
+  <h2>6. Who Has Access</h2>
+  <ul>
+    <li><strong>You</strong> — your own profile, shift history, training records</li>
+    <li><strong>Your team lead</strong> — your contact info, availability, shift assignments</li>
+    <li><strong>HMC staff and admins</strong> — full portal access for coordination and compliance</li>
+    <li><strong>Background check provider</strong> — name, DOB, SSN authorization only, for screening</li>
+  </ul>
+  <p>We do not sell your information. We do not share it with advertisers.</p>
+
+  <h2>7. Third-Party Services Used</h2>
+  <div>
+    <span class="pill">Google Firebase / Firestore</span>
+    <span class="pill">Google Cloud Run</span>
+    <span class="pill">Twilio (SMS)</span>
+    <span class="pill">Google reCAPTCHA v3</span>
+    <span class="pill">Google Workspace (email)</span>
+    <span class="pill">Webflow (main site hosting)</span>
+  </div>
+  <p style="margin-top:12px;">All vendors operate under data protection agreements. None use your data for their own marketing.</p>
+
+  <h2>8. Data Retention</h2>
+  <ul>
+    <li>Active volunteer profiles: retained while you are active</li>
+    <li>Shift and participation records: minimum 3 years (grant reporting requirements)</li>
+    <li>Background check results: retained per screening provider policy, not stored by HMC</li>
+    <li>Compliance acknowledgments: retained indefinitely as legal records</li>
+    <li>You may request deletion of your profile at any time — retention minimums apply to participation records</li>
+  </ul>
+
+  <h2>9. Your Rights</h2>
+  <ul>
+    <li>Access the personal information HMC holds about you</li>
+    <li>Request correction of inaccurate data</li>
+    <li>Request deletion of your volunteer profile (subject to retention requirements)</li>
+    <li>Opt out of SMS at any time by replying STOP</li>
+    <li>Withdraw media/photo consent at any time</li>
+  </ul>
+
+  <h2>10. Security</h2>
+  <p>The portal uses HTTPS/SSL encryption, Firestore security rules with role-based access controls, multi-factor authentication for admin accounts, rate limiting on all public endpoints, and session token expiration. No system is perfectly secure — if you believe your account has been compromised, contact us immediately.</p>
+
+  <h2>11. Updates</h2>
+  <p>We may update this notice as the portal evolves. The effective date above reflects the most recent revision. Material changes will be communicated via email to active volunteers.</p>
+
+  <div class="contact-box">
+    <strong>Questions about your data?</strong><br /><br />
+    Email: <a href="mailto:privacy@healthmatters.clinic">privacy@healthmatters.clinic</a><br />
+    General: <a href="mailto:contact@healthmatters.clinic">contact@healthmatters.clinic</a><br />
+    Health Matters Clinic &nbsp;·&nbsp; Los Angeles, California &nbsp;·&nbsp; <a href="https://www.healthmatters.clinic">healthmatters.clinic</a>
+  </div>
+
+  <footer>
+    <a href="https://volunteer.healthmatters.clinic">← Back to Volunteer Portal</a>
+    &nbsp;·&nbsp; © 2026 Health Matters Clinic. All rights reserved.
+  </footer>
+</div>
+</body>
+</html>`);
+});
+
 // GET /checkin — Server-rendered check-in page (linked from confirmation email)
 // Reads ?token=xxx, calls volunteer-checkin-status logic inline, renders branded HTML
 app.get('/checkin', rateLimit(120, 60000), async (req: Request, res: Response) => {

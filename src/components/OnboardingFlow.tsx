@@ -1430,7 +1430,7 @@ const DetailsStep: React.FC<any> = ({ data, onChange, errors }) => {
 const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
   const isMedicalRole = data.selectedRole?.includes('Medical') || data.selectedRole?.includes('Licensed');
 
-  const ConsentCheckbox = ({ field, label, required = true }: { field: string; label: string; required?: boolean }) => (
+  const ConsentCheckbox = ({ field, label, required = true }: { field: string; label: React.ReactNode; required?: boolean }) => (
     <button type="button" onClick={() => onChange(field, !data[field])} className="flex items-start gap-4 p-4 bg-zinc-50 rounded-xl border border-zinc-200 hover:border-zinc-300 transition-all text-left w-full">
       <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${data[field] ? 'bg-brand border-brand' : 'border-zinc-300'}`}>
         {data[field] && <Check size={16} className="text-white" />}
@@ -1451,7 +1451,7 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
         {isMedicalRole && (
           <ConsentCheckbox field="hipaaAcknowledgment" label="I acknowledge that I will be required to complete HIPAA training and maintain patient confidentiality." />
         )}
-        <ConsentCheckbox field="termsAgreed" label="I agree to the Health Matters Clinic Volunteer Terms of Service and Code of Conduct." />
+        <ConsentCheckbox field="termsAgreed" label={<span>I agree to the Health Matters Clinic <a href="https://www.healthmatters.clinic/terms" target="_blank" rel="noopener noreferrer" className="text-brand underline">Terms of Service</a> and have read the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand underline">Volunteer Portal Privacy Notice</a>.</span>} />
       </div>
       {errors.compliance && <p className="text-rose-500 text-sm font-bold">{errors.compliance}</p>}
 

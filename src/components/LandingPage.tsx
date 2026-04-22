@@ -296,7 +296,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
       <footer className="px-4 md:px-12 py-6 md:py-12 border-t border-zinc-50 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8 mt-auto">
          <p className="text-[10px] md:text-[11px] font-bold text-zinc-300 uppercase tracking-widest text-center md:text-left">© 2026 Health Matters Clinic All rights reserved.</p>
          <div className="flex items-center gap-6 md:gap-10">
-            <a href="https://www.healthmatters.clinic/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Privacy Policy</a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Privacy Notice</a>
             <a href="https://www.healthmatters.clinic/terms" target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-[11px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-brand transition-colors">Terms of Service</a>
          </div>
       </footer>
