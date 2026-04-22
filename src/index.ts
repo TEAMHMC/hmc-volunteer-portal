@@ -8628,7 +8628,9 @@ app.put('/api/opportunities/:id', verifyToken, async (req: Request, res: Respons
             'urgency', 'description', 'title', 'date', 'serviceLocation', 'category',
             'staffingQuotas', 'estimatedAttendees', 'slotsTotal', 'startTime', 'endTime', 'time', 'address',
             'requiredSkills', 'supplyList', 'flyerUrl', 'flyerBase64', 'locationCoordinates',
-            'checklistOverride', 'serviceOfferingIds', 'equipment', 'checklist', 'requiresClinicalLead'
+            'checklistOverride', 'serviceOfferingIds', 'equipment', 'checklist', 'requiresClinicalLead',
+            'sessions', 'websiteUrl', 'isPromoted', 'isSponsored', 'promotedUntil', 'saveTheDate',
+            'program', 'location', 'city', 'dateDisplay', 'title_es', 'description_es'
         ];
         const sanitizedUpdates: any = {};
         for (const field of allowedFields) {
