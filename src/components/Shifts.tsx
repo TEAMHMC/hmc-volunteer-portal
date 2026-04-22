@@ -503,10 +503,23 @@ const EditEventModal: React.FC<{
   const [checklist, setChecklist] = useState<{ text: string; done: boolean }[]>(
     event.checklist?.length ? event.checklist.map(c => ({ ...c })) : []
   );
+  const [descriptionEs, setDescriptionEs] = useState((event as any).description_es || '');
+  const [sessions, setSessions] = useState<{ id: string; title: string; time: string; instructor?: string; location?: string; description?: string; capacity?: number }[]>(
+    (event as any).sessions || []
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [showServices, setShowServices] = useState(false);
   const [showEquipment, setShowEquipment] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [showSessions, setShowSessions] = useState(true);
+
+  const handleAddSession = () => {
+    setSessions(prev => [...prev, { id: crypto.randomUUID(), title: '', time: '', instructor: '', location: '', description: '', capacity: undefined }]);
+  };
+  const handleRemoveSession = (id: string) => setSessions(prev => prev.filter(s => s.id !== id));
+  const handleSessionChange = (id: string, field: string, value: string | number | undefined) => {
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
 
   const roleOptions = APP_CONFIG.HMC_ROLES.map(r => r.label);
 
@@ -564,6 +577,8 @@ const EditEventModal: React.FC<{
         equipment: selectedEquipment,
         checklist: checklist.filter(c => c.text.trim()),
         requiresClinicalLead: hasClinicalService || false,
+        sessions: sessions.filter(s => s.title.trim()),
+        description_es: descriptionEs || undefined,
       });
     } finally {
       setIsSaving(false);
@@ -707,6 +722,81 @@ const EditEventModal: React.FC<{
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Spanish Description */}
+          <div>
+            <label className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Description (Spanish)</label>
+            <textarea value={descriptionEs} onChange={e => setDescriptionEs(e.target.value)} placeholder="Descripción en español..." className="w-full h-20 p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm" />
+          </div>
+
+          {/* Agenda / Sessions (collapsible) */}
+          <div className="border border-zinc-200 rounded-3xl overflow-hidden">
+            <button onClick={() => setShowSessions(!showSessions)} className="w-full flex items-center justify-between p-4 bg-zinc-50 hover:bg-zinc-100 transition-colors">
+              <span className="flex items-center gap-2 text-sm font-bold text-zinc-700"><ClipboardList size={16} /> Agenda / Sessions {sessions.length > 0 && <span className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full">{sessions.length} session{sessions.length !== 1 ? 's' : ''}</span>}</span>
+              {showSessions ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
+            </button>
+            {showSessions && (
+              <div className="p-4 space-y-4">
+                {sessions.map((s) => (
+                  <div key={s.id} className="border border-zinc-100 rounded-2xl p-3 space-y-2 bg-zinc-50/50">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={s.title}
+                        onChange={e => handleSessionChange(s.id, 'title', e.target.value)}
+                        placeholder="Session title"
+                        className="flex-1 p-2.5 bg-white border-2 border-zinc-100 rounded-xl outline-none focus:border-brand/30 font-bold text-sm"
+                      />
+                      <button onClick={() => handleRemoveSession(s.id)} className="p-1.5 text-zinc-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors shrink-0">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={s.time}
+                        onChange={e => handleSessionChange(s.id, 'time', e.target.value)}
+                        placeholder="Time (e.g. 10:00 AM)"
+                        className="p-2.5 bg-white border-2 border-zinc-100 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                      />
+                      <input
+                        type="number"
+                        value={s.capacity ?? ''}
+                        onChange={e => handleSessionChange(s.id, 'capacity', e.target.value ? parseInt(e.target.value) : undefined)}
+                        placeholder="Capacity (optional)"
+                        className="p-2.5 bg-white border-2 border-zinc-100 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={s.instructor || ''}
+                        onChange={e => handleSessionChange(s.id, 'instructor', e.target.value)}
+                        placeholder="Instructor (optional)"
+                        className="p-2.5 bg-white border-2 border-zinc-100 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                      />
+                      <input
+                        value={s.location || ''}
+                        onChange={e => handleSessionChange(s.id, 'location', e.target.value)}
+                        placeholder="Room/Location (optional)"
+                        className="p-2.5 bg-white border-2 border-zinc-100 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                      />
+                    </div>
+                    <textarea
+                      value={s.description || ''}
+                      onChange={e => handleSessionChange(s.id, 'description', e.target.value)}
+                      placeholder="Session description (optional)"
+                      rows={2}
+                      className="w-full p-2.5 bg-white border-2 border-zinc-100 rounded-xl outline-none focus:border-brand/30 text-sm font-medium"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={handleAddSession}
+                  className="flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand-hover transition-colors"
+                >
+                  <Plus size={14} /> Add Session
+                </button>
               </div>
             )}
           </div>
