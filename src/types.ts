@@ -130,6 +130,17 @@ export interface Opportunity {
   requiresClinicalLead?: boolean;
   flyerUrl?: string;
   flyerBase64?: string;
+  sessions?: { id: string; title: string; time: string; instructor?: string; location?: string; description?: string; capacity?: number }[];
+  description_es?: string;
+  title_es?: string;
+  websiteUrl?: string;
+  isPromoted?: boolean;
+  isSponsored?: boolean;
+  promotedUntil?: string;
+  saveTheDate?: boolean;
+  program?: string;
+  location?: string;
+  city?: string;
   // Approval workflow - events need admin approval before being visible to all volunteers
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   createdBy?: string;
