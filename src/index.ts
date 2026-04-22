@@ -14795,7 +14795,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     const start = Date.now();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch('https://teamhmc.github.io/Event-Finder-Tool/', { signal: controller.signal, redirect: 'follow' });
+    const res = await fetch('https://eventfinder.healthmatters.clinic/', { signal: controller.signal, redirect: 'follow' });
     clearTimeout(timeout);
     const html = await res.text();
     const responseTime = Date.now() - start;
@@ -14808,7 +14808,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
       // Extract the JS bundle filename from the HTML and verify it loads
       const jsMatch = html.match(/src="([^"]*assets\/index[^"]*\.js)"/);
       if (jsMatch) {
-        const jsUrl = `https://teamhmc.github.io${jsMatch[1]}`;
+        const jsUrl = `https://eventfinder.healthmatters.clinic${jsMatch[1]}`;
         try {
           const jsController = new AbortController();
           const jsTimeout = setTimeout(() => jsController.abort(), 15000);
@@ -14831,7 +14831,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
       const cssMatch = html.match(/href="([^"]*assets\/index[^"]*\.css)"/);
       if (cssMatch) {
         try {
-          const cssUrl = `https://teamhmc.github.io${cssMatch[1]}`;
+          const cssUrl = `https://eventfinder.healthmatters.clinic${cssMatch[1]}`;
           const cssRes = await fetch(cssUrl, { signal: AbortSignal.timeout(10000) });
           if (!cssRes.ok) {
             results.push({ name: 'Event Finder CSS', status: 'fail', responseTime: 0, error: `HTTP ${cssRes.status} — CSS missing, layout will break` });
@@ -14926,7 +14926,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     const res = await fetch('https://www.healthmatters.clinic/resources/eventfinder', { signal: AbortSignal.timeout(15000), redirect: 'follow' });
     const html = await res.text();
     // Check that the iframe embed exists and points to the right place
-    if (html.includes('teamhmc.github.io/Event-Finder-Tool')) {
+    if (html.includes('eventfinder.healthmatters.clinic') || html.includes('teamhmc.github.io/Event-Finder-Tool')) {
       results.push({ name: 'Webflow EF Embed', status: 'pass', responseTime: 0 });
     } else {
       results.push({ name: 'Webflow EF Embed', status: 'fail', responseTime: 0, error: 'Event Finder iframe not found on page' });
