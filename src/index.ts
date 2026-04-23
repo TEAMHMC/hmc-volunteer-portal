@@ -5755,6 +5755,13 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         });
     } catch (error: any) {
         console.error('[PUBLIC RSVP] Failed to create RSVP:', error);
+        // Alert ops immediately on any RSVP failure
+        EmailService.send('broadcast', {
+            toEmail: 'erica@healthmatters.clinic',
+            volunteerName: 'Erica',
+            title: '🚨 RSVP ENDPOINT ERROR — Action Required',
+            content: `An RSVP failed to record at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PST.\n\nError: ${error?.message || 'Unknown error'}\n\nEvent: ${req.body?.eventTitle || req.body?.eventId || 'unknown'}\nRegistrant: ${req.body?.name || 'unknown'} (${req.body?.email || 'unknown'})\n\nCheck Cloud Run logs immediately: https://console.cloud.google.com/run`,
+        }).catch(() => {});
         res.status(500).json({ error: 'Failed to record RSVP' });
     }
 });
@@ -15007,6 +15014,32 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     }
   } catch (e: any) {
     results.push({ name: 'Event Finder HTML', status: 'fail', responseTime: 0, error: e.message });
+  }
+
+  // ── RSVP endpoint smoke test — POST a canary registration and verify success
+  try {
+    const start = Date.now();
+    const rsvpRes = await fetch('https://volunteer.healthmatters.clinic/api/public/rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        eventId: 'monitor-canary',
+        eventTitle: 'Monitor Canary',
+        name: 'Health Monitor',
+        email: 'monitor-canary@healthmatters.clinic',
+        source: 'health-monitor',
+      }),
+    });
+    const responseTime = Date.now() - start;
+    // Accept success OR 400 (missing required field validation) — both mean the endpoint is alive
+    if (rsvpRes.status === 200 || rsvpRes.status === 400) {
+      results.push({ name: 'RSVP Endpoint', status: 'pass', responseTime });
+    } else {
+      results.push({ name: 'RSVP Endpoint', status: 'fail', responseTime, error: `HTTP ${rsvpRes.status} — RSVPs may be broken` });
+    }
+  } catch (e: any) {
+    results.push({ name: 'RSVP Endpoint', status: 'fail', responseTime: 0, error: `RSVP endpoint unreachable: ${e.message}` });
   }
 
   // ── Events API: ping Apps Script then verify JSON body
