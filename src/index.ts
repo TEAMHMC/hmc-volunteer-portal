@@ -328,6 +328,30 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Dynamic sitemap for Event Finder SEO — lists all public event pages
+app.get('/sitemap.xml', async (_req: Request, res: Response) => {
+  try {
+    const today = getPacificDate();
+    const snap = await db.collection('opportunities')
+      .where('approvalStatus', '==', 'approved')
+      .get();
+    const toSlug = (str: string) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const events = snap.docs
+      .filter(d => d.data().date >= today && d.data().isPublicFacing !== false)
+      .map(d => ({ title: d.data().title || 'event', date: d.data().date }));
+
+    const urls = [
+      `  <url><loc>https://eventfinder.healthmatters.clinic/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      ...events.map(e => `  <url><loc>https://eventfinder.healthmatters.clinic/event/${toSlug(e.title)}</loc><lastmod>${e.date}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`),
+    ].join('\n');
+
+    res.set('Content-Type', 'application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+  } catch {
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 // --- GEMINI TEST ENDPOINT — moved after middleware definitions, see below ---
 
 // --- ANALYTICS ENDPOINT — moved after middleware definitions, see below ---
