@@ -5642,26 +5642,6 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }
         }
 
-        // Dedup: if same email+eventId registered in the last 10 minutes, return existing token (prevents triple-fire duplicates)
-        if (email) {
-            const existing = await db.collection('rsvps')
-                .where('eventId', '==', eventId)
-                .where('email', '==', email)
-                .limit(5)
-                .get();
-            if (!existing.empty) {
-                const recentCutoff = Date.now() - 10 * 60 * 1000;
-                const recent = existing.docs.find(d => {
-                    const t = d.data().createdAt;
-                    return t && new Date(t).getTime() > recentCutoff;
-                });
-                if (recent) {
-                    console.log(`[PUBLIC RSVP] Dedup: returning existing RSVP for ${email} / ${eventId}`);
-                    return res.json({ success: true, rsvpId: recent.id, checkinToken: recent.data().checkinToken, message: 'Already registered' });
-                }
-            }
-        }
-
         // Generate a unique check-in token
         const checkinToken = crypto.randomBytes(16).toString('hex');
 
