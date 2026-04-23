@@ -5642,6 +5642,22 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }
         }
 
+        // Dedup: if same email+eventId already registered within the last 10 minutes, return existing token
+        if (email) {
+            const recentCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+            const existing = await db.collection('rsvps')
+                .where('eventId', '==', eventId)
+                .where('email', '==', email)
+                .where('createdAt', '>=', recentCutoff)
+                .limit(1)
+                .get();
+            if (!existing.empty) {
+                const existingData = existing.docs[0].data();
+                console.log(`[PUBLIC RSVP] Dedup: returning existing RSVP for ${email} / ${eventId}`);
+                return res.json({ success: true, rsvpId: existing.docs[0].id, checkinToken: existingData.checkinToken, message: 'Already registered' });
+            }
+        }
+
         // Generate a unique check-in token
         const checkinToken = crypto.randomBytes(16).toString('hex');
 
@@ -5716,25 +5732,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         }
 
         // Confirmation email is sent by Google Apps Script (primary writer) — portal does not send a duplicate.
-
-        // Sync to Google Sheet via Apps Script (async, non-blocking)
-        const appsScriptUrl = APPS_SCRIPT_EVENTS_URL;
-        if (appsScriptUrl) {
-            const sheetParams = new URLSearchParams({
-                action: 'preregister',
-                eventId,
-                name,
-                email: email || '',
-                phone: phone || '',
-                guests: String(guests || 0),
-                eventTitle: eventTitle || '',
-                eventDate: eventDate || '',
-                source: source || 'event-finder-tool',
-                skipEmail: 'true', // portal already sends confirmation
-            });
-            fetch(`${appsScriptUrl}?${sheetParams}`, { signal: AbortSignal.timeout(10000) })
-              .catch(err => console.warn('[PUBLIC RSVP] Sheet sync failed (non-critical):', err.message));
-        }
+        // NOTE: Portal does NOT sync back to GAS sheet — client already writes directly to GAS. Double-writing caused triple duplicates.
 
         // Notify rsvp@healthmatters.clinic for all public event RSVPs
         EmailService.send('broadcast', {
