@@ -1512,7 +1512,7 @@ const EmailTemplates = {
     html: `${emailHeader(data.title || 'Announcement')}
       <p>Hi ${data.volunteerName},</p>
       <div style="white-space: pre-line; line-height: 1.6;">${data.content}</div>
-      ${data.ctaUrl ? actionButton(data.ctaLabel as string || 'View in Portal', data.ctaUrl as string) : ''}
+      ${actionButton(data.ctaLabel as string || 'View in Portal', data.ctaUrl as string || EMAIL_CONFIG.WEBSITE_URL)}
     ${emailFooter()}`,
     text: `${data.skipHmcPrefix ? '' : '[HMC] '}${data.title}\n\n${data.content}`
   }),
