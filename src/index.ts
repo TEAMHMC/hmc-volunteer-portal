@@ -15084,13 +15084,12 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     return false;
   })();
 
-  // ── RSVP endpoint: reuse Events API result — same script, same availability
+  // ── RSVP endpoint: check GAS side (existing) + portal side (new)
   if (!APPS_SCRIPT_EVENTS_URL) {
-    results.push({ name: 'RSVP Submit', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
+    results.push({ name: 'RSVP Submit (GAS)', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
   } else if (eventsAvailable) {
-    results.push({ name: 'RSVP Submit', status: 'pass', responseTime: 0 });
+    results.push({ name: 'RSVP Submit (GAS)', status: 'pass', responseTime: 0 });
   } else {
-    // Events API already failed — do one more attempt specifically for RSVP path
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const start = Date.now();
@@ -15106,16 +15105,36 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
           throw new Error(`Apps Script non-JSON (status ${rsvpRes.status}): ${body.substring(0, 120)}`);
         }
         const rsvpOk = data.ok === true || (data.success && Array.isArray(data.events));
-        results.push({ name: 'RSVP Submit', status: rsvpOk ? 'pass' : 'fail', responseTime, ...(rsvpOk ? {} : { error: 'Apps Script ping returned unexpected response' }) });
+        results.push({ name: 'RSVP Submit (GAS)', status: rsvpOk ? 'pass' : 'fail', responseTime, ...(rsvpOk ? {} : { error: 'Apps Script ping returned unexpected response' }) });
         break;
       } catch (e: any) {
         if (attempt === 2) {
-          results.push({ name: 'RSVP Submit', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
+          results.push({ name: 'RSVP Submit (GAS)', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
         } else {
           await new Promise(r => setTimeout(r, 3000));
         }
       }
     }
+  }
+
+  // ── Portal RSVP endpoint — the one that writes to Firestore (this broke for 1.5hrs undetected)
+  try {
+    const start = Date.now();
+    const portalRsvpRes = await fetch('https://volunteer.healthmatters.clinic/api/public/rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'HMC-Monitor/1.0' },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({ eventId: 'monitor-canary', name: 'Monitor', email: 'monitor@healthmatters.clinic', source: 'health-monitor' }),
+    });
+    const responseTime = Date.now() - start;
+    // 200 = success, 400 = validation error (endpoint alive but rejected bad data) — both mean it's up
+    if (portalRsvpRes.status === 200 || portalRsvpRes.status === 400) {
+      results.push({ name: 'RSVP Endpoint (Portal)', status: 'pass', responseTime });
+    } else {
+      results.push({ name: 'RSVP Endpoint (Portal)', status: 'fail', responseTime, error: `HTTP ${portalRsvpRes.status} — portal RSVPs may be broken` });
+    }
+  } catch (e: any) {
+    results.push({ name: 'RSVP Endpoint (Portal)', status: 'fail', responseTime: 0, error: `Portal RSVP unreachable: ${e.message}` });
   }
 
   // Check Webflow footer code isn't crashing Event Finder (verify no blocking scripts)
