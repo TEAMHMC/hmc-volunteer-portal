@@ -1508,13 +1508,13 @@ const EmailTemplates = {
   }),
 
   broadcast: (data: EmailTemplateData) => ({
-    subject: `[HMC] ${data.title || 'Announcement'}`,
+    subject: data.skipHmcPrefix ? (data.title || 'Announcement') : `[HMC] ${data.title || 'Announcement'}`,
     html: `${emailHeader(data.title || 'Announcement')}
       <p>Hi ${data.volunteerName},</p>
       <div style="white-space: pre-line; line-height: 1.6;">${data.content}</div>
-      ${actionButton('View in Portal', `${EMAIL_CONFIG.WEBSITE_URL}`)}
+      ${data.ctaUrl ? actionButton(data.ctaLabel as string || 'View in Portal', data.ctaUrl as string) : ''}
     ${emailFooter()}`,
-    text: `[HMC] ${data.title}\n\n${data.content}`
+    text: `${data.skipHmcPrefix ? '' : '[HMC] '}${data.title}\n\n${data.content}`
   }),
 
   training_nudge: (data: EmailTemplateData) => ({
@@ -5746,7 +5746,10 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
                 toEmail: email,
                 volunteerName: name,
                 title: `You're registered! ${eventTitle || 'HMC Event'}`,
-                content: `Hi ${name},\n\nYou're confirmed for <strong>${eventTitle || 'an HMC event'}</strong>${eventDate ? ` on ${eventDate}` : ''}.\n\nSave this email — you'll need the check-in button below when you arrive.\n\n<a href="${checkinUrl}" style="display:inline-block;background:#233dff;color:white;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:600;font-size:14px;">Check In on Event Day →</a>\n\nQuestions? Reply to this email or contact us at volunteer@healthmatters.clinic.\n\n— Health Matters Clinic`,
+                skipHmcPrefix: true,
+                ctaUrl: checkinUrl,
+                ctaLabel: 'Check In on Event Day →',
+                content: `You're confirmed for <strong>${eventTitle || 'an HMC event'}</strong>${eventDate ? ` on ${eventDate}` : ''}.\n\nSave this email — you'll need the check-in button below when you arrive.\n\nQuestions? Reply to this email or contact us at volunteer@healthmatters.clinic.`,
             }).catch(err => console.error('[PUBLIC RSVP] Registrant confirmation email failed:', err));
         }
 
@@ -5756,7 +5759,9 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             toEmail: 'rsvp@healthmatters.clinic',
             volunteerName: 'Team',
             title: `New RSVP: ${eventTitle || eventId}`,
-            content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}\n\n<a href="${rsvpManagementUrl}" style="display:inline-block;background:#233dff;color:white;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:600;font-size:14px;">View RSVPs in Portal →</a>`,
+            ctaUrl: rsvpManagementUrl,
+            ctaLabel: 'View RSVPs in Portal →',
+            content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
         }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
 
         // Send SMS confirmation if phone provided and opt-in given
