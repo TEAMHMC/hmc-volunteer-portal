@@ -15216,25 +15216,17 @@ const sendDailyReport = async (results: MonitorResult[]) => {
     }
   }
 
-  // Email daily report to test@healthmatters.clinic always, CC erica only if failures
+  // Email daily report to erica@ always
   try {
     const reportContent = `Daily Health Check Report — ${timestamp}\n\n${passed} passed, ${failed} failed\nAverage response time: ${avgTime}ms\n\n${lines}\n\nView live status: https://volunteer.healthmatters.clinic/api/monitor/status`;
     const reportTitle = `HMC Daily Health Report — ${passed} pass, ${failed} fail`;
     await EmailService.send('broadcast', {
-      toEmail: 'test@healthmatters.clinic',
-      volunteerName: 'HMC Monitor',
+      toEmail: 'erica@healthmatters.clinic',
+      volunteerName: 'Erica',
       title: reportTitle,
       content: reportContent,
     });
-    if (failed > 0) {
-      await EmailService.send('broadcast', {
-        toEmail: 'erica@healthmatters.clinic',
-        volunteerName: 'HMC Monitor',
-        title: reportTitle,
-        content: reportContent,
-      });
-    }
-    console.log(`[MONITOR] Daily report sent — test@ always, erica@ ${failed > 0 ? 'yes (failures)' : 'skipped (all pass)'}`);
+    console.log(`[MONITOR] Daily report sent to erica@healthmatters.clinic — ${passed} pass, ${failed} fail`);
   } catch (e: any) {
     console.error('[MONITOR] Daily email failed:', e.message);
   }
