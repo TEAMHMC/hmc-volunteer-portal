@@ -5755,13 +5755,14 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         });
     } catch (error: any) {
         console.error('[PUBLIC RSVP] Failed to create RSVP:', error);
-        // Alert ops immediately on any RSVP failure
+        // Alert ops immediately on any RSVP failure — email + SMS
         EmailService.send('broadcast', {
             toEmail: 'erica@healthmatters.clinic',
             volunteerName: 'Erica',
             title: '🚨 RSVP ENDPOINT ERROR — Action Required',
             content: `An RSVP failed to record at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PST.\n\nError: ${error?.message || 'Unknown error'}\n\nEvent: ${req.body?.eventTitle || req.body?.eventId || 'unknown'}\nRegistrant: ${req.body?.name || 'unknown'} (${req.body?.email || 'unknown'})\n\nCheck Cloud Run logs immediately: https://console.cloud.google.com/run`,
         }).catch(() => {});
+        sendSMS(null, '+13239904325', `🚨 HMC RSVP ERROR: ${req.body?.eventTitle || 'unknown event'} — ${error?.message || 'unknown error'}. Check email.`).catch(() => {});
         res.status(500).json({ error: 'Failed to record RSVP' });
     }
 });
@@ -14919,7 +14920,7 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════════
 // SITE MONITORING — Hourly health checks + instant SMS alerts
 // ═══════════════════════════════════════════════════════════════
-const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+14049046355';
+const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+13239904325';
 const MONITOR_TARGETS = [
   { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
   { name: 'Take Action LA', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
