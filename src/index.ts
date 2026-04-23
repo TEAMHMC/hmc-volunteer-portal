@@ -5715,15 +5715,24 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
         }
 
-        // Confirmation email is sent by Google Apps Script (primary writer) — portal does not send a duplicate.
-        // NOTE: Portal does NOT sync back to GAS sheet — client already writes directly to GAS. Double-writing caused triple duplicates.
+        // Send registrant confirmation email — portal is the safety net when GAS (primary writer) is unreachable
+        if (email) {
+            const checkinUrl = `${EMAIL_CONFIG.WEBSITE_URL}/checkin?token=${checkinToken}`;
+            EmailService.send('broadcast', {
+                toEmail: email,
+                volunteerName: name,
+                title: `You're registered! ${eventTitle || 'HMC Event'}`,
+                content: `Hi ${name},\n\nYou're confirmed for <strong>${eventTitle || 'an HMC event'}</strong>${eventDate ? ` on ${eventDate}` : ''}.\n\nSave this email — you'll need the check-in button below when you arrive.\n\n<a href="${checkinUrl}" style="display:inline-block;background:#233dff;color:white;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:600;font-size:14px;">Check In on Event Day →</a>\n\nQuestions? Reply to this email or contact us at volunteer@healthmatters.clinic.\n\n— Health Matters Clinic`,
+            }).catch(err => console.error('[PUBLIC RSVP] Registrant confirmation email failed:', err));
+        }
 
         // Notify rsvp@healthmatters.clinic for all public event RSVPs
+        const rsvpManagementUrl = `${EMAIL_CONFIG.WEBSITE_URL}/event-management`;
         EmailService.send('broadcast', {
             toEmail: 'rsvp@healthmatters.clinic',
             volunteerName: 'Team',
             title: `New RSVP: ${eventTitle || eventId}`,
-            content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
+            content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}\n\n<a href="${rsvpManagementUrl}" style="display:inline-block;background:#233dff;color:white;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:600;font-size:14px;">View RSVPs in Portal →</a>`,
         }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
 
         // Send SMS confirmation if phone provided and opt-in given
