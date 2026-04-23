@@ -14933,7 +14933,7 @@ const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+13239904325';
 const MONITOR_TARGETS = [
   { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
   { name: 'Take Action LA', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
-  { name: 'CalmKit', url: 'https://teamhmc.github.io/CalmKit/', expectInBody: 'CalmKit' },
+  { name: 'CalmKit', url: 'http://calmkit.healthmatters.clinic/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
 ];
 const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || '';
