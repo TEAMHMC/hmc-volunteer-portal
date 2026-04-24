@@ -5742,19 +5742,8 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         // Skip all notification emails for monitor canary pings
         const isCanary = source === 'health-monitor' || eventId === 'monitor-canary';
 
-        // Send registrant confirmation email — portal is the safety net when GAS (primary writer) is unreachable
-        if (email && !isCanary) {
-            const checkinUrl = `${EMAIL_CONFIG.WEBSITE_URL}/checkin?token=${checkinToken}`;
-            EmailService.send('broadcast', {
-                toEmail: email,
-                volunteerName: name,
-                title: `You're registered! ${eventTitle || 'HMC Event'}`,
-                skipHmcPrefix: true,
-                ctaUrl: checkinUrl,
-                ctaLabel: 'Check In on Event Day →',
-                content: `You're confirmed for <strong>${eventTitle || 'an HMC event'}</strong>${eventDate ? ` on ${eventDate}` : ''}.\n\nSave this email — you'll need the check-in button below when you arrive.\n\nQuestions? Reply to this email or contact us at volunteer@healthmatters.clinic.`,
-            }).catch(err => console.error('[PUBLIC RSVP] Registrant confirmation email failed:', err));
-        }
+        // GAS (Google Apps Script) is the primary confirmation email sender for public RSVPs.
+        // Portal does NOT send a duplicate — GAS fires independently via RSVPModal.
 
         // Notify rsvp@healthmatters.clinic — skip for monitor canary pings
         if (!isCanary) {
