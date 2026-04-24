@@ -179,7 +179,7 @@ function UploadDocumentModal({ clientId, clientName, token, onClose, onUploaded 
 }
 
 export default function PostOutreachReport({ user }: { user: User }) {
-  const token = (user as any).token || '';
+  const token = localStorage.getItem('authToken') || (user as any).token || '';
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
