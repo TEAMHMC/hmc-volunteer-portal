@@ -5739,8 +5739,11 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Take Action LA announcement creation failed:', err));
         }
 
+        // Skip all notification emails for monitor canary pings
+        const isCanary = source === 'health-monitor' || eventId === 'monitor-canary';
+
         // Send registrant confirmation email — portal is the safety net when GAS (primary writer) is unreachable
-        if (email) {
+        if (email && !isCanary) {
             const checkinUrl = `${EMAIL_CONFIG.WEBSITE_URL}/checkin?token=${checkinToken}`;
             EmailService.send('broadcast', {
                 toEmail: email,
@@ -5753,16 +5756,18 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Registrant confirmation email failed:', err));
         }
 
-        // Notify rsvp@healthmatters.clinic for all public event RSVPs
-        const rsvpManagementUrl = `${EMAIL_CONFIG.WEBSITE_URL}/event-management`;
-        EmailService.send('broadcast', {
-            toEmail: 'rsvp@healthmatters.clinic',
-            volunteerName: 'Team',
-            title: `New RSVP: ${eventTitle || eventId}`,
-            ctaUrl: rsvpManagementUrl,
-            ctaLabel: 'View RSVPs in Portal →',
-            content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
-        }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
+        // Notify rsvp@healthmatters.clinic — skip for monitor canary pings
+        if (!isCanary) {
+            const rsvpManagementUrl = `${EMAIL_CONFIG.WEBSITE_URL}/event-management`;
+            EmailService.send('broadcast', {
+                toEmail: 'rsvp@healthmatters.clinic',
+                volunteerName: 'Team',
+                title: `New RSVP: ${eventTitle || eventId}`,
+                ctaUrl: rsvpManagementUrl,
+                ctaLabel: 'View RSVPs in Portal →',
+                content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
+            }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
+        }
 
         // Send SMS confirmation if phone provided and opt-in given
         const smsOptIn = req.body.smsOptIn;
