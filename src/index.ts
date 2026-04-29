@@ -5753,7 +5753,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
                 volunteerName: 'Team',
                 title: `New RSVP: ${eventTitle || eventId}`,
                 ctaUrl: rsvpManagementUrl,
-                ctaLabel: 'View RSVPs in Portal →',
+                ctaLabel: 'View RSVPs in Portal',
                 content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
             }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
         }
