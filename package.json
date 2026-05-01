@@ -17,6 +17,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "@google/generative-ai": "^0.24.0",
     "@react-oauth/google": "^0.12.1",
     "cors": "^2.8.5",

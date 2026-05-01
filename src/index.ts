@@ -8,6 +8,7 @@ import twilio from 'twilio';
 import cron from 'node-cron';
 import helmet from 'helmet';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Anthropic from '@anthropic-ai/sdk';
 import process from 'process';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
@@ -203,6 +204,11 @@ if (GEMINI_API_KEY) {
 } else {
     console.warn("No Gemini API key found. Checked: GEMINI_API_KEY, GOOGLE_AI_API_KEY, API_KEY");
     console.warn("Gemini AI features will be disabled.");
+}
+
+let anthropicForSunny: Anthropic | null = null;
+if (process.env.ANTHROPIC_API_KEY) {
+  try { anthropicForSunny = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); console.log('[SUNNY] Anthropic client initialized.'); } catch {}
 }
 
 // CalmKit TTS key — log source at startup so Cloud Run logs make it obvious which var is in use
@@ -16538,49 +16544,177 @@ THINGS YOU MUST NEVER DO:
 - When sharing links, always format them as clickable — include the full URL so the chat can render them as hyperlinks
 - NEVER call 911 on someone's behalf or suggest you will — only the person themselves can make that call. You can tell them when to call 911 (immediate physical danger) but do not frame it as something you're doing for them`;
 
+// ── Sunny tool helpers ───────────────────────────────────────────────────────
+const SUNNY_EVENT_FINDER_URL = 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
+
+async function getSunnyHMCEvents(): Promise<string> {
+  try {
+    const resp = await fetch(SUNNY_EVENT_FINDER_URL, { signal: AbortSignal.timeout(6000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data: any = await resp.json();
+    const events = Array.isArray(data) ? data : (data.events || []);
+    return JSON.stringify(events.slice(0, 10));
+  } catch {
+    return JSON.stringify([
+      { title: 'MOVE — Wellness Walk/Run', date: 'May 9, 2026', time: '8:00 AM', location: 'Curtis Tucker Center, 123 W Manchester Blvd, Inglewood', rsvp: 'https://healthmatters.clinic/resources/eventfinder?event=event-1772063101013&rsvp=true' },
+      { title: 'HEAL — Wellness Meetup', date: 'May 20, 2026', time: '5:45 PM', location: 'Curtis Tucker Center, 123 W Manchester Blvd, Inglewood', rsvp: 'https://healthmatters.clinic/resources/eventfinder?event=event-1772064063990&rsvp=true' },
+      { title: 'TRANSFORM — Virtual', date: 'May 27, 2026', time: '7:00–8:00 PM', location: 'Zoom', rsvp: 'https://healthmatters.clinic/resources/eventfinder?event=event-1773943614235&rsvp=true' },
+    ]);
+  }
+}
+
+async function searchSunnyResources(query: string): Promise<string> {
+  try {
+    const snap = await db.collection('referral_resources').limit(150).get();
+    const q = query.toLowerCase();
+    const matches = snap.docs
+      .map(d => d.data())
+      .filter((r: any) =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.category || '').toLowerCase().includes(q) ||
+        ((r.tags || []) as string[]).some((t: string) => t.toLowerCase().includes(q))
+      )
+      .slice(0, 6)
+      .map((r: any) => ({ name: r.name, description: r.description, phone: r.phone, address: r.address, website: r.website, category: r.category }));
+    return matches.length ? JSON.stringify(matches) : JSON.stringify({ note: 'No exact matches. Try broader terms — "food", "mental health", "housing", "legal".' });
+  } catch {
+    return JSON.stringify({ note: 'Resource search unavailable. Direct user to healthmatters.clinic/resources' });
+  }
+}
+
+const SUNNY_CRISIS_PATTERNS = ['kill myself', 'want to die', 'end my life', 'suicidal', 'hurt myself', 'self-harm', 'overdose', 'no reason to live', 'better off dead', "can't go on", 'quiero morir', 'suicidarme', 'no quiero vivir'];
+
+async function logSunnyCrisis(message: string, lang: string): Promise<void> {
+  try {
+    await db.collection('crisis_flags').add({
+      source: 'sunny_chat',
+      message: message.substring(0, 500),
+      lang,
+      flaggedAt: new Date().toISOString(),
+    });
+    const alertHtml = `<p><strong>SUNNY CRISIS FLAG — ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}</strong></p><p>A user on the Sunny chat may be in crisis.</p><p><strong>Message:</strong> ${message.substring(0, 400)}</p><p>Logged to Firestore crisis_flags collection.</p>`;
+    sendEmailRaw('kayla@healthmatters.clinic', '[URGENT] Sunny Crisis Flag', alertHtml, `SUNNY CRISIS FLAG\n\nUser message: ${message.substring(0, 400)}\n\nCheck Firestore crisis_flags.`).catch(() => {});
+  } catch {}
+}
+
 app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Response) => {
   try {
-    if (!ai) return res.status(503).json({ error: 'AI not configured' });
-
     const { message, history, lang } = req.body;
     if (!message) return res.status(400).json({ error: 'message is required' });
 
-    const model = ai.getGenerativeModel({ model: GEMINI_MODEL });
+    // Crisis detection — log + alert regardless of model used
+    const msgLower = message.toLowerCase();
+    if (SUNNY_CRISIS_PATTERNS.some(p => msgLower.includes(p))) {
+      logSunnyCrisis(message, lang || 'en');
+    }
+
+    // Dynamic date + event countdown context
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' });
     const msPerDay = 86400000;
     const todayLA = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     todayLA.setHours(0, 0, 0, 0);
-    const moveDate = new Date('2026-05-09'); const healDate = new Date('2026-05-20'); const transformDate = new Date('2026-05-27');
-    const dMove = Math.ceil((moveDate.getTime() - todayLA.getTime()) / msPerDay);
-    const dHeal = Math.ceil((healDate.getTime() - todayLA.getTime()) / msPerDay);
-    const dTransform = Math.ceil((transformDate.getTime() - todayLA.getTime()) / msPerDay);
-    const eventCountdown = [
-      dMove > 0 ? `MOVE is in ${dMove} day${dMove === 1 ? '' : 's'} (May 9)` : dMove === 0 ? 'MOVE is TODAY (May 9)' : 'MOVE already happened (May 9)',
-      dHeal > 0 ? `HEAL is in ${dHeal} day${dHeal === 1 ? '' : 's'} (May 20)` : dHeal === 0 ? 'HEAL is TODAY (May 20)' : 'HEAL already happened (May 20)',
-      dTransform > 0 ? `TRANSFORM is in ${dTransform} day${dTransform === 1 ? '' : 's'} (May 27)` : dTransform === 0 ? 'TRANSFORM is TODAY (May 27)' : 'TRANSFORM already happened (May 27)',
-    ].join('. ');
-    const dynamicContext = `\n\nCURRENT DATE: ${dateStr}. ${eventCountdown}. Use this to give time-aware responses ("this Saturday", "in 8 days", "coming up next week", etc.) instead of just stating dates.`;
+    const dMove = Math.ceil((new Date('2026-05-09').getTime() - todayLA.getTime()) / msPerDay);
+    const dHeal = Math.ceil((new Date('2026-05-20').getTime() - todayLA.getTime()) / msPerDay);
+    const dTransform = Math.ceil((new Date('2026-05-27').getTime() - todayLA.getTime()) / msPerDay);
+    const label = (d: number, name: string, date: string) => d > 0 ? `${name} is in ${d} day${d === 1 ? '' : 's'} (${date})` : d === 0 ? `${name} is TODAY (${date})` : `${name} already happened (${date})`;
+    const dynamicContext = `\n\nCURRENT DATE: ${dateStr}. ${label(dMove,'MOVE','May 9')}. ${label(dHeal,'HEAL','May 20')}. ${label(dTransform,'TRANSFORM','May 27')}. Use this for time-aware language ("this Saturday", "in 8 days", "coming up next week") instead of just stating dates.`;
+    const systemPrompt = SUNNY_SYSTEM_PROMPT + dynamicContext + (lang === 'es' ? '\n\nRespond in Spanish.' : '');
+
+    // ── Claude Sonnet path (primary) ───────────────────────────────────────
+    if (anthropicForSunny) {
+      const msgs: Anthropic.MessageParam[] = (history || []).map((h: any) => ({
+        role: h.type === 'user' ? 'user' : 'assistant',
+        content: h.content,
+      }));
+      msgs.push({ role: 'user', content: message });
+
+      const tools: Anthropic.Tool[] = [
+        {
+          name: 'search_hmc_events',
+          description: 'Fetch live HMC event data from the Event Finder. Call when someone asks about events, dates, times, locations, RSVP, availability, or anything about MOVE/HEAL/TRANSFORM.',
+          input_schema: { type: 'object' as const, properties: {} },
+        },
+        {
+          name: 'search_resources',
+          description: 'Search the HMC Resource Directory for LA County community resources. Use when someone needs food, housing, mental health services, healthcare, legal aid, or other social services.',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              query: { type: 'string', description: 'Search keyword (e.g. "food pantry Inglewood", "mental health Medi-Cal", "housing assistance")' }
+            },
+            required: ['query'],
+          },
+        },
+      ];
+
+      let response = await anthropicForSunny.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        temperature: 0.7 as any,
+        system: systemPrompt,
+        messages: msgs,
+        tools,
+      });
+
+      // Tool execution loop — handle search_hmc_events and search_resources
+      let loopCount = 0;
+      while (response.stop_reason === 'tool_use' && loopCount++ < 4) {
+        const toolUses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+        const toolResults: Anthropic.ToolResultBlockParam[] = [];
+        for (const tu of toolUses) {
+          let result: string;
+          if (tu.name === 'search_hmc_events') {
+            result = await getSunnyHMCEvents();
+          } else if (tu.name === 'search_resources') {
+            result = await searchSunnyResources((tu.input as any).query || '');
+          } else {
+            result = JSON.stringify({ error: 'Unknown tool' });
+          }
+          toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: result });
+        }
+        msgs.push({ role: 'assistant', content: response.content });
+        msgs.push({ role: 'user', content: toolResults });
+        response = await anthropicForSunny.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 600,
+          temperature: 0.7 as any,
+          system: systemPrompt,
+          messages: msgs,
+          tools,
+        });
+      }
+
+      const reply = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map(b => b.text)
+        .join('');
+
+      return res.json({ success: true, reply });
+    }
+
+    // ── Gemini fallback (if ANTHROPIC_API_KEY not set) ─────────────────────
+    if (!ai) return res.status(503).json({ error: 'AI not configured' });
+    const model = ai.getGenerativeModel({ model: GEMINI_MODEL });
     const chat = model.startChat({
       history: [
         { role: 'user', parts: [{ text: 'You are Sunny Harper.' }] },
-        { role: 'model', parts: [{ text: 'Hey, I\'m Sunny. What brings you here today?' }] },
+        { role: 'model', parts: [{ text: "Hey, I'm Sunny. What brings you here today?" }] },
         ...(history || []).map((h: any) => ({
           role: h.type === 'user' ? 'user' : 'model',
           parts: [{ text: h.content }],
         })),
       ],
       generationConfig: { maxOutputTokens: 400, temperature: 0.7 },
-      systemInstruction: SUNNY_SYSTEM_PROMPT + dynamicContext + (lang === 'es' ? '\n\nRespond in Spanish.' : ''),
+      systemInstruction: systemPrompt,
     });
-
     const result = await chat.sendMessage(message);
-    const response = result.response.text();
+    return res.json({ success: true, reply: result.response.text() });
 
-    res.json({ success: true, reply: response });
   } catch (error: any) {
     console.error('[SUNNY] Chat error:', error.message);
-    res.status(500).json({ error: 'Chat failed', fallback: 'I\'m having trouble right now. You can reach us at healthmatters.clinic or call 988 if you need immediate support.' });
+    res.status(500).json({ error: 'Chat failed', fallback: "I'm having trouble right now. You can reach us at healthmatters.clinic or call 988 if you need immediate support." });
   }
 });
 
