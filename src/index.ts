@@ -3662,6 +3662,9 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         };
         const spec = modeSpecs[mode] || modeSpecs.HOPE;
         const context = destinationName ? `Walking towards ${destinationName}. ETA ${etaMinutes} mins.` : 'Open exploration, no fixed destination. Plan for a 20-minute journey.';
+        const seasonCtx = lang === 'es'
+            ? 'Es mayo de 2026 — la Temporada Imparable. Tres eventos gratuitos de salud mental en Los Ángeles. La persona que usa esta aplicación es parte de un movimiento. Tejer esto naturalmente en el coaching — no forzado, solo presente cuando sea relevante.'
+            : 'It is May 2026 — the Unstoppable Season. Three free mental health events in Los Angeles this month (MOVE May 9, HEAL May 20, TRANSFORM May 27). The person using this app is part of a movement. Weave this into the coaching naturally — not forced, just present when relevant.';
 
         // Build environmental context string — only include what we actually have
         const envParts: string[] = [];
@@ -3699,6 +3702,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             COACHING FOCUS: ${activityFocus}
             CADENCE: ${spec.cadence}
             EMOTIONAL POSTURE: ${spec.posture}
+            SEASON CONTEXT: ${seasonCtx}
             ${targetThought ? `User's focus: "${targetThought}"` : ''}
 
             CRITICAL RULES:
@@ -3715,7 +3719,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             STRUCTURE (20-minute indoor session):
             - preStartIntro: 10-15 seconds. Unexpected. Drops them into the session from word one.
             - segments: 5-7 beats at minute marks (1, 3, 6, 9, 12, 16, 19). Each with 2-3 scriptBeats advancing the arc.
-            - spokenSponsorMoment: Plays immediately after the opening greeting — write it to flow naturally from the intro. Warm, brief, in character. Example: "This session is brought to you by L.A. Care Health Plan — making wellness like this accessible for our whole community." Under 2 sentences.
+            - spokenSponsorMoment: Plays immediately after the opening greeting — write it to flow naturally from the intro. Warm, brief, in character. Example: "This session is part of Take Action LA 2026, presented by the LA County Department of Mental Health and Health Matters Clinic — because wellness like this should be free for everyone." Under 2 sentences.
             - closingTemplate: 15-20 seconds. In character. No "well done." Leave them changed.
 
             Output JSON only: { "preStartIntro": "...", "segments": [{"minuteIndex": N, "scriptBeats": ["...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
@@ -3728,7 +3732,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
                     success: true,
                     preStartIntro: langText === 'Spanish' ? 'Tu cuerpo está aquí. Tu mente también está aquí. Empecemos.' : 'Your body is here. Your mind is here. Let\'s go.',
                     segments: [{ minuteIndex: 1, scriptBeats: [langText === 'Spanish' ? 'Siente la base. Conecta.' : 'Feel your foundation. Connect.'] }],
-                    spokenSponsorMoment: 'This session is supported by L.A. Care Health Plan — making wellness accessible for everyone.',
+                    spokenSponsorMoment: 'This session is part of Take Action LA 2026, presented by the LA County Department of Mental Health and Health Matters Clinic — free wellness for everyone.',
                     closingTemplate: langText === 'Spanish' ? 'Lo hiciste. Lleva esto contigo.' : 'You did the work. Carry that with you.'
                 });
             }
@@ -3742,6 +3746,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             CADENCE: ${spec.cadence}
             EMOTIONAL POSTURE: ${spec.posture}
             PERSONA RULES: ${spec.rules}
+            SEASON CONTEXT: ${seasonCtx}
             Context: ${context}${envContext}
 
             CRITICAL RULES — THESE ARE NON-NEGOTIABLE:
@@ -3759,7 +3764,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             STRUCTURE (20 minutes):
             - preStartIntro: 15-20 seconds. Unexpected opening. Sets tone from word one. No warmup.
             - segments: 5-8 beats at minute marks (1, 3, 5, 8, 12, 15, 18, 20). Each with 2-3 scriptBeats. Each beat must be fresh and advance the arc.
-            - spokenSponsorMoment: Plays immediately after the opening greeting — write it so it flows naturally from the intro without breaking the mood. Warm, brief. Example: "This walk is brought to you by L.A. Care Health Plan — making wellness like this possible for everyone in our community." Keep it under 2 sentences.
+            - spokenSponsorMoment: Plays immediately after the opening greeting — write it so it flows naturally from the intro without breaking the mood. Warm, brief. Example: "This walk is part of Take Action LA 2026, presented by the LA County Department of Mental Health and Health Matters Clinic — free wellness, open to everyone, right here in LA." Keep it under 2 sentences.
             - closingTemplate: 15-20 seconds. Powerful, in character. No "good job." No "well done." Leave them changed.
 
             Output JSON only: { "preStartIntro": "...", "segments": [{"minuteIndex": N, "scriptBeats": ["...", "..."]}, ...], "spokenSponsorMoment": "...", "closingTemplate": "..." }`;
@@ -3773,7 +3778,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
                 success: true,
                 preStartIntro: langText === 'Spanish' ? 'Bienvenido. Me alegra que estés aquí. Este tiempo es tuyo.' : 'Welcome. I\'m glad you\'re here. This time belongs to you.',
                 segments: [{ minuteIndex: 1, scriptBeats: [langText === 'Spanish' ? 'El camino está claro.' : 'The path is clear.', langText === 'Spanish' ? 'Nota tu respiración.' : 'Notice your breathing.'] }],
-                spokenSponsorMoment: 'This guided walk is supported by L.A. Care Health Plan — making wellness accessible for everyone.',
+                spokenSponsorMoment: 'This walk is part of Take Action LA 2026, presented by the LA County Department of Mental Health and Health Matters Clinic — free and open to everyone.',
                 closingTemplate: langText === 'Spanish' ? 'Llegada. Quédate en este momento.' : 'Arrival. Stay in this moment.'
             });
         }
@@ -3877,13 +3882,24 @@ app.post('/api/calmkit/affirmation', async (req: Request, res: Response) => {
     try {
         if (!ai) return res.status(503).json({ error: 'AI not configured' });
         const lang = req.body.lang === 'es' ? 'Spanish' : 'English';
-        const themes = ['resilience','self-worth','momentum','presence','courage','rest','growth','community','clarity','possibility'];
+        // No "community" theme — generates abstract "we/us" statements that confuse users as personal affirmations
+        const themes = ['resilience','self-worth','momentum','presence','courage','rest','growth','clarity','possibility','identity','purpose'];
         const theme = themes[Math.floor(Math.random() * themes.length)];
-        const text = await generateAIContent(GEMINI_MODEL,
-            `Write one powerful, human affirmation in ${lang} on the theme of "${theme}". ` +
-            `It should sound like something a real person would say to themselves — direct, clear, emotionally resonant. ` +
-            `No fluff. No rhymes. 1-2 sentences max. Do not include quotes or attribution. ` +
-            `Make it fresh and different from generic affirmations.`);
+        const seasonCtx = lang === 'Spanish'
+            ? 'para alguien en la Temporada Imparable 2026 — un movimiento de bienestar en Los Ángeles este mayo'
+            : 'for someone in the Unstoppable Season 2026 — a mental health and wellness movement in Los Angeles this May';
+        const prompt = lang === 'Spanish'
+            ? `Escribe una afirmación personal poderosa ${seasonCtx}. Tema: ${theme}. ` +
+              `Escrita en primera persona ("Yo" — nunca "nosotros" o "nos"). Directa y personal — como algo que te dirías en el espejo antes de un gran día. ` +
+              `Real y concreta, no abstracta ni filosófica. 1-2 oraciones cortas. Sin comillas, sin atribución, sin relleno.`
+            : `Write one powerful personal affirmation ${seasonCtx}. Theme: ${theme}. ` +
+              `First person only ("I" — never "we" or "us"). Direct and personal — like something you'd say to yourself in the mirror before a big day. ` +
+              `Grounded and concrete, not abstract or philosophical. 1-2 short sentences. No quotes, no attribution, no fluff.`;
+        // 8-second timeout — affirmation should never spin longer than that
+        const text = await Promise.race([
+            generateAIContent(GEMINI_MODEL, prompt),
+            new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        ]) as string;
         res.json({ success: true, affirmation: text });
     } catch (e) {
         res.status(500).json({ error: 'Affirmation generation failed' });
