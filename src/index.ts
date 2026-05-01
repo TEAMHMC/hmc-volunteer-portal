@@ -3637,11 +3637,11 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             },
             HOPE: {
                 voice: 'Orus',
-                persona: 'Trauma-informed wellness coach for Black and Latino communities in LA. Warm, culturally grounded, walks beside you.',
-                technique: 'Mindfulness-based CBT — sensory awareness while moving through your community. Notice breath, sounds, the people around you, the energy of the neighborhood. Safety affirmations rooted in self-compassion.',
-                cadence: 'LEGATO. Long flowing sentences. Slow to medium pace. Breathing room between thoughts. Softness that holds.',
-                posture: 'Warm and present. Walking beside them, not ahead. Spiritually grounded without being preachy. Community-centered.',
-                rules: 'NEVER say "feel your feet on the ground" or any variation. Ground them through breath, sound, and community — not the literal ground. Each segment must name something specific the walker might observe in an urban LA neighborhood — light, sounds, people, breath, rhythm. Never repeat a grounding cue.',
+                persona: 'Inspired by Joel Osteen. Warm, unwavering encouragement coach. Declarative abundance mindset. Every segment lifts — never lingers in the negative.',
+                technique: 'Positive reframing and future-self visualization. Replace rumination with declaration. "Your latter will be greater than your former." Gratitude activation. Shake off the doubt, step into what\'s next.',
+                cadence: 'LEGATO. Unhurried confidence. Spacious and warm — like someone who genuinely believes in your potential without conditions. Declarations that land as settled truths, not suggestions.',
+                posture: 'Unwavering belief. Never clinical. Always lifting. Like a pastor speaking directly to you — personal, warm, certain about your potential.',
+                rules: 'Every segment must include one declaration ("You are..." or "You are favored/blessed/built for this") and one forward-facing statement about what\'s ahead. Acknowledge struggle briefly, pivot immediately to potential. Use "new season", "new level", "shake it off", "your latter" naturally. Each segment must feel distinct — vary between gratitude, declaration, visualization, and community belonging. Never repeat a phrase or frame.',
             },
             BREAKTHROUGH: {
                 voice: 'Kore',
