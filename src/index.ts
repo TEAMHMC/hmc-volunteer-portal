@@ -205,6 +205,19 @@ if (GEMINI_API_KEY) {
     console.warn("Gemini AI features will be disabled.");
 }
 
+// CalmKit TTS key — log source at startup so Cloud Run logs make it obvious which var is in use
+{
+    const _ckSrc = process.env.CALMKIT_API_KEY ? 'CALMKIT_API_KEY'
+        : process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY (fallback)'
+        : process.env.API_KEY ? 'API_KEY (fallback)'
+        : null;
+    if (_ckSrc) {
+        console.log(`[CALMKIT TTS] Key source at startup: ${_ckSrc}`);
+    } else {
+        console.warn('[CALMKIT TTS] No API key found for TTS — CALMKIT_API_KEY, GEMINI_API_KEY, and API_KEY are all unset. TTS will return 503.');
+    }
+}
+
 // Gemini model — single constant so upgrades are one-line changes
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -3880,11 +3893,14 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
         const { text, lang, voice } = req.body;
         if (!text) return res.status(400).json({ error: 'text is required' });
 
-        // Try TTS models in order — fall through on failure
+        // Caller can pass timeoutMs to reduce wait for time-critical contexts (e.g. breathing
+        // exercise phases that are only 4-8 s long). Default 25 s; minimum enforced at 5 s.
+        const timeoutMs = Math.max(5000, Math.min(Number(req.body.timeoutMs) || 25000, 60000));
+
+        // Only actual TTS models support responseModalities: ['AUDIO']
         const TTS_MODELS = [
             'gemini-2.5-flash-preview-tts',
-            'gemini-2.0-flash-exp',
-            'gemini-2.0-flash',
+            'gemini-2.5-pro-preview-tts',
         ];
         const ttsBody = JSON.stringify({
             contents: [{ parts: [{ text: req.body.calm ? (lang === 'es' ? `Habla lento y con calma: ${text}` : `Speak slowly and calmly: ${text}`) : text }] }],
@@ -3896,36 +3912,58 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
             },
         });
 
-        let ttsRes: any = null;
+        let lastStatus: number | null = null;
         let data: any = null;
         let audio: string | undefined;
+        let anyAttempted = false;
 
         for (const model of TTS_MODELS) {
-            ttsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${CALMKIT_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: ttsBody,
-            });
-            if (!ttsRes.ok) {
-                const err = await ttsRes.text();
-                console.warn(`[CALMKIT TTS] Model ${model} failed: ${ttsRes.status} ${err.slice(0, 200)}`);
-                continue;
+            // Per-request AbortController so a hung Gemini connection doesn't block the caller
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                anyAttempted = true;
+                const ttsRes = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${CALMKIT_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: ttsBody,
+                        signal: controller.signal,
+                    }
+                );
+                clearTimeout(timeoutId);
+                lastStatus = ttsRes.status;
+
+                if (!ttsRes.ok) {
+                    const errBody = await ttsRes.text();
+                    console.warn(`[CALMKIT TTS] Model ${model} HTTP ${ttsRes.status}: ${errBody.slice(0, 500)}`);
+                    continue;
+                }
+
+                data = await ttsRes.json();
+                audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                if (audio) {
+                    console.log(`[CALMKIT TTS] Success with model ${model} (timeoutMs=${timeoutMs})`);
+                    break;
+                }
+                console.warn(`[CALMKIT TTS] Model ${model} returned HTTP 200 but no audio. Top-level keys: ${JSON.stringify(Object.keys(data))}`);
+            } catch (fetchErr: any) {
+                clearTimeout(timeoutId);
+                if (fetchErr.name === 'AbortError') {
+                    console.warn(`[CALMKIT TTS] Model ${model} timed out after ${timeoutMs}ms`);
+                } else {
+                    console.warn(`[CALMKIT TTS] Model ${model} fetch error: ${fetchErr.message}`);
+                }
             }
-            data = await ttsRes.json();
-            audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-            if (audio) {
-                console.log(`[CALMKIT TTS] Success with model ${model}`);
-                break;
-            }
-            console.warn(`[CALMKIT TTS] Model ${model} returned no audio. Response keys: ${JSON.stringify(Object.keys(data))}`);
         }
 
-        if (!ttsRes) return res.status(503).json({ error: 'TTS not available' });
-        if (!audio) return res.status(502).json({ error: 'No audio in response' });
+        if (!anyAttempted) return res.status(503).json({ error: 'TTS not available' });
+        if (!audio) return res.status(502).json({ error: 'No audio in response', lastStatus });
 
         res.json({ success: true, audio });
     } catch (e: any) {
-        console.error('[CALMKIT TTS] Failed:', e.message);
+        console.error('[CALMKIT TTS] Unexpected error:', e.message);
         res.status(500).json({ error: 'TTS failed' });
     }
 });
@@ -8739,8 +8777,33 @@ app.post('/api/opportunities', verifyToken, async (req: Request, res: Response) 
             }
         }
 
+        // Extract flyerBase64 before saving to Firestore — Firestore has a 1MB document limit
+        // and flyer images easily exceed that. Upload to Cloud Storage separately after creating the event.
+        const flyerBase64Raw: string | undefined = opportunity.flyerBase64;
+        const flyerContentType: string = opportunity.flyerContentType || 'image/png';
+        const flyerFileName: string = opportunity.flyerFileName || 'flyer.png';
+        delete opportunity.flyerBase64;
+        delete opportunity.flyerContentType;
+        delete opportunity.flyerFileName;
+
         const docRef = await db.collection('opportunities').add(opportunity);
         const opportunityId = docRef.id;
+
+        // Upload flyer to Cloud Storage now that we have the event ID
+        if (flyerBase64Raw) {
+            try {
+                const rawBase64 = flyerBase64Raw.includes(',') ? flyerBase64Raw.split(',')[1] : flyerBase64Raw;
+                const ext = flyerFileName.split('.').pop() || 'png';
+                const storagePath = `flyers/${opportunityId}/flyer.${ext}`;
+                await uploadToStorage(rawBase64, storagePath, flyerContentType);
+                const flyerUrl = `/api/events/${opportunityId}/flyer/download?v=${Date.now()}`;
+                await db.collection('opportunities').doc(opportunityId).update({ flyerUrl, flyerStoragePath: storagePath });
+                console.log(`[EVENTS] Flyer uploaded to Cloud Storage for event ${opportunityId}`);
+            } catch (flyerErr: any) {
+                console.error(`[EVENTS] Flyer upload failed for ${opportunityId}:`, flyerErr.message);
+                // Don't fail the whole request — event is created, flyer just won't show
+            }
+        }
 
         // Create shifts for each staffing quota
         const createdShifts: any[] = [];
@@ -13377,7 +13440,7 @@ app.post('/api/events/:id/flyer', verifyToken, async (req: Request, res: Respons
     const storagePath = `flyers/${req.params.id}/flyer.${ext}`;
     await uploadToStorage(base64, storagePath, contentType || 'image/png');
     // Store the serving endpoint URL (not a signed URL which would expire)
-    const flyerUrl = `/api/events/${req.params.id}/flyer/download`;
+    const flyerUrl = `/api/events/${req.params.id}/flyer/download?v=${Date.now()}`;
     await db.collection('opportunities').doc(req.params.id).update({
         flyerUrl,
         flyerStoragePath: storagePath,
@@ -13396,7 +13459,7 @@ app.get('/api/events/:id/flyer/download', async (req: Request, res: Response) =>
     if (!storagePath) return res.status(404).json({ error: 'No flyer uploaded' });
     const { buffer, metadata } = await downloadFileBuffer(storagePath);
     res.set('Content-Type', metadata.contentType || 'image/png');
-    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Cache-Control', 'no-store');
     res.send(buffer);
   } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
@@ -16127,17 +16190,12 @@ app.post('/api/rewards/redeem', verifyToken, async (req: Request, res: Response)
       return res.status(400).json({ error: 'Not enough XP to redeem this reward' });
     }
 
-    // Generate unique coupon code: HMC-XXXX-XXXX
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const part = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-    const couponCode = `HMC-${part()}-${part()}`;
-
-    // Deduct points
+    // Hold points (reserve them without deducting — XP deducted only when admin fulfills)
     await db.collection('volunteers').doc(userId).update({
-      points: currentPoints - rewardPoints,
+      heldPoints: admin.firestore.FieldValue.increment(rewardPoints),
     });
 
-    // Create redemption record
+    // Create redemption record in pending state — XP NOT yet deducted
     const redemption = {
       volunteerId: userId,
       volunteerName: vol.name || 'Unknown',
@@ -16145,11 +16203,11 @@ app.post('/api/rewards/redeem', verifyToken, async (req: Request, res: Response)
       rewardId,
       rewardTitle: rewardTitle || rewardId,
       pointsSpent: rewardPoints,
-      couponCode,
-      status: 'pending', // pending → fulfilled
+      couponCode: null, // set by admin when fulfilled
+      status: 'pending', // pending → fulfilled | refunded
       createdAt: new Date().toISOString(),
     };
-    await db.collection('reward_redemptions').add(redemption);
+    const redemptionRef = await db.collection('reward_redemptions').add(redemption);
 
     // Notify admins
     try {
@@ -16157,8 +16215,8 @@ app.post('/api/rewards/redeem', verifyToken, async (req: Request, res: Response)
         await EmailService.send('broadcast', {
           toEmail: adminEmail,
           volunteerName: 'Admin',
-          title: `Reward Redeemed: ${rewardTitle}`,
-          content: `${vol.name} (${vol.email}) redeemed "${rewardTitle}" for ${rewardPoints} XP.\n\nCoupon code: ${couponCode}\n\nPlease ensure this coupon is active in the shop.`,
+          title: `Reward Request: ${rewardTitle}`,
+          content: `${vol.name} (${vol.email}) requested "${rewardTitle}" for ${rewardPoints} XP.\n\nRedemption ID: ${redemptionRef.id}\n\nAction required: Create a valid discount code in your store, then go to the volunteer portal → Admin → Rewards to fulfill this request and send the volunteer their code.`,
           userId: 'system',
         });
       }
@@ -16166,11 +16224,117 @@ app.post('/api/rewards/redeem', verifyToken, async (req: Request, res: Response)
       console.warn('[REWARDS] Failed to notify admins:', emailErr);
     }
 
-    console.log(`[REWARDS] ${vol.name} redeemed ${rewardTitle} for ${rewardPoints} XP, coupon: ${couponCode}`);
-    res.json({ success: true, couponCode, remainingPoints: currentPoints - rewardPoints });
+    console.log(`[REWARDS] ${vol.name} requested ${rewardTitle} for ${rewardPoints} XP — pending fulfillment (${redemptionRef.id})`);
+    res.json({ success: true, pending: true, redemptionId: redemptionRef.id });
   } catch (error: any) {
     console.error('[REWARDS] Redemption failed:', error);
     res.status(500).json({ error: 'Failed to redeem reward' });
+  }
+});
+
+// GET /api/admin/rewards/redemptions — list all redemptions (admin only)
+app.get('/api/admin/rewards/redemptions', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).user?.profile;
+    if (!profile?.isAdmin && !GOVERNANCE_ROLES.includes(profile?.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const snap = await db.collection('reward_redemptions').orderBy('createdAt', 'desc').limit(100).get();
+    const redemptions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ redemptions });
+  } catch (error: any) {
+    console.error('[REWARDS ADMIN] List failed:', error);
+    res.status(500).json({ error: 'Failed to fetch redemptions' });
+  }
+});
+
+// POST /api/admin/rewards/fulfill/:redemptionId — admin enters real coupon code, deducts XP, notifies volunteer
+app.post('/api/admin/rewards/fulfill/:redemptionId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).user?.profile;
+    if (!profile?.isAdmin && !GOVERNANCE_ROLES.includes(profile?.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const { couponCode } = req.body;
+    if (!couponCode?.trim()) return res.status(400).json({ error: 'couponCode is required' });
+
+    const ref = db.collection('reward_redemptions').doc(req.params.redemptionId);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'Redemption not found' });
+    const r = doc.data()!;
+    if (r.status !== 'pending') return res.status(400).json({ error: `Cannot fulfill — status is "${r.status}"` });
+
+    // Deduct XP and release hold atomically
+    const volRef = db.collection('volunteers').doc(r.volunteerId);
+    await volRef.update({
+      points: admin.firestore.FieldValue.increment(-r.pointsSpent),
+      heldPoints: admin.firestore.FieldValue.increment(-r.pointsSpent),
+    });
+    await ref.update({ status: 'fulfilled', couponCode: couponCode.trim(), fulfilledAt: new Date().toISOString(), fulfilledBy: (req as any).user?.uid });
+
+    // Notify volunteer
+    try {
+      await EmailService.send('broadcast', {
+        toEmail: r.volunteerEmail,
+        volunteerName: r.volunteerName,
+        title: `Your reward is ready: ${r.rewardTitle}`,
+        content: `Great news! Your reward "${r.rewardTitle}" has been fulfilled.\n\nYour discount code: ${couponCode.trim()}\n\nUse it at checkout to get your item for free.`,
+        userId: 'system',
+      });
+    } catch (emailErr) {
+      console.warn('[REWARDS] Failed to notify volunteer:', emailErr);
+    }
+
+    console.log(`[REWARDS ADMIN] Fulfilled redemption ${req.params.redemptionId} with code ${couponCode}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[REWARDS ADMIN] Fulfill failed:', error);
+    res.status(500).json({ error: 'Failed to fulfill redemption' });
+  }
+});
+
+// POST /api/admin/rewards/refund/:redemptionId — refund XP for a pending or fulfilled redemption
+app.post('/api/admin/rewards/refund/:redemptionId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).user?.profile;
+    if (!profile?.isAdmin && !GOVERNANCE_ROLES.includes(profile?.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const ref = db.collection('reward_redemptions').doc(req.params.redemptionId);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ error: 'Redemption not found' });
+    const r = doc.data()!;
+    if (r.status === 'refunded') return res.status(400).json({ error: 'Already refunded' });
+
+    const volRef = db.collection('volunteers').doc(r.volunteerId);
+    const volDoc = await volRef.get();
+
+    if (r.status === 'pending') {
+      // Release held points (no XP was actually deducted yet)
+      await volRef.update({ heldPoints: admin.firestore.FieldValue.increment(-r.pointsSpent) });
+    } else if (r.status === 'fulfilled') {
+      // XP was deducted — add it back
+      await volRef.update({ points: admin.firestore.FieldValue.increment(r.pointsSpent) });
+    }
+    await ref.update({ status: 'refunded', refundedAt: new Date().toISOString(), refundedBy: (req as any).user?.uid });
+
+    // Notify volunteer
+    try {
+      await EmailService.send('broadcast', {
+        toEmail: r.volunteerEmail,
+        volunteerName: r.volunteerName,
+        title: `XP Refunded: ${r.rewardTitle}`,
+        content: `Your ${r.pointsSpent} XP for "${r.rewardTitle}" has been refunded to your account.`,
+        userId: 'system',
+      });
+    } catch {}
+
+    console.log(`[REWARDS ADMIN] Refunded ${r.pointsSpent} XP to ${r.volunteerName} for redemption ${req.params.redemptionId}`);
+    res.json({ success: true, pointsRefunded: r.pointsSpent });
+  } catch (error: any) {
+    console.error('[REWARDS ADMIN] Refund failed:', error);
+    res.status(500).json({ error: 'Failed to refund redemption' });
   }
 });
 
@@ -16382,6 +16546,21 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     if (!message) return res.status(400).json({ error: 'message is required' });
 
     const model = ai.getGenerativeModel({ model: GEMINI_MODEL });
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' });
+    const msPerDay = 86400000;
+    const todayLA = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    todayLA.setHours(0, 0, 0, 0);
+    const moveDate = new Date('2026-05-09'); const healDate = new Date('2026-05-20'); const transformDate = new Date('2026-05-27');
+    const dMove = Math.ceil((moveDate.getTime() - todayLA.getTime()) / msPerDay);
+    const dHeal = Math.ceil((healDate.getTime() - todayLA.getTime()) / msPerDay);
+    const dTransform = Math.ceil((transformDate.getTime() - todayLA.getTime()) / msPerDay);
+    const eventCountdown = [
+      dMove > 0 ? `MOVE is in ${dMove} day${dMove === 1 ? '' : 's'} (May 9)` : dMove === 0 ? 'MOVE is TODAY (May 9)' : 'MOVE already happened (May 9)',
+      dHeal > 0 ? `HEAL is in ${dHeal} day${dHeal === 1 ? '' : 's'} (May 20)` : dHeal === 0 ? 'HEAL is TODAY (May 20)' : 'HEAL already happened (May 20)',
+      dTransform > 0 ? `TRANSFORM is in ${dTransform} day${dTransform === 1 ? '' : 's'} (May 27)` : dTransform === 0 ? 'TRANSFORM is TODAY (May 27)' : 'TRANSFORM already happened (May 27)',
+    ].join('. ');
+    const dynamicContext = `\n\nCURRENT DATE: ${dateStr}. ${eventCountdown}. Use this to give time-aware responses ("this Saturday", "in 8 days", "coming up next week", etc.) instead of just stating dates.`;
     const chat = model.startChat({
       history: [
         { role: 'user', parts: [{ text: 'You are Sunny Harper.' }] },
@@ -16391,8 +16570,8 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
           parts: [{ text: h.content }],
         })),
       ],
-      generationConfig: { maxOutputTokens: 300, temperature: 0.7 },
-      systemInstruction: SUNNY_SYSTEM_PROMPT + (lang === 'es' ? '\n\nRespond in Spanish.' : ''),
+      generationConfig: { maxOutputTokens: 400, temperature: 0.7 },
+      systemInstruction: SUNNY_SYSTEM_PROMPT + dynamicContext + (lang === 'es' ? '\n\nRespond in Spanish.' : ''),
     });
 
     const result = await chat.sendMessage(message);
