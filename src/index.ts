@@ -14139,7 +14139,70 @@ app.patch('/api/screenings/:id/refusal', verifyToken, async (req: Request, res: 
         if (!refusalOfCare || !refusalData?.witness1Name || !refusalData?.witness2Name) {
             return res.status(400).json({ error: 'refusalOfCare, witness1Name, and witness2Name are required' });
         }
+
+        const screeningDoc = await db.collection('screenings').doc(id).get();
+        if (!screeningDoc.exists) {
+            return res.status(404).json({ error: 'Screening not found' });
+        }
+        const screening = screeningDoc.data();
+
         await db.collection('screenings').doc(id).update({ refusalOfCare: true, refusalData });
+
+        const clientName = screening?.clientName || 'Unknown Client';
+        const timestamp = refusalData?.timestamp || new Date().toISOString();
+        const screeningLink = `${EMAIL_CONFIG.WEBSITE_URL}/screenings/${id}`;
+
+        const emailHtml = `
+${emailHeader('Refusal of Care Documented')}
+  <div style="padding: 32px; color: #1f2937;">
+    <h2 style="margin: 0 0 16px 0; color: #1f2937; font-size: 20px;">Refusal of Care Documented</h2>
+    <p style="margin: 0 0 16px 0; color: #6b7280;">A refusal of care has been documented in the system.</p>
+    <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <p style="margin: 0 0 8px 0;"><strong>Client Name:</strong> ${clientName}</p>
+      <p style="margin: 0 0 8px 0;"><strong>Event ID:</strong> ${screening?.eventId || 'N/A'}</p>
+      <p style="margin: 0 0 8px 0;"><strong>Refusal Reason:</strong> ${refusalData?.reason || 'Not provided'}</p>
+      <p style="margin: 0 0 8px 0;"><strong>Witness 1:</strong> ${refusalData?.witness1Name || 'N/A'}</p>
+      <p style="margin: 0 0 8px 0;"><strong>Witness 2:</strong> ${refusalData?.witness2Name || 'N/A'}</p>
+      <p style="margin: 0 0 0 0;"><strong>Timestamp:</strong> ${new Date(timestamp).toLocaleString()}</p>
+    </div>
+    <p style="margin: 16px 0 0 0;">
+      <a href="${screeningLink}" style="display: inline-block; background: ${EMAIL_CONFIG.BRAND_COLOR}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 500;">View Screening Record</a>
+    </p>
+  </div>
+${emailFooter()}
+        `;
+        const emailText = `Refusal of Care Documented\n\nClient: ${clientName}\nEvent ID: ${screening?.eventId || 'N/A'}\nReason: ${refusalData?.reason || 'Not provided'}\nWitness 1: ${refusalData?.witness1Name || 'N/A'}\nWitness 2: ${refusalData?.witness2Name || 'N/A'}\nTime: ${new Date(timestamp).toLocaleString()}\n\nView full details: ${screeningLink}`;
+
+        await sendEmailRaw('medical@healthmatters.clinic', `Refusal of Care Documented — ${clientName}`, emailHtml, emailText).catch(() => {});
+
+        const alertRoles = ['Licensed Medical Professional', 'Medical Admin', 'Outreach and Engagement Lead'];
+        if (screening?.eventId) {
+            try {
+                const volSnap = await db.collection('volunteers').where('status', '==', 'active').get();
+                const notifyVols = volSnap.docs.filter(d => {
+                    const data = d.data();
+                    return alertRoles.includes(data.role) || data.isAdmin;
+                });
+                const notifBatch = db.batch();
+                for (const vol of notifyVols) {
+                    const notifRef = db.collection('notifications').doc();
+                    notifBatch.set(notifRef, {
+                        userId: vol.id,
+                        type: 'refusal_alert',
+                        title: 'Refusal of Care',
+                        body: `Refusal of Care: ${clientName} at event ${screening.eventId}. Review needed.`,
+                        screeningId: id,
+                        eventId: screening.eventId || null,
+                        read: false,
+                        createdAt: new Date().toISOString(),
+                    });
+                }
+                await notifBatch.commit();
+            } catch (notifErr) {
+                console.warn('[REFUSAL] Alert notifications failed:', notifErr);
+            }
+        }
+
         res.json({ ok: true });
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
@@ -15027,8 +15090,45 @@ const bootstrapAdmin = async () => {
   }
 };
 
-// Call bootstrap during startup
+const seedHmcContentIndex = async () => {
+  try {
+    const snap = await db.collection('hmc_content_index').limit(1).get();
+    if (snap.size > 0) {
+      console.log('[SEED] hmc_content_index already populated, skipping seed');
+      return;
+    }
+    const content = [
+      { title: 'About Health Matters Clinic', url: 'https://healthmatters.clinic/about', tags: ['mission', 'history', 'nonprofit', 'EIN', '85-3784250', '501c3', 'leadership', 'founded', '2020'], excerpt: 'HMC is a 501(c)(3) nonprofit (EIN: 85-3784250) founded 2020. Community health activation platform. Free services. 25,000+ served. 800+ volunteers. $1.25M+ raised. C.L.I.N.I.C. framework.' },
+      { title: 'MOVE Event — May 9, 2026', url: 'https://healthmatters.clinic/takeactionla', tags: ['MOVE', 'May', 'walk', 'run', '8AM', 'free', 'event'], excerpt: 'MOVE (May 9, Walk/Run, 8AM). Community wellness walk and run event. Curtis Tucker Center. Free. Register now.' },
+      { title: 'HEAL Event — May 20, 2026', url: 'https://healthmatters.clinic/takeactionla', tags: ['HEAL', 'May', 'wellness', 'meetup', '5:45PM', 'free', 'event'], excerpt: 'HEAL (May 20, Wellness Meetup, 5:45PM). Mental health awareness and wellness gathering. Curtis Tucker Center. Free.' },
+      { title: 'TRANSFORM Event — May 27, 2026', url: 'https://healthmatters.clinic/takeactionla', tags: ['TRANSFORM', 'May', 'virtual', '7PM', 'free', 'event'], excerpt: 'TRANSFORM (May 27, Virtual, 7PM). Virtual community gathering and action planning. Free. Register online.' },
+      { title: 'Take Action LA — May 2026 Campaign', url: 'https://healthmatters.clinic/takeactionla', tags: ['Take Action LA', 'MOVE', 'HEAL', 'TRANSFORM', 'May', '2026', 'mental health', 'awareness'], excerpt: 'Take Action LA campaign with three flagship events in May 2026: MOVE (walk/run), HEAL (wellness meetup), TRANSFORM (virtual). LACDMH/CalMHSA contractor.' },
+      { title: 'Check Yourself — Mental Health Screening Tool', url: 'https://healthmatters.clinic/resources/checkyourself', tags: ['check yourself', 'PHQ-9', 'GAD-7', 'screening', 'mental health', 'free', 'confidential'], excerpt: 'Free PHQ-9 and GAD-7 screening in 3 minutes. Confidential. Receive provider letter, caregiver pathway, and personalized game plan. Available in Spanish.' },
+      { title: 'CalmKit — Grounding and Breathing Tools', url: 'https://healthmatters.clinic/resources/calm-kit', tags: ['CalmKit', 'breathing', 'grounding', 'meditation', 'anxiety', 'panic', 'CBT'], excerpt: 'Free breathing exercises (physiological sigh, box breathing), 5-4-3-2-1 grounding, meditation, and journaling. No account required. Good for panic attacks, acute stress, sleep difficulty.' },
+      { title: 'Resource Directory — 1,563 LA County Resources', url: 'https://healthmatters.clinic/resources', tags: ['resource', 'directory', 'CalAIM', 'food', 'housing', 'mental health', 'legal', 'healthcare'], excerpt: 'Searchable CalAIM community resources: food, housing, mental health, legal aid, healthcare, immigration, peer support. 1,563 organizations across LA County.' },
+      { title: 'Event Finder — Discover Free Health Events', url: 'https://healthmatters.clinic/resources/eventfinder', tags: ['event finder', 'free events', 'health', 'RSVP', 'reminders'], excerpt: 'Find free health events near you, RSVP, and receive reminders. Discover community wellness opportunities.' },
+      { title: 'Volunteer at Health Matters Clinic', url: 'https://healthmatters.clinic/get-involved', tags: ['volunteer', 'get involved', 'opportunities', 'roles', 'portal'], excerpt: '18+ volunteer roles including Street Medicine Lead, Workshop Facilitator, Outreach Lead, Coordinator. Volunteer portal at volunteer.healthmatters.clinic.' },
+      { title: 'Sunny AI — Health Chatbot Powered by AI', url: 'https://healthmatters.clinic/sunny', tags: ['Sunny', 'AI', 'chatbot', 'health', 'assistant', 'questions'], excerpt: 'Chat with Sunny, our AI health assistant, to get personalized health information, resource recommendations, and support.' },
+      { title: 'EIN 85-3784250 — HMC 501(c)(3) Status', url: 'https://healthmatters.clinic/about', tags: ['EIN', '85-3784250', '501c3', 'nonprofit', 'tax deductible', 'registered'], excerpt: 'Health Matters Clinic is a registered 501(c)(3) nonprofit organization with EIN 85-3784250. All donations are tax-deductible.' },
+      { title: 'Donate to Health Matters Clinic', url: 'https://healthmatters.clinic/donate', tags: ['donate', 'donation', 'support', 'tax deductible', 'funding'], excerpt: 'Support HMC with a tax-deductible donation. Your contribution helps us serve 25,000+ people and empower 800+ volunteers.' },
+      { title: 'HMC Leadership Team', url: 'https://healthmatters.clinic/about', tags: ['leadership', 'team', 'Erica Robinson', 'David Nguyen', 'Dawn Bounds', 'founders', 'directors'], excerpt: 'Meet HMC leadership: Erica Robinson (Co-Founder), Dr. David Nguyen (Co-Founder), Dr. Dawn Bounds (Board Chair). Dedicated to community health activation.' },
+      { title: 'Contact Health Matters Clinic', url: 'https://healthmatters.clinic/contact', tags: ['contact', 'email', 'phone', 'support', 'feedback', 'volunteer@healthmatters.clinic'], excerpt: 'Get in touch with HMC: volunteer@healthmatters.clinic or call during office hours. We welcome questions, feedback, and partnership inquiries.' },
+    ];
+    const batch = db.batch();
+    for (const item of content) {
+      const docRef = db.collection('hmc_content_index').doc();
+      batch.set(docRef, { title: item.title, url: item.url, tags: item.tags, excerpt: item.excerpt, type: 'page', createdAt: new Date().toISOString() });
+    }
+    await batch.commit();
+    console.log('[SEED] Seeded hmc_content_index with 15 content records');
+  } catch (err) {
+    console.error('[SEED] Failed to seed hmc_content_index:', err);
+  }
+};
+
+// Call bootstrap and seed during startup
 bootstrapAdmin();
+seedHmcContentIndex();
 
 const server = app.listen(PORT, () => {
     console.log(`[SERVER] Server listening on port ${PORT}`);
