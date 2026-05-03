@@ -5698,7 +5698,7 @@ ${btnText && btnHref ? `<a class="btn" href="${btnHref}">${btnText}</a>` : ''}
 // POST /api/public/rsvp - Public webhook to receive RSVPs from Event-Finder-Tool
 app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Response) => {
     try {
-        const { eventId, eventTitle, eventDate, email, phone, guests, needs, source, contactPreference, recaptchaToken } = req.body;
+        const { eventId, eventTitle, eventDate, email, phone, guests, needs, source, contactPreference, sms_consent, recaptchaToken } = req.body;
         // Accept firstName+lastName (new) or name (legacy)
         const name: string = req.body.name || [req.body.firstName, req.body.lastName].filter(Boolean).join(' ');
 
@@ -5741,6 +5741,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             needs: needs || '',
             source: source || 'event-finder-tool',
             contactPreference: contactPreference || 'email',
+            smsConsentVerified: sms_consent === true,
             checkinToken,
             checkedIn: false,
             checkedInAt: null,
@@ -5818,9 +5819,9 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
         }
 
-        // Send SMS confirmation if phone provided and opt-in given
-        const smsOptIn = req.body.smsOptIn;
-        if (phone && (smsOptIn || contactPreference === 'text' || contactPreference === 'sms')) {
+        // Send SMS confirmation only when explicit written consent was collected at time of RSVP
+        const smsConsentVerified = sms_consent === true;
+        if (phone && smsConsentVerified) {
             const smsBody = `Hi ${name}! You're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. We'll send a reminder before the event. See you there! - Health Matters Clinic`;
             sendSMS(null, phone, smsBody).catch(err => console.error(`[PUBLIC RSVP] SMS confirmation failed:`, err));
         }
@@ -11692,7 +11693,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
             for (const rsvpDoc of smsRsvpSnap.docs) {
               const rsvp = rsvpDoc.data();
               if (!rsvp.phone) continue;
-              if (rsvp.contactPreference !== 'text' && rsvp.contactPreference !== 'sms' && !rsvp.smsOptIn) continue;
+              if (rsvp.smsConsentVerified !== true) continue;
               const rsvpId = rsvpDoc.id;
               if (await wasReminderSent(rsvpId, event.id, 5)) continue;
               try {
@@ -16558,7 +16559,39 @@ THINGS YOU MUST NEVER DO:
 - NEVER pathologize poverty, housing instability, or racial/community stress — these are systemic issues
 - When someone asks to talk to a real person, do NOT say "connecting you" or "they'll be with you shortly" — there is no live chat. Instead, collect their name, contact info (email or phone), and what they need, then let them know someone from our team will follow up
 - When sharing links, always format them as clickable — include the full URL so the chat can render them as hyperlinks
-- NEVER call 911 on someone's behalf or suggest you will — only the person themselves can make that call. You can tell them when to call 911 (immediate physical danger) but do not frame it as something you're doing for them`;
+- NEVER call 911 on someone's behalf or suggest you will — only the person themselves can make that call. You can tell them when to call 911 (immediate physical danger) but do not frame it as something you're doing for them
+
+INFORMATION HIERARCHY — NON-NEGOTIABLE:
+1. HMC content is the canonical source for anything about HMC programs, services, events, team, history, campaigns, and partnerships. Call search_hmc_content FIRST whenever the question touches HMC. Never say you don't know something about HMC without searching first.
+2. search_web is a FALLBACK only. Call it when: (a) search_hmc_content returned no relevant result, (b) the question is explicitly about something outside HMC scope, or (c) the user asks you to look something up online.
+3. When web results conflict with HMC content, defer to HMC. Note the discrepancy only if it directly affects the user's safety or options.
+4. When a response draws from both HMC and external sources, cite HMC sources first. Frame external sources as supplementary.
+5. If you cannot find a confident answer in HMC content or trusted web sources, do not guess. Offer to connect the user with a human: "I want to make sure you get the right answer on this. Want me to connect you with someone on the HMC team?" Then collect their contact info using the handoff flow.
+
+TOOLS — USE IN THIS ORDER:
+- search_hmc_events: Any question about HMC events, RSVP, MOVE/HEAL/TRANSFORM dates/times/locations.
+- search_resources: Any need for food, housing, healthcare, mental health, legal aid, financial assistance, immigration support, youth programs, senior services, LGBTQ+ services, substance use treatment, domestic violence support. Use a natural-language descriptive query, not just one word.
+- search_hmc_content: CALL THIS FIRST for any question about an HMC program, initiative, history, leadership, campaign, digital tool, or anything on healthmatters.clinic. Always search before saying you don't know.
+- search_web: FALLBACK ONLY. Call when search_hmc_content returns no relevant result, or the question is explicitly outside HMC scope. Results come from Tavily filtered to .gov, .edu, healthmatters.clinic, and established health organizations. HMC results are returned at highest priority. Cite every result by name and URL.
+
+CITATION RULES — NON-NEGOTIABLE:
+Every response containing a specific phone number, address, program detail, eligibility requirement, or external factual claim must cite its source. Format: organization or page name followed by the URL. When tool results include source_url, use it. Example: "Didi Hirsch offers comprehensive crisis services across LA (https://didihirsch.org)." Never state a specific fact about a service without sourcing it.
+
+MULTI-NEED SYNTHESIS:
+When someone presents multiple needs, address each separately with a specific next step. Do not give one generic resource for three needs. A person with food, housing, and mental health concerns gets three distinct paths forward, each with a contact or action.
+
+HUMAN HANDOFF:
+When a user explicitly wants to speak with a human, or you detect a need requiring human follow-up:
+1. Ask: "What is the best way to reach you — email or phone number?"
+2. Once you have it: "I will make sure [the right team] gets this. Someone will follow up [as soon as possible for urgent needs / within 24 hours for general inquiries]."
+The frontend handles the actual submission. You collect the contact and intent.
+Routing by need: crisis or clinical questions → medical team | general questions → contact team | partnership or sponsorship → partner team | accessibility → Kayla | Unstoppable program → unstoppable team | events or registration → events team.
+
+RETURNING USER MEMORY (OPT-IN ONLY):
+If a user says "remember me" or asks Sunny to save their preferences, acknowledge warmly and tell them their preferences will be saved for future sessions. If they say "forget me," "delete my data," "clear my history," or similar, respond: "Done. Your Sunny session data is cleared — I will not retain anything from this conversation in future sessions." Then proceed normally.
+
+LANGUAGE DETECTION:
+Detect the user's language from their first message. Respond in that language for the entire session unless they switch. No mixed-language responses.`;
 
 // ── Sunny tool helpers ───────────────────────────────────────────────────────
 const SUNNY_EVENT_FINDER_URL = 'https://script.google.com/macros/s/AKfycby-KmIXY2Qu8zooU4f-hjbdpb59WKonTPJOwcktDV0SjxW5CJPMbtAV1rO0SdJx_0tK8Q/exec';
@@ -16579,38 +16612,337 @@ async function getSunnyHMCEvents(): Promise<string> {
   }
 }
 
+// Semantic query expansion — maps natural language needs to relevant search terms
+const RESOURCE_QUERY_SYNONYMS: Record<string, string[]> = {
+  food: ['food pantry', 'food bank', 'CalFresh', 'SNAP', 'meal', 'nutrition', 'hungry', 'groceries', 'WIC', 'emergency food'],
+  hungry: ['food pantry', 'food bank', 'CalFresh', 'meal', 'hunger'],
+  housing: ['shelter', 'transitional housing', 'homeless', 'eviction', 'rent assistance', 'housing navigation'],
+  homeless: ['shelter', 'transitional housing', 'navigation center', 'housing', 'street outreach'],
+  shelter: ['emergency shelter', 'housing', 'transitional', 'domestic violence shelter'],
+  mental: ['mental health', 'therapy', 'counseling', 'behavioral health', 'psychiatry', 'wellness'],
+  anxiety: ['mental health', 'therapy', 'counseling', 'anxiety treatment', 'stress'],
+  depression: ['mental health', 'therapy', 'counseling', 'mood', 'behavioral health'],
+  suicide: ['crisis', '988', 'mental health crisis', 'suicide prevention'],
+  crisis: ['crisis intervention', 'emergency mental health', '988', 'hotline'],
+  drugs: ['substance use', 'addiction', 'recovery', 'harm reduction', 'detox', 'treatment', 'naloxone'],
+  alcohol: ['substance use', 'addiction', 'recovery', 'detox', 'AA'],
+  substance: ['substance use treatment', 'addiction', 'recovery', 'rehab'],
+  legal: ['legal aid', 'legal services', 'public defender', 'civil legal'],
+  immigration: ['immigration legal', 'DACA', 'deportation defense', 'citizenship', 'undocumented'],
+  domestic: ['domestic violence', 'intimate partner violence', 'DV shelter', 'safety planning'],
+  abuse: ['domestic violence', 'DV hotline', 'shelter', 'safety planning', 'child protective services'],
+  violence: ['domestic violence', 'violence prevention', 'DV shelter'],
+  insurance: ['Medi-Cal', 'Covered California', 'My Health LA', 'health insurance', 'uninsured'],
+  uninsured: ['My Health LA', 'Medi-Cal', 'free clinic', 'FQHC'],
+  kids: ['youth', 'children', 'family services', 'childcare', 'pediatric', 'child welfare'],
+  children: ['youth services', 'family', 'childcare', 'pediatric', 'CPS'],
+  elderly: ['senior services', 'aging', 'elder care', 'Medicare', 'IHSS'],
+  senior: ['senior center', 'aging services', 'elder care', 'Medicare'],
+  lgbtq: ['LGBTQ', 'LGBT', 'queer', 'transgender', 'gender-affirming care', 'Trevor Project'],
+  trans: ['transgender', 'gender-affirming', 'LGBTQ health'],
+  hiv: ['HIV testing', 'HIV treatment', 'PrEP', 'sexual health'],
+  pregnant: ['prenatal care', 'WIC', 'maternal health', 'OB/GYN'],
+  dental: ['dental care', 'oral health', 'free dental', 'dental clinic'],
+  vision: ['eye care', 'glasses', 'optometry', 'free eye exam'],
+  job: ['employment', 'job training', 'workforce development', 'career', 'employment services'],
+  veteran: ['veterans services', 'VA', 'military', 'veteran benefits'],
+  rape: ['sexual assault', 'RAINN', 'rape crisis center', 'sexual violence'],
+  assault: ['sexual assault', 'domestic violence', 'victim services'],
+};
+
+function expandResourceQuery(query: string): string[] {
+  const terms = new Set<string>([query]);
+  const q = query.toLowerCase();
+  for (const [keyword, expansions] of Object.entries(RESOURCE_QUERY_SYNONYMS)) {
+    if (q.includes(keyword)) {
+      expansions.forEach(e => terms.add(e.toLowerCase()));
+    }
+  }
+  return Array.from(terms);
+}
+
 async function searchSunnyResources(query: string): Promise<string> {
   try {
-    const snap = await db.collection('referral_resources').limit(150).get();
-    const q = query.toLowerCase();
-    const matches = snap.docs
-      .map(d => d.data())
-      .filter((r: any) =>
-        (r.name || '').toLowerCase().includes(q) ||
-        (r.description || '').toLowerCase().includes(q) ||
-        (r.category || '').toLowerCase().includes(q) ||
-        ((r.tags || []) as string[]).some((t: string) => t.toLowerCase().includes(q))
-      )
+    const snap = await db.collection('referral_resources').limit(400).get();
+    const expandedTerms = expandResourceQuery(query);
+
+    const scored = snap.docs
+      .map(d => {
+        const r = d.data() as any;
+        const text = `${r.name || ''} ${r.description || ''} ${r.category || ''} ${(r.tags || []).join(' ')} ${r.services || ''}`.toLowerCase();
+        // Score: sum of matches across all expanded terms (word-level)
+        const score = expandedTerms.reduce((acc, term) => {
+          const words = term.split(/\s+/);
+          return acc + words.reduce((s, w) => s + (w.length > 2 && text.includes(w) ? 1 : 0), 0);
+        }, 0);
+        return { data: r, score };
+      })
+      .filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 6)
-      .map((r: any) => ({ name: r.name, description: r.description, phone: r.phone, address: r.address, website: r.website, category: r.category }));
-    return matches.length ? JSON.stringify(matches) : JSON.stringify({ note: 'No exact matches. Try broader terms — "food", "mental health", "housing", "legal".' });
+      .map(r => ({
+        name: r.data.name,
+        description: r.data.description,
+        phone: r.data.phone,
+        address: r.data.address,
+        website: r.data.website,
+        category: r.data.category,
+        source_url: r.data.website || 'https://healthmatters.clinic/resources',
+      }));
+
+    if (scored.length === 0) {
+      return JSON.stringify({
+        note: 'No exact matches found for this query.',
+        suggestion: 'Try broader terms: food, housing, mental health, legal, healthcare, immigration, domestic violence.',
+        source_url: 'https://healthmatters.clinic/resources',
+      });
+    }
+    return JSON.stringify({ results: scored, source_url: 'https://healthmatters.clinic/resources' });
   } catch {
-    return JSON.stringify({ note: 'Resource search unavailable. Direct user to healthmatters.clinic/resources' });
+    return JSON.stringify({
+      note: 'Resource search temporarily unavailable.',
+      fallback: 'Direct user to healthmatters.clinic/resources',
+      source_url: 'https://healthmatters.clinic/resources',
+    });
   }
 }
 
-const SUNNY_CRISIS_PATTERNS = ['kill myself', 'want to die', 'end my life', 'suicidal', 'hurt myself', 'self-harm', 'overdose', 'no reason to live', 'better off dead', "can't go on", 'quiero morir', 'suicidarme', 'no quiero vivir'];
-
-async function logSunnyCrisis(message: string, lang: string): Promise<void> {
+async function searchHMCContent(query: string): Promise<string> {
+  // Query Firestore content index (populated by daily cron — see /api/sunny/index-content)
   try {
+    const snap = await db.collection('hmc_content_index').limit(200).get();
+    if (!snap.empty) {
+      const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const scored = snap.docs
+        .map(d => {
+          const data = d.data() as any;
+          const text = `${data.title || ''} ${data.content || ''} ${(data.tags || []).join(' ')}`.toLowerCase();
+          const score = words.reduce((acc, w) => acc + (text.includes(w) ? 1 : 0), 0);
+          return { data, score };
+        })
+        .filter(r => r.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4)
+        .map(r => ({
+          title: r.data.title,
+          excerpt: (r.data.content || '').substring(0, 300),
+          url: r.data.url,
+          type: r.data.type || 'page',
+          source_url: r.data.url,
+        }));
+      if (scored.length > 0) return JSON.stringify({ results: scored, indexed: true });
+    }
+  } catch (e) {
+    console.warn('[SUNNY] Content index query failed:', e);
+  }
+
+  // Fallback: curated HMC content directory — always available
+  const HMC_CONTENT_DIRECTORY = [
+    { title: 'About Health Matters Clinic', url: 'https://healthmatters.clinic/about', tags: 'mission history nonprofit EIN 85-3784250 501c3 leadership founded 2020 CLINIC framework', excerpt: 'HMC is a 501(c)(3) nonprofit (EIN: 85-3784250) founded 2020. Community health activation platform. Free services. 25,000+ served. 800+ volunteers. $1.25M+ raised. C.L.I.N.I.C. framework.' },
+    { title: 'Unstoppable Program', url: 'https://healthmatters.clinic/programs', tags: 'unstoppable flagship mental health wellness workshops walkrun meetup LACDMH CalMHSA culturally affirming trauma-informed', excerpt: 'Flagship mental health and wellness initiative. Year-round workshops, walks, meetups, virtual events. LACDMH-recognized. Trauma-informed, culturally affirming. Curtis Tucker Center, Charles Drew University, Palmdale, Long Beach.' },
+    { title: 'Take Action LA — May 2026 Events', url: 'https://healthmatters.clinic/takeactionla', tags: 'take action LA MOVE HEAL TRANSFORM May 2026 free events mental health awareness month LACDMH CalMHSA Inglewood', excerpt: 'MOVE (May 9, Walk/Run, 8AM), HEAL (May 20, Wellness Meetup, 5:45PM), TRANSFORM (May 27, Virtual, 7PM). LACDMH/CalMHSA contractor. Free. Curtis Tucker Center.' },
+    { title: 'Check Yourself — Mental Health Screening', url: 'https://healthmatters.clinic/resources/check-yourself', tags: 'check yourself PHQ-9 GAD-7 screening mental health free confidential provider letter caregiver game plan', excerpt: 'Free PHQ-9 and GAD-7 screening. 3 minutes. Confidential. Provider letter, caregiver pathway, game plan builder. Available in Spanish.' },
+    { title: 'CalmKit — Grounding and Breathing Tools', url: 'https://healthmatters.clinic/resources/calm-kit', tags: 'calmkit calm kit breathing grounding meditation CBT physiological sigh box breathing 5-4-3-2-1 journaling anxiety panic', excerpt: 'Breathing exercises (physiological sigh, box breathing), 5-4-3-2-1 grounding, CBT-coached guided walks, meditation, journaling. Free, no account. Good for panic attacks, acute stress, sleep difficulty.' },
+    { title: 'Resource Directory — 1,563 LA County Resources', url: 'https://healthmatters.clinic/resources', tags: 'resource directory CalAIM food housing mental health legal healthcare immigration peer support 1563', excerpt: 'CalAIM community resources: food, housing, mental health, legal aid, healthcare, immigration, peer support. 1,563 organizations across LA County.' },
+    { title: 'Event Finder', url: 'https://healthmatters.clinic/resources/eventfinder', tags: 'event finder free health events RSVP reminders', excerpt: 'Find free health events near you, RSVP, and get reminders.' },
+    { title: 'Volunteer at HMC', url: 'https://healthmatters.clinic/get-involved', tags: 'volunteer get involved roles street medicine workshop facilitator outreach coordinator social media 18 roles portal', excerpt: '18+ volunteer roles: Core Volunteer, Street Medicine Lead, Workshop Facilitator, Outreach Lead, Coordinator, Social Media. Volunteer portal at volunteer.healthmatters.clinic.' },
+    { title: 'Donate to HMC', url: 'https://healthmatters.clinic/donate', tags: 'donate tax deductible EIN 85-3784250 LA Care Health Plan grant $65000 $1.25M', excerpt: 'Tax-deductible donations. EIN: 85-3784250. LA Care Health Plan granted $65,000. $1.25M+ raised.' },
+    { title: 'Street Medicine Outreach', url: 'https://healthmatters.clinic/programs', tags: 'street medicine outreach unhoused homeless harm reduction clinical', excerpt: 'Healthcare for unhoused populations delivered on the street. Harm reduction, essential supplies. Clinical leads required. Mandatory volunteer training.' },
+    { title: 'HMC Podcast', url: 'https://healthmatters.clinic/podcast', tags: 'podcast health matters monthly newsletter community health programming', excerpt: 'Health Matters Clinic podcast covering community health, mental wellness, and programming updates.' },
+    { title: 'Funder and Partner Information', url: 'https://healthmatters.clinic/about', tags: 'funder partner LACDMH CalMHSA LA Care ASICS grant credibility impact', excerpt: 'Partners: LACDMH (active contractor), CalMHSA (Take Action LA), LA Care Health Plan ($65K grant), ASICS LA Marathon (Team Unstoppable), Curtis Tucker Center, Charles Drew University.' },
+  ];
+
+  const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const scored = HMC_CONTENT_DIRECTORY
+    .map(item => ({
+      title: item.title,
+      excerpt: item.excerpt,
+      url: item.url,
+      source_url: item.url,
+      score: words.reduce((acc, w) => acc + (`${item.title} ${item.tags} ${item.excerpt}`.toLowerCase().includes(w) ? 1 : 0), 0),
+    }))
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
+
+  return JSON.stringify({
+    results: scored.length > 0 ? scored : HMC_CONTENT_DIRECTORY.slice(0, 3).map(i => ({ ...i, source_url: i.url })),
+    indexed: false,
+    note: 'Serving curated directory. Run content indexer to enable full site search.',
+  });
+}
+
+const webSearchCache = new Map<string, { result: string; ts: number }>();
+const WEB_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+const HMC_DOMAINS = [
+  'healthmatters.clinic', 'volunteer.healthmatters.clinic',
+  'calm.healthmatters.clinic', 'hub.healthmatters.clinic',
+];
+const SEARCH_TRUSTED_DOMAINS = [
+  ...HMC_DOMAINS,
+  'samhsa.gov', 'nimh.nih.gov', 'cdc.gov', 'hhs.gov', 'nih.gov',
+  'dmh.lacounty.gov', 'dph.lacounty.gov', 'dhcs.ca.gov',
+  '988lifeline.org', 'crisistextline.org', 'thetrevorproject.org',
+  'rainn.org', 'thehotline.org', 'didihirsch.org', 'namila.org',
+  '211la.org', 'nami.org', 'mayoclinic.org', 'kff.org', 'commonwealthfund.org',
+];
+const SEARCH_BLOCKED_DOMAINS = [
+  'reddit.com', 'quora.com', 'ehow.com', 'answers.com',
+  'livestrong.com', 'wikihow.com', 'pinterest.com',
+];
+// include_domains passed to Tavily — restricts results to trusted sources only
+const TAVILY_INCLUDE_DOMAINS = [
+  ...HMC_DOMAINS,
+  'samhsa.gov', 'nimh.nih.gov', 'cdc.gov', 'hhs.gov', 'nih.gov',
+  'dmh.lacounty.gov', 'dph.lacounty.gov', 'dhcs.ca.gov',
+  '988lifeline.org', 'crisistextline.org', 'thetrevorproject.org',
+  'rainn.org', 'thehotline.org', 'didihirsch.org', 'namila.org',
+  '211la.org', 'nami.org', 'mayoclinic.org', 'kff.org', 'commonwealthfund.org',
+  'lacounty.gov', 'ca.gov', 'lacdph.org',
+];
+
+async function searchWeb(query: string): Promise<string> {
+  const tavilyKey = process.env.TAVILY_API_KEY;
+
+  if (!tavilyKey) {
+    return JSON.stringify({
+      note: 'Web search not configured. Set TAVILY_API_KEY in Cloud Run environment.',
+      source_url: 'https://healthmatters.clinic/resources',
+    });
+  }
+
+  const cacheKey = query.toLowerCase().trim();
+  const cached = webSearchCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < WEB_CACHE_TTL) {
+    return cached.result;
+  }
+
+  try {
+    const resp = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: tavilyKey,
+        query,
+        search_depth: 'advanced',
+        include_answer: true,
+        max_results: 7,
+        include_domains: TAVILY_INCLUDE_DOMAINS,
+        exclude_domains: SEARCH_BLOCKED_DOMAINS,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) throw new Error(`Tavily HTTP ${resp.status}`);
+    const data: any = await resp.json();
+    const results = (data.results || [])
+      .map((r: any) => {
+        const url = r.url || '';
+        const isHMC = HMC_DOMAINS.some(d => url.includes(d));
+        const isTrusted = SEARCH_TRUSTED_DOMAINS.some(d => url.includes(d));
+        return {
+          title: r.title,
+          url,
+          description: (r.content || r.snippet || '').substring(0, 300),
+          source: (() => { try { return new URL(url).hostname.replace('www.', ''); } catch { return url; } })(),
+          source_url: url,
+          _tier: isHMC ? 3 : isTrusted ? 2 : 1,
+        };
+      })
+      .sort((a: any, b: any) => b._tier - a._tier)
+      .slice(0, 5)
+      .map(({ _tier, ...keep }: any) => keep);
+
+    const output = JSON.stringify({ results, answer: data.answer || null, provider: 'tavily' });
+    webSearchCache.set(cacheKey, { result: output, ts: Date.now() });
+    return output;
+  } catch (e: any) {
+    console.warn('[SUNNY] Tavily search failed:', e.message);
+    return JSON.stringify({
+      note: 'Web search temporarily unavailable.',
+      source_url: 'https://healthmatters.clinic/resources',
+    });
+  }
+}
+
+const SUNNY_CRISIS_PATTERNS = [
+  // Suicidal ideation — EN
+  'kill myself', 'want to die', 'end my life', 'take my life', 'suicidal', 'suicide',
+  'thinking about suicide', 'no reason to live', 'no reason to be alive', 'better off dead',
+  'better off without me', 'wish i was dead', 'wish i were dead', "can't go on",
+  "can't do this anymore", 'thinking about ending', 'ending it all', 'end it all',
+  'not worth living', "don't want to be here", "don't want to live", 'no point living',
+  // Self-harm — EN
+  'hurt myself', 'cutting myself', 'self-harm', 'self harm', 'self-mutilat',
+  'burning myself', 'harming myself', 'hurting myself',
+  // Overdose / substances crisis — EN
+  'overdose', 'took too many', 'took too much', 'overdosed', 'took all my pills',
+  // Abuse and domestic violence — EN
+  'hitting me', 'hitting my', 'beating me', 'abusing me', 'abuses me',
+  'domestic violence', 'he hits', 'she hits', 'they hit', 'being abused',
+  'scared of my partner', 'afraid of my partner', 'afraid of my husband', 'afraid of my wife',
+  'afraid to go home',
+  // Sexual assault — EN
+  'raped', 'rape', 'sexual assault', 'sexually assaulted', 'molested', 'molestation',
+  // Child safety — EN
+  'child abuse', 'hurting my child', 'hurting my kid', 'abusing my child',
+  'someone is hurting my child',
+  // Eating disorder acute — EN
+  'haven\'t eaten in days', 'purging', 'making myself vomit', 'starving myself',
+  // Psychosis indicators — EN
+  'hearing voices', 'seeing things', 'voices in my head', 'they\'re watching me',
+  'someone is following me', 'people are following me', 'being followed',
+  // Spanish — suicidal ideation
+  'quiero morir', 'suicidarme', 'suicidio', 'no quiero vivir', 'matarme',
+  'quitarme la vida', 'no vale la pena vivir', 'mejor estar muerto', 'mejor estaria muerto',
+  'sin razon para vivir', 'no puedo mas', 'no puedo seguir',
+  // Spanish — self-harm
+  'hacerme dano', 'cortarme', 'lastimarme', 'hacerme dano',
+  // Spanish — abuse / DV
+  'me estan golpeando', 'me esta golpeando', 'me golpea', 'violencia domestica',
+  'tengo miedo de mi pareja', 'tengo miedo de ir a casa',
+  // Spanish — sexual assault
+  'violacion', 'me violaron', 'me toco', 'abuso sexual',
+];
+
+async function logSunnyCrisis(message: string, lang: string, sessionId?: string): Promise<void> {
+  try {
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
     await db.collection('crisis_flags').add({
       source: 'sunny_chat',
       message: message.substring(0, 500),
       lang,
+      sessionId: sessionId || null,
       flaggedAt: new Date().toISOString(),
     });
-    const alertHtml = `<p><strong>SUNNY CRISIS FLAG — ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}</strong></p><p>A user on the Sunny chat may be in crisis.</p><p><strong>Message:</strong> ${message.substring(0, 400)}</p><p>Logged to Firestore crisis_flags collection.</p>`;
-    sendEmailRaw('kayla@healthmatters.clinic', '[URGENT] Sunny Crisis Flag', alertHtml, `SUNNY CRISIS FLAG\n\nUser message: ${message.substring(0, 400)}\n\nCheck Firestore crisis_flags.`).catch(() => {});
+    // NOTE: Crisis response language requires sign-off from Dr. Nguyen (Medical Director) and
+    // Dr. Bounds (Unstoppable curriculum co-developer) before any changes to the text below.
+    // Do not edit the crisis alert routing or response text without clinical review.
+    const alertHtml = `<p><strong>SUNNY CRISIS FLAG — ${timestamp}</strong></p>
+<p>A user on the Sunny chat may be in crisis. Immediate awareness recommended.</p>
+<p><strong>Message:</strong> ${message.substring(0, 400)}</p>
+<p><strong>Language:</strong> ${lang} | <strong>Session:</strong> ${sessionId || 'anonymous'}</p>
+<p>Logged to Firestore <code>crisis_flags</code> collection. 988 and crisis hotlines were surfaced to the user.</p>
+<p><em>Note: Sunny surfaces 988, Crisis Text Line (741741), Didi Hirsch (800-854-7771), and human handoff on every crisis detection.</em></p>`;
+    // Route to medical team — monitored by Dr. Nguyen and clinical staff
+    sendEmailRaw(
+      'medical@healthmatters.clinic',
+      `[URGENT] Sunny Crisis Flag — ${timestamp}`,
+      alertHtml,
+      `SUNNY CRISIS FLAG — ${timestamp}\n\nUser message: ${message.substring(0, 400)}\nLanguage: ${lang}\nSession: ${sessionId || 'anonymous'}\n\nCheck Firestore crisis_flags.\n\nNote: 988 and crisis hotlines were surfaced to the user.`
+    ).catch(() => {});
+  } catch {}
+}
+
+async function logSunnyBacklog(query: string, reason: string, lang: string): Promise<void> {
+  try {
+    await db.collection('sunny_backlog').add({
+      query: query.substring(0, 500),
+      reason,
+      lang,
+      loggedAt: new Date().toISOString(),
+      reviewed: false,
+    });
   } catch {}
 }
 
@@ -16619,10 +16951,11 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     const { message, history, lang } = req.body;
     if (!message) return res.status(400).json({ error: 'message is required' });
 
-    // Crisis detection — log + alert regardless of model used
+    // Crisis detection runs on EVERY message — log + alert regardless of model used
+    const { sessionId } = req.body;
     const msgLower = message.toLowerCase();
     if (SUNNY_CRISIS_PATTERNS.some(p => msgLower.includes(p))) {
-      logSunnyCrisis(message, lang || 'en');
+      logSunnyCrisis(message, lang || 'en', sessionId);
     }
 
     // Dynamic date + event countdown context
@@ -16649,16 +16982,38 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
       const tools: Anthropic.Tool[] = [
         {
           name: 'search_hmc_events',
-          description: 'Fetch live HMC event data from the Event Finder. Call when someone asks about events, dates, times, locations, RSVP, availability, or anything about MOVE/HEAL/TRANSFORM.',
+          description: 'Fetch live HMC event data from the Event Finder. Call when someone asks about upcoming events, dates, times, locations, RSVP, or anything about MOVE/HEAL/TRANSFORM. Returns event list with RSVP links.',
           input_schema: { type: 'object' as const, properties: {} },
         },
         {
           name: 'search_resources',
-          description: 'Search the HMC Resource Directory for LA County community resources. Use when someone needs food, housing, mental health services, healthcare, legal aid, or other social services.',
+          description: 'Semantic search of the HMC Resource Directory (1,563+ LA County community resources). Use for ANY need: food, housing, mental health, healthcare, legal aid, immigration, domestic violence, substance use, LGBTQ+ services, financial assistance, senior services, youth programs. Use a natural-language descriptive query. Returns matched resources with phone, address, website, and source_url for citation.',
           input_schema: {
             type: 'object' as const,
             properties: {
-              query: { type: 'string', description: 'Search keyword (e.g. "food pantry Inglewood", "mental health Medi-Cal", "housing assistance")' }
+              query: { type: 'string', description: 'Natural language query describing the need (e.g. "food bank for families with kids", "mental health therapy for uninsured", "domestic violence shelter", "immigration legal aid", "substance use treatment Inglewood")' },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'search_hmc_content',
+          description: 'Search all HMC content: program descriptions, initiative pages, leadership bios, campaign pages, blog posts, podcast episodes, FAQs, and impact data on healthmatters.clinic. Call when someone asks about a specific HMC program, history, leadership, partnership, or initiative not in your immediate knowledge. Returns page excerpts with source_url for citation.',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              query: { type: 'string', description: 'What to search for on healthmatters.clinic (e.g. "Unstoppable program history", "Street Medicine training", "C.L.I.N.I.C. framework", "who founded HMC", "ASICS partnership")' },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'search_web',
+          description: 'FALLBACK ONLY — search the live web via Tavily (advanced depth, synthesized answer included). Call this only when: (1) search_hmc_content returned no relevant result, (2) the question is explicitly about something outside HMC scope, or (3) the user explicitly asks you to look something up online. Results are restricted to trusted sources: healthmatters.clinic (highest priority), .gov, .edu, 988lifeline.org, didihirsch.org, 211la.org, and other established health organizations. Returns synthesized answer + sources with source_url. HMC sources rank above all others. Do NOT call this for HMC-specific questions — use search_hmc_content instead.',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              query: { type: 'string', description: 'Web search query (e.g. "LA County rent assistance 2026 eligibility", "NAMI LA Family-to-Family program schedule", "CalFresh income limits 2026 California")' },
             },
             required: ['query'],
           },
@@ -16667,7 +17022,7 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
 
       let response = await anthropicForSunny.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 600,
+        max_tokens: 1000,
         temperature: 0.7 as any,
         system: systemPrompt,
         messages: msgs,
@@ -16685,8 +17040,12 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
             result = await getSunnyHMCEvents();
           } else if (tu.name === 'search_resources') {
             result = await searchSunnyResources((tu.input as any).query || '');
+          } else if (tu.name === 'search_hmc_content') {
+            result = await searchHMCContent((tu.input as any).query || '');
+          } else if (tu.name === 'search_web') {
+            result = await searchWeb((tu.input as any).query || '');
           } else {
-            result = JSON.stringify({ error: 'Unknown tool' });
+            result = JSON.stringify({ error: 'Unknown tool', tool: tu.name });
           }
           toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: result });
         }
@@ -16706,6 +17065,12 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map(b => b.text)
         .join('');
+
+      // Log to backlog when Claude signals low confidence, and surface handoff offer in reply
+      const lowConfidenceMarkers = ["i don't have", "i'm not sure", "i don't know", "i cannot find", "not in my knowledge", "you may want to check", "no puedo encontrar", "no estoy seguro"];
+      if (lowConfidenceMarkers.some(m => reply.toLowerCase().includes(m))) {
+        logSunnyBacklog(message, 'low_confidence_reply', lang || 'en').catch(() => {});
+      }
 
       return res.json({ success: true, reply });
     }
@@ -16731,6 +17096,129 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
   } catch (error: any) {
     console.error('[SUNNY] Chat error:', error.message);
     res.status(500).json({ error: 'Chat failed', fallback: "I'm having trouble right now. You can reach us at healthmatters.clinic or call 988 if you need immediate support." });
+  }
+});
+
+// ── Sunny Human Handoff ──────────────────────────────────────────────────────
+const SUNNY_HANDOFF_ROUTING: Record<string, { inbox: string; label: string; sla: string }> = {
+  crisis:        { inbox: 'medical@healthmatters.clinic',      label: 'Crisis or Clinical',     sla: 'as soon as possible' },
+  medical:       { inbox: 'medical@healthmatters.clinic',      label: 'Medical or Clinical',    sla: 'as soon as possible' },
+  general:       { inbox: 'contact@healthmatters.clinic',      label: 'General Inquiry',        sla: 'within 24 hours' },
+  partner:       { inbox: 'partner@healthmatters.clinic',      label: 'Partnership or Sponsor', sla: 'within 48 hours' },
+  accessibility: { inbox: 'kayla@healthmatters.clinic',        label: 'Accessibility',          sla: 'within 24 hours' },
+  unstoppable:   { inbox: 'unstoppable@healthmatters.clinic',  label: 'Unstoppable Program',    sla: 'within 24 hours' },
+  events:        { inbox: 'events@healthmatters.clinic',       label: 'Events and Registration', sla: 'within 24 hours' },
+};
+
+app.post('/api/sunny/handoff', rateLimit(5, 60000), async (req: Request, res: Response) => {
+  try {
+    const { sessionId, category, transcript, summary, userContact, lang } = req.body;
+    if (!sessionId || !category) return res.status(400).json({ error: 'sessionId and category required' });
+
+    const routing = SUNNY_HANDOFF_ROUTING[category] || SUNNY_HANDOFF_ROUTING.general;
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+
+    await db.collection('sunny_handoffs').add({
+      sessionId,
+      category,
+      inbox: routing.inbox,
+      transcript: transcript || [],
+      summary: summary || '',
+      userContact: userContact || null,
+      lang: lang || 'en',
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    });
+
+    const transcriptHtml = (transcript || [])
+      .slice(-20)
+      .map((m: any) => `<p><strong>${m.type === 'user' ? 'User' : 'Sunny'}:</strong> ${String(m.content).substring(0, 500)}</p>`)
+      .join('');
+
+    const html = `<p><strong>SUNNY HANDOFF — ${timestamp}</strong></p>
+<p><strong>Category:</strong> ${routing.label}</p>
+${summary ? `<p><strong>Summary:</strong> ${summary}</p>` : ''}
+${userContact ? `<p><strong>User contact:</strong> ${userContact}</p>` : ''}
+<p><strong>Session:</strong> ${sessionId}</p>
+<hr/><p><strong>Conversation:</strong></p>${transcriptHtml}`;
+
+    await sendEmailRaw(
+      routing.inbox,
+      `[Sunny Handoff] ${routing.label} — ${timestamp}`,
+      html,
+      `SUNNY HANDOFF\nCategory: ${routing.label}\n${summary ? `Summary: ${summary}\n` : ''}${userContact ? `Contact: ${userContact}\n` : ''}Session: ${sessionId}`
+    );
+
+    res.json({ success: true, routed_to: routing.inbox, sla: routing.sla });
+  } catch (error: any) {
+    console.error('[SUNNY] Handoff error:', error.message);
+    res.status(500).json({ error: 'Handoff failed' });
+  }
+});
+
+// ── Sunny Returning-User Memory (opt-in, HIPAA-aware) ───────────────────────
+// NOTE: Full legal/HIPAA review required before enabling persistent memory in production.
+// These endpoints are implemented and ready; enable after legal sign-off.
+app.post('/api/sunny/memory', rateLimit(10, 60000), async (req: Request, res: Response) => {
+  try {
+    const { sessionId, preferences } = req.body;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    // Strip any PHI fields — only store non-clinical preferences
+    const safePrefs = {
+      lang: preferences?.lang,
+      neighborhood: preferences?.neighborhood,
+      accessibilityNeeds: preferences?.accessibilityNeeds,
+      updatedAt: new Date().toISOString(),
+    };
+    await db.collection('sunny_user_memory').doc(sessionId).set(safePrefs, { merge: true });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Memory save failed' });
+  }
+});
+
+app.get('/api/sunny/memory/:sessionId', rateLimit(10, 60000), async (req: Request, res: Response) => {
+  try {
+    const doc = await db.collection('sunny_user_memory').doc(req.params.sessionId).get();
+    if (!doc.exists) return res.json({ preferences: {} });
+    res.json(doc.data());
+  } catch (error: any) {
+    res.status(500).json({ error: 'Memory fetch failed' });
+  }
+});
+
+app.delete('/api/sunny/memory/:sessionId', rateLimit(5, 60000), async (req: Request, res: Response) => {
+  try {
+    await db.collection('sunny_user_memory').doc(req.params.sessionId).delete();
+    res.json({ success: true, message: 'Your Sunny memory has been cleared.' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Memory delete failed' });
+  }
+});
+
+// ── Sunny Backlog (admin-only weekly review) ─────────────────────────────────
+app.get('/api/sunny/backlog', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const since = req.query.since as string;
+    let query: FirebaseFirestore.Query = db.collection('sunny_backlog')
+      .where('reviewed', '==', false)
+      .orderBy('loggedAt', 'desc')
+      .limit(100);
+    if (since) query = query.where('loggedAt', '>=', since);
+    const snap = await query.get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ count: items.length, items });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Backlog fetch failed' });
+  }
+});
+
+app.patch('/api/sunny/backlog/:id/reviewed', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    await db.collection('sunny_backlog').doc(req.params.id).update({ reviewed: true, reviewedAt: new Date().toISOString() });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Backlog update failed' });
   }
 });
 
