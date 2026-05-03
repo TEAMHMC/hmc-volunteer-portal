@@ -5860,6 +5860,70 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
     }
 });
 
+// POST /api/public/check-yourself-aggregate — anonymous aggregate ping from Check Yourself tool
+// No PII accepted or stored. Records severity bands + language only for population health tracking.
+app.post('/api/public/check-yourself-aggregate', rateLimit(60, 60000), async (req: Request, res: Response) => {
+  try {
+    const { phq9_severity, gad7_severity, suicidal_ideation, lang } = req.body;
+    const allowed = ['minimal', 'mild', 'moderate', 'moderately-severe', 'severe'];
+    if (!phq9_severity || !allowed.includes(phq9_severity)) return res.status(400).json({ error: 'invalid phq9_severity' });
+    if (!gad7_severity || !allowed.includes(gad7_severity)) return res.status(400).json({ error: 'invalid gad7_severity' });
+    await db.collection('check_yourself_stats').add({
+      phq9_severity,
+      gad7_severity,
+      suicidal_ideation: suicidal_ideation === true,
+      lang: lang === 'es' ? 'es' : 'en',
+      recorded_at: new Date().toISOString(),
+    });
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error('[CHECK-YOURSELF] Aggregate ping failed:', e.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/public/check-yourself-connect — opt-in request from Check Yourself for HMC follow-up
+// Fires when a user with severe symptoms or suicidal ideation explicitly requests outreach.
+app.post('/api/public/check-yourself-connect', rateLimit(10, 60000), async (req: Request, res: Response) => {
+  try {
+    const { name, contact, phq9_severity, gad7_severity, suicidal_ideation, lang } = req.body;
+    if (!contact || contact.trim().length < 3) return res.status(400).json({ error: 'contact is required' });
+    const record = {
+      name: (name || '').substring(0, 100),
+      contact: contact.substring(0, 200),
+      phq9_severity: phq9_severity || 'unknown',
+      gad7_severity: gad7_severity || 'unknown',
+      suicidal_ideation: suicidal_ideation === true,
+      lang: lang === 'es' ? 'es' : 'en',
+      source: 'check_yourself',
+      requested_at: new Date().toISOString(),
+    };
+    await db.collection('check_yourself_connects').add(record);
+    const ts = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+    const urgency = suicidal_ideation ? '[URGENT] ' : '';
+    const alertHtml = `<p><strong>${urgency}Check Yourself -- Community Member Requested Outreach</strong></p>
+<p>Someone completed Check Yourself and asked HMC to reach out to them.</p>
+<p><strong>Name:</strong> ${record.name || '(not provided)'}<br/>
+<strong>Contact:</strong> ${record.contact}<br/>
+<strong>PHQ-9:</strong> ${record.phq9_severity} &nbsp;|&nbsp; <strong>GAD-7:</strong> ${record.gad7_severity}<br/>
+<strong>Suicidal ideation indicated:</strong> ${suicidal_ideation ? 'Yes' : 'No'}<br/>
+<strong>Language:</strong> ${record.lang}<br/>
+<strong>Time:</strong> ${ts} PT</p>
+${suicidal_ideation ? '<p><strong>Note: Suicidal ideation was indicated. 988 was surfaced to this user on the results screen.</strong></p>' : ''}
+<p>Follow up as soon as possible.</p>`;
+    sendEmailRaw(
+      'medical@healthmatters.clinic',
+      `${urgency}Check Yourself Outreach Request — ${ts}`,
+      alertHtml,
+      `${urgency}Check Yourself outreach request\n\nName: ${record.name || '(not provided)'}\nContact: ${record.contact}\nPHQ-9: ${record.phq9_severity} | GAD-7: ${record.gad7_severity}\nSuicidal ideation: ${suicidal_ideation ? 'Yes' : 'No'}\nLanguage: ${record.lang}\nTime: ${ts} PT\n\nFollow up as soon as possible.`
+    ).catch(() => {});
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error('[CHECK-YOURSELF] Connect request failed:', e.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /api/public/sync-event - Public endpoint for Event Finder Tool to sync events into portal
 app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
