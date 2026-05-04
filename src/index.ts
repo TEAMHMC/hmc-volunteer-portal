@@ -15126,9 +15126,27 @@ const seedHmcContentIndex = async () => {
   }
 };
 
+// One-time fix: patch wrong Inglewood coordinates on the May 9 + May 20 events.
+// These were geocoded to South Gate (33.9719, -118.2108) instead of 123 W Manchester Blvd Inglewood.
+const fixInglewoodCoordinates = async () => {
+  const correctCoords = { lat: 33.9614, lng: -118.3528 };
+  const eventIds = ['Nn8liBDJL9zOdBrJMBDm', 'eQsqJsCHKCBJyo1r26Lf'];
+  for (const id of eventIds) {
+    const doc = await db.collection('opportunities').doc(id).get();
+    if (!doc.exists) continue;
+    const d = doc.data()!;
+    const currentLat = d.locationCoordinates?.lat ?? d.lat;
+    if (Math.abs(currentLat - 33.9719) < 0.001) {
+      await db.collection('opportunities').doc(id).update({ locationCoordinates: correctCoords });
+      console.log(`[FIX] Corrected Inglewood coordinates on ${id}`);
+    }
+  }
+};
+
 // Call bootstrap and seed during startup
 bootstrapAdmin();
 seedHmcContentIndex();
+fixInglewoodCoordinates();
 
 const server = app.listen(PORT, () => {
     console.log(`[SERVER] Server listening on port ${PORT}`);
