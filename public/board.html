@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join the Board — Health Matters Clinic</title>
+<meta name="description" content="Help shape the future of community health in Los Angeles. Apply to serve on HMC's Board of Directors or Community Advisory Board.">
+<meta property="og:title" content="Join the HMC Board — Shape Community Health in LA">
+<meta property="og:description" content="Two governance roles. Quarterly meetings. Real impact. Apply to serve on the Health Matters Clinic Board of Directors or Community Advisory Board.">
+<meta property="og:image" content="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'Inter',sans-serif;background:#fdfefe;color:#111;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+
+/* Skip nav for accessibility */
+.skip-nav{position:absolute;top:-100px;left:16px;background:#233dff;color:#fff;padding:12px 20px;border-radius:8px;font-weight:700;font-size:14px;z-index:9999;transition:top .2s}
+.skip-nav:focus{top:16px}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:100;background:rgba(253,254,254,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,.06);padding:16px 48px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-logo img{width:36px;height:36px;border-radius:8px}
+.nav-logo-text{font-size:15px;font-weight:800;letter-spacing:-.01em;color:#111}
+.nav-logo-text span{color:#233dff}
+.nav-cta{display:inline-flex;align-items:center;gap:8px;background:#233dff;color:#fff;border:1px solid #0f0f0f;border-radius:100px;padding:10px 22px;font-size:13px;font-weight:700;letter-spacing:.02em;transition:background .2s}
+.nav-cta::before{content:'';width:6px;height:6px;border-radius:50%;background:#fff;flex-shrink:0}
+.nav-cta:hover{background:#1a2bcc}
+
+/* ── HERO ── */
+.hero{background:#0f0f0f;color:#fff;padding:96px 48px 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(35,61,255,.25),transparent);pointer-events:none}
+.hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 40% at 20% 80%,rgba(35,61,255,.12),transparent),radial-gradient(ellipse 40% 50% at 80% 20%,rgba(120,80,255,.1),transparent);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(35,61,255,.15);border:1px solid rgba(35,61,255,.3);border-radius:100px;padding:8px 16px;margin-bottom:28px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:#233dff}
+.hero-title{font-size:clamp(52px,7.5vw,104px);font-weight:900;line-height:.9;letter-spacing:-.04em;max-width:1000px;margin:0 auto 28px}
+.hero-title .blue{color:#233dff}
+.hero-sub{font-size:clamp(17px,2vw,20px);color:rgba(255,255,255,.55);max-width:600px;margin:0 auto 44px;line-height:1.65}
+.hero-actions{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:#233dff;color:#fff;border:1px solid #0f0f0f;border-radius:100px;padding:16px 36px;font-size:15px;font-weight:700;letter-spacing:.02em;transition:background .2s,transform .2s}
+.btn-primary::before{content:'';width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0}
+.btn-primary:hover{background:#1a2bcc;transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#111;border:1px solid #0f0f0f;border-radius:100px;padding:16px 36px;font-size:15px;font-weight:700;letter-spacing:.02em;transition:background .2s,transform .2s}
+.btn-secondary::before{content:'';width:7px;height:7px;border-radius:50%;background:#111;flex-shrink:0}
+.btn-secondary:hover{background:#f0f0f0;transform:translateY(-1px)}
+.hero-stats{display:flex;align-items:center;justify-content:center;gap:48px;margin-top:60px;padding-top:48px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.stat-num{font-size:40px;font-weight:900;letter-spacing:-.03em;color:#fff}
+.stat-num span{color:#233dff}
+.stat-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.4);letter-spacing:.05em;text-transform:uppercase;margin-top:4px}
+
+/* ── SECTIONS ── */
+section{padding:96px 48px}
+.section-label{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#233dff;margin-bottom:16px}
+.section-title{font-size:clamp(32px,4vw,52px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin-bottom:20px}
+.section-sub{font-size:18px;color:#555;line-height:1.65;max-width:560px}
+.container{max-width:1100px;margin:0 auto}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.animate-up{opacity:0;animation:fadeUp .7s ease forwards}
+.animate-up.delay-1{animation-delay:.1s}
+.animate-up.delay-2{animation-delay:.2s}
+.animate-up.delay-3{animation-delay:.3s}
+[data-reveal]{opacity:0;transform:translateY(32px);transition:opacity .7s ease,transform .7s ease}
+[data-reveal].revealed{opacity:1;transform:translateY(0)}
+
+/* ── ROLE CARDS ── */
+.roles{background:#f5f3ef}
+.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:56px}
+.role-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:20px;padding:40px;transition:transform .2s,box-shadow .2s}
+.role-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
+.role-card-eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#233dff;margin-bottom:16px}
+.role-card-title{font-size:28px;font-weight:900;letter-spacing:-.03em;line-height:1;margin-bottom:20px}
+.role-card-desc{font-size:16px;color:#555;line-height:1.7;margin-bottom:28px}
+.role-detail-list{display:flex;flex-direction:column;gap:12px}
+.role-detail{display:flex;align-items:flex-start;gap:12px}
+.role-detail-dot{width:20px;height:20px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.role-detail-dot svg{width:10px;height:10px;stroke:#233dff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.role-detail-text{font-size:15px;color:#333;line-height:1.5;font-weight:500}
+.role-detail-text strong{color:#111;font-weight:700}
+.role-chip{display:inline-block;margin-top:28px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:#f0f4ff;color:#233dff;padding:5px 12px;border-radius:100px}
+
+/* ── COMMITMENT SECTION ── */
+.commitment{background:#fff}
+.commitment-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;margin-top:56px}
+.commitment-stats{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.commitment-stat{background:#f5f3ef;border-radius:20px;padding:28px 24px}
+.commitment-stat-num{font-size:48px;font-weight:900;letter-spacing:-.04em;color:#233dff;line-height:1;margin-bottom:8px}
+.commitment-stat-label{font-size:14px;font-weight:600;color:#555;line-height:1.4}
+.commitment-copy{}
+.commitment-copy .section-sub{max-width:100%}
+.commitment-list{margin-top:32px;display:flex;flex-direction:column;gap:14px}
+.commitment-item{display:flex;align-items:flex-start;gap:12px}
+.commitment-item-dot{width:20px;height:20px;border-radius:6px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.commitment-item-dot svg{width:10px;height:10px;stroke:#233dff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.commitment-item-text{font-size:16px;color:#333;line-height:1.5;font-weight:500}
+.commitment-item-text strong{color:#111;font-weight:700}
+
+/* ── WHAT YOU GAIN ── */
+.benefits{background:#0f0f0f;color:#fff}
+.benefits-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px}
+.benefit-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px 24px}
+.benefit-icon{width:44px;height:44px;border-radius:12px;background:rgba(35,61,255,.15);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.benefit-icon svg{width:22px;height:22px;stroke:#7b93ff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.benefit-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-.01em}
+.benefit-desc{font-size:14px;color:rgba(255,255,255,.5);line-height:1.65}
+.benefit-desc strong{color:rgba(255,255,255,.8);font-weight:600}
+
+/* ── COMMITTEES ── */
+.committees{background:#f5f3ef}
+.committees-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+.committee-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:24px}
+.committee-num{font-size:36px;font-weight:900;letter-spacing:-.04em;color:#e8ecff;line-height:1;margin-bottom:8px}
+.committee-name{font-size:16px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+
+/* ── CTA SECTION ── */
+.cta-section{background:#0f0f0f;color:#fff}
+.cta-inner{max-width:680px;margin:0 auto;text-align:center}
+.cta-title{font-size:clamp(36px,5vw,64px);font-weight:900;letter-spacing:-.04em;line-height:.9;margin-bottom:24px}
+.cta-title .blue{color:#233dff}
+.cta-body{font-size:18px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:44px}
+.cta-note{font-size:14px;color:rgba(255,255,255,.35);margin-top:20px;line-height:1.6}
+.cta-note a{color:rgba(255,255,255,.5);text-decoration:underline;text-underline-offset:3px}
+.cta-note a:hover{color:#fff}
+
+/* ── FOOTER ── */
+footer{background:#111;color:#fff;padding:64px 48px 40px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:48px;margin-bottom:48px}
+.footer-brand img{width:40px;height:40px;border-radius:10px;margin-bottom:14px}
+.footer-brand-name{font-size:16px;font-weight:800;margin-bottom:8px}
+.footer-brand-desc{font-size:14px;color:rgba(255,255,255,.4);line-height:1.6;max-width:300px}
+.footer-col-title{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:16px}
+.footer-links{display:flex;flex-direction:column;gap:10px;background:transparent;border:none;padding:0;align-items:flex-start}
+.footer-links a{font-size:14px;color:rgba(255,255,255,.75);transition:color .2s;background:transparent;text-align:left}
+.footer-links a:hover{color:#fff}
+footer div{background:transparent}
+footer .footer-brand img{background:#fff}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.07);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.footer-legal{font-size:13px;color:rgba(255,255,255,.3)}
+.ada-notice{font-size:13px;color:rgba(255,255,255,.4);line-height:1.5}
+.ada-notice a{color:rgba(255,255,255,.6);text-decoration:underline;text-underline-offset:3px}
+.ada-notice a:hover{color:#fff}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  nav{padding:16px 24px}
+  .hero{padding:80px 24px 64px}
+  section{padding:72px 24px}
+  .roles-grid{grid-template-columns:1fr}
+  .commitment-grid{grid-template-columns:1fr;gap:48px}
+  .benefits-grid{grid-template-columns:1fr}
+  .committees-grid{grid-template-columns:1fr 1fr}
+  .footer-grid{grid-template-columns:1fr;gap:32px}
+  .footer-bottom{flex-direction:column;align-items:flex-start}
+  .hero-stats{gap:32px}
+}
+@media(max-width:600px){
+  .hero-actions{flex-direction:column;align-items:stretch}
+  .btn-primary,.btn-secondary{justify-content:center}
+  .committees-grid{grid-template-columns:1fr}
+  .commitment-stats{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-nav">Skip to main content</a>
+
+<!-- NAV -->
+<nav aria-label="Main navigation">
+  <a href="https://www.healthmatters.clinic" class="nav-logo" aria-label="Health Matters Clinic website">
+    <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="Health Matters Clinic logo" width="36" height="36">
+    <span class="nav-logo-text">HMC <span>Governance</span></span>
+  </a>
+  <a href="https://volunteer.healthmatters.clinic/join" class="nav-cta">Apply Now</a>
+</nav>
+
+<!-- HERO -->
+<main id="main">
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-badge animate-up"><span class="hero-badge-dot" aria-hidden="true"></span>Health Matters Clinic</div>
+  <h1 class="hero-title animate-up delay-1" id="hero-heading">Shape the Future<br>of <span class="blue">Community Health.</span></h1>
+  <p class="hero-sub animate-up delay-2">Join the Board of Directors or Community Advisory Board at Health Matters Clinic — and help lead a health equity organization serving Los Angeles.</p>
+  <div class="hero-actions animate-up delay-3">
+    <a href="https://volunteer.healthmatters.clinic/join" class="btn-primary">Apply to the Board</a>
+    <a href="#roles" class="btn-secondary">Learn More</a>
+  </div>
+  <div class="hero-stats" role="list">
+    <div role="listitem">
+      <div class="stat-num">2</div>
+      <div class="stat-label">Governance Bodies</div>
+    </div>
+    <div role="listitem">
+      <div class="stat-num">4<span>x</span></div>
+      <div class="stat-label">Meetings Per Year</div>
+    </div>
+    <div role="listitem">
+      <div class="stat-num">7</div>
+      <div class="stat-label">Standing Committees</div>
+    </div>
+    <div role="listitem">
+      <div class="stat-num">LA<span> County</span></div>
+      <div class="stat-label">Where We Serve</div>
+    </div>
+  </div>
+</section>
+
+<!-- BOARD ROLES -->
+<section class="roles" id="roles" aria-labelledby="roles-heading">
+  <div class="container">
+    <p class="section-label" data-reveal>Governance Roles</p>
+    <h2 class="section-title" data-reveal>Two ways to serve.</h2>
+    <p class="section-sub" data-reveal>HMC has two distinct governance bodies. Both play a meaningful role in the organization's direction, accountability, and community connection.</p>
+    <div class="roles-grid" data-reveal>
+
+      <article class="role-card">
+        <p class="role-card-eyebrow">Governing Body</p>
+        <h3 class="role-card-title">Board of Directors</h3>
+        <p class="role-card-desc">The Board is HMC's governing body, responsible for strategic direction, fiduciary oversight, and safeguarding the organization's mission and assets. Directors carry legal duties of care, loyalty, and obedience to the organization.</p>
+        <div class="role-detail-list">
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>3-year term</strong>, typically renewable once consecutively</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Fiduciary oversight</strong> of financial and operational integrity</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Quarterly meetings</strong> — first Monday of January, April, July, and October</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Committee participation</strong> across seven standing committees</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Executive selection</strong> and oversight of the chief executive</p>
+          </div>
+        </div>
+        <span class="role-chip">Governing · Fiduciary · Strategic</span>
+      </article>
+
+      <article class="role-card">
+        <p class="role-card-eyebrow">Advisory Body</p>
+        <h3 class="role-card-title">Community Advisory Board</h3>
+        <p class="role-card-desc">The CAB elevates lived experience and community priorities to inform HMC's programs, policy positions, and quality improvement. CAB recommendations are non-binding but are formally recorded and considered by the Board and management.</p>
+        <div class="role-detail-list">
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>2-year term</strong>, renewable</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Lived-experience input</strong> shaping programs and community engagement</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Quarterly meetings</strong> — third Monday of March, June, September, and December</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Advisory, not binding</strong> — your voice shapes decisions without board-level liability</p>
+          </div>
+          <div class="role-detail">
+            <div class="role-detail-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="role-detail-text"><strong>Working groups</strong> aligned to strategic initiatives and community needs</p>
+          </div>
+        </div>
+        <span class="role-chip">Advisory · Community Voice · Accessible</span>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- COMMITMENT -->
+<section class="commitment" aria-labelledby="commitment-heading">
+  <div class="container">
+    <div class="commitment-grid" data-reveal>
+      <div class="commitment-stats" aria-label="Commitment at a glance">
+        <div class="commitment-stat">
+          <div class="commitment-stat-num">4</div>
+          <div class="commitment-stat-label">Full meetings per year — quarterly schedule</div>
+        </div>
+        <div class="commitment-stat">
+          <div class="commitment-stat-num">75<span style="font-size:28px;font-weight:700">%</span></div>
+          <div class="commitment-stat-label">Attendance target for scheduled meetings</div>
+        </div>
+        <div class="commitment-stat">
+          <div class="commitment-stat-num">7</div>
+          <div class="commitment-stat-label">Days advance notice with agenda and materials</div>
+        </div>
+        <div class="commitment-stat">
+          <div class="commitment-stat-num" style="font-size:32px">As little</div>
+          <div class="commitment-stat-label">as 4 hours per quarter to fulfill your role</div>
+        </div>
+      </div>
+      <div class="commitment-copy">
+        <p class="section-label">Time Commitment</p>
+        <h2 class="section-title" id="commitment-heading">Service that fits your life.</h2>
+        <p class="section-sub">Board and advisory service at HMC is designed to be accessible. Meetings are quarterly, materials arrive a week in advance, and committee work is structured around your availability.</p>
+        <div class="commitment-list">
+          <div class="commitment-item">
+            <div class="commitment-item-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="commitment-item-text"><strong>Quarterly full-board meetings</strong> — held virtually or hybrid; evenings to accommodate work schedules</p>
+          </div>
+          <div class="commitment-item">
+            <div class="commitment-item-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="commitment-item-text"><strong>Agendas and materials</strong> distributed at least 7 days in advance so you can prepare on your own time</p>
+          </div>
+          <div class="commitment-item">
+            <div class="commitment-item-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="commitment-item-text"><strong>Committee participation</strong> — monthly or as needed; committees meet in focused, 60-minute sessions</p>
+          </div>
+          <div class="commitment-item">
+            <div class="commitment-item-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="commitment-item-text"><strong>Ambassadorial duties</strong> — champion HMC's mission through your existing networks, at your own pace</p>
+          </div>
+          <div class="commitment-item">
+            <div class="commitment-item-dot">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p class="commitment-item-text"><strong>No mandatory give-get</strong> — financial contributions are welcomed but not required at this time</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT YOU GAIN -->
+<section class="benefits" aria-labelledby="benefits-heading">
+  <div class="container">
+    <p class="section-label" data-reveal style="color:rgba(255,255,255,.4)">What You Gain</p>
+    <h2 class="section-title" data-reveal style="color:#fff">Serve with purpose.<br>Lead with impact.</h2>
+    <p class="section-sub" data-reveal style="color:rgba(255,255,255,.5)">Board and advisory service is a two-way commitment. HMC provides governance members with the tools, information, and access they need to serve effectively.</p>
+    <div class="benefits-grid" data-reveal>
+
+      <article class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <h3 class="benefit-title">Governance Portal Access</h3>
+        <p class="benefit-desc">Full access to the HMC Volunteer Portal with a dedicated <strong>governance view</strong> — meeting materials, committee documents, training modules, and org calendar in one place.</p>
+      </article>
+
+      <article class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h3 class="benefit-title">Meeting Materials and Minutes</h3>
+        <p class="benefit-desc">Agendas, board packets, financial reports, and approved minutes delivered through the portal at least <strong>7 days before each meeting</strong>.</p>
+      </article>
+
+      <article class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="benefit-title">Committee Participation</h3>
+        <p class="benefit-desc">Join one or more of seven standing committees aligned to your expertise — from finance and governance to <strong>programs, workforce, and community engagement</strong>.</p>
+      </article>
+
+      <article class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        </div>
+        <h3 class="benefit-title">Governance Training</h3>
+        <p class="benefit-desc">Required and optional training modules through the portal's Training Academy, including board governance, ethics, conflict of interest, and <strong>sector-specific resources</strong>.</p>
+      </article>
+
+      <article class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3 class="benefit-title">Real Strategic Impact</h3>
+        <p class="benefit-desc">Your votes and advisory input directly shape HMC's programs, partnerships, and resource allocation — <strong>meaningful influence on health equity strategy</strong> in Los Angeles.</p>
+      </article>
+
+      <article class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 class="benefit-title">D&amp;O Insurance Coverage</h3>
+        <p class="benefit-desc">Board members are covered under HMC's Directors and Officers liability insurance policy, providing <strong>protection for good-faith decisions</strong> made in the course of board service.</p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- STANDING COMMITTEES -->
+<section class="committees" aria-labelledby="committees-heading">
+  <div class="container">
+    <p class="section-label" data-reveal>Standing Committees</p>
+    <h2 class="section-title" data-reveal>Seven committees.<br>Find your fit.</h2>
+    <p class="section-sub" data-reveal>Each standing committee has a defined scope, charter, and meeting cadence. Board members serve on at least one committee aligned to their expertise and interest.</p>
+    <div class="committees-grid" data-reveal>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">01</div>
+        <h3 class="committee-name">Executive</h3>
+      </article>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">02</div>
+        <h3 class="committee-name">Governance &amp; Nominations</h3>
+      </article>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">03</div>
+        <h3 class="committee-name">Finance, Audit &amp; Risk</h3>
+      </article>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">04</div>
+        <h3 class="committee-name">Programs, Quality &amp; Clinical Oversight</h3>
+      </article>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">05</div>
+        <h3 class="committee-name">Workforce Development &amp; Education</h3>
+      </article>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">06</div>
+        <h3 class="committee-name">Development &amp; Community Partnerships</h3>
+      </article>
+
+      <article class="committee-card">
+        <div class="committee-num" aria-hidden="true">07</div>
+        <h3 class="committee-name">Community Engagement &amp; Advocacy</h3>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section" aria-labelledby="cta-heading">
+  <div class="container">
+    <div class="cta-inner">
+      <p class="section-label" style="color:rgba(255,255,255,.4)">Ready to Serve</p>
+      <h2 class="cta-title" id="cta-heading">Your seat at the table<br>is <span class="blue">waiting.</span></h2>
+      <p class="cta-body">Applications are reviewed on a rolling basis. The Governance &amp; Nominations Committee evaluates candidates and will be in touch within two weeks of submission.</p>
+      <a href="https://volunteer.healthmatters.clinic/join" class="btn-primary" style="font-size:16px;padding:18px 44px;">Apply to the Board</a>
+      <p class="cta-note">Questions about governance roles? <a href="mailto:executive@healthmatters.clinic">executive@healthmatters.clinic</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="Health Matters Clinic" width="40" height="40">
+        <p class="footer-brand-name">Health Matters Clinic</p>
+        <p class="footer-brand-desc">A community-centered health equity organization in Los Angeles connecting people to free and low-cost health, mental health, housing, and social services.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Governance</p>
+        <nav class="footer-links" aria-label="Governance links">
+          <a href="https://volunteer.healthmatters.clinic/join">Apply Now</a>
+          <a href="https://volunteer.healthmatters.clinic">Volunteer Portal</a>
+          <a href="https://www.healthmatters.clinic">Main Website</a>
+        </nav>
+      </div>
+      <div>
+        <p class="footer-col-title">Contact</p>
+        <nav class="footer-links" aria-label="Contact links">
+          <a href="mailto:executive@healthmatters.clinic">Email Governance</a>
+          <a href="mailto:volunteer@healthmatters.clinic">Email Volunteer Team</a>
+          <a href="https://www.instagram.com/healthmatters.clinic" target="_blank" rel="noopener noreferrer" aria-label="HMC on Instagram (opens in new tab)">Instagram</a>
+        </nav>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-legal">© 2026 Health Matters Clinic. All rights reserved.</p>
+      <p class="footer-legal"><a href="https://www.healthmatters.clinic" style="color:rgba(255,255,255,.3)">healthmatters.clinic</a></p>
+    </div>
+  </div>
+</footer>
+</main>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('revealed'); observer.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

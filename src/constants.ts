@@ -14,7 +14,7 @@ export const COORDINATOR_AND_LEAD_ROLES = [
 
 export const GOVERNANCE_ROLES = ['Board Member', 'Community Advisory Board'];
 
-export const EVENT_MANAGEMENT_ROLES = [...COORDINATOR_AND_LEAD_ROLES, ...GOVERNANCE_ROLES];
+export const EVENT_MANAGEMENT_ROLES = [...COORDINATOR_AND_LEAD_ROLES];
 
 export const BROADCAST_ROLES = COORDINATOR_AND_LEAD_ROLES;
 

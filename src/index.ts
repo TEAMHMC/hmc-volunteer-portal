@@ -17466,6 +17466,13 @@ app.get('/tour', (req: Request, res: Response) => {
   res.sendFile(path.join(buildPath, 'tour.html'));
 });
 
+// --- PUBLIC BOARD RECRUITMENT PAGE (no auth required) ---
+app.get('/board', (req: Request, res: Response) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://www.healthmatters.clinic https://healthmatters.clinic");
+  res.sendFile(path.join(buildPath, 'board.html'));
+});
+
 // --- PUBLIC TRAINING GUIDE (no auth required) ---
 app.get('/training', (req: Request, res: Response) => {
   res.removeHeader('X-Frame-Options');
