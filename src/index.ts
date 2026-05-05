@@ -5105,16 +5105,33 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
         //    Firestore events only appear if no GAS counterpart exists.
         //    This ensures Admin-panel edits (saveTheDate, flyerUrl, description, etc.) always win.
 
-        // Deduplicate GAS events by title+date (case-insensitive) — keep the last row (most recently saved).
-        // The sheet can have two rows for the same event if it was synced from Eventbrite AND edited via Admin panel.
+        // Deduplicate GAS events by title+date (case-insensitive).
+        // When a sheet has both an Eventbrite-synced row (id=event-XXXXXX) AND an Admin-panel row
+        // (id=FirestoreDocId), merge them: keep the Eventbrite ID (so RSVP deep links + check-in
+        // URLs still resolve) but overlay Admin-panel display fields (saveTheDate, flyerUrl, etc.).
+        const isEventbriteId = (id: string) => /^event-\d+$/.test(id || '');
         const gasDeduped: any[] = [];
-        const gasSeenKeys = new Set<string>();
-        for (let i = gasEvents.length - 1; i >= 0; i--) {
-            const ge = gasEvents[i];
+        const gasSeenMap = new Map<string, number>(); // key → index in gasDeduped
+        for (const ge of gasEvents) {
             const key = `${(ge.title || '').trim().toLowerCase()}|${ge.date}`;
-            if (!gasSeenKeys.has(key)) {
-                gasSeenKeys.add(key);
-                gasDeduped.unshift(ge);
+            if (!gasSeenMap.has(key)) {
+                gasSeenMap.set(key, gasDeduped.length);
+                gasDeduped.push({ ...ge });
+            } else {
+                const idx = gasSeenMap.get(key)!;
+                const existing = gasDeduped[idx];
+                const geIsEb = isEventbriteId(String(ge.id || ''));
+                const exIsEb = isEventbriteId(String(existing.id || ''));
+                if (geIsEb && !exIsEb) {
+                    // incoming = Eventbrite row, existing = Admin panel edit → keep EB id, Admin fields win
+                    gasDeduped[idx] = { ...ge, ...existing, id: ge.id };
+                } else if (!geIsEb && exIsEb) {
+                    // incoming = Admin panel edit, existing = Eventbrite row → keep EB id, Admin fields win
+                    gasDeduped[idx] = { ...existing, ...ge, id: existing.id };
+                } else {
+                    // both same type — keep the later row (more recently saved)
+                    gasDeduped[idx] = { ...ge };
+                }
             }
         }
 
