@@ -106,8 +106,13 @@ const EventBuilder: React.FC<EventBuilderProps> = ({ onClose, onSave, inline }) 
         reader.onloadend = () => {
             const base64 = reader.result as string;
             setFlyerPreview(base64);
-            // Store just the base64 data without the data URL prefix for storage
-            setEventData(prev => ({ ...prev, flyerBase64: base64 }));
+            // Pass base64 data URL + metadata — backend strips the prefix before uploading to Cloud Storage
+            setEventData(prev => ({
+                ...prev,
+                flyerBase64: base64,
+                flyerContentType: file.type,
+                flyerFileName: file.name,
+            }));
         };
         reader.readAsDataURL(file);
     };

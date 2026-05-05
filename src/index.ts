@@ -6097,12 +6097,52 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
             }
         }
         const text = await response.text();
+        let gasResult: any = { success: true };
         try {
-            const data = JSON.parse(text);
-            res.json(data);
-        } catch {
-            res.json({ success: true });
+            gasResult = JSON.parse(text);
+        } catch { /* non-JSON response is fine */ }
+
+        // Also write to Firestore opportunities collection so changes persist
+        // (Firestore always wins in the merge — GAS-only writes get overwritten)
+        if (action === 'saveEvent' && event && event.id) {
+            try {
+                const oppRef = db.collection('opportunities').doc(event.id);
+                const oppDoc = await oppRef.get();
+                if (oppDoc.exists) {
+                    const updates: Record<string, any> = {};
+                    const fields = [
+                        'saveTheDate', 'flyerUrl', 'description', 'isSponsored', 'isPromoted',
+                        'title', 'date', 'dateDisplay', 'time', 'address', 'location',
+                        'city', 'category', 'tags', 'sessions', 'maxAttendees',
+                        'registrationDeadline', 'rsvpLink', 'eventbriteId',
+                    ] as const;
+                    for (const f of fields) {
+                        if (event[f] !== undefined) updates[f] = event[f];
+                    }
+                    updates._adminUpdatedAt = new Date().toISOString();
+                    await oppRef.update(updates);
+                    console.log(`[SAVE-EVENT] Firestore opportunities/${event.id} updated`);
+                }
+            } catch (fsErr: any) {
+                console.error('[SAVE-EVENT] Firestore update failed:', fsErr.message);
+                // Don't fail the request — GAS write already succeeded
+            }
         }
+
+        if (action === 'deleteEvent' && id) {
+            try {
+                const oppRef = db.collection('opportunities').doc(id);
+                const oppDoc = await oppRef.get();
+                if (oppDoc.exists) {
+                    await oppRef.delete();
+                    console.log(`[SAVE-EVENT] Firestore opportunities/${id} deleted`);
+                }
+            } catch (fsErr: any) {
+                console.error('[SAVE-EVENT] Firestore delete failed:', fsErr.message);
+            }
+        }
+
+        res.json(gasResult);
     } catch (error: any) {
         console.error('[SAVE-EVENT PROXY] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });

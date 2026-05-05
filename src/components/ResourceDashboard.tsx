@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
 import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2, Sparkles, ExternalLink, AlertCircle, ShieldAlert } from 'lucide-react';
@@ -31,6 +31,7 @@ const ResourceDashboard: React.FC = () => {
     const [aiSearching, setAiSearching] = useState(false);
     const [aiResults, setAiResults] = useState<any[] | null>(null);
     const [aiError, setAiError] = useState('');
+    const aiAutoTriggeredFor = useRef<string>('');
 
     const fetchResources = async () => {
         try {
@@ -65,38 +66,54 @@ const ResourceDashboard: React.FC = () => {
         }
     };
 
-    const handleAiSearch = async () => {
-        if (!searchQuery.trim() || searchQuery.trim().length < 2) return;
+    const handleAiSearch = useCallback(async (query?: string) => {
+        const q = (query ?? searchQuery).trim();
+        if (!q || q.length < 2) return;
         setAiSearching(true);
         setAiError('');
         setAiResults(null);
         try {
-            const data = await apiService.post('/api/resources/ai-search', { query: searchQuery.trim() }, 90000);
+            const data = await apiService.post('/api/resources/ai-search', { query: q }, 90000);
             setAiResults(data.aiSuggestions || []);
         } catch (err) {
             setAiError((err as Error).message || 'AI search failed.');
         } finally {
             setAiSearching(false);
         }
-    };
+    }, [searchQuery]);
 
     // Derive unique individual categories (split comma-separated values)
     const categories = [...new Set(
         resources.flatMap(r => (r['Service Category'] || '').split(',').map(c => c.trim()).filter(Boolean))
     )].sort();
 
-    // Filter resources
+    const STOP_WORDS = new Set(['near', 'by', 'in', 'the', 'a', 'an', 'for', 'to', 'of', 'on', 'at', 'and', 'or']);
+
+    // Filter resources — word-based OR matching (skips stop words like "near", "by")
     const filtered = resources.filter(r => {
-        const q = searchQuery.toLowerCase();
-        const matchesSearch = !q ||
-            (r['Resource Name'] || '').toLowerCase().includes(q) ||
-            (r['Service Category'] || '').toLowerCase().includes(q) ||
-            (r['Key Offerings'] || '').toLowerCase().includes(q) ||
-            (r['Address'] || '').toLowerCase().includes(q);
         const matchesCategory = !categoryFilter ||
             (r['Service Category'] || '').split(',').map(c => c.trim()).includes(categoryFilter);
-        return matchesSearch && matchesCategory;
+        if (!matchesCategory) return false;
+        if (!searchQuery.trim()) return true;
+        const words = searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 1 && !STOP_WORDS.has(w));
+        if (words.length === 0) return true;
+        const searchText = [
+            r['Resource Name'], r['Service Category'], r['Key Offerings'], r['Address'],
+            r['Target Population'], r['Languages Spoken'], r['Medical Subcategory']
+        ].join(' ').toLowerCase();
+        return words.some(w => searchText.includes(w));
     });
+
+    // Auto-trigger AI search when local results are empty (1s debounce)
+    useEffect(() => {
+        if (!searchQuery.trim() || filtered.length > 0 || aiSearching || aiResults !== null) return;
+        if (aiAutoTriggeredFor.current === searchQuery.trim()) return;
+        const timer = setTimeout(() => {
+            aiAutoTriggeredFor.current = searchQuery.trim();
+            handleAiSearch(searchQuery.trim());
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [searchQuery, filtered.length, aiSearching, aiResults, handleAiSearch]);
 
     if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-brand" size={48} /></div>;
     if (error) return <div className="text-center text-rose-500 font-bold">{error}</div>;
@@ -144,9 +161,9 @@ const ResourceDashboard: React.FC = () => {
                     <input
                         type="text"
                         value={searchQuery}
-                        onChange={e => { setSearchQuery(e.target.value); setAiResults(null); }}
-                        onKeyDown={e => { if (e.key === 'Enter' && filtered.length === 0 && searchQuery.trim()) handleAiSearch(); }}
-                        placeholder="Search resources or ask AI (e.g., 'urgent care near skid row')..."
+                        onChange={e => { setSearchQuery(e.target.value); setAiResults(null); aiAutoTriggeredFor.current = ''; }}
+                        onKeyDown={e => { if (e.key === 'Enter' && searchQuery.trim()) handleAiSearch(); }}
+                        placeholder="Search housing, food, mental health, urgent care..."
                         className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-2xl text-sm font-medium outline-none focus:border-brand/30 focus:ring-2 focus:ring-brand/10"
                     />
                 </div>
@@ -202,10 +219,10 @@ const ResourceDashboard: React.FC = () => {
                             <p className="text-zinc-400 font-bold text-sm">
                                 {resources.length === 0 ? 'No resources yet. Upload a CSV or add one manually.' : 'No resources match your search.'}
                             </p>
-                            {searchQuery.trim() && !aiResults && !aiSearching && (
-                                <button onClick={handleAiSearch} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-full text-xs font-bold uppercase tracking-wide hover:from-violet-600 hover:to-indigo-600 transition-all">
+                                            {searchQuery.trim() && !aiResults && !aiSearching && (
+                                <button onClick={() => handleAiSearch()} className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-full text-xs font-bold uppercase tracking-wide hover:from-violet-600 hover:to-indigo-600 transition-all">
                                     <Sparkles size={14} />
-                                    Search with AI for "{searchQuery}"
+                                    Search AI for "{searchQuery}"
                                 </button>
                             )}
                         </div>
@@ -253,7 +270,7 @@ const ResourceDashboard: React.FC = () => {
             {aiSearching && (
                 <div className="flex items-center justify-center gap-3 p-8 bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl md:rounded-[40px]">
                     <Loader2 size={20} className="animate-spin text-violet-500" />
-                    <span className="text-sm font-bold text-violet-700">Searching LA community resources with AI...</span>
+                    <span className="text-sm font-bold text-violet-700">Searching LA resources with AI for "{searchQuery}"…</span>
                 </div>
             )}
 

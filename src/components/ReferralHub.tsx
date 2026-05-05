@@ -44,6 +44,9 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
 
+  // Share caption modal (for platforms that don't have web post-composer intents)
+  const [shareModal, setShareModal] = useState<{ platform: string; content: string; platformUrl: string; captionCopied: boolean } | null>(null);
+
   const TEMPLATE_OPTIONS = [
     { id: 'basic', label: 'General Invitation', description: 'A friendly invite to volunteer' },
     { id: 'impact_focused', label: 'Impact-Focused', description: 'Highlights your personal impact stats' },
@@ -106,25 +109,30 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
     if (!dashboard) return;
     try {
       const { content } = await apiService.get(`/api/share/content/${platform}`).catch(() => ({ content: '' }));
-      const encodedText = encodeURIComponent(content || '');
-      const encodedUrl = encodeURIComponent(dashboard.referralLink);
+      const fullCaption = content ? `${content}\n\n${dashboard.referralLink}` : dashboard.referralLink;
 
-      const shareUrls: Record<string, string> = {
-        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-        // Instagram and YouTube don't have web share intents — copy text to clipboard instead
-        instagram: `https://www.instagram.com/healthmatters.clinic`,
-        youtube: `https://www.youtube.com/@healthmatters.clinic`,
-      };
-
-      if (platform === 'instagram' || platform === 'youtube') {
-        // Copy share text to clipboard then open profile
-        if (content) { try { await navigator.clipboard.writeText(`${content} ${dashboard.referralLink}`); } catch {} }
+      if (platform === 'linkedin') {
+        // LinkedIn post composer with pre-filled text
+        const encodedText = encodeURIComponent(fullCaption);
+        window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodedText}`, '_blank', 'width=700,height=600');
+        await apiService.post('/api/share/log', { platform });
+        toastService.success('+25 XP! Complete your LinkedIn post to share it.');
+      } else {
+        // Instagram & YouTube don't have web post-composer intents.
+        // Copy the caption and show a modal with instructions.
+        try { await navigator.clipboard.writeText(fullCaption); } catch {}
+        const platformUrls: Record<string, string> = {
+          instagram: 'https://www.instagram.com',
+          youtube: 'https://www.youtube.com/@healthmatters.clinic',
+        };
+        const platformLabels: Record<string, string> = {
+          instagram: 'Open Instagram',
+          youtube: 'Open YouTube Channel',
+        };
+        setShareModal({ platform, content: fullCaption, platformUrl: platformUrls[platform], captionCopied: true });
+        // Award XP when modal is shown (caption was copied, user will complete the post)
+        await apiService.post('/api/share/log', { platform });
       }
-      window.open(shareUrls[platform], '_blank', 'width=600,height=500');
-
-      // Log share for XP
-      await apiService.post('/api/share/log', { platform });
-      toastService.success(`+25 XP earned for sharing on ${platform}!`);
     } catch (err) {
       console.error('[ReferralHub] Share failed:', err);
     }
@@ -561,6 +569,73 @@ const ReferralHub: React.FC<ReferralHubProps> = ({ user }) => {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Share Caption Modal — for Instagram & YouTube */}
+      {shareModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setShareModal(null)}>
+          <div className="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl border border-zinc-100" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${shareModal.platform === 'instagram' ? 'bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600' : 'bg-red-600'}`}>
+                  <Share2 size={18} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-zinc-900 capitalize">{shareModal.platform} Post</h3>
+                  <p className="text-xs text-emerald-600 font-bold">+25 XP earned!</p>
+                </div>
+              </div>
+              <button onClick={() => setShareModal(null)} className="p-2 rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors"><Copy size={16} /></button>
+            </div>
+
+            <div className="bg-zinc-50 rounded-2xl p-4 mb-5 relative">
+              <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed">{shareModal.content}</p>
+              <div className="absolute top-3 right-3">
+                {shareModal.captionCopied
+                  ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full"><Check size={10} /> Copied</span>
+                  : null}
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-6">
+              <p className="text-xs font-bold text-amber-800 mb-1">How to post:</p>
+              {shareModal.platform === 'instagram' ? (
+                <ol className="text-xs text-amber-700 space-y-0.5 list-decimal list-inside">
+                  <li>Caption is already copied to your clipboard</li>
+                  <li>Open Instagram → tap <strong>+</strong> → New Post or Story</li>
+                  <li>Paste the caption and share</li>
+                </ol>
+              ) : (
+                <ol className="text-xs text-amber-700 space-y-0.5 list-decimal list-inside">
+                  <li>Caption is already copied to your clipboard</li>
+                  <li>Open YouTube → tap your profile → Community</li>
+                  <li>Create a new post and paste the caption</li>
+                </ol>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(shareModal.content); setShareModal(s => s ? { ...s, captionCopied: true } : null); } catch {}
+                }}
+                className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-full font-bold text-xs uppercase tracking-wide hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2"
+              >
+                <Copy size={14} /> Copy Again
+              </button>
+              <a
+                href={shareModal.platformUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShareModal(null)}
+                className="flex-1 py-3 text-white rounded-full font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 transition-colors"
+                style={{ background: shareModal.platform === 'instagram' ? 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' : '#FF0000' }}
+              >
+                <ExternalLink size={14} /> Open {shareModal.platform === 'instagram' ? 'Instagram' : 'YouTube'}
+              </a>
+            </div>
+          </div>
         </div>
       )}
     </div>
