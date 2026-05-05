@@ -16693,9 +16693,11 @@ WHEN TO ROUTE TO WHICH TOOL:
 - Someone says "I don't know how to tell my doctor" or "I can't explain what I'm feeling" → Check Yourself Provider Letter
 - Someone is a caregiver feeling overwhelmed → Check Yourself Caregiver Pathway
 - Someone is anxious RIGHT NOW, having a panic attack, can't sleep → CalmKit Quick Relief (Physiological Sigh)
-- Someone needs resources, housing, food, mental health services → Resource Directory
-- Someone wants to know about events → Event Finder
+- Someone needs resources, housing, food, mental health services → call search_resources tool first, then also mention healthmatters.clinic/resources
+- Someone asks about free health screenings (blood pressure, glucose, HIV, vision, dental, etc.) → call search_resources with their specific need AND tell them to check the Event Finder (healthmatters.clinic/resources/eventfinder) for upcoming free health fair events in their area
+- Someone wants to know about events → Event Finder (healthmatters.clinic/resources/eventfinder) + call search_hmc_events tool
 - Someone wants to screen their mental health, understand their mood → Check Yourself
+- NEVER say "go to healthmatters.clinic" as a generic answer when the user is already ON healthmatters.clinic — always give them the specific sub-page or tool they need (e.g. /resources, /resources/eventfinder, /resources/check-yourself)
 
 KEY PARTNERSHIPS:
 - LA County Department of Mental Health (LACDMH) — active contractor
