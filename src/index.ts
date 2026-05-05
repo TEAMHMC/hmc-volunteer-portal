@@ -5101,19 +5101,11 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
         // Run in parallel with Firestore fetch for speed; don't await failure
         const gasEvents = await fetchGASEventsCached().catch(() => []);
 
-        // 3. Merge: add GAS events not already in Firestore (by eventFinderId or title+date)
-        const firestoreKeys = new Set([
-            ...firestoreEvents.map(e => e._eventFinderId).filter(Boolean),
-            ...firestoreEvents.map(e => `${e.title}|${e.date}`),
-        ]);
-
-        const gasOnlyEvents = gasEvents
+        // 3. GAS events are the Admin-panel source of truth for Event Finder display.
+        //    Firestore events only appear if no GAS counterpart exists.
+        //    This ensures Admin-panel edits (saveTheDate, flyerUrl, description, etc.) always win.
+        const upcomingGasEvents = gasEvents
             .filter((ge: any) => ge.date >= today)
-            .filter((ge: any) => {
-                const byId = ge.id && firestoreKeys.has(ge.id);
-                const byTitleDate = firestoreKeys.has(`${ge.title}|${ge.date}`);
-                return !byId && !byTitleDate;
-            })
             .map((ge: any) => ({
                 id: ge.id,
                 title: ge.title,
@@ -5134,17 +5126,45 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
                 isSponsored: ge.isSponsored || false,
                 title_es: ge.title_es || undefined,
                 description_es: ge.description_es || undefined,
-                rsvpCount: ge.rsvpCount || 0,
+                rsvpCount: 0,
                 sessions: ge.sessions || undefined,
             }));
 
-        // Remove internal dedup key before sending
+        // Build Firestore lookup for rsvpCount enrichment (case-insensitive title+date match)
+        const fireById = new Map<string, any>();
+        const fireByTitleDate = new Map<string, any>();
+        for (const fe of firestoreEvents) {
+            if (fe._eventFinderId) fireById.set(fe._eventFinderId, fe);
+            if (fe.id) fireById.set(fe.id, fe);
+            const key = `${(fe.title || '').trim().toLowerCase()}|${fe.date}`;
+            fireByTitleDate.set(key, fe);
+        }
+
+        // Enrich GAS events with Firestore rsvpCount where a match is found
+        const enrichedGasEvents = upcomingGasEvents.map((ge: any) => {
+            const key = `${(ge.title || '').trim().toLowerCase()}|${ge.date}`;
+            const fe = fireById.get(ge.id) || fireByTitleDate.get(key);
+            return fe ? { ...ge, rsvpCount: fe.rsvpCount || 0 } : ge;
+        });
+
+        // Firestore-only events: not matched by any GAS event
+        const gasIds = new Set(upcomingGasEvents.map((ge: any) => ge.id).filter(Boolean));
+        const gasKeys = new Set(upcomingGasEvents.map((ge: any) => `${(ge.title || '').trim().toLowerCase()}|${ge.date}`));
+        const firestoreOnlyEvents = firestoreEvents
+            .filter((fe: any) => {
+                if (fe._eventFinderId && gasIds.has(fe._eventFinderId)) return false;
+                if (fe.id && gasIds.has(fe.id)) return false;
+                const key = `${(fe.title || '').trim().toLowerCase()}|${fe.date}`;
+                return !gasKeys.has(key);
+            })
+            .map(({ _eventFinderId, ...rest }: any) => rest);
+
         const merged = [
-            ...firestoreEvents.map(({ _eventFinderId, ...rest }) => rest),
-            ...gasOnlyEvents,
+            ...enrichedGasEvents,
+            ...firestoreOnlyEvents,
         ].sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
 
-        console.log(`[PUBLIC EVENTS] ${merged.length} total (${firestoreEvents.length} Firestore + ${gasOnlyEvents.length} GAS-only)`);
+        console.log(`[PUBLIC EVENTS] ${merged.length} total (${enrichedGasEvents.length} GAS + ${firestoreOnlyEvents.length} Firestore-only)`);
         res.json(merged);
     } catch (error: any) {
         console.error('[PUBLIC EVENTS] Failed to fetch events:', error);
@@ -6097,52 +6117,12 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
             }
         }
         const text = await response.text();
-        let gasResult: any = { success: true };
         try {
-            gasResult = JSON.parse(text);
-        } catch { /* non-JSON response is fine */ }
-
-        // Also write to Firestore opportunities collection so changes persist
-        // (Firestore always wins in the merge — GAS-only writes get overwritten)
-        if (action === 'saveEvent' && event && event.id) {
-            try {
-                const oppRef = db.collection('opportunities').doc(event.id);
-                const oppDoc = await oppRef.get();
-                if (oppDoc.exists) {
-                    const updates: Record<string, any> = {};
-                    const fields = [
-                        'saveTheDate', 'flyerUrl', 'description', 'isSponsored', 'isPromoted',
-                        'title', 'date', 'dateDisplay', 'time', 'address', 'location',
-                        'city', 'category', 'tags', 'sessions', 'maxAttendees',
-                        'registrationDeadline', 'rsvpLink', 'eventbriteId',
-                    ] as const;
-                    for (const f of fields) {
-                        if (event[f] !== undefined) updates[f] = event[f];
-                    }
-                    updates._adminUpdatedAt = new Date().toISOString();
-                    await oppRef.update(updates);
-                    console.log(`[SAVE-EVENT] Firestore opportunities/${event.id} updated`);
-                }
-            } catch (fsErr: any) {
-                console.error('[SAVE-EVENT] Firestore update failed:', fsErr.message);
-                // Don't fail the request — GAS write already succeeded
-            }
+            const data = JSON.parse(text);
+            res.json(data);
+        } catch {
+            res.json({ success: true });
         }
-
-        if (action === 'deleteEvent' && id) {
-            try {
-                const oppRef = db.collection('opportunities').doc(id);
-                const oppDoc = await oppRef.get();
-                if (oppDoc.exists) {
-                    await oppRef.delete();
-                    console.log(`[SAVE-EVENT] Firestore opportunities/${id} deleted`);
-                }
-            } catch (fsErr: any) {
-                console.error('[SAVE-EVENT] Firestore delete failed:', fsErr.message);
-            }
-        }
-
-        res.json(gasResult);
     } catch (error: any) {
         console.error('[SAVE-EVENT PROXY] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
