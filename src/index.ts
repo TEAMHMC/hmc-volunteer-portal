@@ -5104,7 +5104,21 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
         // 3. GAS events are the Admin-panel source of truth for Event Finder display.
         //    Firestore events only appear if no GAS counterpart exists.
         //    This ensures Admin-panel edits (saveTheDate, flyerUrl, description, etc.) always win.
-        const upcomingGasEvents = gasEvents
+
+        // Deduplicate GAS events by title+date (case-insensitive) — keep the last row (most recently saved).
+        // The sheet can have two rows for the same event if it was synced from Eventbrite AND edited via Admin panel.
+        const gasDeduped: any[] = [];
+        const gasSeenKeys = new Set<string>();
+        for (let i = gasEvents.length - 1; i >= 0; i--) {
+            const ge = gasEvents[i];
+            const key = `${(ge.title || '').trim().toLowerCase()}|${ge.date}`;
+            if (!gasSeenKeys.has(key)) {
+                gasSeenKeys.add(key);
+                gasDeduped.unshift(ge);
+            }
+        }
+
+        const upcomingGasEvents = gasDeduped
             .filter((ge: any) => ge.date >= today)
             .map((ge: any) => ({
                 id: ge.id,
