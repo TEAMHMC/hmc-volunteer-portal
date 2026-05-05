@@ -1129,6 +1129,21 @@ const EmailTemplates = {
     text: `Hi ${data.volunteerName}, ${data.referredName} joined via your referral! +${data.referralBonus} XP.`
   }),
 
+  board_invitation: (data: EmailTemplateData) => ({
+    subject: `An Invitation to Serve — Health Matters Clinic Board of Directors`,
+    html: `${emailHeader('An Invitation to Serve')}
+      <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 800; color: #0f0f0f;">You're Invited to Join Our Board</h2>
+      <p>Dear ${data.volunteerName},</p>
+      <p>On behalf of Health Matters Clinic, we would like to personally invite you to serve as a <strong>${data.role || 'Board Member'}</strong>.</p>
+      <p>HMC is a community-centered health organization dedicated to breaking down barriers to care in underserved communities across Los Angeles. Our board provides strategic oversight and ensures our mission serves those who need it most.</p>
+      <p>The commitment is designed to be manageable — four quarterly meetings per year, with materials delivered seven days in advance. All governance documents are completed digitally through our portal.</p>
+      ${data.customMessage ? `<p style="background:#f5f3ef;border-left:3px solid #233dff;padding:12px 16px;border-radius:4px;font-style:italic;">${data.customMessage}</p>` : ''}
+      ${actionButton('Apply to the Board', `${EMAIL_CONFIG.WEBSITE_URL}/join?role=Board+Member${data.referralCode ? '&ref=' + data.referralCode : ''}`)}
+      <p style="font-size:13px;color:#888;margin-top:24px;">Questions? Reply to this email or contact us at executive@healthmatters.clinic</p>
+    ${emailFooter()}`,
+    text: `Dear ${data.volunteerName}, you are invited to serve as a ${data.role || 'Board Member'} at Health Matters Clinic. Apply here: ${EMAIL_CONFIG.WEBSITE_URL}/join?role=Board+Member`
+  }),
+
   // Event Registration Confirmation
   event_registration_confirmation: (data: EmailTemplateData) => {
     const isTraining = ['training', 'workshop'].includes((data.eventType || '').toLowerCase());
@@ -17670,6 +17685,28 @@ app.get('/api/admin/stats/clients', verifyToken, requireAdmin, async (_req: Requ
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch client stats' });
     }
+});
+
+// POST /api/board/send-invitation — Send a board invitation email (admin only)
+app.post('/api/board/send-invitation', verifyToken, async (req: Request, res: Response) => {
+  const callerProfile = (req as any).user?.profile;
+  if (!callerProfile?.isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+  const { recipientEmail, recipientName, role, customMessage } = req.body;
+  if (!recipientEmail || !recipientName) return res.status(400).json({ error: 'recipientEmail and recipientName required' });
+
+  try {
+    await EmailService.send('board_invitation', {
+      volunteerName: recipientName,
+      role: role || 'Board Member',
+      customMessage: customMessage || '',
+      referralCode: '',
+    });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[BOARD INVITE] Failed to send invitation:', e);
+    res.status(500).json({ error: 'Failed to send invitation email' });
+  }
 });
 
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---

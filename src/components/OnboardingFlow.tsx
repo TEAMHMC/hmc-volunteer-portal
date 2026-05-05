@@ -21,6 +21,7 @@ interface OnboardingFlowProps {
   recaptchaSiteKey?: string;
   preAuthUser?: { id: string; email: string; name: string };
   referralCode?: string;
+  pinnedRole?: string;
 }
 
 type StepId = 'account' | 'personal' | 'background' | 'availability' | 'role' | 'details' | 'compliance' | 'orientation';
@@ -116,7 +117,7 @@ const ReCAPTCHA = ({ onVerify, sitekey }: { onVerify: (token: string | null) => 
 
 const STORAGE_KEY = 'hmc_onboarding_progress';
 
-const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey, preAuthUser, referralCode }) => {
+const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSuccess, googleClientId, recaptchaSiteKey, preAuthUser, referralCode, pinnedRole }) => {
   // Load saved progress from localStorage
   const loadSavedProgress = () => {
     // Pre-authenticated users (Google OAuth returning) skip account step
@@ -207,6 +208,13 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   };
 
   const handleDataChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
+
+  // Pre-select role when a pinned role is provided via ?role= URL param
+  useEffect(() => {
+    if (pinnedRole) {
+      handleDataChange('selectedRole', pinnedRole);
+    }
+  }, [pinnedRole]);
 
   // Handle return to landing — progress is auto-saved, just confirm they want to leave
   const handleBackToLanding = () => {
@@ -1267,10 +1275,14 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
       if (result?.recommendations && result.recommendations.length > 0) {
         setAiRecommendations(result.recommendations);
         setExtractedSkills(result.extractedSkills || []);
-        // Auto-select the top recommendation
-        onChange('selectedRole', result.recommendations[0].roleName);
-        // Persist AI recommendations for admin review
-        onChange('aiRoleMatches', result.recommendations.map((r: any) => ({ role: r.roleName, match: r.matchPercentage, reasoning: r.reasoning })));
+        // Auto-select the top recommendation (skip if a role was pinned via ?role= param)
+        if (!pinnedRole) onChange('selectedRole', result.recommendations[0].roleName);
+        // Persist AI recommendations for admin review; sort pinned role to top when present
+        const recs = result.recommendations.map((r: any) => ({ role: r.roleName, match: r.matchPercentage, reasoning: r.reasoning }));
+        if (pinnedRole) {
+          recs.sort((a: any, b: any) => (b.role === pinnedRole ? 1 : 0) - (a.role === pinnedRole ? 1 : 0));
+        }
+        onChange('aiRoleMatches', recs);
       } else {
         // AI returned empty recommendations - show message and let user select manually
         const errorMsg = result?.error || 'Unable to analyze resume. Please select a role manually.';

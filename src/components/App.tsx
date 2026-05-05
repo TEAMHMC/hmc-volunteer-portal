@@ -41,6 +41,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     return params.get('ref') || null;
   });
 
+  const [pinnedRole] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('role');
+  });
+
   // Deep link params from email buttons (?tab=missions&checkin=SHIFTID)
   const [deepLinkTab] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -255,7 +260,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     </div>
   );
 
-  if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} referralCode={referralCode || undefined} />;
+  if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} referralCode={referralCode || undefined} pinnedRole={pinnedRole || undefined} />;
 
   if (view === 'clientPortal') return <ClientPortal onBackToLanding={handleReturnToLanding} />;
 
