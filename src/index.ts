@@ -17260,7 +17260,7 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
         system: systemPrompt,
         messages: msgs,
         tools,
-      });
+      }, { signal: AbortSignal.timeout(18000) });
 
       // Tool execution loop — handle search_hmc_events and search_resources
       let loopCount = 0;
@@ -17291,7 +17291,7 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
           system: systemPrompt,
           messages: msgs,
           tools,
-        });
+        }, { signal: AbortSignal.timeout(15000) });
       }
 
       const reply = response.content
