@@ -17198,7 +17198,7 @@ async function logSunnyBacklog(query: string, reason: string, lang: string): Pro
 
 app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Response) => {
   try {
-    const { message, history, lang } = req.body;
+    const { message, history, lang, pageUrl, pageTitle, pageContext } = req.body;
     if (!message) return res.status(400).json({ error: 'message is required' });
 
     // Crisis detection runs on EVERY message — log + alert regardless of model used
@@ -17219,7 +17219,10 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     const dTransform = Math.ceil((new Date('2026-05-27').getTime() - todayLA.getTime()) / msPerDay);
     const label = (d: number, name: string, date: string) => d > 0 ? `${name} is in ${d} day${d === 1 ? '' : 's'} (${date})` : d === 0 ? `${name} is TODAY (${date})` : `${name} already happened (${date})`;
     const dynamicContext = `\n\nCURRENT DATE: ${dateStr}. ${label(dMove,'MOVE','May 9')}. ${label(dHeal,'HEAL','May 20')}. ${label(dTransform,'TRANSFORM','May 27')}. Use this for time-aware language ("this Saturday", "in 8 days", "coming up next week") instead of just stating dates.`;
-    const systemPrompt = SUNNY_SYSTEM_PROMPT + dynamicContext + (lang === 'es' ? '\n\nRespond in Spanish.' : '');
+    const pageContextBlock = pageUrl
+      ? `\n\nUSER'S CURRENT PAGE: ${pageUrl}${pageTitle ? ` ("${pageTitle}")` : ''}. Use this to tailor your response — if they are on a specific tool or page, lead with what's most relevant to that context.${pageContext ? `\n\nPAGE CONTEXT: ${JSON.stringify(pageContext)}. If suicidal_ideation is true, prioritize crisis resources (988, Didi Hirsch) immediately. If the user just completed a wellness screening, reference their results naturally.` : ''}`
+      : '';
+    const systemPrompt = SUNNY_SYSTEM_PROMPT + dynamicContext + pageContextBlock + (lang === 'es' ? '\n\nRespond in Spanish.' : '');
 
     // ── Claude Sonnet path (primary) ───────────────────────────────────────
     if (anthropicForSunny) {
