@@ -16660,18 +16660,22 @@ YOUR ROLE — DETECT THE USER TYPE AND ADAPT:
 CRITICAL CAMPAIGN — TAKE ACTION LA (May 2026):
 THIS IS YOUR #1 PRIORITY RIGHT NOW. HMC was selected as a contractor by LACDMH/CalMHSA for Mental Health Awareness Month. Three free events this May:
 
-- MOVE: May 9, 8:00 AM, 123 W Manchester Blvd, Inglewood (Curtis Tucker Center) — Wellness 5K Walk/Run
-  RSVP: healthmatters.clinic/resources/eventfinder?event=event-1772063101013&rsvp=true
+- MOVE — Live Unstoppable Walk/Run: May 9, 8:00–10:00 AM, 123 W Manchester Blvd, Inglewood (Curtis Tucker Center)
+  This is a FREE community walk/run — NOT a 5K race. All paces welcome, walk or run at your own pace.
+  CONFIRMED SPECIAL GUESTS: Issa Rae (actress, writer, Inglewood native) and Spencer Paysinger (former NFL linebacker, Inglewood native, mental health advocate whose story inspired Netflix's All American). Hosted by Dave Helem.
+  RSVP: https://eventfinder.healthmatters.clinic?event=event-1772063101013&rsvp=true
 
-- HEAL: May 20, 5:45 PM, 123 W Manchester Blvd, Inglewood (Curtis Tucker Center) — Wellness Meetup (music, movement, self-care)
-  RSVP: healthmatters.clinic/resources/eventfinder?event=event-1772064063990&rsvp=true
+- HEAL — Unstoppable Wellness Meetup: May 20, 5:45–7:15 PM, 123 W Manchester Blvd, Inglewood (Curtis Tucker Center)
+  Free wellness meetup with health experts, music, movement, and self-care. Community connection in a supportive space.
+  RSVP: https://eventfinder.healthmatters.clinic?event=event-1772064063990&rsvp=true
 
-- TRANSFORM — Unstoppable Experience: May 27, 7:00-8:00 PM, Virtual on Zoom (Meeting ID: 830 5319 5114) — Theme: Transform. A live, guided virtual wellness session designed to help you refocus, reflect, and strengthen your mindset in real time. Interactive conversation, structured reflection, and practical strategies you can apply immediately. Log in ready to engage. Leave grounded and recharged.
+- TRANSFORM — Unstoppable Experience: May 27, 7:00–8:00 PM, Virtual on Zoom (Meeting ID: 830 5319 5114)
+  Free virtual wellness session. Live, guided, interactive. Refocus, reflect, and strengthen your mindset. Log in ready to engage.
   Registration: https://us06web.zoom.us/meeting/register/hEhA6RTuQq-K-SdNnk3YXg
-  RSVP: healthmatters.clinic/resources/eventfinder?event=event-1773943614235&rsvp=true
+  RSVP: https://eventfinder.healthmatters.clinic?event=event-1773943614235&rsvp=true
 
-Landing page: healthmatters.clinic/takeactionla
-Free Unstoppable tee if you register by May 2nd.
+Landing page: https://www.healthmatters.clinic/takeactionla
+T-shirt registration deadline has passed (was May 2).
 
 TAKE ACTION RULES — FOLLOW THESE EVERY CONVERSATION:
 1. EVERY conversation should naturally mention Take Action events within the first 2-3 exchanges — even if they didn't ask about events.
@@ -16855,9 +16859,9 @@ async function getSunnyHMCEvents(): Promise<string> {
     return JSON.stringify(events.slice(0, 10));
   } catch {
     return JSON.stringify([
-      { title: 'MOVE — Wellness Walk/Run', date: 'May 9, 2026', time: '8:00 AM', location: 'Curtis Tucker Center, 123 W Manchester Blvd, Inglewood', rsvp: 'https://healthmatters.clinic/resources/eventfinder?event=event-1772063101013&rsvp=true' },
-      { title: 'HEAL — Wellness Meetup', date: 'May 20, 2026', time: '5:45 PM', location: 'Curtis Tucker Center, 123 W Manchester Blvd, Inglewood', rsvp: 'https://healthmatters.clinic/resources/eventfinder?event=event-1772064063990&rsvp=true' },
-      { title: 'TRANSFORM — Virtual', date: 'May 27, 2026', time: '7:00–8:00 PM', location: 'Zoom', rsvp: 'https://healthmatters.clinic/resources/eventfinder?event=event-1773943614235&rsvp=true' },
+      { title: 'MOVE — Live Unstoppable Walk/Run (feat. Issa Rae & Spencer Paysinger)', date: 'May 9, 2026', time: '8:00–10:00 AM', location: 'Curtis Tucker Center, 123 W Manchester Blvd, Inglewood', rsvp: 'https://eventfinder.healthmatters.clinic?event=event-1772063101013&rsvp=true' },
+      { title: 'HEAL — Unstoppable Wellness Meetup', date: 'May 20, 2026', time: '5:45–7:15 PM', location: 'Curtis Tucker Center, 123 W Manchester Blvd, Inglewood', rsvp: 'https://eventfinder.healthmatters.clinic?event=event-1772064063990&rsvp=true' },
+      { title: 'TRANSFORM — Unstoppable Experience (Virtual)', date: 'May 27, 2026', time: '7:00–8:00 PM', location: 'Zoom', rsvp: 'https://eventfinder.healthmatters.clinic?event=event-1773943614235&rsvp=true' },
     ]);
   }
 }
