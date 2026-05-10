@@ -7,8 +7,12 @@ import { apiService } from "./apiService";
  */
 export const analyticsService = {
   async logEvent(eventName: string, eventData: object = {}): Promise<void> {
+    // Fire to GA4 (non-blocking)
+    const g = (window as any).gtag;
+    if (g) g('event', eventName, eventData);
+
+    // Also log to backend
     try {
-      // We don't need to wait for this to complete, but we want to handle errors.
       await apiService.post('/api/analytics/log', { eventName, eventData });
     } catch (error) {
       console.warn(`Analytics event '${eventName}' failed to log:`, error);
