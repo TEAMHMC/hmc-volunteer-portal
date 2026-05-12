@@ -5869,8 +5869,31 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         // Skip all notification emails for monitor canary pings
         const isCanary = source === 'health-monitor' || eventId === 'monitor-canary';
 
-        // GAS (Google Apps Script) is the primary confirmation email sender for public RSVPs.
-        // Portal does NOT send a duplicate — GAS fires independently via RSVPModal.
+        // Server-side GAS call — writes RSVP to Google Sheet + sends confirmation email.
+        // Browser fetch() gets a 403 from GAS on cross-origin requests (CORS restriction),
+        // so the portal makes this call server-side where there is no such restriction.
+        if (APPS_SCRIPT_EVENTS_URL && !isCanary) {
+            const gasParams = new URLSearchParams({
+                action: 'preregister',
+                eventId,
+                eventTitle: eventTitle || '',
+                eventDate: eventDate || '',
+                eventDateISO: eventDate || '',
+                name,
+                email,
+                phone: phone || '',
+                contact_method: contactPreference || 'email',
+                sms_consent: String(sms_consent === true),
+                needs: Array.isArray(needs) ? needs.join(', ') : (needs || ''),
+                source: source || 'Event Finder',
+                lang: String((req.body as any).lang || 'en'),
+                guests: String(guests || 0),
+            });
+            fetch(`${APPS_SCRIPT_EVENTS_URL}?${gasParams.toString()}`)
+                .then(r => r.json())
+                .then((d: any) => console.log(`[PUBLIC RSVP] GAS sheet write for ${name}: success=${d?.success} duplicate=${d?.duplicate}`))
+                .catch((e: any) => console.error('[PUBLIC RSVP] GAS sheet write failed:', e?.message || e));
+        }
 
         // Notify rsvp@healthmatters.clinic — skip for monitor canary pings
         if (!isCanary) {
