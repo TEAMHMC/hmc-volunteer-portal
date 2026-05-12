@@ -2983,7 +2983,7 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
         const isElevatedUser = userProfile.isAdmin || COORDINATOR_ROLES.includes(userProfile.role);
         const volunteersForUser = isElevatedUser
             ? volunteersWithOnlineStatus
-            : volunteersWithOnlineStatus.map(v => ({
+            : (volunteersWithOnlineStatus as any[]).map(v => ({
                 id: v.id,
                 displayName: v.displayName,
                 preferredName: v.preferredName,
