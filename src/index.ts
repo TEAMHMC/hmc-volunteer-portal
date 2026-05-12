@@ -6019,40 +6019,57 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
 
         console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
 
-        // Write RSVP row directly to Google Sheet (bypasses GAS warden) — fire-and-forget
+        // POST RSVP to GAS (sheet write + confirmation email) — POST with manual redirect keeps body intact, bypasses warden
+        // Same mechanism as email service (sendEmailRaw). Falls back to portal email if GAS fails.
         const isCanaryRsvp = source === 'health-monitor' || eventId === 'monitor-canary';
-        if (!isCanaryRsvp) {
-            const rsvpTimestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }) + ' PST';
+        if (!isCanaryRsvp && APPS_SCRIPT_EVENTS_URL) {
             const needsStr = Array.isArray(needs) ? needs.join(', ') : (needs || '');
-            appendRsvpToSheet({
-                timestamp: rsvpTimestamp,
+            const gasPayload = JSON.stringify({
+                action: 'preregister',
                 eventId,
                 eventTitle: eventTitle || '',
                 eventDate: eventDate || '',
                 name,
                 email: email || '',
                 phone: phone || '',
-                contactMethod: contactPreference || 'email',
-                smsConsent: sms_consent === true,
+                contact_method: contactPreference || 'email',
+                sms_consent: String(sms_consent === true),
                 needs: needsStr,
-                lang: String((req.body as any).lang || 'en'),
                 source: source || 'Event Finder',
+                lang: String((req.body as any).lang || 'en'),
+                guests: String(guests || 0),
                 checkinToken,
-                guests: guests || 0,
-            }).catch(sheetErr => console.error('[RSVP-SHEET] Sheet write failed:', sheetErr?.message || sheetErr));
-
-            // Send confirmation email via portal EmailService (since GAS preregister is blocked by warden)
-            if (email) {
-                const lang = String((req.body as any).lang || 'en');
-                const es = lang === 'es';
-                const checkinUrl = `https://eventfinder.healthmatters.clinic/waiver.html?checkin=${encodeURIComponent(checkinToken)}&event=${encodeURIComponent(eventId)}`;
-                const subject = es ? 'Registro Confirmado | Health Matters Clinic Events' : 'Registration Confirmed | Health Matters Clinic Events';
-                const htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Inter,Arial,sans-serif;margin:0;padding:20px;background:#f5f3ef;"><div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);border:1px solid #e5e5e5;"><div style="background:#233dff;color:white;padding:24px;text-align:center;"><img src="https://healthmatters.clinic/favicon-32x32.png" alt="HMC" style="width:48px;height:48px;border-radius:8px;margin-bottom:12px;"><h1 style="margin:0;font-size:22px;font-weight:700;">Health Matters Clinic</h1><p style="margin:8px 0 0;opacity:0.9;font-size:14px;">${es ? 'Registro Confirmado' : 'Registration Confirmed'}</p></div><div style="padding:32px;"><p style="font-size:18px;color:#1a1a1a;font-weight:600;margin:0 0 8px;">${es ? 'Hola' : 'Hi'} ${name}!</p><p style="color:#666;margin:0 0 24px;font-size:15px;">${es ? 'Tu registro ha sido confirmado para:' : 'Your registration has been confirmed for:'}</p><div style="background:#f0f4ff;padding:20px;border-radius:12px;margin:0 0 28px;border:1.5px solid rgba(35,61,255,0.2);"><h2 style="color:#233dff;margin:0 0 12px 0;font-size:18px;font-weight:700;">${eventTitle || ''}</h2><p style="margin:5px 0;color:#555;font-size:14px;"><strong>${es ? 'Fecha: ' : 'Date: '}</strong>${eventDate || ''}</p></div><div style="text-align:center;margin:0 0 8px;"><a href="${checkinUrl}" style="display:inline-block;background:#233dff;color:#fff;padding:14px 44px;border-radius:30px;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;font-size:15px;letter-spacing:.02em;">${es ? 'Check-in el Día del Evento' : 'Check-in on Event Day'}</a></div><p style="text-align:center;font-size:12px;color:#999;margin:0 0 28px;">${es ? 'Abre a las 7:15 AM el día del evento' : 'Opens at 7:15 AM on event day'}</p></div><div style="background:#f5f3ef;padding:20px;border-top:1px solid #e5e5e5;text-align:center;"><p style="color:#666;font-size:13px;margin:0;">${es ? '¿Preguntas?' : 'Questions?'} <a href="mailto:events@healthmatters.clinic" style="color:#233dff;font-weight:600;">events@healthmatters.clinic</a></p></div></div></body></html>`;
-                // Use sendEmailRaw — manually follows GAS's 302 redirect keeping POST body intact
-                sendEmailRaw(email, subject, htmlBody, `Registration Confirmed for ${eventTitle || ''}\n\nHi ${name},\nUse this link to check in on event day: ${checkinUrl}`)
-                    .then(() => console.log(`[RSVP-EMAIL] Confirmation sent to ${email}`))
-                    .catch(err => console.error('[RSVP-EMAIL] Confirmation email failed:', err?.message || err));
-            }
+            });
+            const gasHeaders = { 'Content-Type': 'application/json' };
+            (async () => {
+                try {
+                    let gasUrl = APPS_SCRIPT_EVENTS_URL;
+                    let gasResp = await fetch(gasUrl, { method: 'POST', headers: gasHeaders, body: gasPayload, redirect: 'manual', signal: AbortSignal.timeout(12000) });
+                    let redirects = 5;
+                    while ([301, 302, 307, 308].includes(gasResp.status) && redirects-- > 0) {
+                        const loc = gasResp.headers.get('location');
+                        if (!loc) break;
+                        gasUrl = loc;
+                        gasResp = await fetch(gasUrl, { method: 'POST', headers: gasHeaders, body: gasPayload, redirect: 'manual', signal: AbortSignal.timeout(12000) });
+                    }
+                    const gasText = await gasResp.text();
+                    const gasData = JSON.parse(gasText);
+                    console.log(`[RSVP-GAS] POST success=${gasData?.success} duplicate=${gasData?.duplicate} for ${name}`);
+                    // GAS handled sheet write + confirmation email — done
+                } catch (gasErr: any) {
+                    console.warn(`[RSVP-GAS] POST failed (${gasErr?.message}) — falling back to portal email`);
+                    // Fallback: send confirmation email directly via portal if GAS failed
+                    if (email) {
+                        const lang = String((req.body as any).lang || 'en');
+                        const es = lang === 'es';
+                        const checkinUrl = `https://eventfinder.healthmatters.clinic/waiver.html?checkin=${encodeURIComponent(checkinToken)}&event=${encodeURIComponent(eventId)}`;
+                        const subject = es ? 'Registro Confirmado | Health Matters Clinic Events' : 'Registration Confirmed | Health Matters Clinic Events';
+                        const htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Inter,Arial,sans-serif;margin:0;padding:20px;background:#f5f3ef;"><div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);border:1px solid #e5e5e5;"><div style="background:#233dff;color:white;padding:24px;text-align:center;"><h1 style="margin:0;font-size:22px;font-weight:700;">Health Matters Clinic</h1><p style="margin:8px 0 0;opacity:0.9;font-size:14px;">${es ? 'Registro Confirmado' : 'Registration Confirmed'}</p></div><div style="padding:32px;"><p style="font-size:18px;color:#1a1a1a;font-weight:600;margin:0 0 8px;">${es ? 'Hola' : 'Hi'} ${name}!</p><p style="color:#666;margin:0 0 24px;font-size:15px;">${es ? 'Tu registro ha sido confirmado para:' : 'Your registration has been confirmed for:'}</p><div style="background:#f0f4ff;padding:20px;border-radius:12px;margin:0 0 28px;border:1.5px solid rgba(35,61,255,0.2);"><h2 style="color:#233dff;margin:0 0 12px 0;font-size:18px;font-weight:700;">${eventTitle || ''}</h2><p style="margin:5px 0;color:#555;font-size:14px;"><strong>${es ? 'Fecha: ' : 'Date: '}</strong>${eventDate || ''}</p></div><div style="text-align:center;margin:0 0 8px;"><a href="${checkinUrl}" style="display:inline-block;background:#233dff;color:#fff;padding:14px 44px;border-radius:30px;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;font-size:15px;letter-spacing:.02em;">${es ? 'Check-in el Día del Evento' : 'Check-in on Event Day'}</a></div><p style="text-align:center;font-size:12px;color:#999;margin:0 0 28px;">${es ? 'Abre a las 7:15 AM el día del evento' : 'Opens at 7:15 AM on event day'}</p></div><div style="background:#f5f3ef;padding:20px;border-top:1px solid #e5e5e5;text-align:center;"><p style="color:#666;font-size:13px;margin:0;">${es ? '¿Preguntas?' : 'Questions?'} <a href="mailto:events@healthmatters.clinic" style="color:#233dff;font-weight:600;">events@healthmatters.clinic</a></p></div></div></body></html>`;
+                        sendEmailRaw(email, subject, htmlBody, `Registration Confirmed for ${eventTitle || ''}\n\nHi ${name},\nCheck-in link: ${checkinUrl}`)
+                            .catch(emailErr => console.error('[RSVP-EMAIL] Fallback confirmation failed:', emailErr?.message));
+                    }
+                }
+            })();
         }
 
         // Notify admins for Take Action LA / Speaker submissions
@@ -6340,90 +6357,77 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
     }
 });
 
-// POST /api/admin/backfill-rsvps-to-sheet - One-time backfill: write Firestore public_rsvps to RSVPs Google Sheet
-// Auth: Bearer JWT (admin) OR ?secret=BACKFILL_SECRET env var
+// POST /api/admin/backfill-rsvps-to-sheet - Backfill missed Firestore RSVPs to Google Sheet via GAS POST
+// GAS handles dedup (same email+event = resend confirmation only) and confirmation emails.
+// Auth: ?secret=hmc-backfill-2026
 app.post('/api/admin/backfill-rsvps-to-sheet', async (req: Request, res: Response) => {
     try {
         const BACKFILL_SECRET = process.env.BACKFILL_SECRET || 'hmc-backfill-2026';
-        const authHeader = req.headers.authorization || '';
         const querySecret = (req.query.secret as string) || '';
+        const authHeader = req.headers.authorization || '';
         if (querySecret !== BACKFILL_SECRET && !authHeader.startsWith('Bearer ')) {
             return res.status(403).json({ error: 'Unauthorized — pass ?secret=hmc-backfill-2026' });
         }
+        if (!APPS_SCRIPT_EVENTS_URL) {
+            return res.status(503).json({ error: 'APPS_SCRIPT_URL not configured' });
+        }
 
-        const token = await getGCPAccessToken();
-        if (!token) return res.status(503).json({ error: 'No GCP service account token — cannot access Sheets API' });
-
-        // Fetch current sheet contents to find already-present checkinTokens (col O = index 14)
-        const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${EVENTS_SPREADSHEET_ID}/values/${encodeURIComponent('RSVPs!A:O')}`;
-        const sheetRes = await fetch(readUrl, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            signal: AbortSignal.timeout(15000),
-        });
-        if (!sheetRes.ok) return res.status(500).json({ error: `Sheet read failed (${sheetRes.status})` });
-        const sheetData = await sheetRes.json() as any;
-        const existingTokens = new Set<string>(
-            ((sheetData.values || []) as string[][]).slice(1).map(row => (row[14] || '').trim()).filter(Boolean)
-        );
-        console.log(`[BACKFILL] ${existingTokens.size} existing tokens in sheet`);
-
-        // Read all Firestore public_rsvps
+        // Read all Firestore public_rsvps (skip canary/monitor)
         const snap = await db.collection('public_rsvps').orderBy('createdAt', 'asc').get();
-        const rows: string[][] = [];
-        let skipped = 0;
+        const rsvps = snap.docs
+            .map(doc => doc.data())
+            .filter(d => d.checkinToken && d.source !== 'health-monitor' && d.eventId !== 'monitor-canary' && d.name && d.email);
 
-        for (const doc of snap.docs) {
-            const d = doc.data();
-            if (!d.checkinToken || existingTokens.has(d.checkinToken)) { skipped++; continue; }
-            // Skip canary/monitor entries
-            if (d.source === 'health-monitor' || d.eventId === 'monitor-canary') { skipped++; continue; }
+        console.log(`[BACKFILL] Processing ${rsvps.length} RSVPs from Firestore`);
 
-            const createdAt = d.createdAt ? new Date(d.createdAt) : new Date();
-            const timestamp = createdAt.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }) + ' PST';
-            const needsStr = Array.isArray(d.needs) ? d.needs.join(', ') : (d.needs || '');
-            const guestsStr = d.guests > 0 ? String(d.guests) : '';
+        let written = 0, duplicate = 0, failed = 0;
+        const gasHeaders = { 'Content-Type': 'application/json' };
 
-            rows.push([
-                timestamp,
-                d.eventId || '',
-                d.eventTitle || '',
-                d.eventDate || '',
-                d.name || '',
-                d.email || '',
-                d.phone || '',
-                d.contactPreference || 'email',
-                d.smsConsentVerified ? 'Yes' : 'No',
-                'No', '',  // isMinor, minorName
-                needsStr,
-                'en',      // lang (not stored separately)
-                d.source || 'Event Finder',
-                d.checkinToken,
-                'pre-registered',
-                d.checkedIn ? (d.checkedInAt || '') : '',
-                '',        // tshirtSize
-                guestsStr,
-                '',        // accessibilityNeeds
-            ]);
+        // Process sequentially to avoid GAS rate limits
+        for (const d of rsvps) {
+            try {
+                const needsStr = Array.isArray(d.needs) ? d.needs.join(', ') : (d.needs || '');
+                const gasPayload = JSON.stringify({
+                    action: 'preregister',
+                    eventId: d.eventId || '',
+                    eventTitle: d.eventTitle || '',
+                    eventDate: d.eventDate || '',
+                    name: d.name || '',
+                    email: d.email || '',
+                    phone: d.phone || '',
+                    contact_method: d.contactPreference || 'email',
+                    sms_consent: String(d.smsConsentVerified === true),
+                    needs: needsStr,
+                    source: d.source || 'Event Finder',
+                    lang: 'en',
+                    guests: String(d.guests || 0),
+                    checkinToken: d.checkinToken,
+                });
+                let gasUrl = APPS_SCRIPT_EVENTS_URL;
+                let gasResp = await fetch(gasUrl, { method: 'POST', headers: gasHeaders, body: gasPayload, redirect: 'manual', signal: AbortSignal.timeout(15000) });
+                let redirects = 5;
+                while ([301, 302, 307, 308].includes(gasResp.status) && redirects-- > 0) {
+                    const loc = gasResp.headers.get('location');
+                    if (!loc) break;
+                    gasUrl = loc;
+                    gasResp = await fetch(gasUrl, { method: 'POST', headers: gasHeaders, body: gasPayload, redirect: 'manual', signal: AbortSignal.timeout(15000) });
+                }
+                const gasText = await gasResp.text();
+                const gasData = JSON.parse(gasText);
+                if (gasData?.success) {
+                    gasData.duplicate ? duplicate++ : written++;
+                } else {
+                    console.warn(`[BACKFILL] GAS rejected ${d.name}: ${gasData?.error}`);
+                    failed++;
+                }
+            } catch (err: any) {
+                console.error(`[BACKFILL] Failed for ${d.name}: ${err.message}`);
+                failed++;
+            }
         }
 
-        if (rows.length === 0) {
-            return res.json({ written: 0, skipped, message: 'Nothing to backfill — all RSVPs already in sheet' });
-        }
-
-        // Append in one batch
-        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${EVENTS_SPREADSHEET_ID}/values/${encodeURIComponent('RSVPs!A:T')}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-        const appendRes = await fetch(appendUrl, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ values: rows }),
-            signal: AbortSignal.timeout(30000),
-        });
-        if (!appendRes.ok) {
-            const err = await appendRes.text();
-            return res.status(500).json({ error: `Sheet append failed (${appendRes.status}): ${err.slice(0, 200)}` });
-        }
-        console.log(`[BACKFILL] Wrote ${rows.length} RSVPs to sheet (${skipped} already present / skipped)`);
-        res.json({ written: rows.length, skipped, message: `Backfilled ${rows.length} RSVPs to sheet` });
+        console.log(`[BACKFILL] Done: ${written} written, ${duplicate} duplicates (confirmation resent), ${failed} failed`);
+        res.json({ total: rsvps.length, written, duplicate, failed, message: `Backfill complete: ${written} new rows added, ${duplicate} already existed (confirmation emails resent)` });
     } catch (error: any) {
         console.error('[BACKFILL] Error:', error.message);
         res.status(500).json({ error: error.message });
@@ -6611,7 +6615,7 @@ app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (re
       const doc = rsvpSnap.docs[0];
       const d = doc.data();
 
-      // Look up the event to get start time for "not yet" gating
+      // Look up the event for time/location — derive timing from opportunities doc, NOT shifts (shifts can be stale)
       let eventStart: Date | null = null;
       let eventEnd: Date | null = null;
       let eventTime = '';
@@ -6621,22 +6625,22 @@ app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (re
           const evDoc = await db.collection('opportunities').doc(d.eventId).get();
           const evData = evDoc.data();
           if (evData?.time) eventTime = evData.time;
-          if (evData?.serviceLocation) eventLocation = evData.serviceLocation;
-          if (evData?.date) {
-            // Parse "YYYY-MM-DD" or full ISO string
-            const parsed = new Date(evData.date + (evData.date.includes('T') ? '' : 'T06:00:00'));
-            if (!isNaN(parsed.getTime())) {
-              eventStart = parsed;
-              eventEnd = new Date(parsed.getTime() + 8 * 60 * 60 * 1000); // assume 8h event window
+          if (evData?.location || evData?.serviceLocation) eventLocation = evData.location || evData.serviceLocation;
+          // Parse eventTime (e.g. "5:45 PM - 7:15 PM") + date (YYYY-MM-DD) for accurate gating
+          const dateStr = evData?.date && /^\d{4}-\d{2}-\d{2}$/.test(evData.date) ? evData.date : '';
+          if (dateStr) {
+            let startHH = '09', startMM = '00';
+            if (eventTime) {
+              const tm = eventTime.split('-')[0].trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+              if (tm) {
+                let h = parseInt(tm[1]);
+                if (tm[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+                if (tm[3].toUpperCase() === 'AM' && h === 12) h = 0;
+                startHH = String(h).padStart(2, '0'); startMM = tm[2];
+              }
             }
-          }
-          // Prefer shift start times if available
-          const shiftsSnap = await db.collection('shifts')
-            .where('opportunityId', '==', d.eventId).limit(1).get();
-          if (!shiftsSnap.empty) {
-            const sd = shiftsSnap.docs[0].data();
-            if (sd.startTime) eventStart = new Date(ensurePacificTime(sd.startTime));
-            if (sd.endTime)   eventEnd   = new Date(ensurePacificTime(sd.endTime));
+            eventStart = new Date(`${dateStr}T${startHH}:${startMM}:00${getPacificOffset()}`);
+            eventEnd = new Date(eventStart.getTime() + 4 * 60 * 60 * 1000); // 4h window
           }
         } catch { /* non-critical */ }
       }
