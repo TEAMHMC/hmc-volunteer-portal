@@ -15711,80 +15711,32 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     results.push({ name: 'RSVP Endpoint', status: 'fail', responseTime: 0, error: `RSVP endpoint unreachable: ${e.message}` });
   }
 
-  // ── Events API: ping Apps Script then verify JSON body
-  // Apps Script redirects via 302 (script.google.com → script.googleusercontent.com).
-  // Server-side fetches can get HTML on the redirect if content-type sniffing is too strict,
-  // so we parse the body as JSON regardless of content-type and validate the shape instead.
+  // ── Events API: check portal's own /api/public/events endpoint (reads directly from Google Sheets)
   const eventsAvailable = await (async () => {
-    if (!APPS_SCRIPT_EVENTS_URL) {
-      results.push({ name: 'Events API', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
+    try {
+      const start = Date.now();
+      const res = await fetch('https://volunteer.healthmatters.clinic/api/public/events', {
+        signal: AbortSignal.timeout(15000),
+        headers: { 'Accept': 'application/json' },
+      });
+      const responseTime = Date.now() - start;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as any[];
+      if (Array.isArray(data)) {
+        const today = new Date().toISOString().split('T')[0];
+        const upcoming = data.filter((e: any) => e.date >= today);
+        results.push({ name: 'Events API', status: 'pass', responseTime });
+        results.push({ name: `Events Data (${data.length} total, ${upcoming.length} upcoming)`, status: upcoming.length > 0 ? 'pass' : 'warn' as any, responseTime: 0 });
+        return true;
+      }
+      throw new Error(`Unexpected response shape: ${JSON.stringify(data).substring(0, 120)}`);
+    } catch (e: any) {
+      results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
       return false;
     }
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const start = Date.now();
-        const res = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, {
-          signal: AbortSignal.timeout(30000),
-          redirect: 'follow',
-          headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'HMC-Monitor/1.0' },
-        });
-        const responseTime = Date.now() - start;
-        const body = await res.text();
-        let data: any;
-        try { data = JSON.parse(body); } catch {
-          throw new Error(`Apps Script returned non-JSON (status ${res.status}): ${body.substring(0, 120)}`);
-        }
-        if (data.success && Array.isArray(data.events)) {
-          const today = new Date().toISOString().split('T')[0];
-          const upcoming = data.events.filter((e: any) => e.date >= today);
-          results.push({ name: 'Events API', status: 'pass', responseTime });
-          results.push({ name: `Events Data (${data.events.length} total, ${upcoming.length} upcoming)`, status: upcoming.length > 0 ? 'pass' : 'warn' as any, responseTime: 0 });
-          return true;
-        }
-        throw new Error(`Apps Script responded but data invalid: ${JSON.stringify(data).substring(0, 120)}`);
-      } catch (e: any) {
-        if (attempt === 2) {
-          results.push({ name: 'Events API', status: 'fail', responseTime: 0, error: e.message });
-          return false;
-        }
-        await new Promise(r => setTimeout(r, 5000));
-      }
-    }
-    return false;
   })();
 
-  // ── RSVP endpoint: check GAS side (existing) + portal side (new)
-  if (!APPS_SCRIPT_EVENTS_URL) {
-    results.push({ name: 'RSVP Submit (GAS)', status: 'warn', responseTime: 0, error: 'APPS_SCRIPT_URL env var not set — skipping check' });
-  } else if (eventsAvailable) {
-    results.push({ name: 'RSVP Submit (GAS)', status: 'pass', responseTime: 0 });
-  } else {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const start = Date.now();
-        const rsvpRes = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=ping`, {
-          signal: AbortSignal.timeout(30000),
-          redirect: 'follow',
-          headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'HMC-Monitor/1.0' },
-        });
-        const responseTime = Date.now() - start;
-        const body = await rsvpRes.text();
-        let data: any;
-        try { data = JSON.parse(body); } catch {
-          throw new Error(`Apps Script non-JSON (status ${rsvpRes.status}): ${body.substring(0, 120)}`);
-        }
-        const rsvpOk = data.ok === true || (data.success && Array.isArray(data.events));
-        results.push({ name: 'RSVP Submit (GAS)', status: rsvpOk ? 'pass' : 'fail', responseTime, ...(rsvpOk ? {} : { error: 'Apps Script ping returned unexpected response' }) });
-        break;
-      } catch (e: any) {
-        if (attempt === 2) {
-          results.push({ name: 'RSVP Submit (GAS)', status: 'fail', responseTime: 0, error: `RSVP endpoint down: ${e.message}` });
-        } else {
-          await new Promise(r => setTimeout(r, 3000));
-        }
-      }
-    }
-  }
+  // GAS RSVP check removed — RSVPs now write directly via Sheets API, not GAS preregister
 
   // ── Portal RSVP endpoint — the one that writes to Firestore (this broke for 1.5hrs undetected)
   try {
