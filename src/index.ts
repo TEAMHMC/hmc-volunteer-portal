@@ -6347,6 +6347,92 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
     }
 });
 
+// POST /api/admin/backfill-rsvps-to-sheet - One-time backfill: write Firestore public_rsvps to RSVPs Google Sheet
+// Reads all RSVPs from Firestore, dedupes against existing sheet rows by checkinToken, appends missing ones.
+app.post('/api/admin/backfill-rsvps-to-sheet', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const callerProfile = (req as any).user?.profile;
+        if (!callerProfile?.isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+        const token = await getGCPAccessToken();
+        if (!token) return res.status(503).json({ error: 'No GCP service account token — cannot access Sheets API' });
+
+        // Fetch current sheet contents to find already-present checkinTokens (col O = index 14)
+        const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${EVENTS_SPREADSHEET_ID}/values/${encodeURIComponent('RSVPs!A:O')}`;
+        const sheetRes = await fetch(readUrl, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            signal: AbortSignal.timeout(15000),
+        });
+        if (!sheetRes.ok) return res.status(500).json({ error: `Sheet read failed (${sheetRes.status})` });
+        const sheetData = await sheetRes.json() as any;
+        const existingTokens = new Set<string>(
+            ((sheetData.values || []) as string[][]).slice(1).map(row => (row[14] || '').trim()).filter(Boolean)
+        );
+        console.log(`[BACKFILL] ${existingTokens.size} existing tokens in sheet`);
+
+        // Read all Firestore public_rsvps
+        const snap = await db.collection('public_rsvps').orderBy('createdAt', 'asc').get();
+        const rows: string[][] = [];
+        let skipped = 0;
+
+        for (const doc of snap.docs) {
+            const d = doc.data();
+            if (!d.checkinToken || existingTokens.has(d.checkinToken)) { skipped++; continue; }
+            // Skip canary/monitor entries
+            if (d.source === 'health-monitor' || d.eventId === 'monitor-canary') { skipped++; continue; }
+
+            const createdAt = d.createdAt ? new Date(d.createdAt) : new Date();
+            const timestamp = createdAt.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }) + ' PST';
+            const needsStr = Array.isArray(d.needs) ? d.needs.join(', ') : (d.needs || '');
+            const guestsStr = d.guests > 0 ? String(d.guests) : '';
+
+            rows.push([
+                timestamp,
+                d.eventId || '',
+                d.eventTitle || '',
+                d.eventDate || '',
+                d.name || '',
+                d.email || '',
+                d.phone || '',
+                d.contactPreference || 'email',
+                d.smsConsentVerified ? 'Yes' : 'No',
+                'No', '',  // isMinor, minorName
+                needsStr,
+                'en',      // lang (not stored separately)
+                d.source || 'Event Finder',
+                d.checkinToken,
+                'pre-registered',
+                d.checkedIn ? (d.checkedInAt || '') : '',
+                '',        // tshirtSize
+                guestsStr,
+                '',        // accessibilityNeeds
+            ]);
+        }
+
+        if (rows.length === 0) {
+            return res.json({ written: 0, skipped, message: 'Nothing to backfill — all RSVPs already in sheet' });
+        }
+
+        // Append in one batch
+        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${EVENTS_SPREADSHEET_ID}/values/${encodeURIComponent('RSVPs!A:T')}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+        const appendRes = await fetch(appendUrl, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: rows }),
+            signal: AbortSignal.timeout(30000),
+        });
+        if (!appendRes.ok) {
+            const err = await appendRes.text();
+            return res.status(500).json({ error: `Sheet append failed (${appendRes.status}): ${err.slice(0, 200)}` });
+        }
+        console.log(`[BACKFILL] Wrote ${rows.length} RSVPs to sheet (${skipped} already present / skipped)`);
+        res.json({ written: rows.length, skipped, message: `Backfilled ${rows.length} RSVPs to sheet` });
+    } catch (error: any) {
+        console.error('[BACKFILL] Error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET /api/admin/volunteers-missing-phone - Diagnostic: list volunteers without phone numbers
 app.get('/api/admin/volunteers-missing-phone', verifyToken, async (req: Request, res: Response) => {
     try {
