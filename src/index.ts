@@ -2974,9 +2974,28 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             }
             return {
                 ...data,
+                id: d.id,
                 isOnline: data.lastActiveAt ? data.lastActiveAt >= fiveMinutesAgo : false
             };
         });
+
+        // Role-based volunteer list: coordinators/admins get full data; regular volunteers get stripped-down safe subset
+        const isElevatedUser = userProfile.isAdmin || COORDINATOR_ROLES.includes(userProfile.role);
+        const volunteersForUser = isElevatedUser
+            ? volunteersWithOnlineStatus
+            : volunteersWithOnlineStatus.map(v => ({
+                id: v.id,
+                displayName: v.displayName,
+                preferredName: v.preferredName,
+                legalFirstName: v.legalFirstName,
+                legalLastName: v.legalLastName,
+                role: v.role,
+                avatarUrl: v.avatarUrl,
+                isOnline: v.isOnline,
+                status: v.status,
+                completedTrainingIds: v.completedTrainingIds,
+                completedHIPAATraining: v.completedHIPAATraining,
+            }));
 
         // Fetch gamification profile
         let gamification = null;
@@ -3037,13 +3056,23 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
             db.collection('volunteers').doc(userId).update({ completedHIPAATraining: true }).catch(() => {});
         }
 
+        // Role-based support ticket filtering: admins/coordinators see all; regular volunteers see only their own tickets
+        const allTickets = ticketsSnap.docs.map(d => ({...d.data(), id: d.id }));
+        const supportTicketsForUser = isElevatedUser
+            ? allTickets
+            : allTickets.filter((ticket: any) =>
+                ticket.userId === userId ||
+                ticket.submittedBy === userId ||
+                ticket.assignedTo === userId
+            );
+
         res.json({
             user: userProfile,
             gamification,
-            volunteers: volunteersWithOnlineStatus,
+            volunteers: volunteersForUser,
             opportunities: opportunitiesSnap.docs.map(d => ({...d.data(), id: d.id })),
             shifts: shiftsSnap.docs.map(d => ({...d.data(), id: d.id })),
-            supportTickets: ticketsSnap.docs.map(d => ({...d.data(), id: d.id })),
+            supportTickets: supportTicketsForUser,
             announcements: announcementsSnap.docs.map(d => ({...d.data(), id: d.id })),
             messages,
         });
@@ -12504,7 +12533,7 @@ app.post('/api/admin/workflows/test-debrief', async (req: Request, res: Response
 app.post('/api/cron/run-sms-check', async (req: Request, res: Response) => {
   const cronSecret = process.env.CRON_SECRET;
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret && providedSecret !== cronSecret) {
+  if (!cronSecret || providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid cron secret' });
   }
   try {
@@ -15288,7 +15317,7 @@ app.post('/api/cron/run-workflows', async (req: Request, res: Response) => {
   // Verify this is from Cloud Scheduler or has the correct secret
   const cronSecret = process.env.CRON_SECRET;
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret && providedSecret !== cronSecret) {
+  if (!cronSecret || providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid cron secret' });
   }
 
@@ -15696,7 +15725,7 @@ const WELLNESS_MESSAGES = [
 app.post('/api/cron/broadcast', async (req: Request, res: Response) => {
   const cronSecret = process.env.CRON_SECRET;
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret && providedSecret !== cronSecret) {
+  if (!cronSecret || providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid cron secret' });
   }
 
@@ -15774,7 +15803,7 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
   // Auth: cron secret or admin
   const cronSecret = process.env.CRON_SECRET;
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret && providedSecret !== cronSecret) {
+  if (!cronSecret || providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid cron secret' });
   }
 
@@ -16243,7 +16272,7 @@ app.post('/api/admin/webflow/publish', verifyToken, requireAdmin, async (_req: R
 app.post('/api/cron/sync-events-to-webflow', async (req: Request, res: Response) => {
   const cronSecret = process.env.CRON_SECRET;
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret && providedSecret !== cronSecret) {
+  if (!cronSecret || providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid cron secret' });
   }
 
