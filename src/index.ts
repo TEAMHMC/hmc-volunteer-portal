@@ -15570,10 +15570,30 @@ const fixInglewoodCoordinates = async () => {
   }
 };
 
+// One-time fix: remove duplicate Wellness Meetup entry (old Firestore ID vs canonical Eventbrite ID)
+const deduplicateWellnessMeetup = async () => {
+  const oldId = 'eQsqJsCHKCBJyo1r26Lf';
+  const newId = 'event-1772064063990';
+  try {
+    const oldDoc = await db.collection('opportunities').doc(oldId).get();
+    if (!oldDoc.exists) return;
+    // Migrate any RSVPs referencing the old ID
+    const rsvps = await db.collection('public_rsvps').where('eventId', '==', oldId).get();
+    const batch = db.batch();
+    rsvps.docs.forEach(d => batch.update(d.ref, { eventId: newId }));
+    batch.delete(db.collection('opportunities').doc(oldId));
+    await batch.commit();
+    console.log(`[DEDUP] Removed duplicate event ${oldId}, migrated ${rsvps.size} RSVPs to ${newId}`);
+  } catch (err) {
+    console.error('[DEDUP] Wellness Meetup dedup failed:', err);
+  }
+};
+
 // Call bootstrap and seed during startup
 bootstrapAdmin();
 seedHmcContentIndex();
 fixInglewoodCoordinates();
+deduplicateWellnessMeetup();
 
 const server = app.listen(PORT, () => {
     console.log(`[SERVER] Server listening on port ${PORT}`);
