@@ -5065,34 +5065,142 @@ app.get('/api/clients/event/:eventId', verifyToken, async (req: Request, res: Re
 
 // --- PUBLIC EVENT ENDPOINTS (for Event-Finder-Tool integration) ---
 
-// Server-side GAS events cache — avoids Event Finder hitting GAS directly (GAS has cold-start latency)
+// Spreadsheet ID for the Events Google Sheet (same sheet GAS reads from)
+const EVENTS_SPREADSHEET_ID = process.env.EVENTS_SPREADSHEET_ID || '1L57FfGbos21rzGu4ciuKipcumJchqe2ZzDPUyp-oRmM';
+
+// Server-side sheet events cache
 let _gasEventsCache: { events: any[]; fetchedAt: number } | null = null;
 const GAS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Parse a raw sheet row (from Sheets API or CSV) into an event object
+function parseSheetRow(row: Record<string, string>): any {
+    const parseBool = (v: any) => v === 'TRUE' || v === true || v === 'true';
+    return {
+        id: String(row.id || '').trim(),
+        title: String(row.title || '').trim(),
+        date: String(row.date || '').trim(),
+        dateDisplay: String(row.dateDisplay || row.date || '').trim(),
+        time: String(row.time || '').trim() || 'TBD',
+        location: String(row.location || '').trim() || 'TBD',
+        city: String(row.city || '').trim() || 'Los Angeles',
+        address: String(row.address || '').trim() || '',
+        program: String(row.program || '').trim() || 'Community Health',
+        lat: parseFloat(row.lat) || 0,
+        lng: parseFloat(row.lng) || 0,
+        description: String(row.description || '').trim() || '',
+        saveTheDate: parseBool(row.saveTheDate),
+        flyerUrl: String(row.flyerUrl || '').trim() || undefined,
+        websiteUrl: String(row.websiteUrl || '').trim() || undefined,
+        isPromoted: parseBool(row.isPromoted),
+        isSponsored: parseBool(row.isSponsored),
+        rsvpCount: 0,
+        sessions: (() => {
+            const s = String(row.sessions || '').trim();
+            if (s.startsWith('[')) { try { return JSON.parse(s); } catch { return []; } }
+            return [];
+        })(),
+    };
+}
+
+// Get Cloud Run service account access token from metadata server
+async function getGCPAccessToken(): Promise<string | null> {
+    try {
+        const res = await fetch(
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+            { headers: { 'Metadata-Flavor': 'Google' }, signal: AbortSignal.timeout(3000) }
+        );
+        if (!res.ok) return null;
+        const data = await res.json() as any;
+        return data.access_token || null;
+    } catch {
+        return null;
+    }
+}
+
+// Fetch events directly from Google Sheets — bypasses GAS warden entirely.
+// Tries three methods in order: Sheets API v4 (service account), public CSV export, GAS web app fallback.
 const fetchGASEventsCached = async (): Promise<any[]> => {
     const now = Date.now();
     if (_gasEventsCache && (now - _gasEventsCache.fetchedAt) < GAS_CACHE_TTL_MS) {
         return _gasEventsCache.events;
     }
+
+    // Method 1: Sheets API v4 with Cloud Run service account token
+    // Requires the spreadsheet to be shared with the Cloud Run service account (Viewer)
     try {
-        const controller = new AbortController();
-        const tid = setTimeout(() => controller.abort(), 20000);
-        const response = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, {
-            signal: controller.signal,
-            redirect: 'follow'
-        });
-        clearTimeout(tid);
-        if (response.ok) {
-            const data = await response.json() as any;
-            if (data.success && Array.isArray(data.events) && data.events.length > 0) {
-                _gasEventsCache = { events: data.events, fetchedAt: now };
-                console.log(`[PUBLIC EVENTS] GAS cache refreshed: ${data.events.length} events`);
-                return data.events;
+        const token = await getGCPAccessToken();
+        if (token) {
+            const range = 'Events!A1:S';
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${EVENTS_SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                signal: AbortSignal.timeout(8000),
+            });
+            if (res.ok) {
+                const data = await res.json() as any;
+                const values = data.values as string[][];
+                if (values && values.length > 1) {
+                    const headers = values[0].map((h: string) => h.trim());
+                    const events = values.slice(1).map((row: string[]) => {
+                        const obj: Record<string, string> = {};
+                        headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+                        return parseSheetRow(obj);
+                    }).filter((e: any) => e.id && e.date);
+                    if (events.length > 0) {
+                        _gasEventsCache = { events, fetchedAt: now };
+                        console.log(`[SHEETS] API method: ${events.length} events`);
+                        return events;
+                    }
+                }
             }
         }
-    } catch (err: any) {
-        console.warn('[PUBLIC EVENTS] GAS fetch failed (serving stale cache):', err.name === 'AbortError' ? 'timed out' : err.message);
+    } catch (e: any) {
+        console.warn('[SHEETS] API method failed:', e.message);
     }
+
+    // Method 2: Public CSV export — works when spreadsheet sharing is set to "Anyone with link can view"
+    try {
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${EVENTS_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Events`;
+        const res = await fetch(csvUrl, { signal: AbortSignal.timeout(8000) });
+        if (res.ok) {
+            const csv = await res.text();
+            if (csv && !csv.startsWith('<')) {
+                const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
+                const events = parsed.data.map((row: any) => parseSheetRow(row)).filter((e: any) => e.id && e.date);
+                if (events.length > 0) {
+                    _gasEventsCache = { events, fetchedAt: now };
+                    console.log(`[SHEETS] CSV method: ${events.length} events`);
+                    return events;
+                }
+            }
+        }
+    } catch (e: any) {
+        console.warn('[SHEETS] CSV method failed:', e.message);
+    }
+
+    // Method 3: GAS web app (last resort — blocked by warden for server-side calls)
+    if (APPS_SCRIPT_EVENTS_URL) {
+        try {
+            const controller = new AbortController();
+            const tid = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=getEvents`, {
+                signal: controller.signal, redirect: 'follow'
+            });
+            clearTimeout(tid);
+            if (response.ok) {
+                const data = await response.json() as any;
+                if (data.success && Array.isArray(data.events) && data.events.length > 0) {
+                    _gasEventsCache = { events: data.events, fetchedAt: now };
+                    console.log(`[SHEETS] GAS fallback: ${data.events.length} events`);
+                    return data.events;
+                }
+            }
+        } catch (err: any) {
+            console.warn('[SHEETS] GAS fallback failed:', err.message);
+        }
+    }
+
+    console.warn('[SHEETS] All methods failed — serving stale cache or empty');
     return _gasEventsCache?.events || [];
 };
 
