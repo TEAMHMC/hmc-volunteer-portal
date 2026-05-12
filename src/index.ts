@@ -6183,6 +6183,22 @@ app.post('/api/public/bust-events-cache', rateLimit(20, 60000), (_req: Request, 
     res.json({ success: true });
 });
 
+// GET /api/public/admin-auth — proxy passcode verification to Apps Script (avoids browser CORS on GAS GET)
+app.get('/api/public/admin-auth', rateLimit(20, 60000), async (req: Request, res: Response) => {
+    try {
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+        if (!APPS_SCRIPT_URL) return res.status(503).json({ success: false, error: 'Not configured' });
+        const { hash, action } = req.query as { hash?: string; action?: string };
+        if (!hash || !action) return res.status(400).json({ success: false, error: 'hash and action required' });
+        const url = `${APPS_SCRIPT_URL}?action=${encodeURIComponent(action)}&hash=${encodeURIComponent(hash)}`;
+        const response = await fetch(url, { redirect: 'follow' });
+        const text = await response.text();
+        try { res.json(JSON.parse(text)); } catch { res.json({ success: false }); }
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
