@@ -5112,9 +5112,10 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
             ]).catch(() => []),
         ]);
 
+        // Only include admin-saved Event Finder events — not volunteer opportunity records
         const firestoreEvents = snapshot.docs
+            .filter((doc: any) => doc.data().source === 'event-finder')
             .filter((doc: any) => doc.data().date >= today)
-            .filter((doc: any) => includeAll || doc.data().isPublicFacing !== false)
             .map((doc: any) => {
                 const data = doc.data();
                 return {
@@ -5215,18 +5216,41 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
             fireByTitleDate.set(key, fe);
         }
 
-        // Enrich GAS events with Firestore rsvpCount where a match is found
+        // Enrich GAS events with admin-saved Firestore data (flyerUrl, time, isSponsored, etc.) + rsvpCount
         const enrichedGasEvents = upcomingGasEvents.map((ge: any) => {
             const key = `${(ge.title || '').trim().toLowerCase()}|${ge.date}`;
             const fe = fireById.get(ge.id) || fireByTitleDate.get(key);
-            return fe ? { ...ge, rsvpCount: fe.rsvpCount || 0 } : ge;
+            if (!fe) return ge;
+            // Admin-saved fields override GAS sheet values; rsvpCount always comes from Firestore
+            return {
+                ...ge,
+                rsvpCount: fe.rsvpCount || 0,
+                ...(fe.flyerUrl && { flyerUrl: fe.flyerUrl }),
+                ...(fe.time && fe.time !== 'TBD' && { time: fe.time }),
+                ...(fe.isSponsored !== undefined && { isSponsored: fe.isSponsored }),
+                ...(fe.isPromoted !== undefined && { isPromoted: fe.isPromoted }),
+                ...(fe.saveTheDate !== undefined && { saveTheDate: fe.saveTheDate }),
+                ...(fe.description && { description: fe.description }),
+                ...(fe.sessions && { sessions: fe.sessions }),
+            };
         });
 
-        // Event Finder only shows GAS sheet events — Firestore volunteer opportunities are not public calendar events
-        const merged = enrichedGasEvents
+        // Include admin-saved Firestore events that have no GAS counterpart (e.g. when GAS is down)
+        const gasIds = new Set(upcomingGasEvents.map((ge: any) => ge.id).filter(Boolean));
+        const gasKeys = new Set(upcomingGasEvents.map((ge: any) => `${(ge.title || '').trim().toLowerCase()}|${ge.date}`));
+        const adminOnlyEvents = firestoreEvents
+            .filter((fe: any) => {
+                if (fe._eventFinderId && gasIds.has(fe._eventFinderId)) return false;
+                if (fe.id && gasIds.has(fe.id)) return false;
+                const key = `${(fe.title || '').trim().toLowerCase()}|${fe.date}`;
+                return !gasKeys.has(key);
+            })
+            .map(({ _eventFinderId, ...rest }: any) => rest);
+
+        const merged = [...enrichedGasEvents, ...adminOnlyEvents]
             .sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
 
-        console.log(`[PUBLIC EVENTS] ${merged.length} GAS events returned`);
+        console.log(`[PUBLIC EVENTS] ${merged.length} total (${enrichedGasEvents.length} GAS + ${adminOnlyEvents.length} admin-only)`);
         res.json(merged);
     } catch (error: any) {
         console.error('[PUBLIC EVENTS] Failed to fetch events:', error);
