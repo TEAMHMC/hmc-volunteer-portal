@@ -5103,15 +5103,19 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
         const today = getPacificDate();
         const includeAll = req.query.all === 'true';
 
-        // 1. Firestore events (portal-native, always fast)
-        const snapshot = await db.collection('opportunities')
-            .where('approvalStatus', '==', 'approved')
-            .get();
+        // 1 + 2. Fetch Firestore and GAS in parallel — cap GAS at 6s so response stays fast
+        const [snapshot, gasEvents] = await Promise.all([
+            db.collection('opportunities').where('approvalStatus', '==', 'approved').get(),
+            Promise.race([
+                fetchGASEventsCached(),
+                new Promise<any[]>(resolve => setTimeout(() => resolve([]), 6000))
+            ]).catch(() => []),
+        ]);
 
         const firestoreEvents = snapshot.docs
-            .filter(doc => doc.data().date >= today)
-            .filter(doc => includeAll || doc.data().isPublicFacing !== false)
-            .map(doc => {
+            .filter((doc: any) => doc.data().date >= today)
+            .filter((doc: any) => includeAll || doc.data().isPublicFacing !== false)
+            .map((doc: any) => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -5137,13 +5141,9 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
                     description_es: data.description_es || undefined,
                     rsvpCount: data.rsvpCount || 0,
                     sessions: data.sessions || undefined,
-                    _eventFinderId: data.eventFinderId || null, // used for dedup
+                    _eventFinderId: data.eventFinderId || null,
                 };
             });
-
-        // 2. GAS events (sheet-managed, served from server-side cache — no browser cold-start penalty)
-        // Run in parallel with Firestore fetch for speed; don't await failure
-        const gasEvents = await fetchGASEventsCached().catch(() => []);
 
         // 3. GAS events are the Admin-panel source of truth for Event Finder display.
         //    Firestore events only appear if no GAS counterpart exists.
@@ -5222,24 +5222,11 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
             return fe ? { ...ge, rsvpCount: fe.rsvpCount || 0 } : ge;
         });
 
-        // Firestore-only events: not matched by any GAS event
-        const gasIds = new Set(upcomingGasEvents.map((ge: any) => ge.id).filter(Boolean));
-        const gasKeys = new Set(upcomingGasEvents.map((ge: any) => `${(ge.title || '').trim().toLowerCase()}|${ge.date}`));
-        const firestoreOnlyEvents = firestoreEvents
-            .filter((fe: any) => {
-                if (fe._eventFinderId && gasIds.has(fe._eventFinderId)) return false;
-                if (fe.id && gasIds.has(fe.id)) return false;
-                const key = `${(fe.title || '').trim().toLowerCase()}|${fe.date}`;
-                return !gasKeys.has(key);
-            })
-            .map(({ _eventFinderId, ...rest }: any) => rest);
+        // Event Finder only shows GAS sheet events — Firestore volunteer opportunities are not public calendar events
+        const merged = enrichedGasEvents
+            .sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
 
-        const merged = [
-            ...enrichedGasEvents,
-            ...firestoreOnlyEvents,
-        ].sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
-
-        console.log(`[PUBLIC EVENTS] ${merged.length} total (${enrichedGasEvents.length} GAS + ${firestoreOnlyEvents.length} Firestore-only)`);
+        console.log(`[PUBLIC EVENTS] ${merged.length} GAS events returned`);
         res.json(merged);
     } catch (error: any) {
         console.error('[PUBLIC EVENTS] Failed to fetch events:', error);
