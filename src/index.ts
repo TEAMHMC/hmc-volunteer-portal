@@ -6210,46 +6210,83 @@ app.get('/api/public/admin-auth', rateLimit(20, 60000), async (req: Request, res
     }
 });
 
-// POST /api/public/save-event - Proxy save to Apps Script (browser POST to Apps Script is broken due to 302 redirect)
+// POST /api/public/save-event - Save event to Firestore (primary) + forward to GAS sheet (secondary sync)
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
-        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-        if (!APPS_SCRIPT_URL) {
-            return res.status(400).json({ success: false, error: 'Event Finder sync is not configured. Add APPS_SCRIPT_URL to your environment variables in Cloud Run.' });
-        }
         const { action, event, id } = req.body;
         if (!action) {
             return res.status(400).json({ success: false, error: 'action is required' });
         }
-        // POST to Apps Script — follow 302 redirect manually since fetch drops body on redirect
-        const bodyStr = JSON.stringify(req.body);
-        let response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: bodyStr,
-            redirect: 'manual',
-        });
-        // Follow redirect with body intact
-        if (response.status === 302 || response.status === 301) {
-            const redirectUrl = response.headers.get('location');
-            if (redirectUrl) {
-                response = await fetch(redirectUrl, {
+
+        // --- PRIMARY: Write to Firestore so admin saves persist even when GAS is down ---
+        if (action === 'saveEvent' && event && event.id) {
+            const docId = event.id;
+            const firestoreData: any = {
+                source: 'event-finder',
+                approvalStatus: 'approved',
+                eventFinderId: event.id,
+                title: event.title || '',
+                date: event.date || '',
+                dateDisplay: event.dateDisplay || '',
+                time: event.time || '',
+                location: event.location || event.city || '',
+                city: event.city || '',
+                address: event.address || '',
+                program: event.program || '',
+                description: event.description || '',
+                saveTheDate: event.saveTheDate || false,
+                flyerUrl: event.flyerUrl || '',
+                websiteUrl: event.websiteUrl || '',
+                isPromoted: event.isPromoted || false,
+                isSponsored: event.isSponsored || false,
+                lat: event.lat || 0,
+                lng: event.lng || 0,
+                sessions: event.sessions || [],
+                updatedAt: new Date().toISOString(),
+            };
+            if (event.lat && event.lng) {
+                firestoreData.locationCoordinates = { lat: event.lat, lng: event.lng };
+            }
+            await db.collection('opportunities').doc(docId).set(firestoreData, { merge: true });
+            console.log(`[SAVE-EVENT] Saved ${docId} to Firestore`);
+        } else if (action === 'deleteEvent' && id) {
+            await db.collection('opportunities').doc(id).delete();
+            console.log(`[SAVE-EVENT] Deleted ${id} from Firestore`);
+        }
+
+        // --- SECONDARY: Forward to GAS sheet for spreadsheet sync (best-effort) ---
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+        if (APPS_SCRIPT_URL) {
+            try {
+                const bodyStr = JSON.stringify(req.body);
+                let gasResponse = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: bodyStr,
-                    redirect: 'follow',
+                    redirect: 'manual',
                 });
+                if (gasResponse.status === 302 || gasResponse.status === 301) {
+                    const redirectUrl = gasResponse.headers.get('location');
+                    if (redirectUrl) {
+                        gasResponse = await fetch(redirectUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: bodyStr,
+                            redirect: 'follow',
+                        });
+                    }
+                }
+                const gasText = await gasResponse.text();
+                try { JSON.parse(gasText); } catch { /* GAS returned non-JSON, ignore */ }
+                console.log(`[SAVE-EVENT] GAS sync complete for ${action}`);
+            } catch (gasErr: any) {
+                console.warn(`[SAVE-EVENT] GAS sync failed (Firestore save succeeded): ${gasErr.message}`);
             }
         }
-        const text = await response.text();
-        try {
-            const data = JSON.parse(text);
-            res.json(data);
-        } catch {
-            res.json({ success: true });
-        }
+
+        res.json({ success: true });
     } catch (error: any) {
-        console.error('[SAVE-EVENT PROXY] Error:', error.message);
+        console.error('[SAVE-EVENT] Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
