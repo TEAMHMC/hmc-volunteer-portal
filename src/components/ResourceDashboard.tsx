@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
-import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2, Sparkles, ExternalLink, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Database, Plus, X, Loader2, Save, CheckCircle, UploadCloud, Search, ChevronDown, ChevronUp, Phone, Mail, MapPin, Globe, Clock, Trash2, Sparkles, ExternalLink, AlertCircle, ShieldAlert, Inbox, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { toastService } from '../services/toastService';
 
 const EMERGENCY_RESOURCES = [
@@ -32,6 +32,12 @@ const ResourceDashboard: React.FC = () => {
     const [aiResults, setAiResults] = useState<any[] | null>(null);
     const [aiError, setAiError] = useState('');
     const aiAutoTriggeredFor = useRef<string>('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+    const [rejectingId, setRejectingId] = useState<string | null>(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     const fetchResources = async () => {
         try {
@@ -45,9 +51,54 @@ const ResourceDashboard: React.FC = () => {
         }
     };
 
+    const fetchSuggestions = async () => {
+        setSuggestionsLoading(true);
+        try {
+            const data = await apiService.get('/api/admin/resource-suggestions?status=pending');
+            setSuggestions(data);
+        } catch (err) {
+            toastService.error('Failed to load suggestions.');
+        } finally {
+            setSuggestionsLoading(false);
+        }
+    };
+
+    const handleApproveSuggestion = async (id: string) => {
+        setProcessingId(id);
+        try {
+            await apiService.post(`/api/admin/resource-suggestions/${id}/approve`, {});
+            setSuggestions(prev => prev.filter(s => s.id !== id));
+            fetchResources();
+            toastService.success('Resource approved and added to directory.');
+        } catch (err) {
+            toastService.error('Failed to approve suggestion.');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleRejectSuggestion = async (id: string) => {
+        setProcessingId(id);
+        try {
+            await apiService.post(`/api/admin/resource-suggestions/${id}/reject`, { reason: rejectReason });
+            setSuggestions(prev => prev.filter(s => s.id !== id));
+            setRejectingId(null);
+            setRejectReason('');
+            toastService.success('Suggestion rejected.');
+        } catch (err) {
+            toastService.error('Failed to reject suggestion.');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     useEffect(() => {
         fetchResources();
     }, []);
+
+    useEffect(() => {
+        if (showSuggestions) fetchSuggestions();
+    }, [showSuggestions]);
 
     const handleClearAll = async () => {
         const confirmed = window.confirm(`Are you sure you want to permanently delete ALL ${resources.length} resources? This cannot be undone.`);
@@ -145,6 +196,15 @@ const ResourceDashboard: React.FC = () => {
                             {isClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Clear All
                         </button>
                     )}
+                    <button
+                        onClick={() => setShowSuggestions(v => !v)}
+                        className="relative flex items-center gap-2 px-4 py-3 bg-white border border-amber-300 text-amber-700 rounded-full text-[10px] font-bold uppercase tracking-wide hover:bg-amber-50 transition-colors min-h-[44px]"
+                    >
+                        <Inbox size={14} /> Suggestions
+                        {suggestions.length > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">{suggestions.length}</span>
+                        )}
+                    </button>
                     <button onClick={() => setShowBulkUploadModal(true)} className="flex items-center gap-2 px-4 py-3 bg-white border border-black text-zinc-700 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-elevation-1 hover:bg-zinc-50 transition-colors min-h-[44px]">
                         <UploadCloud size={14} /> Upload CSV
                     </button>
@@ -153,6 +213,72 @@ const ResourceDashboard: React.FC = () => {
                     </button>
                 </div>
             </header>
+
+            {/* Suggestions Review Panel */}
+            {showSuggestions && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 md:p-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-black uppercase tracking-wider text-amber-800 flex items-center gap-2"><Inbox size={16} /> Pending Submissions ({suggestions.length})</h2>
+                        <button onClick={() => setShowSuggestions(false)} className="text-amber-600 hover:text-amber-800"><X size={16} /></button>
+                    </div>
+                    {suggestionsLoading && <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-amber-500" /></div>}
+                    {!suggestionsLoading && suggestions.length === 0 && (
+                        <p className="text-center text-amber-700 text-sm py-6">No pending submissions.</p>
+                    )}
+                    {suggestions.map(s => (
+                        <div key={s.id} className="bg-white border border-amber-100 rounded-xl p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-zinc-900 text-sm">{s['Resource Name']}</p>
+                                    <p className="text-[10px] text-zinc-400 uppercase tracking-wide mt-0.5">{s['Service Category']} {s['Geographic Area'] ? `· ${s['Geographic Area']}` : ''}</p>
+                                    <p className="text-xs text-zinc-600 mt-2 leading-relaxed">{s['Key Offerings']}</p>
+                                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-zinc-500">
+                                        {s['Contact Phone'] && <span className="flex items-center gap-1"><Phone size={11} />{s['Contact Phone']}</span>}
+                                        {s['Contact Email'] && <span className="flex items-center gap-1"><Mail size={11} />{s['Contact Email']}</span>}
+                                        {s['Website'] && <a href={s['Website']} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand hover:underline"><Globe size={11} />{s['Website']}</a>}
+                                        {s['Eligibility Criteria'] && <span className="text-zinc-400">Eligibility: {s['Eligibility Criteria']}</span>}
+                                    </div>
+                                    <p className="text-[10px] text-zinc-400 mt-2">Submitted by {s.submitterName} ({s.submitterEmail}) on {new Date(s.submittedAt).toLocaleDateString()}</p>
+                                </div>
+                                <div className="flex gap-2 shrink-0">
+                                    <button
+                                        onClick={() => handleApproveSuggestion(s.id)}
+                                        disabled={processingId === s.id}
+                                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-full text-[10px] font-bold uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-50 transition-colors min-h-[36px]"
+                                    >
+                                        {processingId === s.id ? <Loader2 size={12} className="animate-spin" /> : <ThumbsUp size={12} />} Approve
+                                    </button>
+                                    <button
+                                        onClick={() => setRejectingId(s.id)}
+                                        disabled={processingId === s.id}
+                                        className="flex items-center gap-1.5 px-4 py-2 bg-white border border-rose-200 text-rose-600 rounded-full text-[10px] font-bold uppercase tracking-wide hover:bg-rose-50 disabled:opacity-50 transition-colors min-h-[36px]"
+                                    >
+                                        <ThumbsDown size={12} /> Reject
+                                    </button>
+                                </div>
+                            </div>
+                            {rejectingId === s.id && (
+                                <div className="border-t border-amber-100 pt-3 space-y-2">
+                                    <p className="text-xs font-bold text-zinc-600">Reason for rejection (optional — sent to submitter):</p>
+                                    <textarea
+                                        value={rejectReason}
+                                        onChange={e => setRejectReason(e.target.value)}
+                                        rows={2}
+                                        placeholder="e.g., We could not verify this organization at this time."
+                                        className="w-full text-xs border border-zinc-200 rounded-xl px-3 py-2 outline-none focus:border-amber-400 resize-none"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleRejectSuggestion(s.id)} disabled={processingId === s.id} className="px-4 py-2 bg-rose-600 text-white rounded-full text-[10px] font-bold uppercase tracking-wide hover:bg-rose-700 disabled:opacity-50 min-h-[36px]">
+                                            {processingId === s.id ? <Loader2 size={12} className="animate-spin" /> : 'Confirm Reject'}
+                                        </button>
+                                        <button onClick={() => { setRejectingId(null); setRejectReason(''); }} className="px-4 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-full text-[10px] font-bold uppercase tracking-wide hover:bg-zinc-50 min-h-[36px]">Cancel</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Search & Filter Bar */}
             <div className="flex flex-col sm:flex-row gap-3">

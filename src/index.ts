@@ -18098,6 +18098,177 @@ app.post('/api/board/send-invitation', verifyToken, async (req: Request, res: Re
   }
 });
 
+// --- RESOURCE DIRECTORY SUGGESTIONS ---
+
+// POST /api/public/suggest-resource — Public submission; stores as pending for admin review
+app.post('/api/public/suggest-resource', rateLimit(5, 3600000), async (req: Request, res: Response) => {
+    try {
+        const {
+            // Honeypot — bots fill this, humans don't
+            website_url,
+            // Required
+            resourceName, description, category, submitterName, submitterEmail,
+            // Resource contact (may differ from submitter)
+            contactName, contactEmail, contactPhone, websiteUrl,
+            // Optional details
+            address, hours, eligibility, languages, targetPopulation,
+            communityFocus, geographicArea, intakeNotes, resourceType,
+        } = req.body;
+
+        if (website_url) return res.json({ success: true }); // honeypot triggered — silent reject
+
+        if (!resourceName?.trim()) return res.status(400).json({ error: 'Resource name is required' });
+        if (!description?.trim()) return res.status(400).json({ error: 'Description is required' });
+        if (!category?.trim()) return res.status(400).json({ error: 'Category is required' });
+        if (!submitterName?.trim()) return res.status(400).json({ error: 'Your name is required' });
+        if (!submitterEmail?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitterEmail)) {
+            return res.status(400).json({ error: 'A valid email address is required' });
+        }
+
+        const suggestion = {
+            status: 'pending',
+            submittedAt: new Date().toISOString(),
+            submitterName: submitterName.trim(),
+            submitterEmail: submitterEmail.trim().toLowerCase(),
+            'Resource Name': resourceName.trim(),
+            'Key Offerings': description.trim(),
+            'Service Category': category.trim(),
+            'Contact Person Name': (contactName || submitterName).trim(),
+            'Contact Email': (contactEmail || submitterEmail).trim().toLowerCase(),
+            'Contact Phone': (contactPhone || '').trim(),
+            'Website': (websiteUrl || '').trim(),
+            'Address': (address || '').trim(),
+            'Operation Hours': (hours || '').trim(),
+            'Eligibility Criteria': (eligibility || '').trim(),
+            'Languages Spoken': (languages || '').trim(),
+            'Target Population': (targetPopulation || '').trim(),
+            'Community Focus': (communityFocus || '').trim(),
+            'Geographic Area': (geographicArea || '').trim(),
+            'Intake / Referral Process Notes': (intakeNotes || '').trim(),
+            'Resource Type': (resourceType || 'Community Partner').trim(),
+        };
+
+        const ref = await db.collection('resource_suggestions').add(suggestion);
+
+        try {
+            await sendEmailRaw(
+                'partner@healthmatters.clinic',
+                `New Resource Suggestion: ${resourceName}`,
+                `<p>A new resource has been submitted for review.</p>
+                 <p><strong>Organization:</strong> ${resourceName}</p>
+                 <p><strong>Category:</strong> ${category}</p>
+                 <p><strong>Description:</strong> ${description}</p>
+                 <p><strong>Submitted by:</strong> ${submitterName} (${submitterEmail})</p>
+                 <p><strong>Website:</strong> ${websiteUrl || 'Not provided'}</p>
+                 <p>Review and approve or reject at: <a href="https://volunteer.healthmatters.clinic">volunteer.healthmatters.clinic</a> under Resource Directory.</p>`,
+                `New resource suggestion: ${resourceName} submitted by ${submitterName}. Review at volunteer.healthmatters.clinic.`
+            );
+        } catch (emailErr) {
+            console.error('[SUGGEST-RESOURCE] Notification email failed:', emailErr);
+        }
+
+        res.json({ success: true, id: ref.id });
+    } catch (error: any) {
+        console.error('[SUGGEST-RESOURCE] Failed:', error);
+        res.status(500).json({ error: 'Failed to submit suggestion' });
+    }
+});
+
+// GET /api/admin/resource-suggestions — List all suggestions (admin only)
+app.get('/api/admin/resource-suggestions', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { status = 'pending' } = req.query;
+        const snap = await db.collection('resource_suggestions')
+            .where('status', '==', status)
+            .orderBy('submittedAt', 'desc')
+            .get();
+        const suggestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json(suggestions);
+    } catch (error: any) {
+        console.error('[SUGGEST-RESOURCE] Fetch failed:', error);
+        res.status(500).json({ error: 'Failed to fetch suggestions' });
+    }
+});
+
+// POST /api/admin/resource-suggestions/:id/approve — Approve and auto-add to directory
+app.post('/api/admin/resource-suggestions/:id/approve', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const doc = await db.collection('resource_suggestions').doc(id).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Suggestion not found' });
+
+        const suggestion = doc.data() as any;
+        const { submitterName, submitterEmail, status, submittedAt, ...resourceData } = suggestion;
+
+        resourceData['Date Added'] = new Date().toISOString();
+        resourceData['Source'] = 'Community Submission';
+
+        const resourceRef = await db.collection('referral_resources').add(resourceData);
+        await db.collection('resource_suggestions').doc(id).update({
+            status: 'approved',
+            approvedAt: new Date().toISOString(),
+            resourceId: resourceRef.id,
+        });
+
+        try {
+            await sendEmailRaw(
+                submitterEmail,
+                'Your resource submission has been approved',
+                `<p>Hi ${submitterName},</p>
+                 <p>Great news! <strong>${resourceData['Resource Name']}</strong> has been approved and added to the Health Matters Clinic Resource Directory.</p>
+                 <p>Thank you for helping us connect the community to resources.</p>
+                 <p>Health Matters Clinic</p>`,
+                `Hi ${submitterName}, your submission for ${resourceData['Resource Name']} has been approved and added to the Resource Directory.`
+            );
+        } catch (emailErr) {
+            console.error('[SUGGEST-RESOURCE] Approval email failed:', emailErr);
+        }
+
+        res.json({ success: true, resourceId: resourceRef.id });
+    } catch (error: any) {
+        console.error('[SUGGEST-RESOURCE] Approve failed:', error);
+        res.status(500).json({ error: 'Failed to approve suggestion' });
+    }
+});
+
+// POST /api/admin/resource-suggestions/:id/reject — Reject a suggestion
+app.post('/api/admin/resource-suggestions/:id/reject', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const doc = await db.collection('resource_suggestions').doc(id).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Suggestion not found' });
+
+        const { submitterName, submitterEmail, 'Resource Name': resourceName } = doc.data() as any;
+
+        await db.collection('resource_suggestions').doc(id).update({
+            status: 'rejected',
+            rejectedAt: new Date().toISOString(),
+            rejectionReason: reason || '',
+        });
+
+        try {
+            await sendEmailRaw(
+                submitterEmail,
+                'Update on your resource submission',
+                `<p>Hi ${submitterName},</p>
+                 <p>Thank you for submitting <strong>${resourceName}</strong> to the Health Matters Clinic Resource Directory.</p>
+                 <p>After review, we were unable to add this listing at this time.${reason ? ` ${reason}` : ''}</p>
+                 <p>If you have questions, please reach out to us at <a href="mailto:partner@healthmatters.clinic">partner@healthmatters.clinic</a>.</p>
+                 <p>Health Matters Clinic</p>`,
+                `Hi ${submitterName}, we reviewed your submission for ${resourceName} and were unable to add it at this time. Contact partner@healthmatters.clinic with any questions.`
+            );
+        } catch (emailErr) {
+            console.error('[SUGGEST-RESOURCE] Rejection email failed:', emailErr);
+        }
+
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[SUGGEST-RESOURCE] Reject failed:', error);
+        res.status(500).json({ error: 'Failed to reject suggestion' });
+    }
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {
