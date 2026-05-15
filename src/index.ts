@@ -5990,7 +5990,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
             needs: needs || '',
             source: source || 'event-finder-tool',
             contactPreference: contactPreference || 'email',
-            smsConsentVerified: sms_consent === true,
+            smsConsentVerified: sms_consent === true || sms_consent === 'true',
             checkinToken,
             checkedIn: false,
             checkedInAt: null,
@@ -6054,7 +6054,10 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
                         gasResp = await fetch(gasUrl, { method: 'POST', headers: gasHeaders, body: gasPayload, redirect: 'manual', signal: AbortSignal.timeout(12000) });
                     }
                     const gasText = await gasResp.text();
-                    const gasData = JSON.parse(gasText);
+                    let gasData: any = null;
+                    try { gasData = JSON.parse(gasText); } catch {
+                        throw new Error(`GAS returned non-JSON (status ${gasResp.status}): ${gasText.substring(0, 200)}`);
+                    }
                     console.log(`[RSVP-GAS] POST success=${gasData?.success} duplicate=${gasData?.duplicate} for ${name}`);
                     // GAS handled sheet write + confirmation email — done
                 } catch (gasErr: any) {
@@ -6117,7 +6120,7 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         }
 
         // Send SMS confirmation only when explicit written consent was collected at time of RSVP
-        const smsConsentVerified = sms_consent === true;
+        const smsConsentVerified = sms_consent === true || sms_consent === 'true';
         if (phone && smsConsentVerified) {
             const smsBody = `Hi ${name}! You're confirmed for ${eventTitle || 'an HMC event'}${eventDate ? ` on ${eventDate}` : ''}. We'll send a reminder before the event. See you there! - Health Matters Clinic`;
             sendSMS(null, phone, smsBody).catch(err => console.error(`[PUBLIC RSVP] SMS confirmation failed:`, err));
