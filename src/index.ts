@@ -6020,10 +6020,14 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         console.log(`[PUBLIC RSVP] Created RSVP ${rsvpRef.id} for event ${eventId}`);
 
         // POST RSVP to GAS (sheet write + confirmation email) — POST with manual redirect keeps body intact, bypasses warden
-        // Same mechanism as email service (sendEmailRaw). Falls back to portal email if GAS fails.
+        // GAS is the primary system for sheet writes and confirmation emails.
+        // Event Finder calls GAS directly; portal must not call GAS again for those submissions
+        // or attendees will receive duplicate confirmation emails and the sheet gets double entries.
+        // Portal role for Event Finder RSVPs: Firestore count + volunteer cross-reference only.
+        const isEventFinderSource = !source || source === 'Event Finder' || source === 'event-finder-tool';
         const isCanaryRsvp = source === 'health-monitor' || eventId === 'monitor-canary';
         const isTestRsvp = /load-test|loadtest|warmtest|test\.invalid/i.test(email) || /^__loadtest__/.test(eventId);
-        if (!isCanaryRsvp && !isTestRsvp && APPS_SCRIPT_EVENTS_URL) {
+        if (!isEventFinderSource && !isCanaryRsvp && !isTestRsvp && APPS_SCRIPT_EVENTS_URL) {
             const needsStr = Array.isArray(needs) ? needs.join(', ') : (needs || '');
             const gasPayload = JSON.stringify({
                 action: 'preregister',
