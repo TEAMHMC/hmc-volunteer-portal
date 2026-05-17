@@ -3668,7 +3668,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         const { mode, activity, lang, destinationName, etaMinutes,
                 weatherCondition, temperature, windSpeed, airQualityIndex, airQualityCategory,
                 elevationGain, elevationDelta, speed, timeOfDay, targetThought,
-                sessionMinutes, segmentNumber } = req.body;
+                sessionMinutes, segmentNumber, coachingHistory } = req.body;
         const langText = lang === 'es' ? 'Spanish' : 'English';
         const modeSpecs: Record<string, any> = {
             HYPE: {
@@ -3749,6 +3749,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             SEASON CONTEXT: ${seasonCtx}
             ${targetThought ? `User's focus: "${targetThought}"` : ''}
 
+            ${Array.isArray(coachingHistory) && coachingHistory.length ? `PREVIOUS COACHING THIS SESSION (avoid repeating any phrase, theme, or approach from these — each segment must be completely fresh):\n${coachingHistory.slice(-6).map((h: string, i: number) => `[${i+1}] ${h.slice(0, 200)}`).join('\n')}\n` : ''}
             CRITICAL RULES:
             1. NEVER say your name. No clichés ("let's get started", "you got this", "keep going"). BANNED.
             2. No outdoor references — no roads, paths, destinations, miles, speed. This is an INDOOR session.
@@ -3793,6 +3794,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
             SEASON CONTEXT: ${seasonCtx}
             Context: ${context}${envContext}
 
+            ${Array.isArray(coachingHistory) && coachingHistory.length ? `PREVIOUS COACHING THIS SESSION (every new segment must explore DIFFERENT themes, sentence structures, and approaches — do not reuse any phrase or frame from these):\n${coachingHistory.slice(-6).map((h: string, i: number) => `[${i+1}] ${h.slice(0, 200)}`).join('\n')}\n` : ''}
             CRITICAL RULES — THESE ARE NON-NEGOTIABLE:
             1. NEVER say your name or persona label. Not once.
             2. NO FIXED PHRASES. Zero tolerance for clichés: no "Let's get started", no "Welcome back", no "You've got this", no "Keep going", no "One step at a time". These phrases are banned.
