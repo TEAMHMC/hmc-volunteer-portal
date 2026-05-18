@@ -6026,7 +6026,8 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         // Event Finder calls GAS directly; portal must not call GAS again for those submissions
         // or attendees will receive duplicate confirmation emails and the sheet gets double entries.
         // Portal role for Event Finder RSVPs: Firestore count + volunteer cross-reference only.
-        const isEventFinderSource = !source || source === 'Event Finder' || source === 'event-finder-tool';
+        const isEventFinderSource = !source || source === 'Event Finder' || source === 'event-finder-tool'
+            || /pre-register|event.?finder/i.test(source);
         const isCanaryRsvp = source === 'health-monitor' || eventId === 'monitor-canary';
         const isTestRsvp = /load-test|loadtest|warmtest|test\.invalid/i.test(email) || /^__loadtest__/.test(eventId);
         if (!isEventFinderSource && !isCanaryRsvp && !isTestRsvp && APPS_SCRIPT_EVENTS_URL) {
