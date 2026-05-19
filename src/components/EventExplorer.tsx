@@ -286,12 +286,15 @@ const EventExplorer: React.FC<EventExplorerProps> = ({ user, opportunities, setO
       setToastIsError(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to register for event:', error);
-      setToastMessage('Registration failed. Please try again.');
+      const msg = error?.message && error.message !== 'Request failed'
+        ? error.message
+        : 'Registration failed. Please try again.';
+      setToastMessage(msg);
       setToastIsError(true);
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 4000);
+      setTimeout(() => setShowToast(false), 6000);
     } finally {
       setIsSigningUp(false);
     }

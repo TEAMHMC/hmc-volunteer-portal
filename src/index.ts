@@ -10261,11 +10261,9 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
 
       let oppSnap: FirebaseFirestore.DocumentSnapshot | null = null;
       let oppData: any = null;
-      const oppRef = shiftId ? db.collection('opportunities').doc(eventId) : null;
-      if (oppRef) {
-        oppSnap = await transaction.get(oppRef);
-        oppData = oppSnap.exists ? oppSnap.data() : null;
-      }
+      const oppRef = db.collection('opportunities').doc(eventId);
+      oppSnap = await transaction.get(oppRef);
+      oppData = oppSnap.exists ? oppSnap.data() : null;
 
       // --- Validation phase ---
       // Check for duplicate registration on this shift
@@ -10313,14 +10311,11 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
         });
       }
 
-      if (oppRef && oppData && shiftData) {
-        const roleType = shiftData.roleType || 'Core Volunteer';
-        const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) => {
-          if (q.role === roleType) {
-            return { ...q, filled: (q.filled || 0) + 1 };
-          }
-          return q;
-        });
+      if (oppData) {
+        const roleType = shiftData?.roleType || 'Core Volunteer';
+        const updatedQuotas = (oppData.staffingQuotas || []).map((q: any) =>
+          q.role === roleType ? { ...q, filled: (q.filled || 0) + 1 } : q
+        );
         transaction.update(oppRef, {
           staffingQuotas: updatedQuotas,
           slotsFilled: admin.firestore.FieldValue.increment(1),
