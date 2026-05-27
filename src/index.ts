@@ -18480,6 +18480,32 @@ app.post('/api/board/send-invitation', verifyToken, async (req: Request, res: Re
 
 // --- RESOURCE DIRECTORY SUGGESTIONS ---
 
+// GET /api/public/official-partners — Public list of Active partner agencies for cross-tool badge display
+app.get('/api/public/official-partners', async (_req: Request, res: Response) => {
+    try {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        const snap = await db.collection('partner_agencies')
+            .where('status', '==', 'Active')
+            .get();
+        const partners = snap.docs.map(doc => {
+            const d = doc.data();
+            return {
+                id: doc.id,
+                name: d.name || '',
+                type: d.type || '',
+                website: d.website || '',
+                isOfficialPartner: d.isOfficialPartner ?? true,
+                portalAccess: d.portalAccess ?? false,
+            };
+        });
+        res.json({ success: true, partners });
+    } catch (error: any) {
+        console.error('[OFFICIAL-PARTNERS] Failed:', error);
+        res.status(500).json({ success: false, partners: [] });
+    }
+});
+
 // POST /api/public/suggest-resource — Public submission; stores as pending for admin review
 app.post('/api/public/suggest-resource', rateLimit(5, 3600000), async (req: Request, res: Response) => {
     try {
