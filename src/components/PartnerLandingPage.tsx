@@ -83,8 +83,8 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin }) => {
             {[
               {
                 num: '01',
-                title: 'HMC Designates Your Organization',
-                desc: 'HMC staff identifies your organization as an Official Referral Partner based on the services you provide to clients across Los Angeles County.',
+                title: 'Suggest Your Organization',
+                desc: 'Suggest your organization to the HMC Resource Directory. After submitting, you\'ll be prompted to create a partner account and apply for the partnership types that fit your work.',
               },
               {
                 num: '02',
