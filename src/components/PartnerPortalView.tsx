@@ -800,8 +800,9 @@ const ApplyTab: React.FC = () => {
         primaryColor,
       });
       setSubmitted(true);
-    } catch {
-      setSubmitError('Submission failed. Please try again.');
+    } catch (err: any) {
+      const msg = err?.message || err?.error || 'Submission failed. Please try again.';
+      setSubmitError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -1039,7 +1040,7 @@ const ApplyTab: React.FC = () => {
                 value={serviceAreaNotes}
                 onChange={e => setServiceAreaNotes(e.target.value)}
                 className={inputCls}
-                placeholder="e.g. SPA 1 — South LA, SPA 3 — San Gabriel Valley"
+                placeholder="e.g. SPA 6 — South (Inglewood, Compton), SPA 4 — Metro"
               />
             </div>
           </div>
