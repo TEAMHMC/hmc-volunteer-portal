@@ -7464,7 +7464,7 @@ app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: R
     try {
         if (!req.body.name) return res.status(400).json({ error: 'Partner name required' });
         const partner = {
-            ...pickFields(req.body, ['name', 'contactEmail', 'contactPhone', 'address', 'services', 'notes', 'website', 'type', 'description']),
+            ...pickFields(req.body, ['name', 'contactEmail', 'contactPhone', 'address', 'services', 'notes', 'website', 'type', 'description', 'contactName', 'spa', 'servicesProvided', 'languagesSupported', 'targetPopulations', 'isOfficialPartner', 'referralEmail']),
             createdAt: new Date().toISOString(),
             status: 'Active'
         };
@@ -7477,12 +7477,318 @@ app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: R
 
 app.put('/api/partners/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
-        const { name, contactEmail, contactPhone, address, services, status, notes } = req.body;
-        const updates = { name, contactEmail, contactPhone, address, services, status, notes };
-        await db.collection('partner_agencies').doc(req.params.id).update(updates);
+        const updates = pickFields(req.body, ['name', 'contactEmail', 'contactPhone', 'address', 'services', 'status', 'notes', 'type', 'website', 'contactName', 'spa', 'servicesProvided', 'languagesSupported', 'targetPopulations', 'isOfficialPartner', 'referralEmail', 'portalAccess', 'performanceScore']);
+        await db.collection('partner_agencies').doc(req.params.id).update(updates as any);
         res.json({ id: req.params.id, ...updates });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update partner' });
+    }
+});
+
+// ============================================================
+// PARTNER PORTAL ENDPOINTS
+// ============================================================
+
+// POST /api/partners/:id/invite — Admin sends portal invite to a partner
+app.post('/api/partners/:id/invite', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const partnerRef = db.collection('partner_agencies').doc(req.params.id);
+        const partnerDoc = await partnerRef.get();
+        if (!partnerDoc.exists) return res.status(404).json({ error: 'Partner not found' });
+        const partner = partnerDoc.data()!;
+
+        const inviteToken = crypto.randomBytes(32).toString('hex');
+        const inviteTokenExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+        const contactEmail = partner.contactEmail;
+        if (!contactEmail) return res.status(400).json({ error: 'Partner has no contactEmail set' });
+
+        await partnerRef.update({
+            inviteToken,
+            inviteTokenExpiry,
+            portalUserEmail: contactEmail,
+        });
+
+        const portalUrl = `${process.env.PORTAL_URL || 'https://volunteer.healthmatters.clinic'}?partnerToken=${inviteToken}&partnerId=${req.params.id}`;
+        const partnerName = partner.name || 'Partner Agency';
+        const html = `${emailHeader("You're Invited to the HMC Partner Portal")}
+            <p>Dear ${partner.contactName || 'Partner'},</p>
+            <p>Health Matters Clinic has invited <strong>${partnerName}</strong> to join our Partner Portal, where you can manage client referrals sent to your organization.</p>
+            <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                <p style="margin: 0 0 8px;"><strong>What you can do in the portal:</strong></p>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>View referrals sent to your organization</li>
+                    <li>Accept, update, or complete referral statuses</li>
+                    <li>Manage your organization's profile</li>
+                </ul>
+            </div>
+            <p>This invite link expires in 48 hours.</p>
+            ${actionButton('Set Up Your Portal Account', portalUrl)}
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">If you did not expect this invitation, please contact us at ${EMAIL_CONFIG.SUPPORT_EMAIL}</p>
+        ${emailFooter()}`;
+
+        await sendEmailRaw(contactEmail, "You're Invited to the HMC Partner Portal", html, `HMC has invited ${partnerName} to the Partner Portal. Set up your account: ${portalUrl}`);
+        console.log(`[PARTNER] Invite sent to ${contactEmail} for partner ${req.params.id}`);
+        res.json({ success: true, message: 'Invite sent' });
+    } catch (error) {
+        console.error('[PARTNER] Invite failed:', error);
+        res.status(500).json({ error: 'Failed to send invite' });
+    }
+});
+
+// POST /api/partners/accept-invite — Public: partner accepts invite and creates portal account
+app.post('/api/partners/accept-invite', async (req: Request, res: Response) => {
+    try {
+        const { token, partnerId, email, password, name } = req.body;
+        if (!token || !partnerId || !email || !password || !name) {
+            return res.status(400).json({ error: 'token, partnerId, email, password, and name are required' });
+        }
+
+        const partnerRef = db.collection('partner_agencies').doc(partnerId);
+        const partnerDoc = await partnerRef.get();
+        if (!partnerDoc.exists) return res.status(400).json({ error: 'Invalid partner or invite' });
+        const partner = partnerDoc.data()!;
+
+        if (partner.inviteToken !== token) return res.status(400).json({ error: 'Invalid invite token' });
+        if (!partner.inviteTokenExpiry || new Date() > new Date(partner.inviteTokenExpiry)) {
+            return res.status(400).json({ error: 'Invite token has expired' });
+        }
+
+        // Check if email already exists
+        const emailLower = email.toLowerCase().trim();
+        const existingSnap = await db.collection('volunteers').where('email', '==', emailLower).limit(1).get();
+        if (!existingSnap.empty) {
+            return res.status(409).json({ error: 'An account with this email already exists. Please log in.' });
+        }
+
+        // Create Firebase Auth user
+        let finalUserId: string;
+        try {
+            const userRecord = await auth.createUser({ email: emailLower, password, displayName: name });
+            finalUserId = userRecord.uid;
+        } catch (authError: any) {
+            console.error('[PARTNER] Firebase Auth createUser failed:', authError.message);
+            return res.status(400).json({ error: 'Failed to create account: ' + (authError.message || 'unknown error') });
+        }
+
+        const now = new Date().toISOString();
+        const newUser: Record<string, any> = {
+            id: finalUserId,
+            email: emailLower,
+            name,
+            legalFirstName: name.split(' ')[0] || name,
+            legalLastName: name.split(' ').slice(1).join(' ') || '',
+            volunteerRole: 'Partner Agency',
+            partnerAgencyId: partnerId,
+            isAdmin: false,
+            status: 'Active',
+            authProvider: 'email',
+            identityLabel: 'HMC Champion',
+            role: 'Partner Agency',
+            createdAt: now,
+            updatedAt: now,
+            coreVolunteerStatus: false,
+            hipaaCompliant: false,
+            address: '',
+            city: '',
+            state: '',
+            zipCode: '',
+            phone: '',
+            dob: '',
+            gender: '',
+            hmcAffiliation: [],
+            isEmployed: false,
+            isStudent: false,
+            tshirtSize: '',
+            gainFromExperience: '',
+            howDidYouHear: '',
+            mailingAddressSame: true,
+            emergencyContact: { name: '', phone: '', relationship: '' },
+        };
+
+        await db.collection('volunteers').doc(finalUserId).set(newUser);
+
+        // Update partner_agencies doc
+        await partnerRef.update({
+            portalAccess: true,
+            portalUserId: finalUserId,
+            portalUserEmail: emailLower,
+            inviteToken: null,
+            inviteTokenExpiry: null,
+        });
+
+        console.log(`[PARTNER] Portal account created for partner ${partnerId}: ${emailLower}`);
+        await createSession(finalUserId, res);
+    } catch (error: any) {
+        console.error('[PARTNER] Accept invite failed:', error);
+        res.status(400).json({ error: error.message || 'Failed to accept invite' });
+    }
+});
+
+// GET /api/partner/referrals — Partner views their referrals (privacy-filtered)
+app.get('/api/partner/referrals', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        // Fetch partner doc to get name for fallback name matching
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        const partnerName = partnerDoc.exists ? partnerDoc.data()!.name : null;
+
+        // Query by partnerId field
+        const byIdSnap = await db.collection('referrals')
+            .where('referredToPartnerId', '==', partnerAgencyId)
+            .where('status', '!=', 'draft')
+            .orderBy('status')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const referralsById = byIdSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // Also query by name match if partner name exists
+        let referralsByName: any[] = [];
+        if (partnerName) {
+            const byNameSnap = await db.collection('referrals')
+                .where('referredTo', '==', partnerName)
+                .where('status', '!=', 'draft')
+                .orderBy('status')
+                .orderBy('createdAt', 'desc')
+                .get();
+            referralsByName = byNameSnap.docs
+                .filter(d => !referralsById.find((r: any) => r.id === d.id))
+                .map(d => ({ id: d.id, ...d.data() }));
+        }
+
+        const allReferrals = [...referralsById, ...referralsByName]
+            .sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+        // Privacy filter: strip full name, phone, DOB — return first name + last initial only
+        const filtered = allReferrals.map((r: any) => {
+            const firstName = r.clientData?.firstName || r.clientFirstName || '';
+            const lastName = r.clientData?.lastName || r.clientLastName || '';
+            const lastInitial = lastName ? lastName[0] + '.' : '';
+            return {
+                id: r.id,
+                clientDisplayName: `${firstName} ${lastInitial}`.trim(),
+                status: r.status,
+                serviceCategory: r.clientData?.needs ? Object.entries(r.clientData.needs).filter(([, v]) => v).map(([k]) => k).join(', ') : (r.resourceData?.['Service Category'] || ''),
+                primaryLanguage: r.clientData?.primaryLanguage || '',
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt,
+                submissionMethod: r.submissionMethod,
+                partnerNotes: r.partnerNotes || '',
+                partnerResponseDate: r.partnerResponseDate || null,
+                urgency: r.urgency || 'Standard',
+            };
+        });
+
+        res.json(filtered);
+    } catch (error) {
+        console.error('[PARTNER] Get referrals failed:', error);
+        res.status(500).json({ error: 'Failed to fetch referrals' });
+    }
+});
+
+// PUT /api/partner/referrals/:id/respond — Partner updates referral status
+app.put('/api/partner/referrals/:id/respond', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const { status, notes } = req.body;
+        const validStatuses = ['Accepted', 'In Progress', 'Completed', 'Unable to Serve'];
+        if (!status || !validStatuses.includes(status)) {
+            return res.status(400).json({ error: `status must be one of: ${validStatuses.join(', ')}` });
+        }
+
+        const referralRef = db.collection('referrals').doc(req.params.id);
+        const referralDoc = await referralRef.get();
+        if (!referralDoc.exists) return res.status(404).json({ error: 'Referral not found' });
+        const referral = referralDoc.data()!;
+
+        // Fetch partner name for fallback check
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        const partnerName = partnerDoc.exists ? partnerDoc.data()!.name : null;
+
+        // Verify this referral belongs to the calling partner
+        const ownedById = referral.referredToPartnerId === partnerAgencyId;
+        const ownedByName = partnerName && referral.referredTo === partnerName;
+        if (!ownedById && !ownedByName) {
+            return res.status(403).json({ error: 'This referral does not belong to your organization' });
+        }
+
+        const now = new Date().toISOString();
+        const updates: Record<string, any> = {
+            status,
+            partnerNotes: notes || referral.partnerNotes || '',
+            updatedAt: now,
+        };
+        if (!referral.partnerResponseDate) {
+            updates.partnerResponseDate = now;
+        }
+
+        await referralRef.update(updates);
+
+        // Update partner agency stats
+        const agencyUpdates: Record<string, any> = { lastActivityDate: now };
+        if (status === 'Accepted' && referral.status !== 'Accepted') {
+            agencyUpdates.totalReferrals = admin.firestore.FieldValue.increment(1);
+        }
+        if (status === 'Completed' && referral.status !== 'Completed') {
+            agencyUpdates.successfulOutcomes = admin.firestore.FieldValue.increment(1);
+        }
+        await db.collection('partner_agencies').doc(partnerAgencyId).update(agencyUpdates);
+
+        console.log(`[PARTNER] Referral ${req.params.id} updated to ${status} by partner ${partnerAgencyId}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[PARTNER] Respond to referral failed:', error);
+        res.status(500).json({ error: 'Failed to update referral' });
+    }
+});
+
+// GET /api/partner/profile — Partner views their own agency profile
+app.get('/api/partner/profile', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        if (!partnerDoc.exists) return res.status(404).json({ error: 'Partner agency not found' });
+        res.json({ id: partnerDoc.id, ...partnerDoc.data() });
+    } catch (error) {
+        console.error('[PARTNER] Get profile failed:', error);
+        res.status(500).json({ error: 'Failed to fetch partner profile' });
+    }
+});
+
+// PUT /api/partner/profile — Partner updates their own agency profile (limited fields)
+app.put('/api/partner/profile', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        // Partners may update contact/operational info only — admin fields are locked
+        const allowed = pickFields(req.body, ['name', 'contactName', 'contactEmail', 'contactPhone', 'address', 'website', 'servicesProvided', 'languagesSupported', 'targetPopulations', 'hours']);
+        const updates = { ...allowed, updatedAt: new Date().toISOString() };
+
+        await db.collection('partner_agencies').doc(partnerAgencyId).update(updates as any);
+        const updatedDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        res.json({ id: partnerAgencyId, ...updatedDoc.data() });
+    } catch (error) {
+        console.error('[PARTNER] Update profile failed:', error);
+        res.status(500).json({ error: 'Failed to update partner profile' });
     }
 });
 
@@ -8709,47 +9015,119 @@ app.post('/api/referrals/submit-to-agency', verifyToken, async (req: Request, re
         const referralRef = db.collection('referrals').doc(referralId);
 
         if (method === 'email') {
-            // Send referral to internal review queue first — NOT directly to agency
             const agencyEmail = resourceData?.['Contact Email'] || 'N/A';
             const agencyName = resourceData?.['Resource Name'] || 'Unknown Agency';
             const internalReviewEmail = 'referrals@healthmatters.clinic';
 
+            // Check if referral is linked to an Official Referral Partner
+            const referralDoc = await referralRef.get();
+            const referralData = referralDoc.data() || {};
+            const referredToPartnerId = referralData.referredToPartnerId || req.body.partnerId || null;
+
+            let isOfficialPartner = false;
+            let partnerReferralEmail: string | null = null;
+            let officialPartnerId: string | null = referredToPartnerId;
+
+            if (referredToPartnerId) {
+                const partnerDoc = await db.collection('partner_agencies').doc(referredToPartnerId).get();
+                if (partnerDoc.exists) {
+                    const partnerData = partnerDoc.data()!;
+                    isOfficialPartner = partnerData.isOfficialPartner === true;
+                    partnerReferralEmail = partnerData.referralEmail || null;
+                }
+            }
+
+            // If not found by ID, try matching by agency name in partner_agencies
+            if (!isOfficialPartner && agencyName !== 'Unknown Agency') {
+                const nameMatch = await db.collection('partner_agencies')
+                    .where('name', '==', agencyName)
+                    .limit(1)
+                    .get();
+                if (!nameMatch.empty) {
+                    const pd = nameMatch.docs[0].data();
+                    isOfficialPartner = pd.isOfficialPartner === true;
+                    partnerReferralEmail = pd.referralEmail || null;
+                    officialPartnerId = nameMatch.docs[0].id;
+                }
+            }
+
             const clientName = `${clientData?.firstName || ''} ${clientData?.lastName || ''}`.trim();
-            const subject = `[REVIEW] Referral to ${agencyName} — ${clientName}`;
-            const html = `${emailHeader('Referral for Review')}
-                <p><strong>⚠️ This referral requires review before being sent to the agency.</strong></p>
-                <div style="background: #fef3c7; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #f59e0b;">
-                    <p style="margin: 0 0 4px; font-weight: bold;">Agency: ${agencyName}</p>
-                    <p style="margin: 0;">Agency Email: ${agencyEmail}</p>
-                    ${resourceData?.['Contact Phone'] ? `<p style="margin: 4px 0 0;">Agency Phone: ${resourceData['Contact Phone']}</p>` : ''}
-                </div>
-                <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
-                    <p style="margin: 0 0 8px;"><strong>Client Name:</strong> ${clientName}</p>
-                    ${clientData?.dob ? `<p style="margin: 0 0 8px;"><strong>Date of Birth:</strong> ${clientData.dob}</p>` : ''}
-                    ${clientData?.phone ? `<p style="margin: 0 0 8px;"><strong>Phone:</strong> ${clientData.phone}</p>` : ''}
-                    ${clientData?.email ? `<p style="margin: 0 0 8px;"><strong>Email:</strong> ${clientData.email}</p>` : ''}
-                    ${clientData?.primaryLanguage ? `<p style="margin: 0 0 8px;"><strong>Primary Language:</strong> ${clientData.primaryLanguage}</p>` : ''}
-                    <p style="margin: 0 0 8px;"><strong>Service Needed:</strong> ${resourceData?.['Service Category'] || 'General assistance'}</p>
-                    ${clientData?.needs ? `<p style="margin: 0;"><strong>Identified Needs:</strong> ${Object.entries(clientData.needs).filter(([, v]) => v).map(([k]) => k).join(', ')}</p>` : ''}
-                </div>
-                <p><strong>Referred By:</strong> ${volunteerName || 'HMC Volunteer'}</p>
-                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Please review this referral and forward to the agency when approved.</p>
-            ${emailFooter()}`;
 
-            await sendEmailRaw(internalReviewEmail, subject, html, `Referral for review: ${clientName} → ${agencyName}`);
+            if (isOfficialPartner && partnerReferralEmail) {
+                // OFFICIAL PARTNER: send directly to partner's referralEmail, CC internal
+                const subject = `[HMC Referral] ${clientName} — ${resourceData?.['Service Category'] || 'General Assistance'}`;
+                const html = `${emailHeader('New Client Referral from HMC')}
+                    <p>Health Matters Clinic has referred a client to your organization for services.</p>
+                    <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                        <p style="margin: 0 0 8px;"><strong>Client Name:</strong> ${clientName}</p>
+                        ${clientData?.dob ? `<p style="margin: 0 0 8px;"><strong>Date of Birth:</strong> ${clientData.dob}</p>` : ''}
+                        ${clientData?.phone ? `<p style="margin: 0 0 8px;"><strong>Phone:</strong> ${clientData.phone}</p>` : ''}
+                        ${clientData?.email ? `<p style="margin: 0 0 8px;"><strong>Email:</strong> ${clientData.email}</p>` : ''}
+                        ${clientData?.primaryLanguage ? `<p style="margin: 0 0 8px;"><strong>Primary Language:</strong> ${clientData.primaryLanguage}</p>` : ''}
+                        <p style="margin: 0 0 8px;"><strong>Service Needed:</strong> ${resourceData?.['Service Category'] || 'General assistance'}</p>
+                        ${clientData?.needs ? `<p style="margin: 0;"><strong>Identified Needs:</strong> ${Object.entries(clientData.needs).filter(([, v]) => v).map(([k]) => k).join(', ')}</p>` : ''}
+                    </div>
+                    <p><strong>Referred By:</strong> ${volunteerName || 'HMC Volunteer'}</p>
+                    <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Please update the referral status in the HMC Partner Portal when you have accepted or completed services for this client.</p>
+                ${emailFooter()}`;
 
-            await referralRef.update({
-                status: 'Pending Review',
-                firstContactDate: now,
-                firstContactBy: (req as any).user.uid,
-                submissionMethod: 'email',
-                submittedAt: now,
-                updatedAt: now,
-                agencyEmail,
-            });
+                await sendEmailRaw(partnerReferralEmail, subject, html, `HMC referral: ${clientName} — ${resourceData?.['Service Category'] || 'General assistance'}`);
+                // CC internal
+                await sendEmailRaw(internalReviewEmail, `[CC - Official Partner Referral Sent] ${subject}`, html, `CC: Referral sent directly to official partner ${agencyName} (${partnerReferralEmail})`);
 
-            console.log(`[REFERRAL] Sent to internal review (${internalReviewEmail}) for referral ${referralId} → ${agencyName}`);
-            res.json({ success: true, method: 'email', sentTo: internalReviewEmail, agencyEmail });
+                await referralRef.update({
+                    status: 'Pending',
+                    firstContactDate: now,
+                    firstContactBy: (req as any).user.uid,
+                    submissionMethod: 'email',
+                    submittedAt: now,
+                    updatedAt: now,
+                    agencyEmail,
+                    referredToPartnerId: officialPartnerId,
+                    directReferral: true,
+                });
+
+                console.log(`[REFERRAL] Sent directly to official partner (${partnerReferralEmail}) for referral ${referralId} → ${agencyName}`);
+                res.json({ success: true, method: 'email', sentTo: partnerReferralEmail, agencyEmail, directReferral: true });
+
+            } else {
+                // DEFAULT: send to internal review queue
+                const subject = `[REVIEW] Referral to ${agencyName} — ${clientName}`;
+                const html = `${emailHeader('Referral for Review')}
+                    <p><strong>This referral requires review before being sent to the agency.</strong></p>
+                    <div style="background: #fef3c7; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0 0 4px; font-weight: bold;">Agency: ${agencyName}</p>
+                        <p style="margin: 0;">Agency Email: ${agencyEmail}</p>
+                        ${resourceData?.['Contact Phone'] ? `<p style="margin: 4px 0 0;">Agency Phone: ${resourceData['Contact Phone']}</p>` : ''}
+                    </div>
+                    <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                        <p style="margin: 0 0 8px;"><strong>Client Name:</strong> ${clientName}</p>
+                        ${clientData?.dob ? `<p style="margin: 0 0 8px;"><strong>Date of Birth:</strong> ${clientData.dob}</p>` : ''}
+                        ${clientData?.phone ? `<p style="margin: 0 0 8px;"><strong>Phone:</strong> ${clientData.phone}</p>` : ''}
+                        ${clientData?.email ? `<p style="margin: 0 0 8px;"><strong>Email:</strong> ${clientData.email}</p>` : ''}
+                        ${clientData?.primaryLanguage ? `<p style="margin: 0 0 8px;"><strong>Primary Language:</strong> ${clientData.primaryLanguage}</p>` : ''}
+                        <p style="margin: 0 0 8px;"><strong>Service Needed:</strong> ${resourceData?.['Service Category'] || 'General assistance'}</p>
+                        ${clientData?.needs ? `<p style="margin: 0;"><strong>Identified Needs:</strong> ${Object.entries(clientData.needs).filter(([, v]) => v).map(([k]) => k).join(', ')}</p>` : ''}
+                    </div>
+                    <p><strong>Referred By:</strong> ${volunteerName || 'HMC Volunteer'}</p>
+                    <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Please review this referral and forward to the agency when approved.</p>
+                ${emailFooter()}`;
+
+                await sendEmailRaw(internalReviewEmail, subject, html, `Referral for review: ${clientName} → ${agencyName}`);
+
+                await referralRef.update({
+                    status: 'Pending Review',
+                    firstContactDate: now,
+                    firstContactBy: (req as any).user.uid,
+                    submissionMethod: 'email',
+                    submittedAt: now,
+                    updatedAt: now,
+                    agencyEmail,
+                });
+
+                console.log(`[REFERRAL] Sent to internal review (${internalReviewEmail}) for referral ${referralId} → ${agencyName}`);
+                res.json({ success: true, method: 'email', sentTo: internalReviewEmail, agencyEmail });
+            }
 
         } else if (method === 'call') {
             // Log that a call is needed — schedule Monday follow-up

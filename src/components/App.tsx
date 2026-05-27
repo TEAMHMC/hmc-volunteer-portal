@@ -5,6 +5,8 @@ import OnboardingFlow from './OnboardingFlow';
 import Dashboard from './Dashboard';
 // MigrationFlow removed — all volunteers must complete the full OnboardingFlow
 import ClientPortal from './ClientPortal';
+import PartnerPortalView from './PartnerPortalView';
+import PartnerAcceptInvite from './PartnerAcceptInvite';
 import SystemTour from './SystemTour';
 import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
@@ -27,7 +29,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [gamification, setGamification] = useState<any>(null);
 
-  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal'>('landing');
+  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal'>('landing');
   const [loading, setLoading] = useState(true);
 
   // PWA Install Prompt
@@ -39,6 +41,16 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
     return params.get('ref') || null;
+  });
+
+  // Capture partner invite token params from URL (?partnerToken=...&partnerId=...)
+  const [partnerToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('partnerToken');
+  });
+  const [partnerInviteId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('partnerId');
   });
 
   const [pinnedRole] = useState<string | null>(() => {
@@ -77,7 +89,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   // Don't kick users out during onboarding — they may not have a session yet
   useEffect(() => {
     const handleSessionExpired = () => {
-      if (view === 'onboarding' || view === 'landing') {
+      if (view === 'onboarding' || view === 'landing' || view === 'clientPortal') {
         console.warn('[App] Session expired during onboarding/landing — ignoring (no session expected).');
         return;
       }
@@ -110,6 +122,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
           const needsOnboarding = data.user.isNewUser === true && (!data.user.legalFirstName || data.user.onboardingProgress !== 100);
           if (needsOnboarding) {
             setView('onboarding');
+          } else if (data.user.volunteerRole === 'Partner Agency') {
+            setView('partnerPortal');
           } else {
             setView('dashboard');
           }
@@ -178,6 +192,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     return () => apiService.stopSessionHeartbeat();
   }, [view]);
 
+
   const handleLogin = async (email: string, password: string, isAdmin: boolean) => {
     const data = await apiService.post('/auth/login', { email, password, isAdmin });
     if (data?.user) {
@@ -187,6 +202,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       const needsOnboarding = fullData.user.isNewUser === true && (!fullData.user.legalFirstName || fullData.user.onboardingProgress !== 100);
       if (needsOnboarding) {
         setView('onboarding');
+      } else if (fullData.user.volunteerRole === 'Partner Agency') {
+        setView('partnerPortal');
       } else {
         setView('dashboard');
       }
@@ -205,6 +222,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         const needsOnboarding = fullData.user.isNewUser === true && (!fullData.user.legalFirstName || fullData.user.onboardingProgress !== 100);
         if (needsOnboarding) {
             setView('onboarding');
+        } else if (fullData.user.volunteerRole === 'Partner Agency') {
+            setView('partnerPortal');
         } else {
             setView('dashboard');
         }
@@ -263,6 +282,20 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   if (view === 'onboarding') return <OnboardingFlow onSuccess={handleOnboardingSuccess} onBackToLanding={handleReturnToLanding} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} preAuthUser={currentUser?.isNewUser ? { id: currentUser.id, email: currentUser.email, name: currentUser.name } : undefined} referralCode={referralCode || undefined} pinnedRole={pinnedRole || undefined} />;
 
   if (view === 'clientPortal') return <ClientPortal onBackToLanding={handleReturnToLanding} />;
+
+  if (view === 'partnerPortal') return <PartnerPortalView onBackToLanding={handleReturnToLanding} />;
+
+  // Partner invite acceptance — show when URL has ?partnerToken=...&partnerId=...
+  if (partnerToken && partnerInviteId) {
+    return (
+      <PartnerAcceptInvite
+        partnerToken={partnerToken}
+        partnerId={partnerInviteId}
+        onSuccess={() => setView('partnerPortal')}
+        onCancel={() => setView('landing')}
+      />
+    );
+  }
 
   if (view === 'dashboard' && currentUser) {
     const dashboardProps = {

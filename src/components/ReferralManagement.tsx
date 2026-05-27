@@ -928,6 +928,27 @@ const ResourcesView: React.FC<{ resources: ReferralResource[]; clients: ClientRe
 // Partners View
 const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void }> = ({ partners, onRefresh }) => {
   const [showNewPartner, setShowNewPartner] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<PartnerAgency | null>(null);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+
+  const handleInvite = async (partner: PartnerAgency) => {
+    setInvitingId(partner.id);
+    try {
+      await apiService.post(`/api/partners/${partner.id}/invite`, {});
+      toastService.success(`Invite sent to ${partner.name}`);
+      onRefresh();
+    } catch {
+      toastService.error('Failed to send invite');
+    } finally {
+      setInvitingId(null);
+    }
+  };
+
+  const getPortalStatus = (partner: PartnerAgency): { label: string; cls: string } => {
+    if (partner.portalAccess) return { label: 'Portal Active', cls: 'bg-emerald-100 text-emerald-700' };
+    if (partner.inviteToken) return { label: 'Invite Sent', cls: 'bg-blue-100 text-blue-700' };
+    return { label: 'No Access', cls: 'bg-zinc-100 text-zinc-500' };
+  };
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
@@ -941,42 +962,86 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {partners.map(partner => (
-          <div key={partner.id} className="p-4 md:p-6 bg-white rounded-3xl border border-zinc-100 shadow-elevation-1">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="font-bold text-zinc-900">{partner.name}</h3>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                partner.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'
-              }`}>
-                {partner.status}
-              </span>
-            </div>
-            <p className="text-sm text-brand font-bold mb-3">{partner.type}</p>
-            <div className="space-y-2 text-sm text-zinc-500">
-              {partner.contactName && <p>{partner.contactName}</p>}
-              {partner.contactEmail && (
-                <p className="flex items-center gap-1"><Mail size={12} /> {partner.contactEmail}</p>
-              )}
-              {partner.contactPhone && (
-                <p className="flex items-center gap-1"><Phone size={12} /> {partner.contactPhone}</p>
-              )}
-            </div>
-            {partner.performanceScore && (
-              <div className="mt-4 pt-4 border-t border-zinc-100">
-                <p className="text-xs text-zinc-400">Performance Score</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full"
-                      style={{ width: `${partner.performanceScore}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-bold text-zinc-700">{partner.performanceScore}%</span>
-                </div>
+        {partners.map(partner => {
+          const portalStatus = getPortalStatus(partner);
+          return (
+            <div key={partner.id} className="p-4 md:p-6 bg-white rounded-3xl border border-zinc-100 shadow-elevation-1 flex flex-col">
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-bold text-zinc-900 leading-tight">{partner.name}</h3>
+                <span className={`flex-shrink-0 ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  partner.status === 'Active' ? 'bg-emerald-100 text-emerald-700' :
+                  partner.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
+                  'bg-zinc-100 text-zinc-500'
+                }`}>
+                  {partner.status}
+                </span>
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Badges row */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <span className="text-[10px] font-black text-brand uppercase tracking-wider">{partner.type}</span>
+                {partner.isOfficialPartner && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700">Official Partner</span>
+                )}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${portalStatus.cls}`}>
+                  {portalStatus.label}
+                </span>
+              </div>
+
+              <div className="space-y-1.5 text-sm text-zinc-500 flex-1">
+                {partner.contactName && <p className="font-medium">{partner.contactName}</p>}
+                {partner.contactEmail && (
+                  <p className="flex items-center gap-1.5"><Mail size={12} /> {partner.contactEmail}</p>
+                )}
+                {partner.contactPhone && (
+                  <p className="flex items-center gap-1.5"><Phone size={12} /> {partner.contactPhone}</p>
+                )}
+              </div>
+
+              {partner.performanceScore != null && (
+                <div className="mt-4 pt-4 border-t border-zinc-100">
+                  <p className="text-xs text-zinc-400 mb-1">Performance Score</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full"
+                        style={{ width: `${partner.performanceScore}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-zinc-700">{partner.performanceScore}%</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="mt-4 pt-4 border-t border-zinc-100 flex gap-2">
+                <button
+                  onClick={() => setEditingPartner(partner)}
+                  className="flex-1 px-3 py-2 min-h-[36px] border border-zinc-200 text-zinc-700 font-black uppercase tracking-wider rounded-full text-[10px] hover:bg-zinc-50 transition-colors"
+                >
+                  Edit
+                </button>
+                {partner.portalAccess ? (
+                  <span className="flex-1 flex items-center justify-center px-3 py-2 min-h-[36px] bg-emerald-50 text-emerald-700 font-black uppercase tracking-wider rounded-full text-[10px]">
+                    Portal Active
+                  </span>
+                ) : partner.inviteToken ? (
+                  <span className="flex-1 flex items-center justify-center px-3 py-2 min-h-[36px] bg-blue-50 text-blue-700 font-black uppercase tracking-wider rounded-full text-[10px]">
+                    Invite Sent
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleInvite(partner)}
+                    disabled={invitingId === partner.id}
+                    className="flex-1 px-3 py-2 min-h-[36px] bg-brand border border-black text-white font-black uppercase tracking-wider rounded-full text-[10px] hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
+                  >
+                    {invitingId === partner.id ? <Loader2 size={11} className="animate-spin" /> : 'Invite to Portal'}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
       {partners.length === 0 && (
         <div className="text-center py-12 text-zinc-400">
@@ -987,6 +1052,13 @@ const PartnersView: React.FC<{ partners: PartnerAgency[]; onRefresh: () => void 
 
       {showNewPartner && (
         <NewPartnerModal onClose={() => setShowNewPartner(false)} onComplete={() => { setShowNewPartner(false); onRefresh(); }} />
+      )}
+      {editingPartner && (
+        <EditPartnerModal
+          partner={editingPartner}
+          onClose={() => setEditingPartner(null)}
+          onComplete={() => { setEditingPartner(null); onRefresh(); }}
+        />
       )}
     </div>
   );
@@ -1172,6 +1244,165 @@ const NewClientModal: React.FC<{ onClose: () => void; onComplete: () => void }> 
             </button>
             <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center gap-2">
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Create Client</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit Partner Modal
+const EditPartnerModal: React.FC<{ partner: PartnerAgency; onClose: () => void; onComplete: () => void }> = ({ partner, onClose, onComplete }) => {
+  const [formData, setFormData] = useState<Partial<PartnerAgency>>({ ...partner });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await apiService.put(`/api/partners/${partner.id}`, formData);
+      onComplete();
+    } catch (error) {
+      toastService.error('Failed to update partner');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white max-w-2xl w-full rounded-modal shadow-elevation-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-base md:text-xl font-bold text-zinc-900">Edit Partner Agency</h2>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full"><X size={20} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+          <div>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Agency Name *</label>
+            <input
+              required
+              type="text"
+              value={formData.name || ''}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Type</label>
+            <select
+              value={formData.type || 'Other'}
+              onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
+            >
+              <option>Healthcare</option>
+              <option>Housing</option>
+              <option>Food</option>
+              <option>Legal</option>
+              <option>Employment</option>
+              <option>Mental Health</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Name</label>
+              <input
+                type="text"
+                value={formData.contactName || ''}
+                onChange={e => setFormData({ ...formData, contactName: e.target.value })}
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Email</label>
+              <input
+                type="email"
+                value={formData.contactEmail || ''}
+                onChange={e => setFormData({ ...formData, contactEmail: e.target.value })}
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Contact Phone</label>
+              <input
+                type="tel"
+                value={formData.contactPhone || ''}
+                onChange={e => setFormData({ ...formData, contactPhone: e.target.value })}
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Website</label>
+              <input
+                type="url"
+                value={formData.website || ''}
+                onChange={e => setFormData({ ...formData, website: e.target.value })}
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+                placeholder="https://"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Address</label>
+            <input
+              type="text"
+              value={formData.address || ''}
+              onChange={e => setFormData({ ...formData, address: e.target.value })}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Status</label>
+            <select
+              value={formData.status || 'Active'}
+              onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-bold text-sm"
+            >
+              <option>Active</option>
+              <option>Inactive</option>
+              <option>Pending</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+            <input
+              type="checkbox"
+              id="isOfficialPartner"
+              checked={!!formData.isOfficialPartner}
+              onChange={e => setFormData({ ...formData, isOfficialPartner: e.target.checked })}
+              className="w-5 h-5 rounded accent-amber-500"
+            />
+            <label htmlFor="isOfficialPartner" className="text-sm font-bold text-amber-800 cursor-pointer">Official Referral Partner</label>
+          </div>
+          {formData.isOfficialPartner && (
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Where to Send Referrals Directly</label>
+              <input
+                type="email"
+                value={formData.referralEmail || ''}
+                onChange={e => setFormData({ ...formData, referralEmail: e.target.value })}
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm"
+                placeholder="referrals@partner.org"
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Notes</label>
+            <textarea
+              rows={3}
+              value={formData.notes || ''}
+              onChange={e => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm resize-none"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t">
+            <button type="button" onClick={onClose} className="px-6 py-3 bg-zinc-100 border border-black text-zinc-700 rounded-full font-bold uppercase tracking-wide min-h-[44px] w-full sm:w-auto">
+              Cancel
+            </button>
+            <button type="submit" disabled={isSaving} className="px-6 py-3 bg-brand border border-black text-white rounded-full font-bold uppercase tracking-wide disabled:opacity-50 min-h-[44px] w-full sm:w-auto flex items-center gap-2">
+              {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save Changes</>}
             </button>
           </div>
         </form>

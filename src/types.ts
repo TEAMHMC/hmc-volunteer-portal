@@ -270,8 +270,11 @@ export interface Volunteer {
                  'Events Lead' | 'Events Coordinator' | 'Program Coordinator' |
                  'General Operations Coordinator' | 'Operations Coordinator' |
                  'Outreach & Engagement Lead' | 'Outreach Volunteer' |
-                 'Volunteer Lead' | 'Student Intern' | 'System Administrator';
+                 'Volunteer Lead' | 'Student Intern' | 'System Administrator' | 'Partner Agency';
   
+  // Partner Agency portal link
+  partnerAgencyId?: string;   // If role is 'Partner Agency', links to their partner_agencies doc
+
   // Legacy field for backwards compatibility
   name: string;
   role: string;
@@ -919,6 +922,12 @@ export interface PartnerAgency {
     partnerSince?: string;
     lastActivityDate?: string;
     notes?: string;
+    isOfficialPartner?: boolean;      // Admin-designated direct referral partner
+    referralEmail?: string;           // Where to send referrals directly (may differ from contactEmail)
+    inviteToken?: string;             // One-time token for portal registration invite
+    inviteTokenExpiry?: string;       // ISO timestamp of invite expiry (48h)
+    portalUserEmail?: string;         // Email of the portal account if they have one
+    hours?: string;                   // Operating hours
 }
 
 export interface ClientDocument {
