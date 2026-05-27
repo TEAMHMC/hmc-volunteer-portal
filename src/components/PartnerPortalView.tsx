@@ -1551,6 +1551,10 @@ const CommunityBoardTab: React.FC = () => {
 // Tab: Events
 // ─────────────────────────────────────────────────────────────────────────────
 
+// GAS URL for partner event submissions — same endpoint as the public Event Finder partner form
+const PARTNER_EVENT_GAS_URL =
+  'https://script.google.com/macros/s/AKfycbz98ofEpj4SyQPXPer7qY8F04IFweCIv3s_MtGuHtU5OhmSUURgfEuBlQ5I-D8tily1TA/exec';
+
 const EventsTab: React.FC = () => {
   // Profile state (for pre-filling org name and email)
   const [profile, setProfile] = useState<PartnerProfile | null>(null);
@@ -1594,23 +1598,31 @@ const EventsTab: React.FC = () => {
     setSubmitting(true);
     setSubmitError('');
     try {
-      // Submit to the portal sync-event endpoint with pending status so HMC reviews it
-      await apiService.post('/api/public/sync-event', {
-        title: title.trim(),
-        description: description.trim(),
-        date: proposedDate,
-        dateDisplay: proposedDate,
-        time: eventTime.trim(),
+      // Submit directly to GAS using the same action + no-cors pattern as the public partner form.
+      // GAS always throws a CORS error even on success — use no-cors to bypass.
+      // The browser sends the request without reading the response; GAS receives and processes it normally.
+      const params = new URLSearchParams({
+        action: 'partner_request',
+        name: profile?.contactName || profile?.name || '',
+        email: profile?.contactEmail || '',
+        organization: profile?.name || '',
+        eventTitle: title.trim(),
+        eventDescription: description.trim(),
+        proposedDate,
+        eventTime: eventTime.trim(),
         location: location.trim(),
-        address: location.trim(),
-        flyerUrl: flyerLink.trim() || undefined,
-        source: 'partner-portal',
-        approvalStatus: 'pending',
-        submittedBy: profile?.name || undefined,
-        submittedByEmail: profile?.contactEmail || undefined,
-        rsvpNotifyEmail: rsvpNotify ? notifyEmail.trim() : undefined,
-        createdAt: new Date().toISOString(),
+        flyerUrl: flyerLink.trim() || '',
+        lang: 'en',
+        timestamp: new Date().toISOString(),
       });
+      if (rsvpNotify && notifyEmail.trim()) {
+        params.set('notificationEmail', notifyEmail.trim());
+      }
+      await fetch(`${PARTNER_EVENT_GAS_URL}?${params.toString()}`, {
+        method: 'GET',
+        mode: 'no-cors',
+      });
+      // Can't read response body with no-cors — optimistically show success (same as PartnerModal.tsx)
       setSubmitted(true);
     } catch {
       setSubmitError('Submission failed. Please try again or contact partner@healthmatters.clinic.');

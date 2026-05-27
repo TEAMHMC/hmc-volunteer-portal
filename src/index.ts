@@ -8562,6 +8562,83 @@ app.put('/api/admin/partner-applications/:id/review', verifyToken, requireAdmin,
             });
         }
 
+        // If approved, auto-generate a draft partnership agreement
+        if (status === 'approved') {
+            try {
+                const agencyName = appData.agencyName || 'Partner Organization';
+                const types: string[] = Array.isArray(approvedTypes) ? approvedTypes : [];
+
+                // Derive agreement type from approved partnership types
+                let agreementType = 'general';
+                if (types.includes('subcontractor')) agreementType = 'subcontractor';
+                else if (types.includes('official_referral')) agreementType = 'referral_partner';
+                else if (types.includes('event_vendor')) agreementType = 'vendor';
+
+                // Human-readable type names for the agreement body
+                const TYPE_LABELS: Record<string, string> = {
+                    official_referral: 'Official Referral Partner',
+                    event_vendor: 'Event Vendor / Co-host',
+                    subcontractor: 'Subcontractor',
+                    community: 'General Community Partner',
+                };
+                const typesList = types.length > 0
+                    ? types.map(t => TYPE_LABELS[t] || t).join(', ')
+                    : 'General Community Partner';
+
+                const agreementTitle = `HMC ${agreementType === 'referral_partner' ? 'Referral Partner' : agreementType === 'subcontractor' ? 'Subcontractor' : agreementType === 'vendor' ? 'Vendor' : 'Partnership'} Agreement — ${agencyName}`;
+
+                const bodyText = `HEALTH MATTERS CLINIC — PARTNERSHIP AGREEMENT
+
+This Partnership Agreement ("Agreement") is entered into between Health Matters Clinic ("HMC"), a California nonprofit corporation, and ${agencyName} ("Partner").
+
+PARTNERSHIP TYPE(S): ${typesList}
+
+1. PURPOSE
+HMC and Partner agree to collaborate to improve access to health and wellness resources across Los Angeles County.
+
+2. PARTNER RESPONSIBILITIES
+Partner agrees to: respond to HMC referrals within 72 hours; update referral status in the HMC Partner Portal; maintain current organization profile information; notify HMC of any changes to services, capacity, or eligibility requirements.
+
+3. HMC RESPONSIBILITIES
+HMC agrees to: provide access to the Partner Portal; send referrals only for clients who match Partner's stated eligibility criteria; maintain confidentiality of client information per applicable law.
+
+4. DATA AND PRIVACY
+Both parties agree to handle client information in compliance with applicable federal and state privacy laws including HIPAA where applicable.
+
+5. TERM
+This Agreement is effective upon signing and remains in effect for one (1) year, renewable annually by mutual agreement.
+
+6. TERMINATION
+Either party may terminate this Agreement with 30 days written notice to the other party.
+
+By signing below, both parties agree to the terms of this Agreement.
+
+Health Matters Clinic
+contact@healthmatters.clinic | (323) 990-4325 | healthmatters.clinic
+
+${agencyName}`;
+
+                const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+                await db.collection('partner_agreements').add({
+                    partnerAgencyId: appData.partnerAgencyId,
+                    agencyName,
+                    agreementType,
+                    title: agreementTitle,
+                    status: 'pending_signature',
+                    createdBy: (req as any).user?.uid,
+                    sentAt: now,
+                    expiresAt,
+                    bodyText,
+                });
+
+                console.log(`[ADMIN PARTNER APPS] Auto-generated ${agreementType} agreement for ${agencyName}`);
+            } catch (agreeErr) {
+                console.error('[ADMIN PARTNER APPS] Auto-agreement generation failed:', agreeErr);
+                // Non-fatal — application approval still succeeds
+            }
+        }
+
         // Notify the partner
         try {
             const partnerDoc = await db.collection('partner_agencies').doc(appData.partnerAgencyId).get();
@@ -8569,19 +8646,31 @@ app.put('/api/admin/partner-applications/:id/review', verifyToken, requireAdmin,
             const partnerEmail = partnerData.portalUserEmail || partnerData.contactEmail || appData.submittedByEmail;
             if (partnerEmail) {
                 const isApproved = status === 'approved';
-                await sendEmailRaw(
-                    partnerEmail,
-                    `Your Partnership Application Has Been ${isApproved ? 'Approved' : 'Reviewed'}`,
-                    `${emailHeader(`Partnership Application ${isApproved ? 'Approved' : 'Update'}`)}
+                const subject = isApproved
+                    ? 'Your HMC Partnership Application Has Been Approved'
+                    : `Your Partnership Application Has Been Reviewed`;
+                const approvedBody = `${emailHeader('Partnership Application Approved')}
+                     <p>Dear ${partnerData.contactName || 'Partner'},</p>
+                     <p>Congratulations — your partnership application has been approved.</p>
+                     <p>A partnership agreement has been sent to your Partner Portal for review and e-signature.</p>
+                     <p>Log in at <a href="https://partner.healthmatters.clinic">partner.healthmatters.clinic</a> to review and sign.</p>
+                     ${actionButton('Review and Sign Agreement', 'https://volunteer.healthmatters.clinic?page=partner')}
+                     ${emailFooter()}`;
+                const rejectedBody = `${emailHeader('Partnership Application Update')}
                      <p>Dear ${partnerData.contactName || 'Partner'},</p>
                      <p>Your partnership application for <strong>${appData.agencyName}</strong> has been reviewed.</p>
-                     <p><strong>Status:</strong> ${isApproved ? 'Approved' : 'Not Approved at This Time'}</p>
-                     ${isApproved && approvedTypes ? `<p><strong>Approved Partnership Types:</strong> ${approvedTypes.join(', ')}</p>` : ''}
+                     <p><strong>Status:</strong> Not Approved at This Time</p>
                      ${reviewNotes ? `<p><strong>Notes:</strong> ${reviewNotes}</p>` : ''}
-                     ${isApproved ? `<p>Log in to the partner portal to view your approved partnership types and next steps.</p>` : '<p>Please contact us if you have questions about this decision.</p>'}
+                     <p>Please contact us if you have questions about this decision.</p>
                      ${actionButton('Go to Partner Portal', 'https://volunteer.healthmatters.clinic?page=partner')}
-                     ${emailFooter()}`,
-                    `Your partnership application has been reviewed. Status: ${status}. ${reviewNotes || ''}`
+                     ${emailFooter()}`;
+                await sendEmailRaw(
+                    partnerEmail,
+                    subject,
+                    isApproved ? approvedBody : rejectedBody,
+                    isApproved
+                        ? `Congratulations — your partnership application has been approved. A partnership agreement has been sent to your Partner Portal for review and e-signature. Log in at partner.healthmatters.clinic to review and sign.`
+                        : `Your partnership application has been reviewed. Status: Not Approved at This Time. ${reviewNotes || ''}`
                 );
             }
         } catch (emailErr) {
