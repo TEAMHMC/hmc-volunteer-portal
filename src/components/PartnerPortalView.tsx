@@ -1554,7 +1554,7 @@ const CommunityBoardTab: React.FC = () => {
 
 // GAS URL for partner event submissions — same endpoint as the public Event Finder partner form
 const PARTNER_EVENT_GAS_URL =
-  'https://script.google.com/macros/s/AKfycbz98ofEpj4SyQPXPer7qY8F04IFweCIv3s_MtGuHtU5OhmSUURgfEuBlQ5I-D8tily1TA/exec';
+  'https://script.google.com/macros/s/AKfycbzPUzjEIQhwEO5uD55EK1IHKKHh3RabUtAGyNcNkx_1KpefWm21_FOuRrZknDWyGU1J1g/exec';
 
 const EventsTab: React.FC = () => {
   // Profile state (for pre-filling org name and email)
