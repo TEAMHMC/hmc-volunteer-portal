@@ -740,6 +740,7 @@ const ApplyTab: React.FC = () => {
   const [eventCapabilities, setEventCapabilities] = useState('');
   const [subcontractCapabilities, setSubcontractCapabilities] = useState('');
   const [hasLiabilityInsurance, setHasLiabilityInsurance] = useState<string>('');
+  const [insuranceCertUrl, setInsuranceCertUrl] = useState('');
   const [clientCapacity, setClientCapacity] = useState('');
   const [serviceAreaNotes, setServiceAreaNotes] = useState('');
   const [lookingFor, setLookingFor] = useState('');
@@ -790,11 +791,10 @@ const ApplyTab: React.FC = () => {
         servicesOffered,
         eventCapabilities: isEventVendor ? eventCapabilities : undefined,
         subcontractCapabilities: isSubcontractor ? subcontractCapabilities : undefined,
-        hasLiabilityInsurance: isSubcontractor ? hasLiabilityInsurance === 'yes' : undefined,
-        clientCapacity: clientCapacity ? Number(clientCapacity) : undefined,
+        insuranceInfo: isSubcontractor && hasLiabilityInsurance === 'yes' ? (insuranceCertUrl || 'Yes — COI available on request') : undefined,
+        clientCapacityPerMonth: clientCapacity ? Number(clientCapacity) : undefined,
         serviceAreaNotes,
-        lookingFor,
-        anythingElse,
+        needsFromHMC: lookingFor + (anythingElse ? `\n\nAdditional notes: ${anythingElse}` : ''),
         logoUrl: logoUrl || undefined,
         brandGuidelinesUrl: brandGuidelinesUrl || undefined,
         primaryColor,
@@ -1004,6 +1004,19 @@ const ApplyTab: React.FC = () => {
                     </button>
                   ))}
                 </div>
+                {hasLiabilityInsurance === 'yes' && (
+                  <div className="mt-3">
+                    <label className={labelCls}>Certificate of Insurance (COI) link <span className="font-normal normal-case text-zinc-400">— required before agreement is finalized</span></label>
+                    <input
+                      type="url"
+                      value={insuranceCertUrl}
+                      onChange={e => setInsuranceCertUrl(e.target.value)}
+                      className={inputCls}
+                      placeholder="Link to your COI document (Google Drive, Dropbox, etc.)"
+                    />
+                    <p className="text-xs text-zinc-400 mt-1">Upload your COI to Google Drive or Dropbox and paste the public share link. HMC will request a current copy before finalizing any subcontractor agreement.</p>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -1026,7 +1039,7 @@ const ApplyTab: React.FC = () => {
                 value={serviceAreaNotes}
                 onChange={e => setServiceAreaNotes(e.target.value)}
                 className={inputCls}
-                placeholder="e.g. LA County, South LA"
+                placeholder="e.g. SPA 1 — South LA, SPA 3 — San Gabriel Valley"
               />
             </div>
           </div>
@@ -1099,6 +1112,9 @@ const ApplyTab: React.FC = () => {
           <div>
             <h2 className="text-xl font-black text-zinc-900 mb-1">Brand Assets</h2>
             <p className="text-sm text-zinc-500 font-medium">Optional — helps HMC represent your org accurately in co-marketing.</p>
+            <div className="mt-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-xs text-blue-700 leading-relaxed">
+              <strong>All fields use links — no file upload.</strong> To share your logo or brand guide: upload to <strong>Canva</strong> (Share → Copy link), <strong>Google Drive</strong> (Share → Anyone with the link → Copy), or <strong>Dropbox</strong> (share link, change <code>dl=0</code> to <code>raw=1</code>). Paste the public link below.
+            </div>
           </div>
           <div>
             <label className={labelCls}>Logo URL</label>
@@ -1107,7 +1123,7 @@ const ApplyTab: React.FC = () => {
               value={logoUrl}
               onChange={e => { setLogoUrl(e.target.value); setLogoPreviewOk(false); }}
               className={inputCls}
-              placeholder="https://example.com/logo.png"
+              placeholder="https://example.com/logo.png — or paste a Canva/Drive/Dropbox link"
             />
             {logoUrl && (
               <div className="mt-2 p-3 bg-zinc-50 border border-zinc-100 rounded-2xl inline-block">
