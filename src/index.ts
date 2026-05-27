@@ -9649,6 +9649,80 @@ app.delete('/api/forms/:formId', verifyToken, async (req: Request, res: Response
     }
 });
 
+// POST /api/forms/:formId/send-blast — Send a survey to all active volunteers
+// Accessible by admins and coordinator/lead roles
+app.post('/api/forms/:formId/send-blast', verifyToken, async (req: Request, res: Response) => {
+    const BLAST_ALLOWED_ROLES = [
+        'Events Lead', 'Events Coordinator', 'Program Coordinator',
+        'General Operations Coordinator', 'Operations Coordinator',
+        'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator',
+        'System Administrator',
+    ];
+    try {
+        const user = (req as any).user;
+        const profile = user?.profile;
+        if (!profile?.isAdmin && !BLAST_ALLOWED_ROLES.includes(profile?.role)) {
+            return res.status(403).json({ error: 'Coordinator access required' });
+        }
+
+        const { formId } = req.params;
+        const surveyUrl = `https://volunteer.healthmatters.clinic/survey?formId=${formId}`;
+
+        const volsSnap = await db.collection('volunteers').get();
+        const eligible = volsSnap.docs
+            .map(d => ({ id: d.id, ...d.data() } as any))
+            .filter(v =>
+                v.status !== 'inactive' &&
+                v.role !== 'Partner Agency' &&
+                v.email
+            );
+
+        let sent = 0;
+        let failed = 0;
+
+        for (const vol of eligible) {
+            const firstName = (vol.name || vol.firstName || 'Volunteer').split(' ')[0];
+            const surveyLink = `${surveyUrl}&token=${vol.id}`;
+            const html = `${emailHeader('Quick check-in from HMC')}
+      <p>Hi ${firstName},</p>
+      <p>We value your experience as a volunteer and want to make sure we are supporting you well. This 2-minute check-in helps us understand what is working and where we can improve.</p>
+      <p>Your honest feedback shapes how we operate.</p>
+      ${actionButton('Complete the Check-In', surveyLink)}
+      <p style="font-size: 13px; color: #9ca3af; margin-top: 24px;">This survey takes approximately 2 minutes. Your responses are anonymous unless you choose to share your name.</p>
+    ${emailFooter()}`;
+            const text = `Hi ${firstName}, we would love your feedback. Please complete our quick 2-minute volunteer check-in: ${surveyLink}`;
+            try {
+                await sendEmailRaw(vol.email, 'Quick check-in from HMC — 2 minutes', html, text);
+                sent++;
+            } catch (e) {
+                console.warn(`[FORMS BLAST] Email failed for ${vol.id}:`, e);
+                failed++;
+            }
+        }
+
+        console.log(`[FORMS BLAST] formId=${formId} sent=${sent} failed=${failed}`);
+        res.json({ sent, failed });
+    } catch (error: any) {
+        console.error('[FORMS BLAST] Failed:', error.message);
+        res.status(500).json({ error: 'Failed to send survey blast' });
+    }
+});
+
+// POST /api/workflows/quarterly-satisfaction — Register or update preference for quarterly survey workflow
+app.post('/api/workflows/quarterly-satisfaction', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { enabled } = req.body;
+        await db.collection('workflowPreferences').doc('quarterly-satisfaction').set(
+            { enabled: enabled !== false, updatedAt: new Date().toISOString() },
+            { merge: true }
+        );
+        res.json({ success: true, enabled: enabled !== false });
+    } catch (error: any) {
+        console.error('[WORKFLOWS] Quarterly satisfaction pref failed:', error.message);
+        res.status(500).json({ error: 'Failed to update quarterly satisfaction preference' });
+    }
+});
+
 // GET /api/survey-responses/counts — Get response counts grouped by formId
 app.get('/api/survey-responses/counts', verifyToken, async (req: Request, res: Response) => {
     try {

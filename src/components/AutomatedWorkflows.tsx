@@ -67,6 +67,7 @@ const WORKFLOW_META: { id: string; title: string; description: string; icon: Wor
     { id: 'w6', title: 'Event Reminder Cadence', description: '5-stage automated reminders: confirmation, 7-day, 72h, 24h email + 3h SMS.', icon: CalendarClock },
     { id: 'w7', title: 'SMO Monthly Cycle', description: 'Auto-create Street Medicine events, enforce Thursday training prerequisite, manage waitlist.', icon: Stethoscope },
     { id: 'w8', title: 'Post-Event Debrief', description: 'Text volunteers 15 min after service hours end with debrief survey link and next event teaser.', icon: ClipboardCheck },
+    { id: 'w9', title: 'Quarterly Volunteer Satisfaction Survey', description: 'Automatically sends the Volunteer Satisfaction Check-In to all active volunteers every 90 days. Responses are tracked in Form Builder.', icon: ClipboardCheck },
 ];
 
 function timeAgo(dateStr: string): string {
@@ -464,6 +465,14 @@ const AutomatedWorkflows: React.FC = () => {
                 workflows: wfPayload,
                 preferences: { primaryChannel, fallbackToEmail: true },
             });
+
+            // Register or update the quarterly satisfaction scheduler preference
+            const quarterlySurveyWf = workflows.find(wf => wf.id === 'w9');
+            if (quarterlySurveyWf !== undefined) {
+                await apiService.post('/api/workflows/quarterly-satisfaction', {
+                    enabled: quarterlySurveyWf.enabled,
+                }).catch(e => console.warn('[WORKFLOWS] Quarterly satisfaction registration failed:', e));
+            }
 
             setHasChanges(false);
             showNotification('Workflow settings updated.');

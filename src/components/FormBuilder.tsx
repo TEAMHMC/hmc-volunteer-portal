@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Save, Trash2, PlusCircle, X, Loader2, CheckCircle, Eye, ChevronRight, TextCursorInput, List, CheckSquare as CheckSquareIcon, Star, BarChart3, Download } from 'lucide-react';
-import { FormField } from '../types';
+import { FileText, Plus, Save, Trash2, PlusCircle, X, Loader2, CheckCircle, Eye, ChevronRight, TextCursorInput, List, CheckSquare as CheckSquareIcon, Star, BarChart3, Download, Send } from 'lucide-react';
+import { FormField, Volunteer } from '../types';
 import { FormDefinition, SurveyResponse } from '../services/surveyService';
 import { apiService } from '../services/apiService';
 import { toastService } from '../services/toastService';
+
+const COORDINATOR_ROLES_FOR_BLAST = [
+    'Events Lead', 'Events Coordinator', 'Program Coordinator',
+    'General Operations Coordinator', 'Operations Coordinator',
+    'Outreach & Engagement Lead', 'Volunteer Lead',
+    'Development Coordinator', 'System Administrator',
+];
+
+function canSendBlast(user: Volunteer | null): boolean {
+    if (!user) return false;
+    return user.isAdmin || COORDINATOR_ROLES_FOR_BLAST.includes(user.role);
+}
 
 export const DEFAULT_FORMS: FormDefinition[] = [
     { id: 'client-intake', title: 'Client Intake Form', description: 'Collect comprehensive client information, demographics, and social determinant needs.', fields: [], isActive: true, category: 'intake' },
@@ -59,13 +71,15 @@ export const DEFAULT_FORMS: FormDefinition[] = [
     ], isActive: true, category: 'internal' },
 ];
 
-const FormBuilder: React.FC = () => {
+const FormBuilder: React.FC<{ user?: Volunteer | null }> = ({ user = null }) => {
     const [forms, setForms] = useState<FormDefinition[]>(DEFAULT_FORMS);
     const [activeForm, setActiveForm] = useState<FormDefinition | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [responseCounts, setResponseCounts] = useState<{ [formId: string]: number }>({});
     const [viewingResponses, setViewingResponses] = useState<{ formId: string; responses: SurveyResponse[] } | null>(null);
+    const [blastState, setBlastState] = useState<{ [formId: string]: 'idle' | 'sending' | 'done' }>({});
+    const [blastResults, setBlastResults] = useState<{ [formId: string]: string }>({});
 
     // Load forms from Firestore on mount
     useEffect(() => {
@@ -73,7 +87,18 @@ const FormBuilder: React.FC = () => {
             try {
                 const firestoreForms = await apiService.get('/api/forms');
                 if (Array.isArray(firestoreForms) && firestoreForms.length > 0) {
-                    setForms(firestoreForms);
+                    // Merge: if a Firestore form has no fields but DEFAULT_FORMS has fields
+                    // for that same ID, use the default fields so hardcoded questions are not lost.
+                    const merged = firestoreForms.map((fsForm: FormDefinition) => {
+                        if (!fsForm.fields || fsForm.fields.length === 0) {
+                            const defaultMatch = DEFAULT_FORMS.find(d => d.id === fsForm.id);
+                            if (defaultMatch && defaultMatch.fields.length > 0) {
+                                return { ...fsForm, fields: defaultMatch.fields };
+                            }
+                        }
+                        return fsForm;
+                    });
+                    setForms(merged);
                 }
                 // Load response counts
                 const counts = await apiService.get('/api/survey-responses/counts');
@@ -144,6 +169,19 @@ const FormBuilder: React.FC = () => {
         } catch (error) {
             console.error('Error loading responses:', error);
             toastService.error('Failed to load responses.');
+        }
+    };
+
+    const handleSendBlast = async (formId: string) => {
+        setBlastState(s => ({ ...s, [formId]: 'sending' }));
+        try {
+            const result = await apiService.post(`/api/forms/${formId}/send-blast`, {});
+            setBlastResults(r => ({ ...r, [formId]: `Sent to ${result.sent} volunteer${result.sent !== 1 ? 's' : ''}` }));
+            setBlastState(s => ({ ...s, [formId]: 'done' }));
+        } catch (error) {
+            console.error('Error sending survey blast:', error);
+            toastService.error('Failed to send survey. Please try again.');
+            setBlastState(s => ({ ...s, [formId]: 'idle' }));
         }
     };
 
@@ -292,17 +330,36 @@ const FormBuilder: React.FC = () => {
                             </span>
                           </div>
                         </div>
-                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-zinc-100 flex flex-wrap justify-between gap-2 md:gap-3">
-                            <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand hover:bg-brand/5 px-3 py-3 md:px-4 rounded-xl min-h-[44px]">
-                                <BarChart3 size={14} /> Responses
-                            </button>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl min-h-[44px]">
-                                    <Trash2 size={14} />
+                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-zinc-100 flex flex-col gap-3">
+                            {canSendBlast(user) && form.category === 'internal' && (
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => handleSendBlast(form.id!)}
+                                        disabled={blastState[form.id!] === 'sending' || blastState[form.id!] === 'done'}
+                                        className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-brand text-white px-4 py-3 rounded-xl hover:bg-brand/90 disabled:opacity-60 min-h-[44px] transition-colors"
+                                    >
+                                        {blastState[form.id!] === 'sending' ? (
+                                            <><Loader2 size={14} className="animate-spin" /> Sending...</>
+                                        ) : blastState[form.id!] === 'done' ? (
+                                            <><CheckCircle size={14} /> {blastResults[form.id!] || 'Sent'}</>
+                                        ) : (
+                                            <><Send size={14} /> Send to All Volunteers</>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                            <div className="flex flex-wrap justify-between gap-2 md:gap-3">
+                                <button onClick={() => handleViewResponses(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand hover:bg-brand/5 px-3 py-3 md:px-4 rounded-xl min-h-[44px]">
+                                    <BarChart3 size={14} /> Responses
                                 </button>
-                                <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-3 py-3 md:px-4 rounded-xl hover:bg-zinc-200 min-h-[44px]">
-                                    Edit Form
-                                </button>
+                                <div className="flex gap-2">
+                                    <button onClick={() => handleDeleteForm(form.id!)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 px-3 py-3 rounded-xl min-h-[44px]">
+                                        <Trash2 size={14} />
+                                    </button>
+                                    <button onClick={() => setActiveForm(form)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-zinc-100 text-zinc-600 px-3 py-3 md:px-4 rounded-xl hover:bg-zinc-200 min-h-[44px]">
+                                        Edit Form
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

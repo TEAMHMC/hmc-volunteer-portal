@@ -1199,7 +1199,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
          {activeTab === 'resources' && user.isAdmin && <TabErrorBoundary tab="resources"><ResourceDashboard /></TabErrorBoundary>}
          {(activeTab === 'analytics' && (user.isAdmin || ['Board Member', 'Community Advisory Board', 'Tech Team', 'Data Analyst'].includes(user.role))) && <TabErrorBoundary tab="analytics"><AnalyticsDashboard volunteers={allVolunteers} isAdmin={user.isAdmin} /></TabErrorBoundary>}
          {activeTab === 'workflows' && user.isAdmin && <TabErrorBoundary tab="workflows"><AutomatedWorkflows /></TabErrorBoundary>}
-         {activeTab === 'forms' && (user.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <TabErrorBoundary tab="forms"><FormBuilder /></TabErrorBoundary>}
+         {activeTab === 'forms' && (user.isAdmin || COORDINATOR_AND_LEAD_ROLES.includes(displayUser.role)) && <TabErrorBoundary tab="forms"><FormBuilder user={displayUser} /></TabErrorBoundary>}
          {activeTab === 'screenings' && canAccessOperationalTools && ['Licensed Medical Professional', 'Medical Admin'].includes(displayUser.role) && (
            <TabErrorBoundary tab="screenings"><HealthScreeningsView
              user={displayUser}
