@@ -7,6 +7,7 @@ import Dashboard from './Dashboard';
 import ClientPortal from './ClientPortal';
 import PartnerPortalView from './PartnerPortalView';
 import PartnerAcceptInvite from './PartnerAcceptInvite';
+import PartnerLandingPage from './PartnerLandingPage';
 import SystemTour from './SystemTour';
 import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
@@ -29,7 +30,14 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [gamification, setGamification] = useState<any>(null);
 
-  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal'>('landing');
+  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerLanding'>(() => {
+    if (typeof window === 'undefined') return 'landing';
+    const params = new URLSearchParams(window.location.search);
+    const page = params.get('page');
+    const pathname = window.location.pathname;
+    if (page === 'partner' || pathname === '/partner' || pathname.startsWith('/partner/')) return 'partnerLanding';
+    return 'landing';
+  });
   const [loading, setLoading] = useState(true);
 
   // PWA Install Prompt
@@ -56,6 +64,14 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [pinnedRole] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('role');
+  });
+
+  // Detect ?role=partner to activate partner-mode login context on LandingPage
+  // Also settable programmatically when user navigates from PartnerLandingPage
+  const [partnerModeActive, setPartnerModeActive] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('role') === 'partner';
   });
 
   // Deep link params from email buttons (?tab=missions&checkin=SHIFTID)
@@ -89,7 +105,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   // Don't kick users out during onboarding — they may not have a session yet
   useEffect(() => {
     const handleSessionExpired = () => {
-      if (view === 'onboarding' || view === 'landing' || view === 'clientPortal') {
+      if (view === 'onboarding' || view === 'landing' || view === 'clientPortal' || view === 'partnerLanding') {
         console.warn('[App] Session expired during onboarding/landing — ignoring (no session expected).');
         return;
       }
@@ -185,7 +201,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   // Keep heartbeat alive on ALL authenticated views (dashboard, onboarding, etc.)
   // so sessions don't silently expire while a user is actively working.
   useEffect(() => {
-    if (view === 'landing' || view === 'clientPortal') return;
+    if (view === 'landing' || view === 'clientPortal' || view === 'partnerLanding') return;
     const token = localStorage.getItem('authToken');
     if (!token) return;
     apiService.startSessionHeartbeat();
@@ -285,6 +301,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   if (view === 'partnerPortal') return <PartnerPortalView onBackToLanding={handleReturnToLanding} />;
 
+  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} />;
+
   // Partner invite acceptance — show when URL has ?partnerToken=...&partnerId=...
   if (partnerToken && partnerInviteId) {
     return (
@@ -362,6 +380,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       onLogin={handleLogin}
       onGoogleLogin={handleGoogleLogin}
       googleClientId={googleClientId}
+      partnerMode={partnerModeActive}
     />
   );
 };

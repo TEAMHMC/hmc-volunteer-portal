@@ -9,10 +9,11 @@ interface LandingPageProps {
   onLogin: (email: string, password: string, isAdmin: boolean) => Promise<void>;
   onGoogleLogin: (credentialResponse: any, isAdmin: boolean) => Promise<void>;
   googleClientId?: string;
+  partnerMode?: boolean;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, onGoogleLogin, googleClientId }) => {
-  const [showLogin, setShowLogin] = useState(false);
+const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, onGoogleLogin, googleClientId, partnerMode = false }) => {
+  const [showLogin, setShowLogin] = useState(partnerMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -104,16 +105,28 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
             className="w-9 h-9 md:w-12 md:h-12 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:drop-shadow-lg"
           />
           <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-wider md:hidden">HMC</span>
-          <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider group-hover:text-brand transition-colors">HMC VOLUNTEER PLATFORM</span>
+          {partnerMode ? (
+            <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider">
+              HMC <span style={{ color: '#f59e0b' }}>PARTNER PORTAL</span>
+            </span>
+          ) : (
+            <span className="hidden md:block text-sm font-bold text-zinc-900 uppercase tracking-wider group-hover:text-brand transition-colors">HMC VOLUNTEER PLATFORM</span>
+          )}
         </a>
         <div className="flex items-center gap-1.5 md:gap-2">
-          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
-            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
-            Admin
-          </button>
-          <button onClick={handleVolunteerLoginClick} className="bg-brand border border-black text-white px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3">
-            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
-            Login
+          {!partnerMode && (
+            <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
+              Admin
+            </button>
+          )}
+          <button
+            onClick={partnerMode ? handleVolunteerLoginClick : handleVolunteerLoginClick}
+            style={partnerMode ? { background: '#f59e0b', borderColor: '#0f0f0f', color: '#0f0f0f' } : {}}
+            className={partnerMode ? 'border border-black px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3' : 'bg-brand border border-black text-white px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 md:gap-3'}
+          >
+            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={partnerMode ? { background: '#0f0f0f' } : { background: 'white' }} />
+            {partnerMode ? 'Partner Login' : 'Login'}
           </button>
         </div>
       </nav>
@@ -127,9 +140,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
         {showLogin ? (
           <div className="w-full max-w-[1200px] flex justify-center animate-in fade-in">
             <div className="max-w-md w-full bg-white p-4 md:p-8 rounded-2xl shadow-elevation-3 border border-zinc-100 animate-in fade-in zoom-in-95 duration-500 mx-auto">
+              {partnerMode && (
+                <div className="mb-5 md:mb-6 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2" style={{ background: 'rgba(245,158,11,.08)', color: '#f59e0b', border: '1px solid rgba(245,158,11,.2)' }}>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#f59e0b' }} />
+                    Partner Portal
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between items-center mb-5 md:mb-8">
-                  <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">{isAdmin ? 'Admin' : 'Welcome Back'}</h2>
-                  <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>
+                  <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">
+                    {partnerMode ? 'Partner Login' : isAdmin ? 'Admin' : 'Welcome Back'}
+                  </h2>
+                  {!partnerMode && (
+                    <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>
+                  )}
               </div>
               <div className="space-y-4 md:space-y-6">
                 
@@ -231,11 +256,31 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                           )}
                         </div>
                     )}
-                    <button type="submit" disabled={isLoading} className="w-full py-4 md:py-5 bg-brand border border-black text-white rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
-                      {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Secure Login <ArrowRight size={16} /></>}
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      style={partnerMode ? { background: '#f59e0b', color: '#0f0f0f' } : {}}
+                      className={`w-full py-4 md:py-5 border border-black rounded-full font-bold text-xs uppercase tracking-wide shadow-elevation-2 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 ${partnerMode ? '' : 'bg-brand text-white'}`}
+                    >
+                      {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><div className="w-2 h-2 rounded-full" style={partnerMode ? { background: '#0f0f0f' } : { background: 'white' }} /> Secure Login <ArrowRight size={16} /></>}
                     </button>
                 </form>
-                {!isAdmin && (
+                {partnerMode ? (
+                    <div className="mt-6 p-4 rounded-2xl border text-xs" style={{ background: 'rgba(245,158,11,.04)', borderColor: 'rgba(245,158,11,.15)', color: '#555' }}>
+                        <p className="font-black uppercase tracking-widest text-[10px] mb-3" style={{ color: '#f59e0b' }}>As an HMC Referral Partner, your portal gives you:</p>
+                        <ul className="space-y-1.5 mb-4 font-bold text-zinc-600">
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Incoming referral notifications from HMC staff</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> One-click status updates (Accept, In Progress, Completed)</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Your organization profile (editable)</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Performance metrics and outcome tracking</li>
+                        </ul>
+                        <p className="text-zinc-400 font-bold leading-relaxed">
+                            Don't have an account yet? Partners are invite-only. Email{' '}
+                            <a href="mailto:partner@healthmatters.clinic" className="font-bold underline" style={{ color: '#f59e0b', textUnderlineOffset: 2 }}>partner@healthmatters.clinic</a>
+                            {' '}to get started.
+                        </p>
+                    </div>
+                ) : !isAdmin && (
                     <div className="text-center pt-2">
                         <p className="text-xs font-bold text-zinc-400">Don't have an account yet?</p>
                         <button onClick={handleSignUpClick} className="mt-3 bg-white border border-black text-zinc-900 px-6 py-2.5 min-h-[44px] rounded-full font-bold text-[10px] uppercase tracking-wide flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-elevation-1 mx-auto">
@@ -246,6 +291,38 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 )}
               </div>
             </div>
+          </div>
+        ) : partnerMode ? (
+          <div className="max-w-[1200px] text-center space-y-8 md:space-y-16 animate-in fade-in duration-1000">
+             <div className="space-y-4 md:space-y-8">
+                <div className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-1.5 md:py-2 border rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-2 md:mb-4" style={{ background: 'rgba(245,158,11,.06)', color: '#f59e0b', borderColor: 'rgba(245,158,11,.15)' }}>
+                   <div className="w-2 h-2 rounded-full" style={{ background: '#f59e0b' }} /> HMC Referral Partner Network
+                </div>
+                <h1 className="text-4xl sm:text-5xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.9] md:leading-[0.85] mb-4 md:mb-8 italic uppercase">
+                  Partner<br/>
+                  <span style={{ background: 'linear-gradient(to right, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Portal.</span>
+                </h1>
+                <p className="text-sm md:text-lg lg:text-xl text-zinc-400 font-bold max-w-4xl mx-auto leading-relaxed italic px-2">
+                  Manage your referrals, update your organization profile, and track outcomes — all in one place.
+                </p>
+             </div>
+             <div className="pt-4 md:pt-8 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+                <button
+                  onClick={handleVolunteerLoginClick}
+                  className="w-full md:w-auto border border-black text-zinc-900 px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4 group"
+                  style={{ background: '#f59e0b', color: '#0f0f0f' }}
+                >
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ background: '#0f0f0f' }} />
+                  Sign In <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
+                </button>
+                <a
+                  href="mailto:partner@healthmatters.clinic"
+                  className="w-full md:w-auto bg-white border border-black text-zinc-900 px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4"
+                >
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-black" />
+                  Request Access
+                </a>
+             </div>
           </div>
         ) : (
           <div className="max-w-[1200px] text-center space-y-8 md:space-y-16 animate-in fade-in duration-1000">
@@ -276,7 +353,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa961f15351ec1bc5243e_P1100963.jpeg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9a26489edb0895bc219_Website_Kerry.jpeg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9607ca39931abff9f95_Profile%20Image.jpeg',
-                        'https://cdn.prod.website-files.com/67359e6040140078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg',
+                        'https://cdn.prod.website-files.com/67359e6040150078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa7619fae2db0b4ec877e_headshot%20(1).jpg',
                       ].map((src, i) => (
                         <img key={i} src={src} alt="HMC volunteer" className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-zinc-900 object-cover" />
