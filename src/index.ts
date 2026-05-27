@@ -8665,7 +8665,7 @@ ${agencyName}`;
                      <p>Congratulations — your partnership application has been approved.</p>
                      <p>A partnership agreement has been sent to your Partner Portal for review and e-signature.</p>
                      <p>Log in at <a href="https://partner.healthmatters.clinic">partner.healthmatters.clinic</a> to review and sign.</p>
-                     ${actionButton('Review and Sign Agreement', 'https://volunteer.healthmatters.clinic?page=partner')}
+                     ${actionButton('Review and Sign Agreement', 'https://partner.healthmatters.clinic')}
                      ${emailFooter()}`;
                 const rejectedBody = `${emailHeader('Partnership Application Update')}
                      <p>Dear ${partnerData.contactName || 'Partner'},</p>
@@ -8673,7 +8673,7 @@ ${agencyName}`;
                      <p><strong>Status:</strong> Not Approved at This Time</p>
                      ${reviewNotes ? `<p><strong>Notes:</strong> ${reviewNotes}</p>` : ''}
                      <p>Please contact us if you have questions about this decision.</p>
-                     ${actionButton('Go to Partner Portal', 'https://volunteer.healthmatters.clinic?page=partner')}
+                     ${actionButton('Go to Partner Portal', 'https://partner.healthmatters.clinic')}
                      ${emailFooter()}`;
                 await sendEmailRaw(
                     partnerEmail,
@@ -8741,10 +8741,10 @@ app.post('/api/admin/partner-agreements', verifyToken, requireAdmin, async (req:
                      <p>Health Matters Clinic has sent you a partnership agreement to review and sign:</p>
                      <p><strong>${title.trim()}</strong></p>
                      <p>Please log in to the partner portal to review and e-sign this agreement.</p>
-                     ${actionButton('Review and Sign Agreement', 'https://volunteer.healthmatters.clinic?page=partner')}
+                     ${actionButton('Review and Sign Agreement', 'https://partner.healthmatters.clinic')}
                      <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">If you did not expect this, please contact us at contact@healthmatters.clinic</p>
                      ${emailFooter()}`,
-                    `Health Matters Clinic has sent you a partnership agreement to review and sign. Log in at volunteer.healthmatters.clinic?page=partner to view and sign it.`
+                    `Health Matters Clinic has sent you a partnership agreement to review and sign. Log in at partner.healthmatters.clinic to view and sign it.`
                 );
             }
         } catch (emailErr) {

@@ -36,7 +36,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     const params = new URLSearchParams(window.location.search);
     const page = params.get('page');
     const pathname = window.location.pathname;
-    if (page === 'partner' || pathname === '/partner' || pathname.startsWith('/partner/')) return 'partnerLanding';
+    const hostname = window.location.hostname;
+    if (page === 'partner' || pathname === '/partner' || pathname.startsWith('/partner/') || hostname === 'partner.healthmatters.clinic') return 'partnerLanding';
     return 'landing';
   });
   const [loading, setLoading] = useState(true);
