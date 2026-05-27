@@ -1568,6 +1568,9 @@ const EventsTab: React.FC = () => {
   const [eventTime, setEventTime] = useState('');
   const [location, setLocation] = useState('');
   const [flyerLink, setFlyerLink] = useState('');
+  const [attachBanner, setAttachBanner] = useState(false);
+  const [bannerImageUrl, setBannerImageUrl] = useState('');
+  const [bannerLinkUrl, setBannerLinkUrl] = useState('');
   const [rsvpNotify, setRsvpNotify] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState('');
 
@@ -1619,6 +1622,12 @@ const EventsTab: React.FC = () => {
       if (rsvpNotify && notifyEmail.trim()) {
         params.set('notificationEmail', notifyEmail.trim());
       }
+      if (attachBanner && bannerImageUrl.trim()) {
+        params.set('bannerImageUrl', bannerImageUrl.trim());
+      }
+      if (attachBanner && bannerLinkUrl.trim()) {
+        params.set('bannerLinkUrl', bannerLinkUrl.trim());
+      }
       await fetch(`${PARTNER_EVENT_GAS_URL}?${params.toString()}`, {
         method: 'GET',
         mode: 'no-cors',
@@ -1639,6 +1648,9 @@ const EventsTab: React.FC = () => {
     setEventTime('');
     setLocation('');
     setFlyerLink('');
+    setAttachBanner(false);
+    setBannerImageUrl('');
+    setBannerLinkUrl('');
     setRsvpNotify(false);
     setNotifyEmail(profile?.contactEmail || '');
     setSubmitted(false);
@@ -1770,6 +1782,54 @@ const EventsTab: React.FC = () => {
               <p className="text-[10px] text-zinc-400 font-medium mt-1.5">
                 Upload to Canva or Google Drive and paste the public link.
               </p>
+            </div>
+
+            {/* Sponsor Banner (optional) */}
+            <div className="p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={attachBanner}
+                    onChange={e => setAttachBanner(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-10 h-6 rounded-full transition-colors ${attachBanner ? 'bg-[#233DFF]' : 'bg-zinc-300'}`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${attachBanner ? 'translate-x-5' : 'translate-x-1'}`} />
+                </div>
+                <span className="font-black text-zinc-900 text-sm">Attach a sponsor banner to this event listing</span>
+              </label>
+
+              {attachBanner && (
+                <div className="space-y-3 pt-1">
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-xs text-blue-700 leading-relaxed">
+                    Banners are reviewed by HMC before going live alongside your event.
+                  </div>
+                  <div>
+                    <label className={labelCls}>Banner Image URL <span className="font-normal normal-case text-zinc-400">— 728x90px recommended</span></label>
+                    <input
+                      type="url"
+                      value={bannerImageUrl}
+                      onChange={e => setBannerImageUrl(e.target.value)}
+                      className={inputCls}
+                      placeholder="Canva/Drive/Dropbox public link to your banner image"
+                    />
+                    <p className="text-[10px] text-zinc-400 font-medium mt-1.5">
+                      Upload to Canva (Share link) or Google Drive (Anyone with link) and paste the public URL. Recommended size: 728x90px.
+                    </p>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Banner Link URL <span className="font-normal normal-case text-zinc-400">— optional</span></label>
+                    <input
+                      type="url"
+                      value={bannerLinkUrl}
+                      onChange={e => setBannerLinkUrl(e.target.value)}
+                      className={inputCls}
+                      placeholder="Where clicking the banner goes, e.g. your website"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* RSVP Notification Toggle */}
