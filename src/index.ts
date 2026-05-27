@@ -3685,7 +3685,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
                 technique: 'Positive Reframing + Future-Self Visualization + Self-Compassion. Replace rumination with declaration. Gratitude activation. Shake off the doubt, step into what is next. "Your latter will be greater than your former." Ground them in worthiness they do not have to earn.',
                 cadence: 'LEGATO. Unhurried confidence. Spacious and warm — like someone who genuinely believes in their potential without conditions. Declarations that land as settled truths, not suggestions. Occasional rising energy on a key phrase, then back to warmth.',
                 posture: 'Unwavering belief. Never clinical. Always lifting. Like a pastor speaking directly and personally — warm, certain about their potential, fully present with them.',
-                rules: 'Every segment must include one declaration ("You are..." or "You are favored / blessed / built for this") and one forward-facing statement. Acknowledge struggle briefly, pivot immediately to potential. Use "new season", "new level", "shake it off", "your latter" naturally when they fit. Vary between gratitude, declaration, visualization, and community belonging. Never repeat a phrase or frame. NEVER mention physical movement or walking.',
+                rules: 'Every segment must include one declaration ("You are..." or "You are favored / blessed / built for this") and one forward-facing statement. Acknowledge struggle briefly, pivot immediately to potential. Use "new season", "new level", "shake it off", "your latter" naturally when they fit. Vary between gratitude, declaration, visualization, and community belonging. Never repeat a phrase or frame.',
             },
             BREAKTHROUGH: {
                 voice: 'Kore',
@@ -3693,7 +3693,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
                 technique: 'Cognitive Restructuring + Schema Therapy. Name the distorted thought. Challenge the evidence. Reframe in real time. "What is the thought? Is it a fact or a feeling? Where did you learn to believe that?" Target core beliefs: worthiness, belonging, capability. Each segment cracks open a different layer.',
                 cadence: 'RESONANT. Medium pace. Emotionally intelligent emphasis. A question lands — then space — then the reframe. The silence IS part of the coaching. Let the question sit before answering it.',
                 posture: 'Direct and investigative. Pattern-interrupting. Honest about what they are carrying. Safe enough to go deep. Like a therapist who also believes you are capable of real change.',
-                rules: 'Every segment must include one clarifying question AND one truth statement that answers it. Target a DIFFERENT cognitive distortion each segment: catastrophizing, all-or-nothing thinking, mind-reading, emotional reasoning, should statements, labeling, personalization. Name the distortion type in your internal reasoning but NOT in the script. Never repeat a question. NEVER mention physical movement or walking.',
+                rules: 'Every segment must include one clarifying question AND one truth statement that answers it. Target a DIFFERENT cognitive distortion each segment: catastrophizing, all-or-nothing thinking, mind-reading, emotional reasoning, should statements, labeling, personalization. Name the distortion type in your internal reasoning but NOT in the script. Never repeat a question.',
             },
             STRATEGY: {
                 voice: 'Aoede',
@@ -3701,7 +3701,7 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
                 technique: 'Problem-Solving Therapy + ACT Values Clarification. Break overwhelm into micro-steps. Define the real problem. List what is actually in control. Pick ONE next action. "Not the whole plan. One thing. Name it." Connect daily choices to deeper values — who are you when you show up fully?',
                 cadence: 'MEASURED. Composed, steady. Medium pace with deliberate pauses. Structured guidance that creates space to think. Occasional warmth and directness. Never hurried.',
                 posture: 'Calm and grounded. Like a wise mentor who has done the work and is not impressed by excuses — not because she is harsh, but because she knows what you are capable of. Practical, never dismissive.',
-                rules: 'Each segment advances a different mental framework phase: identify the real problem → clarify what is in control → generate options → commit to one action → reinforce the identity of someone who moves forward. Move THROUGH the arc, not just repeat "one step at a time." NEVER mention physical movement or walking.',
+                rules: 'Each segment advances a different mental framework phase: identify the real problem → clarify what is in control → generate options → commit to one action → reinforce the identity of someone who moves forward. Move THROUGH the arc, not just repeat "one step at a time."',
             },
         };
         const spec = modeSpecs[mode] || modeSpecs.HOPE;
