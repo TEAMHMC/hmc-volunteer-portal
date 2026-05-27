@@ -120,12 +120,12 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
         <a href="https://www.healthmatters.clinic" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <img src={APP_CONFIG.BRAND.logoUrl} alt="Health Matters Clinic" width={36} height={36} style={{ borderRadius: 8, background: '#fff', objectFit: 'contain' }} />
           <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.01em', color: '#fff' }}>
-            HMC <span style={{ color: '#ff6e40' }}>Partner Portal</span>
+            HMC <span style={{ color: '#f9c74f' }}>Partner Portal</span>
           </span>
         </a>
         <button
           onClick={() => { window.history.replaceState({}, '', '/'); onLogin(true); }}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#ff6e40', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f9c74f', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
         >
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
           Partner Login
@@ -137,8 +137,8 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
 
         {/* Header */}
         <div style={{ marginBottom: 40, textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,110,64,.12)', border: '1px solid rgba(255,110,64,.3)', borderRadius: 100, padding: '8px 16px', marginBottom: 20, fontSize: 12, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(255,110,64,.85)' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff6e40', display: 'inline-block', flexShrink: 0 }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(249,199,79,.12)', border: '1px solid rgba(249,199,79,.3)', borderRadius: 100, padding: '8px 16px', marginBottom: 20, fontSize: 12, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(249,199,79,.85)' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f9c74f', display: 'inline-block', flexShrink: 0 }} />
             HMC Referral Partner Network
           </div>
           <h1 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1.05, marginBottom: 12, color: '#fff' }}>
@@ -155,7 +155,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
 
             {/* Organization Name */}
             <div>
-              <label style={labelStyle}>Organization Name <span style={{ color: '#ff6e40' }}>*</span></label>
+              <label style={labelStyle}>Organization Name <span style={{ color: '#f9c74f' }}>*</span></label>
               <input
                 type="text"
                 value={orgName}
@@ -184,7 +184,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
 
             {/* Contact Name */}
             <div>
-              <label style={labelStyle}>Your Full Name <span style={{ color: '#ff6e40' }}>*</span></label>
+              <label style={labelStyle}>Your Full Name <span style={{ color: '#f9c74f' }}>*</span></label>
               <input
                 type="text"
                 value={contactName}
@@ -198,7 +198,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
 
             {/* Email */}
             <div>
-              <label style={labelStyle}>Your Email <span style={{ color: '#ff6e40' }}>*</span></label>
+              <label style={labelStyle}>Your Email <span style={{ color: '#f9c74f' }}>*</span></label>
               <input
                 type="email"
                 value={email}
@@ -212,7 +212,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
 
             {/* Password */}
             <div>
-              <label style={labelStyle}>Password <span style={{ color: '#ff6e40' }}>*</span></label>
+              <label style={labelStyle}>Password <span style={{ color: '#f9c74f' }}>*</span></label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -282,7 +282,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
             <button
               type="submit"
               disabled={loading}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: loading ? 'rgba(255,110,64,.5)' : '#ff6e40', color: '#0f0f0f', border: 'none', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4, transition: 'opacity .2s' }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: loading ? 'rgba(249,199,79,.5)' : '#f9c74f', color: '#0f0f0f', border: 'none', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4, transition: 'opacity .2s' }}
             >
               {loading ? (
                 <>
@@ -303,7 +303,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
               <button
                 type="button"
                 onClick={() => { window.history.replaceState({}, '', '/'); onLogin(true); }}
-                style={{ background: 'none', border: 'none', color: '#ff6e40', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}
+                style={{ background: 'none', border: 'none', color: '#f9c74f', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}
               >
                 Sign in
               </button>
