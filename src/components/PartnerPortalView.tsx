@@ -6,14 +6,14 @@ import {
   CheckCircle, AlertTriangle, Clock, X, ChevronRight, Award,
   Phone, Mail, Globe, MapPin, Save, Activity,
   ClipboardList, MessageSquare, Palette, Inbox, BarChart2,
-  Plus, Trash2, Eye, Printer,
+  Plus, Trash2, Eye, Printer, Calendar, ExternalLink,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type PortalTab = 'referrals' | 'organization' | 'performance' | 'apply' | 'community' | 'agreements' | 'brand';
+type PortalTab = 'referrals' | 'organization' | 'performance' | 'apply' | 'community' | 'events' | 'agreements' | 'brand';
 
 interface PartnerReferral {
   id: string;
@@ -1548,6 +1548,295 @@ const CommunityBoardTab: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tab: Events
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EventsTab: React.FC = () => {
+  // Profile state (for pre-filling org name and email)
+  const [profile, setProfile] = useState<PartnerProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
+  // Form fields
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [proposedDate, setProposedDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
+  const [location, setLocation] = useState('');
+  const [flyerLink, setFlyerLink] = useState('');
+  const [rsvpNotify, setRsvpNotify] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
+
+  // Submission state
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  useEffect(() => {
+    apiService.get('/api/partner/profile')
+      .then((data: any) => {
+        setProfile(data);
+        if (data?.contactEmail) setNotifyEmail(data.contactEmail);
+      })
+      .catch(() => {})
+      .finally(() => setProfileLoaded(true));
+  }, []);
+
+  const canSubmit =
+    title.trim().length > 0 &&
+    description.trim().length > 0 &&
+    proposedDate.length > 0 &&
+    eventTime.trim().length > 0 &&
+    location.trim().length > 0;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      // Submit to the portal sync-event endpoint with pending status so HMC reviews it
+      await apiService.post('/api/public/sync-event', {
+        title: title.trim(),
+        description: description.trim(),
+        date: proposedDate,
+        dateDisplay: proposedDate,
+        time: eventTime.trim(),
+        location: location.trim(),
+        address: location.trim(),
+        flyerUrl: flyerLink.trim() || undefined,
+        source: 'partner-portal',
+        approvalStatus: 'pending',
+        submittedBy: profile?.name || undefined,
+        submittedByEmail: profile?.contactEmail || undefined,
+        rsvpNotifyEmail: rsvpNotify ? notifyEmail.trim() : undefined,
+        createdAt: new Date().toISOString(),
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitError('Submission failed. Please try again or contact partner@healthmatters.clinic.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setTitle('');
+    setDescription('');
+    setProposedDate('');
+    setEventTime('');
+    setLocation('');
+    setFlyerLink('');
+    setRsvpNotify(false);
+    setNotifyEmail(profile?.contactEmail || '');
+    setSubmitted(false);
+    setSubmitError('');
+  };
+
+  if (!profileLoaded) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={32} className="animate-spin text-zinc-300" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-10">
+      {/* Section 1: Submit Your Event */}
+      <div>
+        <div className="mb-6">
+          <h2 className="text-base font-black text-zinc-900">Submit Your Event</h2>
+          <p className="text-sm text-zinc-500 font-medium mt-1">
+            Submit a community event for listing on the HMC Event Finder. HMC will review and approve within 48 hours.
+          </p>
+        </div>
+
+        {submitted ? (
+          <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-4">
+            <CheckCircle size={40} className="mx-auto text-emerald-500" />
+            <h3 className="font-black text-zinc-900 text-lg">Event Submitted</h3>
+            <p className="text-sm text-zinc-600 font-medium leading-relaxed">
+              Your event has been submitted for review. HMC will notify you within 48 hours.
+            </p>
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[40px] bg-[#233DFF] text-white font-black uppercase tracking-wider rounded-full text-xs hover:bg-[#1a2de0] transition-colors"
+            >
+              <Plus size={13} /> Submit Another Event
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Organization (read-only, pre-filled) */}
+            <div>
+              <label className={labelCls}>Submitting Organization</label>
+              <input
+                type="text"
+                value={profile?.name || ''}
+                readOnly
+                className="w-full p-4 bg-zinc-100 border-2 border-zinc-100 rounded-2xl font-bold text-sm text-zinc-500 cursor-not-allowed"
+              />
+            </div>
+
+            {/* Event Title */}
+            <div>
+              <label className={labelCls}>Event Title *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                required
+                className={inputCls}
+                placeholder="Name of your event"
+              />
+            </div>
+
+            {/* Event Description */}
+            <div>
+              <label className={labelCls}>Event Description *</label>
+              <textarea
+                rows={4}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                required
+                className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-[#233DFF]/30 font-medium text-sm resize-none"
+                placeholder="Describe the event, who it's for, and what attendees can expect..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Proposed Date */}
+              <div>
+                <label className={labelCls}>Proposed Date *</label>
+                <input
+                  type="date"
+                  value={proposedDate}
+                  onChange={e => setProposedDate(e.target.value)}
+                  required
+                  className={inputCls}
+                />
+              </div>
+
+              {/* Event Time */}
+              <div>
+                <label className={labelCls}>Event Time *</label>
+                <input
+                  type="text"
+                  value={eventTime}
+                  onChange={e => setEventTime(e.target.value)}
+                  required
+                  className={inputCls}
+                  placeholder="e.g. 10:00 AM - 2:00 PM"
+                />
+              </div>
+            </div>
+
+            {/* Event Location */}
+            <div>
+              <label className={labelCls}>Event Location *</label>
+              <input
+                type="text"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                required
+                className={inputCls}
+                placeholder="Street address, City, State, ZIP"
+              />
+            </div>
+
+            {/* Flyer Link */}
+            <div>
+              <label className={labelCls}>Flyer Link <span className="font-normal normal-case text-zinc-400">— optional</span></label>
+              <input
+                type="url"
+                value={flyerLink}
+                onChange={e => setFlyerLink(e.target.value)}
+                className={inputCls}
+                placeholder="https://"
+              />
+              <p className="text-[10px] text-zinc-400 font-medium mt-1.5">
+                Upload to Canva or Google Drive and paste the public link.
+              </p>
+            </div>
+
+            {/* RSVP Notification Toggle */}
+            <div className="p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={rsvpNotify}
+                    onChange={e => setRsvpNotify(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-10 h-6 rounded-full transition-colors ${rsvpNotify ? 'bg-[#233DFF]' : 'bg-zinc-300'}`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${rsvpNotify ? 'translate-x-5' : 'translate-x-1'}`} />
+                </div>
+                <span className="font-black text-zinc-900 text-sm">Notify me when someone RSVPs</span>
+              </label>
+
+              {rsvpNotify && (
+                <div>
+                  <label className={labelCls}>Notification Email</label>
+                  <input
+                    type="email"
+                    value={notifyEmail}
+                    onChange={e => setNotifyEmail(e.target.value)}
+                    className={inputCls}
+                    placeholder="your@email.com"
+                  />
+                  <p className="text-[10px] text-zinc-400 font-medium mt-1.5 leading-relaxed">
+                    RSVPs will be tracked through HMC's system. You'll receive an email for each registration.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {submitError && (
+              <p className="text-rose-500 text-sm font-medium">{submitError}</p>
+            )}
+
+            <div className="pt-1">
+              <button
+                type="submit"
+                disabled={submitting || !canSubmit}
+                className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-[#233DFF] text-white font-black uppercase tracking-wider rounded-full text-sm hover:bg-[#1a2de0] disabled:opacity-50 transition-colors"
+              >
+                {submitting
+                  ? <><Loader2 size={16} className="animate-spin" /> Submitting...</>
+                  : <><Calendar size={14} /> Submit Event for Review</>
+                }
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Section 2: Your Submitted Events */}
+      <div>
+        <h2 className="text-base font-black text-zinc-900 mb-3">Your Submitted Events</h2>
+        <div className="p-5 bg-zinc-50 border border-zinc-100 rounded-2xl space-y-2">
+          <p className="text-sm text-zinc-600 font-medium leading-relaxed">
+            Your submitted events appear in the Event Finder after HMC review. Track your events at{' '}
+            <a
+              href="https://eventfinder.healthmatters.clinic"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#233DFF] font-bold hover:underline inline-flex items-center gap-1"
+            >
+              eventfinder.healthmatters.clinic <ExternalLink size={11} />
+            </a>
+          </p>
+          <p className="text-xs text-zinc-400 font-medium">
+            Contact <a href="mailto:partner@healthmatters.clinic" className="text-[#233DFF] hover:underline">partner@healthmatters.clinic</a> if you need to update or remove a listed event.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tab: Agreements
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1935,6 +2224,7 @@ const PartnerPortalView: React.FC<PartnerPortalProps> = ({ onBackToLanding }) =>
     { id: 'performance',   label: 'Performance',      mobileLabel: 'Stats',      Icon: BarChart2 },
     { id: 'apply',         label: 'Apply',            mobileLabel: 'Apply',      Icon: ClipboardList },
     { id: 'community',     label: 'Community Board',  mobileLabel: 'Board',      Icon: MessageSquare },
+    { id: 'events',        label: 'Events',           mobileLabel: 'Events',     Icon: Calendar },
     { id: 'agreements',    label: 'Agreements',       mobileLabel: 'Agreements', Icon: FileText },
     { id: 'brand',         label: 'Brand Assets',     mobileLabel: 'Brand',      Icon: Palette },
   ];
@@ -1995,6 +2285,7 @@ const PartnerPortalView: React.FC<PartnerPortalProps> = ({ onBackToLanding }) =>
         {activeTab === 'performance'  && <PerformanceTab />}
         {activeTab === 'apply'        && <ApplyTab />}
         {activeTab === 'community'    && <CommunityBoardTab />}
+        {activeTab === 'events'       && <EventsTab />}
         {activeTab === 'agreements'   && <AgreementsTab />}
         {activeTab === 'brand'        && <BrandAssetsTab />}
       </main>
