@@ -8,6 +8,7 @@ import ClientPortal from './ClientPortal';
 import PartnerPortalView from './PartnerPortalView';
 import PartnerAcceptInvite from './PartnerAcceptInvite';
 import PartnerLandingPage from './PartnerLandingPage';
+import PartnerRegisterPage from './PartnerRegisterPage';
 import SystemTour from './SystemTour';
 import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
@@ -30,7 +31,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [gamification, setGamification] = useState<any>(null);
 
-  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerLanding'>(() => {
+  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerLanding' | 'partnerRegister'>(() => {
     if (typeof window === 'undefined') return 'landing';
     const params = new URLSearchParams(window.location.search);
     const page = params.get('page');
@@ -301,7 +302,28 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   if (view === 'partnerPortal') return <PartnerPortalView onBackToLanding={handleReturnToLanding} />;
 
-  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} />;
+  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} onRegister={() => setView('partnerRegister')} />;
+
+  if (view === 'partnerRegister') return (
+    <PartnerRegisterPage
+      onRegistered={async () => {
+        setLoading(true);
+        try {
+          const data = await apiService.get('/auth/me');
+          if (data.user) {
+            setAppData(data);
+            apiService.startSessionHeartbeat();
+            setView('partnerPortal');
+          }
+        } catch {
+          setView('partnerLanding');
+        } finally {
+          setLoading(false);
+        }
+      }}
+      onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }}
+    />
+  );
 
   // Partner invite acceptance — show when URL has ?partnerToken=...&partnerId=...
   if (partnerToken && partnerInviteId) {

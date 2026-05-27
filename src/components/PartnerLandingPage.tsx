@@ -3,9 +3,14 @@ import { APP_CONFIG } from '../config';
 
 interface PartnerLandingPageProps {
   onLogin: (partnerMode?: boolean) => void;
+  onRegister: () => void;
 }
 
-const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin }) => {
+const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegister }) => {
+  const handleLogin = () => {
+    window.history.replaceState({}, '', '/');
+    onLogin(true);
+  };
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", background: '#0f0f0f', color: '#fff', minHeight: '100vh', WebkitFontSmoothing: 'antialiased' }}>
 
@@ -22,7 +27,13 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin }) => {
             Request Access
           </a>
           <button
-            onClick={() => onLogin(true)}
+            onClick={onRegister}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.7)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
+          >
+            Create Account
+          </button>
+          <button
+            onClick={handleLogin}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f59e0b', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
@@ -54,21 +65,27 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin }) => {
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <a
-              href="mailto:partner@healthmatters.clinic"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f59e0b', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', textDecoration: 'none' }}
+            <button
+              onClick={onRegister}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f59e0b', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
             >
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
-              Request Partner Access
-            </a>
+              Create a Partner Account
+            </button>
             <button
-              onClick={() => onLogin(true)}
+              onClick={handleLogin}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#111', border: '1px solid #0f0f0f', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
             >
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#111', display: 'inline-block', flexShrink: 0 }} />
               Partner Login
             </button>
           </div>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', marginTop: 20 }}>
+            New to the partner network?{' '}
+            <button onClick={onRegister} style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
+              Create your account in 2 minutes.
+            </button>
+          </p>
         </div>
       </section>
 
@@ -192,19 +209,27 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin }) => {
             <div style={{ background: '#0f0f0f', borderRadius: 24, padding: '48px 40px', color: '#fff' }}>
               <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(245,158,11,.7)', marginBottom: 20 }}>Get Started</p>
               <h3 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1, marginBottom: 16, color: '#fff' }}>Interested in becoming an HMC Referral Partner?</h3>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 32 }}>
-                Reach out to our partnerships team. We review organizations on a rolling basis and typically respond within 5 business days.
+              <p style={{ fontSize: 15, color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 24 }}>
+                Create your partner account in minutes and start managing referrals right away. Or reach out to our team if you have questions first.
               </p>
-              <a
-                href="mailto:partner@healthmatters.clinic"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f59e0b', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '14px 28px', fontSize: 14, fontWeight: 700, letterSpacing: '.02em', textDecoration: 'none' }}
+              <button
+                onClick={onRegister}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f59e0b', color: '#0f0f0f', border: 'none', borderRadius: 100, padding: '14px 28px', fontSize: 14, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', marginBottom: 12 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
-                Email partner@healthmatters.clinic
-              </a>
+                Create a Partner Account
+              </button>
+              <div>
+                <a
+                  href="mailto:partner@healthmatters.clinic"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '12px 24px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', textDecoration: 'none' }}
+                >
+                  Email partner@healthmatters.clinic
+                </a>
+              </div>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,.3)', marginTop: 20, lineHeight: 1.6 }}>
                 Already have an account?{' '}
-                <button onClick={() => onLogin(true)} style={{ background: 'none', border: 'none', color: 'rgba(245,158,11,.8)', cursor: 'pointer', fontSize: 13, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
+                <button onClick={handleLogin} style={{ background: 'none', border: 'none', color: 'rgba(245,158,11,.8)', cursor: 'pointer', fontSize: 13, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
                   Sign in to the Partner Portal
                 </button>
               </p>
@@ -217,9 +242,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin }) => {
       <footer style={{ background: '#111', color: '#fff', padding: '40px 48px', borderTop: '1px solid rgba(255,255,255,.07)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,.3)' }}>
-            Powered by Health Matters Clinic
-            <span style={{ margin: '0 8px', color: 'rgba(255,255,255,.15)' }}>·</span>
-            <a href="https://volunteer.healthmatters.clinic" style={{ color: 'rgba(255,255,255,.35)', textDecoration: 'none' }}>volunteer.healthmatters.clinic</a>
+            &copy; 2026 Health Matters Clinic
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             <a href="https://www.healthmatters.clinic" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', textDecoration: 'none' }}>healthmatters.clinic</a>

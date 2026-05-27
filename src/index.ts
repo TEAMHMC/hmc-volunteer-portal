@@ -7855,6 +7855,144 @@ app.post('/api/partners/accept-invite', async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/partners/register-self — Public: partner self-registers without an invite
+app.post('/api/partners/register-self', async (req: Request, res: Response) => {
+    try {
+        const { orgName, orgType, contactName, email, password, phone, website, servicesProvided } = req.body;
+
+        // Validate required fields
+        if (!orgName || !contactName || !email || !password) {
+            return res.status(400).json({ error: 'orgName, contactName, email, and password are required.' });
+        }
+        if (password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+        }
+
+        const emailLower = email.toLowerCase().trim();
+
+        // Check if email already exists in volunteers
+        const existingSnap = await db.collection('volunteers').where('email', '==', emailLower).limit(1).get();
+        if (!existingSnap.empty) {
+            return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
+        }
+
+        // Create Firebase Auth user (handles password securely)
+        let finalUserId: string;
+        try {
+            const userRecord = await auth.createUser({ email: emailLower, password, displayName: contactName });
+            finalUserId = userRecord.uid;
+        } catch (authError: any) {
+            console.error('[PARTNER REGISTER] Firebase Auth createUser failed:', authError.message);
+            return res.status(400).json({ error: 'Failed to create account: ' + (authError.message || 'unknown error') });
+        }
+
+        const now = new Date().toISOString();
+
+        // Create partner_agencies doc first to get the ID
+        const agencyData: Record<string, any> = {
+            name: orgName.trim(),
+            type: orgType || 'Other',
+            contactName: contactName.trim(),
+            contactEmail: emailLower,
+            contactPhone: phone ? phone.trim() : '',
+            website: website ? website.trim() : '',
+            servicesProvided: servicesProvided ? [servicesProvided.trim()] : [],
+            status: 'Active',
+            partnerSince: now,
+            portalAccess: true,
+            portalUserEmail: emailLower,
+        };
+        const agencyRef = await db.collection('partner_agencies').add(agencyData);
+        const partnerAgencyId = agencyRef.id;
+
+        // Create volunteer account
+        const newUser: Record<string, any> = {
+            id: finalUserId,
+            email: emailLower,
+            name: contactName.trim(),
+            volunteerRole: 'Partner Agency',
+            isAdmin: false,
+            status: 'Active',
+            partnerSelfRegistered: true,
+            partnerAgencyId,
+            authProvider: 'email',
+            createdAt: now,
+            updatedAt: now,
+            coreVolunteerStatus: false,
+            hipaaCompliant: false,
+            phone: phone ? phone.trim() : '',
+            address: '',
+            city: '',
+            state: '',
+            zipCode: '',
+            dob: '',
+            gender: '',
+            hmcAffiliation: [],
+            isEmployed: false,
+            isStudent: false,
+            tshirtSize: '',
+            gainFromExperience: '',
+            howDidYouHear: '',
+            mailingAddressSame: true,
+            emergencyContact: { name: '', phone: '', relationship: '' },
+        };
+        await db.collection('volunteers').doc(finalUserId).set(newUser);
+
+        // Update agency doc with the portal user ID
+        await agencyRef.update({ portalUserId: finalUserId });
+
+        console.log(`[PARTNER REGISTER] Self-registration: ${orgName} (${emailLower}), agencyId=${partnerAgencyId}`);
+
+        // Send welcome email to partner
+        try {
+            const portalUrl = process.env.PORTAL_URL || 'https://volunteer.healthmatters.clinic';
+            const welcomeHtml = `${emailHeader('Welcome to the HMC Partner Portal')}
+                <p>Hi ${contactName.trim()},</p>
+                <p>Welcome to the Health Matters Clinic Partner Portal. Your account for <strong>${orgName.trim()}</strong> has been created and is now active.</p>
+                <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
+                    <p style="margin: 0 0 8px;"><strong>What you can do in the portal:</strong></p>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>View referrals sent to your organization</li>
+                        <li>Accept, update, or complete referral statuses</li>
+                        <li>Manage your organization's profile</li>
+                    </ul>
+                </div>
+                ${actionButton('Access Your Partner Portal', portalUrl)}
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Questions? Contact us at ${EMAIL_CONFIG.SUPPORT_EMAIL}</p>
+            ${emailFooter()}`;
+            await sendEmailRaw(emailLower, 'Welcome to the HMC Partner Portal', welcomeHtml, `Hi ${contactName.trim()}, your HMC Partner Portal account for ${orgName.trim()} is now active. Log in at: ${portalUrl}`);
+        } catch (emailErr) {
+            console.error('[PARTNER REGISTER] Welcome email failed (non-fatal):', emailErr);
+        }
+
+        // Notify HMC of new self-registration
+        try {
+            const notifHtml = `${emailHeader('New Partner Self-Registration')}
+                <p>A new partner organization has self-registered on the HMC Partner Portal.</p>
+                <ul>
+                    <li><strong>Organization:</strong> ${orgName.trim()}</li>
+                    <li><strong>Type:</strong> ${orgType || 'Other'}</li>
+                    <li><strong>Contact:</strong> ${contactName.trim()}</li>
+                    <li><strong>Email:</strong> ${emailLower}</li>
+                    ${phone ? `<li><strong>Phone:</strong> ${phone.trim()}</li>` : ''}
+                    ${website ? `<li><strong>Website:</strong> ${website.trim()}</li>` : ''}
+                    ${servicesProvided ? `<li><strong>Services:</strong> ${servicesProvided.trim()}</li>` : ''}
+                </ul>
+                <p>Agency ID: ${partnerAgencyId}</p>
+            ${emailFooter()}`;
+            await sendEmailRaw('contact@healthmatters.clinic', `New partner self-registration: ${orgName.trim()}`, notifHtml, `New partner self-registration: ${orgName.trim()} (${emailLower})`);
+        } catch (notifErr) {
+            console.error('[PARTNER REGISTER] Notification email failed (non-fatal):', notifErr);
+        }
+
+        // Create session and return token + user
+        await createSession(finalUserId, res);
+    } catch (error: any) {
+        console.error('[PARTNER REGISTER] Self-registration failed:', error);
+        res.status(500).json({ error: error.message || 'Registration failed. Please try again.' });
+    }
+});
+
 // GET /api/partner/referrals — Partner views their referrals (privacy-filtered)
 app.get('/api/partner/referrals', verifyToken, async (req: Request, res: Response) => {
     try {
