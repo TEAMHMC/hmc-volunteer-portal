@@ -491,9 +491,9 @@ const AdminVolunteerDirectory: React.FC<DirectoryProps> = ({ volunteers, setVolu
                   <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-4">Compliance Status</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
-                      { icon: ShieldCheck, status: v.compliance.backgroundCheck.status, label: 'Safety' },
-                      { icon: Fingerprint, status: v.compliance.liveScan?.status, label: 'Bio' },
-                      { icon: FileCheck, status: v.compliance.training.status, label: 'Unit' },
+                      { icon: ShieldCheck, status: v.compliance?.backgroundCheck?.status, label: 'Safety' },
+                      { icon: Fingerprint, status: v.compliance?.liveScan?.status, label: 'Bio' },
+                      { icon: FileCheck, status: v.compliance?.training?.status, label: 'Unit' },
                     ].map((item, i) => {
                       const style = getComplianceStatus(item.status);
                       return (
