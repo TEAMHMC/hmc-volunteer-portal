@@ -5403,6 +5403,237 @@ app.get('/api/public/events', async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/public/events-schema — returns JSON-LD ItemList of upcoming events for Google rich results
+// Designed to be embedded as a <script type="application/ld+json"> in Webflow page <head>
+// No auth required; CORS open so Webflow and Google can fetch it directly
+app.get('/api/public/events-schema', async (_req: Request, res: Response) => {
+  try {
+    const today = getPacificDate();
+    const offset = getPacificOffset();
+
+    // Fetch same merged dataset used by Event Finder
+    const [snapshot, gasEvents] = await Promise.all([
+      db.collection('opportunities').where('approvalStatus', '==', 'approved').get(),
+      Promise.race([
+        fetchGASEventsCached(),
+        new Promise<any[]>(resolve => setTimeout(() => resolve([]), 6000)),
+      ]).catch(() => []),
+    ]);
+
+    // Firestore events (event-finder source only, upcoming)
+    const firestoreEvents = snapshot.docs
+      .filter((doc: any) => doc.data().source === 'event-finder' && doc.data().date >= today)
+      .map((doc: any) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          title: d.title || 'Community Event',
+          date: d.date,
+          time: d.time || null,
+          location: d.location || d.serviceLocation || null,
+          city: d.city || 'Los Angeles',
+          address: d.address || d.location || null,
+          description: d.description || null,
+          websiteUrl: d.websiteUrl || null,
+          status: d.status || 'active',
+          _eventFinderId: d.eventFinderId || null,
+        };
+      });
+
+    // Dedupe and filter GAS events
+    const isEventbriteId = (id: string) => /^event-\d+$/.test(id || '');
+    const gasDeduped: any[] = [];
+    const gasSeenMap = new Map<string, number>();
+    for (const ge of gasEvents) {
+      const key = `${(ge.title || '').trim().toLowerCase()}|${ge.date}`;
+      if (!gasSeenMap.has(key)) {
+        gasSeenMap.set(key, gasDeduped.length);
+        gasDeduped.push({ ...ge });
+      } else {
+        const idx = gasSeenMap.get(key)!;
+        const existing = gasDeduped[idx];
+        const geIsEb = isEventbriteId(String(ge.id || ''));
+        const exIsEb = isEventbriteId(String(existing.id || ''));
+        if (geIsEb && !exIsEb) { gasDeduped[idx] = { ...ge, ...existing, id: ge.id }; }
+        else if (!geIsEb && exIsEb) { gasDeduped[idx] = { ...existing, ...ge, id: existing.id }; }
+        else { gasDeduped[idx] = { ...ge }; }
+      }
+    }
+
+    const upcomingGas = gasDeduped
+      .filter((ge: any) => ge.date >= today && ge.status !== 'cancelled')
+      .map((ge: any) => ({
+        id: ge.id,
+        title: ge.title,
+        date: ge.date,
+        time: ge.time || null,
+        location: ge.location || ge.city || null,
+        city: ge.city || 'Los Angeles',
+        address: ge.address || ge.location || null,
+        description: ge.description || null,
+        websiteUrl: ge.websiteUrl || null,
+        status: ge.status || 'active',
+      }));
+
+    // Enrich GAS events with Firestore admin fields
+    const fireByTitleDate = new Map<string, any>();
+    const fireById = new Map<string, any>();
+    for (const fe of firestoreEvents) {
+      if (fe._eventFinderId) fireById.set(fe._eventFinderId, fe);
+      if (fe.id) fireById.set(fe.id, fe);
+      fireByTitleDate.set(`${(fe.title || '').trim().toLowerCase()}|${fe.date}`, fe);
+    }
+    const enriched = upcomingGas.map((ge: any) => {
+      const fe = fireById.get(ge.id) || fireByTitleDate.get(`${(ge.title || '').trim().toLowerCase()}|${ge.date}`);
+      if (!fe) return ge;
+      return { ...ge, ...(fe.time && fe.time !== 'TBD' && { time: fe.time }), ...(fe.description && { description: fe.description }) };
+    });
+
+    // Include admin-only Firestore events not in GAS
+    const gasIds = new Set(upcomingGas.map((ge: any) => ge.id).filter(Boolean));
+    const gasKeys = new Set(upcomingGas.map((ge: any) => `${(ge.title || '').trim().toLowerCase()}|${ge.date}`));
+    const adminOnly = firestoreEvents
+      .filter((fe: any) => {
+        if (fe._eventFinderId && gasIds.has(fe._eventFinderId)) return false;
+        if (fe.id && gasIds.has(fe.id)) return false;
+        return !gasKeys.has(`${(fe.title || '').trim().toLowerCase()}|${fe.date}`);
+      });
+
+    const allEvents = [...enriched, ...adminOnly]
+      .filter((e: any) => e.status !== 'cancelled')
+      .sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
+
+    // Helper: build a schema.org ISO datetime from a YYYY-MM-DD date + time string like "7:00 PM"
+    // Returns null if date is missing
+    const toSchemaDateTime = (date: string, timeStr: string | null): string | null => {
+      if (!date) return null;
+      if (!timeStr || timeStr === 'TBD') return `${date}T00:00:00${offset}`;
+      // Parse common formats: "7:00 PM", "10:15 AM", "7:00 - 8:00 PM", "10:15–11:45 AM"
+      const first = timeStr.split(/[-–]/)[0].trim();
+      const m = first.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!m) return `${date}T00:00:00${offset}`;
+      let h = parseInt(m[1], 10);
+      const min = m[2];
+      const ampm = m[3].toUpperCase();
+      if (ampm === 'PM' && h !== 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return `${date}T${String(h).padStart(2, '0')}:${min}:00${offset}`;
+    };
+
+    // Helper: derive end datetime from time string like "7:00–8:00 PM" or "10:15–11:45 AM"
+    const toSchemaEndDateTime = (date: string, timeStr: string | null): string | null => {
+      if (!date || !timeStr || timeStr === 'TBD') return null;
+      const parts = timeStr.split(/[-–]/);
+      if (parts.length < 2) return null;
+      const endPart = parts[parts.length - 1].trim();
+      // Inherit AM/PM from end part; if no AM/PM on end, borrow from start
+      const hasAmPm = /AM|PM/i.test(endPart);
+      const startAmPm = timeStr.match(/(AM|PM)/i)?.[1] || '';
+      const endStr = hasAmPm ? endPart : `${endPart} ${startAmPm}`;
+      const m = endStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!m) return null;
+      let h = parseInt(m[1], 10);
+      const min = m[2];
+      const ampm = m[3].toUpperCase();
+      if (ampm === 'PM' && h !== 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+      return `${date}T${String(h).padStart(2, '0')}:${min}:00${offset}`;
+    };
+
+    // Detect online/virtual events
+    const isVirtual = (loc: string | null): boolean => {
+      if (!loc) return false;
+      const l = loc.toLowerCase();
+      return l.includes('zoom') || l.includes('online') || l.includes('virtual') || l.includes('livestream') || l.includes('webinar');
+    };
+
+    // Build JSON-LD ItemList
+    const itemListElement = allEvents.map((e: any, idx: number) => {
+      const virtual = isVirtual(e.location) || isVirtual(e.address);
+      const startDate = toSchemaDateTime(e.date, e.time);
+      const endDate = toSchemaEndDateTime(e.date, e.time);
+      const rsvpUrl = e.id
+        ? `https://healthmatters.clinic/resources/eventfinder?event=${encodeURIComponent(e.id)}&rsvp=true`
+        : 'https://healthmatters.clinic/resources/eventfinder';
+
+      const eventItem: any = {
+        '@type': 'Event',
+        name: e.title,
+        startDate: startDate || e.date,
+        eventStatus: 'https://schema.org/EventScheduled',
+        eventAttendanceMode: virtual
+          ? 'https://schema.org/OnlineEventAttendanceMode'
+          : 'https://schema.org/OfflineEventAttendanceMode',
+        organizer: {
+          '@type': 'Organization',
+          name: 'Health Matters Clinic',
+          url: 'https://healthmatters.clinic',
+        },
+        url: rsvpUrl,
+        isAccessibleForFree: true,
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
+          url: rsvpUrl,
+        },
+      };
+
+      if (endDate) eventItem.endDate = endDate;
+
+      if (virtual) {
+        eventItem.location = {
+          '@type': 'VirtualLocation',
+          url: rsvpUrl,
+        };
+      } else {
+        const city = e.city || 'Los Angeles';
+        const addr = e.address || e.location || city;
+        eventItem.location = {
+          '@type': 'Place',
+          name: e.location || city,
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: addr !== city ? addr : undefined,
+            addressLocality: city,
+            addressRegion: 'CA',
+            addressCountry: 'US',
+          },
+        };
+        // Remove undefined streetAddress key
+        if (!eventItem.location.address.streetAddress) delete eventItem.location.address.streetAddress;
+      }
+
+      if (e.description) eventItem.description = e.description.substring(0, 500);
+
+      return {
+        '@type': 'ListItem',
+        position: idx + 1,
+        item: eventItem,
+      };
+    });
+
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'HMC Community Events',
+      description: 'Free health and wellness events by Health Matters Clinic across Los Angeles County',
+      url: 'https://healthmatters.clinic/resources/eventfinder',
+      itemListElement,
+    };
+
+    res.set('Content-Type', 'application/ld+json');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    res.json(jsonLd);
+    console.log(`[EVENTS-SCHEMA] Served JSON-LD with ${itemListElement.length} events`);
+  } catch (error: any) {
+    console.error('[EVENTS-SCHEMA] Failed:', error);
+    res.status(500).json({ error: 'Failed to generate events schema' });
+  }
+});
+
 // --- VOLUNTEER MATCH FOR PUBLIC RSVPS ---
 const processVolunteerMatch = async (
   rsvpId: string,
