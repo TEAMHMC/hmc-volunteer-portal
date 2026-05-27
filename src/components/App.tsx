@@ -199,6 +199,15 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     sessionStorage.setItem('pwa-install-dismissed', '1');
   };
 
+  // Update browser tab title based on current view
+  useEffect(() => {
+    if (view === 'partnerLanding' || view === 'partnerRegister' || view === 'partnerPortal') {
+      document.title = 'HMC Partner Portal';
+    } else {
+      document.title = 'HMC Volunteer Portal';
+    }
+  }, [view]);
+
   // Keep heartbeat alive on ALL authenticated views (dashboard, onboarding, etc.)
   // so sessions don't silently expire while a user is actively working.
   useEffect(() => {

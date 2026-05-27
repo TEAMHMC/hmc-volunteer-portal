@@ -287,12 +287,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                             <div className="w-1.5 h-1.5 rounded-full bg-black" />
                             Apply to Volunteer
                         </button>
-                        <a
-                          href="?page=partner"
-                          className="mt-4 inline-block text-[10px] font-bold text-zinc-400 hover:text-zinc-600 uppercase tracking-wider transition-colors"
-                        >
-                          Partner? Sign in here
-                        </a>
                     </div>
                 )}
               </div>
@@ -370,14 +364,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                       <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Serving Los Angeles</p>
                    </div>
                 </div>
-             </div>
-             <div className="pt-2 md:pt-4">
-               <a
-                 href="?page=partner"
-                 className="text-[10px] font-bold text-zinc-400 hover:text-zinc-600 uppercase tracking-wider transition-colors"
-               >
-                 Partner? Sign in here
-               </a>
              </div>
           </div>
         )}
