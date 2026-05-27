@@ -13752,22 +13752,35 @@ async function manageSMOCycle(): Promise<{ sent: number; failed: number; skipped
   return result;
 }
 
-// Cron execution lock — prevents duplicate execution from multiple Cloud Run instances
+// Cron execution lock — prevents duplicate execution from multiple Cloud Run instances.
+// Uses a Firestore transaction so the read+write is atomic — eliminates the race condition
+// where two instances both read a missing/expired lock and both proceed to send.
 async function acquireCronLock(lockId: string, ttlMinutes = 5): Promise<boolean> {
   const lockRef = db.collection('cron_locks').doc(lockId);
-  const lockDoc = await lockRef.get();
-  if (lockDoc.exists) {
-    const lockedAt = lockDoc.data()?.lockedAt;
-    if (lockedAt) {
-      const lockAge = Date.now() - new Date(lockedAt).getTime();
-      if (lockAge < ttlMinutes * 60 * 1000) {
-        console.log(`[CRON] Lock ${lockId} held (age ${Math.round(lockAge / 1000)}s), skipping`);
-        return false;
+  const instance = process.env.K_REVISION || 'local';
+  const ttlMs = ttlMinutes * 60 * 1000;
+  try {
+    const acquired = await db.runTransaction(async (tx) => {
+      const lockDoc = await tx.get(lockRef);
+      if (lockDoc.exists) {
+        const lockedAt = lockDoc.data()?.lockedAt;
+        if (lockedAt) {
+          const lockAge = Date.now() - new Date(lockedAt).getTime();
+          if (lockAge < ttlMs) {
+            console.log(`[CRON] Lock ${lockId} held (age ${Math.round(lockAge / 1000)}s), skipping`);
+            return false;
+          }
+        }
       }
-    }
+      tx.set(lockRef, { lockedAt: new Date().toISOString(), instance });
+      return true;
+    });
+    return acquired;
+  } catch (e: any) {
+    // If the transaction fails (e.g. contention), treat as lock held — safe to skip
+    console.warn(`[CRON] Lock ${lockId} transaction failed, skipping:`, e.message);
+    return false;
   }
-  await lockRef.set({ lockedAt: new Date().toISOString(), instance: process.env.K_REVISION || 'local' });
-  return true;
 }
 
 // Scheduler runner functions
@@ -17174,7 +17187,11 @@ const sendDailyReport = async (results: MonitorResult[]) => {
 };
 
 // Hourly monitoring check
+// NOTE: acquireCronLock with 55-min TTL prevents duplicate execution when Cloud Run
+// has multiple instances or restarts — each hour only the first instance wins the lock.
 cron.schedule('0 * * * *', async () => {
+  const hour = new Date().toISOString().slice(0, 13); // e.g. "2026-05-27T15"
+  if (!await acquireCronLock(`monitor_hourly_${hour}`, 55)) return;
   console.log('[MONITOR] Running hourly health checks...');
   try {
     const results = await runMonitorChecks();
@@ -17189,11 +17206,22 @@ cron.schedule('0 * * * *', async () => {
 });
 
 // Daily report at 8am Pacific (3pm UTC)
+// NOTE: node-cron fires once per instance, but Cloud Run may run multiple instances.
+// acquireCronLock with a 23-hour TTL ensures only one instance sends the daily report.
+// The lock key is date-scoped so it resets each calendar day.
 cron.schedule('0 15 * * *', async () => {
+  const today = new Date().toISOString().slice(0, 10); // e.g. "2026-05-27"
+  if (!await acquireCronLock(`daily_health_report_${today}`, 23 * 60)) return;
   console.log('[MONITOR] Sending daily report...');
   try {
     const results = await runMonitorChecks();
+    const lockRef = db.collection('cron_locks').doc(`daily_health_report_${today}`);
     await sendDailyReport(results);
+    await lockRef.set({
+      lockedAt: (await lockRef.get()).data()?.lockedAt,
+      completedAt: new Date().toISOString(),
+      instance: process.env.K_REVISION || 'local',
+    }, { merge: true });
   } catch (e: any) {
     console.error('[MONITOR] Daily report failed:', e.message);
   }
