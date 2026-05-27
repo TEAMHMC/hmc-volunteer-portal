@@ -353,7 +353,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa961f15351ec1bc5243e_P1100963.jpeg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9a26489edb0895bc219_Website_Kerry.jpeg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9607ca39931abff9f95_Profile%20Image.jpeg',
-                        'https://cdn.prod.website-files.com/67359e6040150078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg',
+                        'https://cdn.prod.website-files.com/67359e6040140078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg',
                         'https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa7619fae2db0b4ec877e_headshot%20(1).jpg',
                       ].map((src, i) => (
                         <img key={i} src={src} alt="HMC volunteer" className="w-8 h-8 md:w-11 md:h-11 rounded-full border-2 border-zinc-900 object-cover" />

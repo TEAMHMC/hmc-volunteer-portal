@@ -7750,7 +7750,7 @@ app.post('/api/partners/:id/invite', verifyToken, requireAdmin, async (req: Requ
             portalUserEmail: contactEmail,
         });
 
-        const portalUrl = `${process.env.PORTAL_URL || 'https://volunteer.healthmatters.clinic'}?partnerToken=${inviteToken}&partnerId=${req.params.id}`;
+        const portalUrl = `${process.env.PARTNER_PORTAL_URL || 'https://partner.healthmatters.clinic'}?partnerToken=${inviteToken}&partnerId=${req.params.id}`;
         const partnerName = partner.name || 'Partner Agency';
         const html = `${emailHeader("You're Invited to the HMC Partner Portal")}
             <p>Dear ${partner.contactName || 'Partner'},</p>
