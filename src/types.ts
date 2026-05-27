@@ -928,6 +928,81 @@ export interface PartnerAgency {
     inviteTokenExpiry?: string;       // ISO timestamp of invite expiry (48h)
     portalUserEmail?: string;         // Email of the portal account if they have one
     hours?: string;                   // Operating hours
+    // PRM fields
+    approvedPartnershipTypes?: Array<'referral' | 'event_vendor' | 'subcontractor' | 'general'>;
+    logoUrl?: string;
+    brandGuidelinesUrl?: string;
+    primaryColor?: string;
+    applicationId?: string;           // links to their PartnerApplication doc
+}
+
+export interface PartnerApplication {
+  id: string;
+  partnerAgencyId: string;
+  agencyName: string;
+  submittedBy: string;           // userId
+  submittedByEmail: string;
+  partnershipTypes: Array<'referral' | 'event_vendor' | 'subcontractor' | 'general'>;
+
+  // What they offer HMC
+  servicesOffered: string;       // free text
+  eventCapabilities?: string;    // for event_vendor type
+  subcontractCapabilities?: string; // for subcontractor type
+
+  // What they're looking for
+  needsFromHMC: string;
+
+  // Brand
+  logoUrl?: string;
+  brandGuidelinesUrl?: string;
+  primaryColor?: string;
+
+  // Capacity
+  clientCapacityPerMonth?: number;
+  serviceAreaNotes?: string;
+  insuranceInfo?: string;        // for subcontractors
+
+  status: 'pending' | 'under_review' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
+  approvedTypes?: Array<'referral' | 'event_vendor' | 'subcontractor' | 'general'>;
+}
+
+export interface PartnerBulletinPost {
+  id: string;
+  partnerAgencyId: string;
+  agencyName: string;
+  agencyLogoUrl?: string;
+  postedBy: string;              // userId
+  type: 'vendor_seeking' | 'opportunity' | 'announcement' | 'subcontract_available' | 'event_collab';
+  title: string;
+  description: string;
+  tags?: string[];               // e.g. ['mental health', 'housing', 'food']
+  contactEmail: string;
+  contactName?: string;
+  expiresAt?: string;            // ISO date, posts expire
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PartnerAgreement {
+  id: string;
+  partnerAgencyId: string;
+  agencyName: string;
+  agreementType: 'mou' | 'vendor' | 'subcontractor' | 'referral_partner' | 'general';
+  title: string;
+  bodyText: string;              // full agreement text (plain text or HTML)
+  createdBy: string;             // admin userId who created it
+  sentAt: string;
+  signedAt?: string;
+  signedByName?: string;         // typed name = e-signature
+  signedByUserId?: string;
+  signatureIp?: string;
+  status: 'pending_signature' | 'signed' | 'expired' | 'cancelled';
+  expiresAt?: string;
 }
 
 export interface ClientDocument {

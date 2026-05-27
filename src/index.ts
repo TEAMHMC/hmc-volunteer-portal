@@ -8023,6 +8023,600 @@ app.put('/api/partner/profile', verifyToken, async (req: Request, res: Response)
     }
 });
 
+// ============================================================
+// PARTNER RELATIONSHIP MANAGEMENT (PRM) ENDPOINTS
+// ============================================================
+
+// POST /api/partner/apply — Partner submits a partnership application
+app.post('/api/partner/apply', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        if (!partnerDoc.exists) return res.status(404).json({ error: 'Partner agency not found' });
+        const partnerData = partnerDoc.data()!;
+
+        const {
+            partnershipTypes,
+            servicesOffered,
+            eventCapabilities,
+            subcontractCapabilities,
+            needsFromHMC,
+            logoUrl,
+            brandGuidelinesUrl,
+            primaryColor,
+            clientCapacityPerMonth,
+            serviceAreaNotes,
+            insuranceInfo,
+        } = req.body;
+
+        if (!partnershipTypes || !Array.isArray(partnershipTypes) || partnershipTypes.length === 0) {
+            return res.status(400).json({ error: 'At least one partnershipType is required' });
+        }
+        if (!servicesOffered?.trim()) return res.status(400).json({ error: 'servicesOffered is required' });
+        if (!needsFromHMC?.trim()) return res.status(400).json({ error: 'needsFromHMC is required' });
+
+        const validTypes = ['referral', 'event_vendor', 'subcontractor', 'general'];
+        for (const t of partnershipTypes) {
+            if (!validTypes.includes(t)) {
+                return res.status(400).json({ error: `Invalid partnershipType: ${t}` });
+            }
+        }
+
+        const now = new Date().toISOString();
+        const applicationData: Record<string, any> = {
+            partnerAgencyId,
+            agencyName: partnerData.name || '',
+            submittedBy: user.uid,
+            submittedByEmail: profile.email || '',
+            partnershipTypes,
+            servicesOffered: servicesOffered.trim(),
+            needsFromHMC: needsFromHMC.trim(),
+            status: 'pending',
+            submittedAt: now,
+        };
+        if (eventCapabilities) applicationData.eventCapabilities = eventCapabilities.trim();
+        if (subcontractCapabilities) applicationData.subcontractCapabilities = subcontractCapabilities.trim();
+        if (logoUrl) applicationData.logoUrl = logoUrl.trim();
+        if (brandGuidelinesUrl) applicationData.brandGuidelinesUrl = brandGuidelinesUrl.trim();
+        if (primaryColor) applicationData.primaryColor = primaryColor.trim();
+        if (clientCapacityPerMonth != null) applicationData.clientCapacityPerMonth = Number(clientCapacityPerMonth);
+        if (serviceAreaNotes) applicationData.serviceAreaNotes = serviceAreaNotes.trim();
+        if (insuranceInfo) applicationData.insuranceInfo = insuranceInfo.trim();
+
+        const ref = await db.collection('partner_applications').add(applicationData);
+        await db.collection('partner_agencies').doc(partnerAgencyId).update({ applicationId: ref.id });
+
+        try {
+            await sendEmailRaw(
+                'contact@healthmatters.clinic',
+                `New Partnership Application: ${partnerData.name}`,
+                `${emailHeader('New Partnership Application')}
+                 <p>A new partnership application has been submitted.</p>
+                 <p><strong>Agency:</strong> ${partnerData.name}</p>
+                 <p><strong>Partnership Types:</strong> ${partnershipTypes.join(', ')}</p>
+                 <p><strong>Services Offered:</strong> ${servicesOffered}</p>
+                 <p><strong>Needs from HMC:</strong> ${needsFromHMC}</p>
+                 <p><strong>Submitted by:</strong> ${profile.email || user.uid}</p>
+                 ${actionButton('Review Application', 'https://volunteer.healthmatters.clinic?page=admin&section=partner-applications')}
+                 ${emailFooter()}`,
+                `New partnership application from ${partnerData.name} — types: ${partnershipTypes.join(', ')}. Review at volunteer.healthmatters.clinic.`
+            );
+        } catch (emailErr) {
+            console.error('[PARTNER APPLY] Notification email failed:', emailErr);
+        }
+
+        console.log(`[PARTNER APPLY] Application submitted for ${partnerAgencyId}: ${ref.id}`);
+        res.json({ success: true, applicationId: ref.id });
+    } catch (error: any) {
+        console.error('[PARTNER APPLY] Failed:', error);
+        res.status(500).json({ error: 'Failed to submit application' });
+    }
+});
+
+// GET /api/partner/application — Partner views their own application
+app.get('/api/partner/application', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const snap = await db.collection('partner_applications')
+            .where('partnerAgencyId', '==', partnerAgencyId)
+            .orderBy('submittedAt', 'desc')
+            .limit(1)
+            .get();
+
+        const application = snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+        res.json({ success: true, application });
+    } catch (error: any) {
+        console.error('[PARTNER APPLICATION] Get failed:', error);
+        res.status(500).json({ error: 'Failed to fetch application' });
+    }
+});
+
+// GET /api/partner/agreements — Partner views their agreements
+app.get('/api/partner/agreements', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const snap = await db.collection('partner_agreements')
+            .where('partnerAgencyId', '==', partnerAgencyId)
+            .orderBy('sentAt', 'desc')
+            .get();
+
+        const agreements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json({ success: true, agreements });
+    } catch (error: any) {
+        console.error('[PARTNER AGREEMENTS] Get failed:', error);
+        res.status(500).json({ error: 'Failed to fetch agreements' });
+    }
+});
+
+// POST /api/partner/agreements/:id/sign — Partner e-signs an agreement
+app.post('/api/partner/agreements/:id/sign', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const { signedByName } = req.body;
+        if (!signedByName?.trim()) return res.status(400).json({ error: 'signedByName is required' });
+
+        const agreementRef = db.collection('partner_agreements').doc(req.params.id);
+        const agreementDoc = await agreementRef.get();
+        if (!agreementDoc.exists) return res.status(404).json({ error: 'Agreement not found' });
+
+        const agreement = agreementDoc.data()!;
+        if (agreement.partnerAgencyId !== partnerAgencyId) {
+            return res.status(403).json({ error: 'This agreement does not belong to your agency' });
+        }
+        if (agreement.status !== 'pending_signature') {
+            return res.status(400).json({ error: `Agreement is not pending signature (current status: ${agreement.status})` });
+        }
+
+        const now = new Date().toISOString();
+        const signatureIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+        await agreementRef.update({
+            signedAt: now,
+            signedByName: signedByName.trim(),
+            signedByUserId: user.uid,
+            signatureIp,
+            status: 'signed',
+        });
+
+        // Get partner info for email
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        const partnerData = partnerDoc.exists ? partnerDoc.data()! : {};
+
+        try {
+            const partnerEmail = partnerData.portalUserEmail || partnerData.contactEmail;
+            if (partnerEmail) {
+                await sendEmailRaw(
+                    partnerEmail,
+                    `Agreement Signed: ${agreement.title}`,
+                    `${emailHeader('Agreement Signed')}
+                     <p>Dear ${partnerData.contactName || 'Partner'},</p>
+                     <p>Your signature has been recorded for the following agreement:</p>
+                     <p><strong>${agreement.title}</strong></p>
+                     <p><strong>Signed by:</strong> ${signedByName.trim()}</p>
+                     <p><strong>Signed at:</strong> ${new Date(now).toLocaleString()}</p>
+                     <p>Thank you for completing this agreement. Our team will be in touch if any next steps are needed.</p>
+                     ${emailFooter()}`,
+                    `Your signature has been recorded for "${agreement.title}". Signed by: ${signedByName.trim()}.`
+                );
+            }
+            await sendEmailRaw(
+                'contact@healthmatters.clinic',
+                `Agreement Signed: ${agreement.title} — ${partnerData.name || partnerAgencyId}`,
+                `${emailHeader('Agreement Signed')}
+                 <p>A partnership agreement has been signed.</p>
+                 <p><strong>Agreement:</strong> ${agreement.title}</p>
+                 <p><strong>Agency:</strong> ${partnerData.name || partnerAgencyId}</p>
+                 <p><strong>Signed by:</strong> ${signedByName.trim()}</p>
+                 <p><strong>Signed at:</strong> ${new Date(now).toLocaleString()}</p>
+                 <p><strong>IP:</strong> ${signatureIp}</p>
+                 ${emailFooter()}`,
+                `Agreement "${agreement.title}" signed by ${signedByName.trim()} for ${partnerData.name || partnerAgencyId}.`
+            );
+        } catch (emailErr) {
+            console.error('[PARTNER SIGN] Email notification failed:', emailErr);
+        }
+
+        console.log(`[PARTNER SIGN] Agreement ${req.params.id} signed by ${user.uid}`);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[PARTNER SIGN] Failed:', error);
+        res.status(500).json({ error: 'Failed to sign agreement' });
+    }
+});
+
+// GET /api/bulletin — Public: list active bulletin posts
+app.get('/api/bulletin', async (req: Request, res: Response) => {
+    try {
+        const { type, limit: limitParam = '20', offset: offsetParam = '0' } = req.query;
+        const limitNum = Math.min(parseInt(String(limitParam), 10) || 20, 100);
+        const offsetNum = parseInt(String(offsetParam), 10) || 0;
+        const now = new Date().toISOString();
+
+        let query: FirebaseFirestore.Query = db.collection('partner_bulletin')
+            .where('isActive', '==', true);
+
+        if (type) {
+            query = query.where('type', '==', String(type));
+        }
+
+        const snap = await query.orderBy('createdAt', 'desc').get();
+
+        // Filter out expired posts (Firestore can't do >= on optional field easily)
+        const allPosts = snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as Record<string, any>))
+            .filter((p: any) => !p.expiresAt || p.expiresAt > now);
+
+        const total = allPosts.length;
+        const posts = allPosts.slice(offsetNum, offsetNum + limitNum);
+
+        res.json({ success: true, posts, total });
+    } catch (error: any) {
+        console.error('[BULLETIN] Public list failed:', error);
+        res.status(500).json({ error: 'Failed to fetch bulletin posts' });
+    }
+});
+
+// POST /api/partner/bulletin — Partner creates a bulletin post
+app.post('/api/partner/bulletin', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const { type, title, description, tags, contactEmail, contactName, expiresAt } = req.body;
+
+        if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
+        if (!description?.trim()) return res.status(400).json({ error: 'description is required' });
+        if (!contactEmail?.trim()) return res.status(400).json({ error: 'contactEmail is required' });
+
+        const validTypes = ['vendor_seeking', 'opportunity', 'announcement', 'subcontract_available', 'event_collab'];
+        if (!type || !validTypes.includes(type)) {
+            return res.status(400).json({ error: `type must be one of: ${validTypes.join(', ')}` });
+        }
+
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        const partnerData = partnerDoc.exists ? partnerDoc.data()! : {};
+
+        const now = new Date().toISOString();
+        const postData: Record<string, any> = {
+            partnerAgencyId,
+            agencyName: partnerData.name || '',
+            postedBy: user.uid,
+            type,
+            title: title.trim(),
+            description: description.trim(),
+            contactEmail: contactEmail.trim().toLowerCase(),
+            isActive: true,
+            createdAt: now,
+        };
+        if (partnerData.logoUrl) postData.agencyLogoUrl = partnerData.logoUrl;
+        if (tags && Array.isArray(tags)) postData.tags = tags;
+        if (contactName) postData.contactName = contactName.trim();
+        if (expiresAt) postData.expiresAt = expiresAt;
+
+        const ref = await db.collection('partner_bulletin').add(postData);
+
+        console.log(`[BULLETIN] Post created by ${partnerAgencyId}: ${ref.id}`);
+        res.json({ success: true, postId: ref.id });
+    } catch (error: any) {
+        console.error('[BULLETIN] Create failed:', error);
+        res.status(500).json({ error: 'Failed to create bulletin post' });
+    }
+});
+
+// GET /api/partner/bulletin — Partner views their own posts (active and inactive)
+app.get('/api/partner/bulletin', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const snap = await db.collection('partner_bulletin')
+            .where('partnerAgencyId', '==', partnerAgencyId)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json({ success: true, posts });
+    } catch (error: any) {
+        console.error('[BULLETIN] Partner list failed:', error);
+        res.status(500).json({ error: 'Failed to fetch bulletin posts' });
+    }
+});
+
+// DELETE /api/partner/bulletin/:id — Partner soft-deletes their bulletin post
+app.delete('/api/partner/bulletin/:id', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const profile = user.profile || {};
+        if (profile.volunteerRole !== 'Partner Agency') return res.status(403).json({ error: 'Partner Agency access required' });
+        const partnerAgencyId = profile.partnerAgencyId;
+        if (!partnerAgencyId) return res.status(403).json({ error: 'No partner agency linked to this account' });
+
+        const postRef = db.collection('partner_bulletin').doc(req.params.id);
+        const postDoc = await postRef.get();
+        if (!postDoc.exists) return res.status(404).json({ error: 'Bulletin post not found' });
+
+        const postData = postDoc.data()!;
+        if (postData.partnerAgencyId !== partnerAgencyId) {
+            return res.status(403).json({ error: 'This post does not belong to your agency' });
+        }
+
+        await postRef.update({ isActive: false, updatedAt: new Date().toISOString() });
+
+        console.log(`[BULLETIN] Post ${req.params.id} deactivated by ${partnerAgencyId}`);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[BULLETIN] Delete failed:', error);
+        res.status(500).json({ error: 'Failed to delete bulletin post' });
+    }
+});
+
+// GET /api/admin/partner-applications — Admin: list all partnership applications
+app.get('/api/admin/partner-applications', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('partner_applications')
+            .orderBy('submittedAt', 'desc')
+            .get();
+        const applications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        res.json({ success: true, applications });
+    } catch (error: any) {
+        console.error('[ADMIN PARTNER APPS] List failed:', error);
+        res.status(500).json({ error: 'Failed to fetch partner applications' });
+    }
+});
+
+// PUT /api/admin/partner-applications/:id/review — Admin reviews a partnership application
+app.put('/api/admin/partner-applications/:id/review', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { status, approvedTypes, reviewNotes } = req.body;
+
+        if (!status || !['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({ error: 'status must be "approved" or "rejected"' });
+        }
+
+        const appRef = db.collection('partner_applications').doc(req.params.id);
+        const appDoc = await appRef.get();
+        if (!appDoc.exists) return res.status(404).json({ error: 'Application not found' });
+        const appData = appDoc.data()!;
+
+        const now = new Date().toISOString();
+        const updates: Record<string, any> = {
+            status,
+            reviewedAt: now,
+            reviewedBy: (req as any).user?.uid,
+        };
+        if (reviewNotes) updates.reviewNotes = reviewNotes;
+        if (status === 'approved' && approvedTypes && Array.isArray(approvedTypes)) {
+            updates.approvedTypes = approvedTypes;
+        }
+
+        await appRef.update(updates);
+
+        // If approved, update the partner agency doc
+        if (status === 'approved' && approvedTypes && Array.isArray(approvedTypes)) {
+            await db.collection('partner_agencies').doc(appData.partnerAgencyId).update({
+                approvedPartnershipTypes: approvedTypes,
+            });
+        }
+
+        // Notify the partner
+        try {
+            const partnerDoc = await db.collection('partner_agencies').doc(appData.partnerAgencyId).get();
+            const partnerData = partnerDoc.exists ? partnerDoc.data()! : {};
+            const partnerEmail = partnerData.portalUserEmail || partnerData.contactEmail || appData.submittedByEmail;
+            if (partnerEmail) {
+                const isApproved = status === 'approved';
+                await sendEmailRaw(
+                    partnerEmail,
+                    `Your Partnership Application Has Been ${isApproved ? 'Approved' : 'Reviewed'}`,
+                    `${emailHeader(`Partnership Application ${isApproved ? 'Approved' : 'Update'}`)}
+                     <p>Dear ${partnerData.contactName || 'Partner'},</p>
+                     <p>Your partnership application for <strong>${appData.agencyName}</strong> has been reviewed.</p>
+                     <p><strong>Status:</strong> ${isApproved ? 'Approved' : 'Not Approved at This Time'}</p>
+                     ${isApproved && approvedTypes ? `<p><strong>Approved Partnership Types:</strong> ${approvedTypes.join(', ')}</p>` : ''}
+                     ${reviewNotes ? `<p><strong>Notes:</strong> ${reviewNotes}</p>` : ''}
+                     ${isApproved ? `<p>Log in to the partner portal to view your approved partnership types and next steps.</p>` : '<p>Please contact us if you have questions about this decision.</p>'}
+                     ${actionButton('Go to Partner Portal', 'https://volunteer.healthmatters.clinic?page=partner')}
+                     ${emailFooter()}`,
+                    `Your partnership application has been reviewed. Status: ${status}. ${reviewNotes || ''}`
+                );
+            }
+        } catch (emailErr) {
+            console.error('[ADMIN PARTNER APPS] Notification email failed:', emailErr);
+        }
+
+        console.log(`[ADMIN PARTNER APPS] Application ${req.params.id} reviewed: ${status}`);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[ADMIN PARTNER APPS] Review failed:', error);
+        res.status(500).json({ error: 'Failed to review application' });
+    }
+});
+
+// POST /api/admin/partner-agreements — Admin creates and sends a partnership agreement
+app.post('/api/admin/partner-agreements', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { partnerAgencyId, agreementType, title, bodyText, expiresAt } = req.body;
+
+        if (!partnerAgencyId) return res.status(400).json({ error: 'partnerAgencyId is required' });
+        if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
+        if (!bodyText?.trim()) return res.status(400).json({ error: 'bodyText is required' });
+
+        const validTypes = ['mou', 'vendor', 'subcontractor', 'referral_partner', 'general'];
+        if (!agreementType || !validTypes.includes(agreementType)) {
+            return res.status(400).json({ error: `agreementType must be one of: ${validTypes.join(', ')}` });
+        }
+
+        const partnerDoc = await db.collection('partner_agencies').doc(partnerAgencyId).get();
+        if (!partnerDoc.exists) return res.status(404).json({ error: 'Partner agency not found' });
+        const partnerData = partnerDoc.data()!;
+
+        const now = new Date().toISOString();
+        const agreementData: Record<string, any> = {
+            partnerAgencyId,
+            agencyName: partnerData.name || '',
+            agreementType,
+            title: title.trim(),
+            bodyText: bodyText.trim(),
+            createdBy: (req as any).user?.uid,
+            sentAt: now,
+            status: 'pending_signature',
+        };
+        if (expiresAt) agreementData.expiresAt = expiresAt;
+
+        const ref = await db.collection('partner_agreements').add(agreementData);
+
+        // Notify partner
+        try {
+            const partnerEmail = partnerData.portalUserEmail || partnerData.contactEmail;
+            if (partnerEmail) {
+                await sendEmailRaw(
+                    partnerEmail,
+                    `Action Required: Partnership Agreement from Health Matters Clinic`,
+                    `${emailHeader('Partnership Agreement Ready to Sign')}
+                     <p>Dear ${partnerData.contactName || 'Partner'},</p>
+                     <p>Health Matters Clinic has sent you a partnership agreement to review and sign:</p>
+                     <p><strong>${title.trim()}</strong></p>
+                     <p>Please log in to the partner portal to review and e-sign this agreement.</p>
+                     ${actionButton('Review and Sign Agreement', 'https://volunteer.healthmatters.clinic?page=partner')}
+                     <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">If you did not expect this, please contact us at contact@healthmatters.clinic</p>
+                     ${emailFooter()}`,
+                    `Health Matters Clinic has sent you a partnership agreement to review and sign. Log in at volunteer.healthmatters.clinic?page=partner to view and sign it.`
+                );
+            }
+        } catch (emailErr) {
+            console.error('[ADMIN AGREEMENTS] Notification email failed:', emailErr);
+        }
+
+        console.log(`[ADMIN AGREEMENTS] Agreement ${ref.id} created for partner ${partnerAgencyId}`);
+        res.json({ success: true, agreementId: ref.id });
+    } catch (error: any) {
+        console.error('[ADMIN AGREEMENTS] Create failed:', error);
+        res.status(500).json({ error: 'Failed to create agreement' });
+    }
+});
+
+// POST /api/partners/suggest-resource — Public: suggest a resource + optional partner interest
+app.post('/api/partners/suggest-resource', rateLimit(5, 3600000), async (req: Request, res: Response) => {
+    try {
+        const {
+            // Honeypot
+            website_url,
+            // Required resource fields
+            resourceName, description, category, submitterName, submitterEmail,
+            // Resource contact
+            contactName, contactEmail, contactPhone, websiteUrl,
+            // Optional details
+            address, hours, eligibility, languages, targetPopulation,
+            communityFocus, geographicArea, intakeNotes, resourceType,
+            // Partner interest
+            wantPartnerAccount, orgEmail,
+        } = req.body;
+
+        if (website_url) return res.json({ success: true }); // honeypot — silent reject
+
+        if (!resourceName?.trim()) return res.status(400).json({ error: 'Resource name is required' });
+        if (!description?.trim()) return res.status(400).json({ error: 'Description is required' });
+        if (!category?.trim()) return res.status(400).json({ error: 'Category is required' });
+        if (!submitterName?.trim()) return res.status(400).json({ error: 'Your name is required' });
+        if (!submitterEmail?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submitterEmail)) {
+            return res.status(400).json({ error: 'A valid email address is required' });
+        }
+
+        const now = new Date().toISOString();
+        const suggestion: Record<string, any> = {
+            status: 'pending',
+            submittedAt: now,
+            submitterName: submitterName.trim(),
+            submitterEmail: submitterEmail.trim().toLowerCase(),
+            'Resource Name': resourceName.trim(),
+            'Key Offerings': description.trim(),
+            'Service Category': category.trim(),
+            'Contact Person Name': (contactName || submitterName).trim(),
+            'Contact Email': (contactEmail || submitterEmail).trim().toLowerCase(),
+            'Contact Phone': (contactPhone || '').trim(),
+            'Website': (websiteUrl || '').trim(),
+            'Address': (address || '').trim(),
+            'Operation Hours': (hours || '').trim(),
+            'Eligibility Criteria': (eligibility || '').trim(),
+            'Languages Spoken': (languages || '').trim(),
+            'Target Population': (targetPopulation || '').trim(),
+            'Community Focus': (communityFocus || '').trim(),
+            'Geographic Area': (geographicArea || '').trim(),
+            'Intake / Referral Process Notes': (intakeNotes || '').trim(),
+            'Resource Type': (resourceType || 'Community Partner').trim(),
+            wantPartnerAccount: !!wantPartnerAccount,
+            orgEmail: orgEmail ? orgEmail.trim().toLowerCase() : undefined,
+        };
+
+        await db.collection('resource_suggestions').add(suggestion);
+
+        // If they want a partner account, create a lead record
+        if (wantPartnerAccount) {
+            const leadEmail = orgEmail?.trim().toLowerCase() || submitterEmail.trim().toLowerCase();
+            await db.collection('partner_leads').add({
+                name: submitterName.trim(),
+                email: leadEmail,
+                orgName: resourceName.trim(),
+                submittedAt: now,
+                source: 'resource_suggestion',
+                status: 'lead',
+            });
+        }
+
+        try {
+            await sendEmailRaw(
+                'contact@healthmatters.clinic',
+                `New Resource Suggestion${wantPartnerAccount ? ' + Partner Interest' : ''}: ${resourceName}`,
+                `${emailHeader('New Resource Suggestion')}
+                 <p>A new resource has been submitted for review.</p>
+                 <p><strong>Organization:</strong> ${resourceName}</p>
+                 <p><strong>Category:</strong> ${category}</p>
+                 <p><strong>Description:</strong> ${description}</p>
+                 <p><strong>Submitted by:</strong> ${submitterName} (${submitterEmail})</p>
+                 <p><strong>Website:</strong> ${websiteUrl || 'Not provided'}</p>
+                 ${wantPartnerAccount ? `<p><strong>Partner Interest:</strong> YES — they want a partner account. Org email: ${orgEmail || submitterEmail}</p>` : ''}
+                 ${actionButton('Review Suggestion', 'https://volunteer.healthmatters.clinic?page=admin&section=resource-suggestions')}
+                 ${emailFooter()}`,
+                `New resource suggestion${wantPartnerAccount ? ' + partner interest' : ''} from ${submitterName} (${resourceName}). Review at volunteer.healthmatters.clinic.`
+            );
+        } catch (emailErr) {
+            console.error('[SUGGEST-RESOURCE-PARTNER] Notification email failed:', emailErr);
+        }
+
+        console.log(`[SUGGEST-RESOURCE-PARTNER] Submitted by ${submitterEmail}, wantPartnerAccount: ${!!wantPartnerAccount}`);
+        res.json({ success: true, wantsPartnerAccount: !!wantPartnerAccount });
+    } catch (error: any) {
+        console.error('[SUGGEST-RESOURCE-PARTNER] Failed:', error);
+        res.status(500).json({ error: 'Failed to submit suggestion' });
+    }
+});
+
 // --- SLA COMPLIANCE TRACKING ---
 app.get('/api/referrals/sla-report', verifyToken, async (req: Request, res: Response) => {
     try {
