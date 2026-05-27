@@ -3706,9 +3706,20 @@ app.post('/api/calmkit/movement-narrative', async (req: Request, res: Response) 
         };
         const spec = modeSpecs[mode] || modeSpecs.HOPE;
         const context = destinationName ? `Walking towards ${destinationName}. ETA ${etaMinutes} mins.` : 'Open exploration, no fixed destination. Plan for a 20-minute journey.';
-        const seasonCtx = lang === 'es'
-            ? 'Es mayo de 2026 — la Temporada Imparable. Tres eventos gratuitos de salud mental en Los Ángeles. La persona que usa esta aplicación es parte de un movimiento. Tejer esto naturalmente en el coaching — no forzado, solo presente cuando sea relevante.'
-            : 'It is May 2026 — the Unstoppable Season. Three free mental health events in Los Angeles this month (MOVE May 9, HEAL May 20, TRANSFORM May 27). The person using this app is part of a movement. Weave this into the coaching naturally — not forced, just present when relevant.';
+        const todayPT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        const todayStr = `${todayPT.getFullYear()}-${String(todayPT.getMonth()+1).padStart(2,'0')}-${String(todayPT.getDate()).padStart(2,'0')}`;
+        const upcomingEvents = [
+            { date: '2026-05-09', en: 'MOVE (Live Unstoppable Walk/Run, May 9)', es: 'MOVE (Caminata/Carrera, 9 de mayo)' },
+            { date: '2026-05-20', en: 'HEAL (Unstoppable Wellness Meetup, May 20)', es: 'HEAL (Encuentro de Bienestar, 20 de mayo)' },
+            { date: '2026-05-27', en: 'TRANSFORM (The Unstoppable Experience, tonight — virtual live session at 7 PM)', es: 'TRANSFORM (La Experiencia Imparable, esta noche — sesión virtual a las 7 PM)' },
+        ].filter(e => e.date >= todayStr);
+        const seasonCtx = upcomingEvents.length === 0
+            ? (lang === 'es'
+                ? 'La Temporada Imparable de mayo 2026 ha concluido. La persona que usa esta aplicación es parte del movimiento de salud mental de HMC.'
+                : 'The May 2026 Unstoppable Season has concluded. The person using this app is part of HMC\'s ongoing mental health movement.')
+            : (lang === 'es'
+                ? `Es mayo de 2026 — la Temporada Imparable. Próximos eventos gratuitos: ${upcomingEvents.map(e=>e.es).join('; ')}. Tejelo naturalmente en el coaching, solo cuando sea relevante.`
+                : `It is May 2026 — the Unstoppable Season. Upcoming free events: ${upcomingEvents.map(e=>e.en).join('; ')}. Weave this into the coaching only when naturally relevant — never forced.`);
 
         // Build environmental context string — only include what we actually have
         const envParts: string[] = [];
