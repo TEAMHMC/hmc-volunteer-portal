@@ -58,7 +58,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           </h1>
 
           <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: 'rgba(255,255,255,.5)', maxWidth: 620, margin: '0 auto 44px', lineHeight: 1.65 }}>
-            List events, receive real-time RSVP notifications, manage referrals, and track your community impact — all in one place.
+            The free platform for health and wellness organizations to list events, collect RSVPs, and reach thousands of community members across Los Angeles.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -78,7 +78,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
             </button>
           </div>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', marginTop: 20 }}>
-            New to the partner network?{' '}
+            Free for all community organizations.{' '}
             <button onClick={onRegister} style={{ background: 'none', border: 'none', color: '#f9c74f', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
               Create your account in 2 minutes.
             </button>
@@ -90,25 +90,25 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
       <section style={{ background: '#fff', color: '#111', padding: '96px 48px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>How It Works</p>
-          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Three steps to get started.</h2>
-          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Becoming an HMC Referral Partner is a straightforward process. Here is what to expect from application to your first referral.</p>
+          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Up and running in minutes.</h2>
+          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create a free account and start listing events today.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               {
                 num: '01',
-                title: 'Suggest Your Organization',
-                desc: 'Suggest your organization to the HMC Resource Directory. After submitting, you\'ll be prompted to create a partner account and apply for the partnership types that fit your work.',
+                title: 'Create a Free Account',
+                desc: 'Sign up with your organization email. No application, no approval process. Your account is ready immediately.',
               },
               {
                 num: '02',
-                title: 'Create Your Account',
-                desc: 'Create a free partner account in minutes. Complete your organization profile and set your preferences. No lengthy application required.',
+                title: 'List Your First Event',
+                desc: 'Add your event title, date, location, and flyer. Your listing goes live on the HMC Event Finder after a quick review.',
               },
               {
                 num: '03',
-                title: 'List Events and Manage Referrals',
-                desc: 'Submit events to the HMC Event Finder, get notified when someone RSVPs, manage incoming referrals, and track your community impact.',
+                title: 'Get RSVPs and Grow',
+                desc: 'Community members register directly through the platform. You get notified in real time and can track attendance from your dashboard.',
               },
             ].map((step) => (
               <div key={step.num} style={{ background: '#f5f5f4', border: '1px solid rgba(0,0,0,.06)', borderRadius: 20, padding: '32px 28px' }}>
@@ -185,13 +185,13 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>Who Qualifies</p>
-              <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Built for organizations<br />we work with.</h2>
+              <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>Who It's For</p>
+              <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Any health or wellness<br />org in Los Angeles.</h2>
               <p style={{ fontSize: 17, color: '#555', lineHeight: 1.7, marginBottom: 28 }}>
-                The partner portal is for community organizations working alongside HMC across Los Angeles County. This includes organizations that host events, receive referrals, or collaborate on health equity programs:
+                You do not need to be an existing HMC partner. If your organization hosts free or low-cost health and wellness events for the LA community, this platform is for you:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Clinics and community health centers', 'Housing and shelter providers', 'Food programs and pantries', 'Legal aid and advocacy organizations', 'Behavioral health and recovery services', 'Social service agencies'].map((item) => (
+                {['Clinics and community health centers', 'Mental health and behavioral health providers', 'Food programs, pantries, and resource fairs', 'Fitness, wellness, and movement programs', 'Housing, legal aid, and social service agencies', 'Faith-based and neighborhood organizations'].map((item) => (
                   <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(249,199,79,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                       <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#f9c74f" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -205,9 +205,9 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
             </div>
             <div style={{ background: '#0f0f0f', borderRadius: 24, padding: '48px 40px', color: '#fff' }}>
               <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(249,199,79,.7)', marginBottom: 20 }}>Get Started</p>
-              <h3 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1, marginBottom: 16, color: '#fff' }}>Interested in becoming an HMC Referral Partner?</h3>
+              <h3 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1, marginBottom: 16, color: '#fff' }}>Ready to reach more people?</h3>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 24 }}>
-                Create your free partner account in minutes. List your first event or start managing referrals right away. Reach out if you have questions first.
+                Create your free account and list your first event today. No approval process, no cost. Just a better way to connect with your community.
               </p>
               <button
                 onClick={onRegister}
