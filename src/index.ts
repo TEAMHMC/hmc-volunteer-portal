@@ -3066,12 +3066,25 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
                 ticket.assignedTo === userId
             );
 
+        const stripRegistrationData = (opp: any) => {
+            const { rsvpCount, slotsFilled, assignedVolunteerIds, ...rest } = opp;
+            return {
+                ...rest,
+                staffingQuotas: Array.isArray(opp.staffingQuotas)
+                    ? opp.staffingQuotas.map(({ filled, ...q }: any) => q)
+                    : opp.staffingQuotas,
+            };
+        };
+
+        const opportunitiesForUser = opportunitiesSnap.docs.map(d => ({...d.data(), id: d.id }));
+        const shiftsForUser = shiftsSnap.docs.map(d => ({...d.data(), id: d.id }));
+
         res.json({
             user: userProfile,
             gamification,
             volunteers: volunteersForUser,
-            opportunities: opportunitiesSnap.docs.map(d => ({...d.data(), id: d.id })),
-            shifts: shiftsSnap.docs.map(d => ({...d.data(), id: d.id })),
+            opportunities: isElevatedUser ? opportunitiesForUser : opportunitiesForUser.map(stripRegistrationData),
+            shifts: isElevatedUser ? shiftsForUser : shiftsForUser.map(stripRegistrationData),
             supportTickets: supportTicketsForUser,
             announcements: announcementsSnap.docs.map(d => ({...d.data(), id: d.id })),
             messages,
