@@ -18148,6 +18148,46 @@ const webflowFetch = async (path: string, options: any = {}) => {
   return data;
 };
 
+// Seed Take Action LA into Webflow initiatives collection on startup
+(async () => {
+  const token = process.env.WEBFLOW_API_TOKEN;
+  if (!token) return;
+  const collectionId = WEBFLOW_COLLECTIONS['initiatives'];
+  if (!collectionId) return;
+  try {
+    const existing = await webflowFetch(`/collections/${collectionId}/items?limit=100`);
+    const items: any[] = existing?.items || [];
+    const alreadyExists = items.some((item: any) =>
+      (item.fieldData?.slug || item.slug || '').includes('take-action-la') ||
+      (item.fieldData?.name || item.name || '').toLowerCase().includes('take action la')
+    );
+    if (alreadyExists) { console.log('[WEBFLOW SEED] Take Action LA already exists'); return; }
+
+    const schema = await webflowFetch(`/collections/${collectionId}`);
+    const fields: any[] = schema?.fields || [];
+    const hasField = (n: string) => fields.some((f: any) =>
+      (f.slug || f.name || '').toLowerCase().replace(/[^a-z]/g, '') === n.toLowerCase().replace(/[^a-z]/g, '')
+    );
+
+    const fieldData: any = { name: 'Take Action LA', slug: 'take-action-la' };
+    if (hasField('description') || hasField('shortdescription')) fieldData['description'] = 'A Los Angeles County Department of Mental Health initiative for Mental Health Awareness Month. Health Matters Clinic serves as the community partner delivering free health and wellness events across LA.';
+    if (hasField('summary')) fieldData['summary'] = 'Free mental health and wellness events across Los Angeles in partnership with LACDMH.';
+    if (hasField('embedurl') || hasField('embed-url')) fieldData['embed-url'] = 'https://teamhmc.github.io/take-action-la/';
+    if (hasField('link') || hasField('externalurl')) fieldData['link'] = 'https://www.healthmatters.clinic/takeactionla';
+    if (hasField('status')) fieldData['status'] = 'Active';
+    if (hasField('category')) fieldData['category'] = 'Programs';
+    if (hasField('featured')) fieldData['featured'] = true;
+
+    const result = await webflowFetch(`/collections/${collectionId}/items?live=true`, {
+      method: 'POST',
+      body: JSON.stringify({ fieldData, isDraft: false }),
+    });
+    console.log(`[WEBFLOW SEED] Created Take Action LA: ${result?.id || result?.item?.id}`);
+  } catch (e: any) {
+    console.warn('[WEBFLOW SEED] Take Action LA seed failed:', e?.message);
+  }
+})();
+
 // List items in a collection
 app.get('/api/admin/webflow/collections', verifyToken, requireAdmin, async (_req: Request, res: Response) => {
   try {
