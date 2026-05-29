@@ -18,20 +18,20 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(3,11,31,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,.07)', padding: '16px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <a href="https://www.healthmatters.clinic" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <img src={APP_CONFIG.BRAND.logoUrl} alt="Health Matters Clinic" width={36} height={36} style={{ borderRadius: 8, background: '#fff', objectFit: 'contain' }} />
-          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.01em', color: '#fff' }}>
-            HMC <span style={{ color: 'rgba(255,255,255,.5)', fontWeight: 500 }}>Partner Portal</span>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#fff' }}>
+            HMC <span style={{ color: 'rgba(255,255,255,.45)' }}>PARTNER PORTAL</span>
           </span>
         </a>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={onRegister}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.7)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.8)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             Create Account
           </button>
           <button
             onClick={handleLogin}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#233dff', color: '#fff', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#233dff', color: '#fff', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block', flexShrink: 0 }} />
             Partner Login
@@ -66,32 +66,27 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
               onClick={onRegister}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'linear-gradient(135deg, #233dff, #7b3fff)', color: '#fff', border: 'none', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', boxShadow: '0 8px 32px rgba(35,61,255,.4)' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#233dff', color: '#fff', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '18px 40px', fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 4px 24px rgba(35,61,255,.4)' }}
             >
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block', flexShrink: 0 }} />
-              Create a Partner Account
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'inline-block', flexShrink: 0 }} />
+              Get Started
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
             <button
               onClick={handleLogin}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.08)', color: '#fff', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '16px 36px', fontSize: 15, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,.07)', color: '#fff', border: '1.5px solid rgba(255,255,255,.25)', borderRadius: 100, padding: '18px 40px', fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block', flexShrink: 0 }} />
               Partner Login
             </button>
           </div>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,.3)', marginTop: 20 }}>
-            Plans available for every organization.{' '}
-            <button onClick={onRegister} style={{ background: 'none', border: 'none', color: 'rgba(120,150,255,.8)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
-              Create your account in 2 minutes.
-            </button>
-          </p>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
       <section style={{ background: '#fff', color: '#111', padding: '96px 48px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>How It Works</p>
+          <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#233dff', marginBottom: 16 }}>How It Works</p>
           <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Up and running in minutes.</h2>
           <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create an account and start listing events today.</p>
 
