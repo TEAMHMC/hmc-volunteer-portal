@@ -6392,13 +6392,17 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
         // Notify rsvp@healthmatters.clinic — skip for monitor canary pings
         if (!isCanaryRsvp) {
             const rsvpManagementUrl = `${EMAIL_CONFIG.WEBSITE_URL}/event-management`;
+            const eventProgram = eventDoc.exists ? (eventDoc.data() as any)?.program || (eventDoc.data() as any)?.category || '' : '';
+            const isPartnerEvent = eventProgram === 'Partner Event';
+            const notifTitle = isPartnerEvent ? `New RSVP (Partner Event): ${eventTitle || eventId}` : `New RSVP: ${eventTitle || eventId}`;
+            const partnerNote = isPartnerEvent ? '\nType: Partner Event (partner host will also be notified separately)' : '';
             EmailService.send('broadcast', {
                 toEmail: 'rsvp@healthmatters.clinic',
                 volunteerName: 'Team',
-                title: `New RSVP: ${eventTitle || eventId}`,
+                title: notifTitle,
                 ctaUrl: rsvpManagementUrl,
                 ctaLabel: 'View RSVPs in Portal',
-                content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
+                content: `New RSVP received.\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}${guests ? `\nGuests: +${guests}` : ''}\nEvent: ${eventTitle || eventId}${eventDate ? `\nDate: ${eventDate}` : ''}${partnerNote}${needs ? `\nNeeds/Notes: ${Array.isArray(needs) ? needs.join(', ') : needs}` : ''}\nSource: ${source || 'event-finder-tool'}`,
             }).catch(err => console.error('[PUBLIC RSVP] Admin notification failed:', err));
         }
 
