@@ -19570,6 +19570,11 @@ app.get('/board', (req: Request, res: Response) => {
   res.sendFile(path.join(buildPath, 'board.html'));
 });
 
+// --- PUBLIC UNSTOPPABLE PROGRAM PAGE (no auth required) ---
+app.get('/unstoppable', (_req: Request, res: Response) => {
+  res.sendFile(path.join(buildPath, 'unstoppable.html'));
+});
+
 // --- PUBLIC TRAINING GUIDE (no auth required) ---
 app.get('/training', (req: Request, res: Response) => {
   res.removeHeader('X-Frame-Options');
