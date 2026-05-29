@@ -110,19 +110,23 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .stories-track{display:flex;gap:24px;padding:0 40px;animation:storiesMarquee 60s linear infinite;width:max-content}
 .stories-track:hover{animation-play-state:paused}
 @keyframes storiesMarquee{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 12px))}}
-.story-card{position:relative;flex-shrink:0;width:320px;height:440px;border-radius:14px;overflow:hidden;background:#222;cursor:pointer;transition:transform .35s ease;display:block;color:#fff}
+.story-card{position:relative;flex-shrink:0;width:340px;height:480px;border-radius:14px;overflow:hidden;background:#222;cursor:pointer;transition:transform .35s ease;display:block;color:#fff}
 .story-card:hover{transform:translateY(-6px)}
-.story-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .8s ease}
+.story-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .8s ease;filter:grayscale(.05) contrast(1.04)}
 .story-card:hover img{transform:scale(1.04)}
-.story-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.78) 100%)}
-.story-card-name{position:absolute;left:22px;bottom:60px;z-index:2;color:#fff;font-style:italic;font-weight:800;font-size:32px;letter-spacing:-.01em}
-.story-card-meta{position:absolute;left:22px;bottom:22px;z-index:2;color:rgba(255,255,255,.9);font-size:12px;letter-spacing:.06em;font-weight:600;display:flex;align-items:center;gap:8px}
-.story-card-meta::after{content:'\2192';font-size:14px}
+.story-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.55) 45%,rgba(0,0,0,.92) 100%)}
+.story-card-body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px}
+.story-card-quote{color:#fff;font-style:italic;font-weight:900;font-size:22px;line-height:1.12;letter-spacing:-.01em;margin-bottom:14px}
+.story-card-source{color:rgba(255,255,255,.78);font-size:11.5px;line-height:1.5;margin-bottom:14px}
+.story-card-meta{color:#fff;font-size:11px;letter-spacing:.14em;font-weight:800;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(255,255,255,.22);padding-top:12px}
+.story-card-meta::after{content:'\2192';font-size:14px;transition:transform .3s ease}
+.story-card:hover .story-card-meta::after{transform:translateX(4px)}
+.story-card-tag{position:absolute;top:18px;left:18px;z-index:2;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;background:rgba(35,61,255,.9);color:#fff;padding:5px 10px;border-radius:100px}
 @media (max-width:760px){
   .stories-head{grid-template-columns:1fr;padding:0 24px;gap:20px}
   .stories-track{padding:0 24px}
-  .story-card{width:260px;height:360px}
-  .story-card-name{font-size:26px}
+  .story-card{width:280px;height:440px}
+  .story-card-quote{font-size:19px}
 }
 
 /* ===== 6. STREET INTERVIEWS + SUBMIT YOUR STORY ===== */
@@ -391,31 +395,51 @@ footer{background:#0a0a0a;color:#fff;padding:80px 40px 40px}
   </div>
   <div class="stories-track-wrap">
     <div class="stories-track" id="storiesTrack">
-      <!-- 5 cards, duplicated by JS for seamless infinite scroll. Each card opens the real journal page in a new tab. -->
-      <a class="story-card" href="https://onlinelibrary.wiley.com/doi/10.1111/1475-6773.13115" target="_blank" rel="noopener" data-story="alang">
+      <!-- 5 cards, duplicated by JS for seamless infinite scroll. Each card opens the self-hosted case study PDF in a new tab. -->
+      <a class="story-card" href="/unstoppable/case-studies/alang-2019-stigma.pdf" target="_blank" rel="noopener" data-story="alang">
+        <img src="/unstoppable/photos/DSC_2602.jpg" alt="">
+        <span class="story-card-tag">Case Study 01</span>
+        <div class="story-card-body">
+          <p class="story-card-quote">"Access isn't the finish line. Real change means breaking stigma and rebuilding trust."</p>
+          <p class="story-card-source">Alang, S. (2019). Addressing mental health stigma in African American communities. Journal of Health Care for the Poor and Underserved, 30(1), 4 to 10.</p>
+          <div class="story-card-meta">Read case study</div>
+        </div>
+      </a>
+      <a class="story-card" href="/unstoppable/case-studies/ayon-garcia-2023-migration.pdf" target="_blank" rel="noopener" data-story="ayon">
+        <img src="/unstoppable/photos/DSC_2963.jpg" alt="">
+        <span class="story-card-tag">Case Study 02</span>
+        <div class="story-card-body">
+          <p class="story-card-quote">"Moving isn't just about a new address. It can shake who you are."</p>
+          <p class="story-card-source">Ayon, C., and Garcia, S. J. (2023). The impact of migration on mental health in Black adolescents. PLOS Mental Health.</p>
+          <div class="story-card-meta">Read case study</div>
+        </div>
+      </a>
+      <a class="story-card" href="/unstoppable/case-studies/lindsey-2010-youth-barriers.pdf" target="_blank" rel="noopener" data-story="lindsey">
+        <img src="/unstoppable/photos/DSC_3214.jpg" alt="">
+        <span class="story-card-tag">Case Study 03</span>
+        <div class="story-card-body">
+          <p class="story-card-quote">"Three walls block the way: stigma, no trust, and no way to get there."</p>
+          <p class="story-card-source">Lindsey, M. A., Joe, S., and Nebbitt, V. (2010). Barriers to mental health services for African American youth. Children and Youth Services Review, 32(6), 760 to 768.</p>
+          <div class="story-card-meta">Read case study</div>
+        </div>
+      </a>
+      <a class="story-card" href="/unstoppable/case-studies/abrams-2024-strong-black-woman.pdf" target="_blank" rel="noopener" data-story="abrams">
+        <img src="/unstoppable/photos/DSC_2571.jpg" alt="">
+        <span class="story-card-tag">Case Study 04</span>
+        <div class="story-card-body">
+          <p class="story-card-quote">"Pushing through isn't always power. Sometimes it's pain in disguise."</p>
+          <p class="story-card-source">Abrams, J. A., Hill, A., and Maxwell, M. (2024). The strong Black woman schema and its impact on mental health. Journal of Black Psychology.</p>
+          <div class="story-card-meta">Read case study</div>
+        </div>
+      </a>
+      <a class="story-card" href="/unstoppable/case-studies/williams-2021-black-men.pdf" target="_blank" rel="noopener" data-story="williams">
         <img src="/unstoppable/photos/DSC_2589.jpg" alt="">
-        <div class="story-card-name">Alang</div>
-        <div class="story-card-meta">Health Services Research, 2019</div>
-      </a>
-      <a class="story-card" href="https://journals.plos.org/mentalhealth/" target="_blank" rel="noopener" data-story="ayon">
-        <img src="/unstoppable/photos/DSC_3070.jpg" alt="">
-        <div class="story-card-name">Ayón &amp; Garcia</div>
-        <div class="story-card-meta">PLOS Mental Health, 2023</div>
-      </a>
-      <a class="story-card" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2953262/" target="_blank" rel="noopener" data-story="lindsey">
-        <img src="/unstoppable/photos/DSC_3004.jpg" alt="">
-        <div class="story-card-name">Lindsey</div>
-        <div class="story-card-meta">J. of Black Psychology, 2010</div>
-      </a>
-      <a class="story-card" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6510490/" target="_blank" rel="noopener" data-story="abrams">
-        <img src="/unstoppable/photos/DSC_2867.jpg" alt="">
-        <div class="story-card-name">Abrams</div>
-        <div class="story-card-meta">Sex Roles, 2019</div>
-      </a>
-      <a class="story-card" href="https://www.apa.org/monitor/2021/09/ce-black-mental-health" target="_blank" rel="noopener" data-story="williams">
-        <img src="/unstoppable/photos/DSC_3613.jpg" alt="">
-        <div class="story-card-name">Williams</div>
-        <div class="story-card-meta">APA Monitor, 2021</div>
+        <span class="story-card-tag">Case Study 05</span>
+        <div class="story-card-body">
+          <p class="story-card-quote">"Feeling is not weakness. It's power."</p>
+          <p class="story-card-source">Williams, D. R. (2021). Addressing mental health disparities in Black men. APA Monitor on Psychology, 52(7), 24 to 31.</p>
+          <div class="story-card-meta">Read case study</div>
+        </div>
       </a>
     </div>
   </div>
@@ -538,6 +562,10 @@ footer{background:#0a0a0a;color:#fff;padding:80px 40px 40px}
         <div class="resource-card-img"><img src="/unstoppable/photos/DSC_2589.jpg" alt=""></div>
         <h4>Volunteer Portal</h4><p>Train as a mental health champion and join the team.</p>
       </a>
+      <a class="resource-card show" data-cat="tools" href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" target="_blank" rel="noopener">
+        <div class="resource-card-img"><img src="/unstoppable/photos/DSC_2935.jpg" alt=""></div>
+        <h4>Digital Companion Guide</h4><p>45-page workshop companion. Self-reflection tools, resources, and case studies. Free.</p>
+      </a>
       <a class="resource-card show" data-cat="events" href="https://events.healthmatters.clinic" target="_blank" rel="noopener">
         <div class="resource-card-img"><img src="/unstoppable/photos/DSC_3084.jpg" alt=""></div>
         <h4>Live Unstoppable Walk</h4><p>Monthly community walks across LA County.</p>
@@ -635,6 +663,7 @@ footer{background:#0a0a0a;color:#fff;padding:80px 40px 40px}
       <ul>
         <li><a href="https://events.healthmatters.clinic" target="_blank" rel="noopener">Event Finder</a></li>
         <li><a href="https://calmkit.healthmatters.clinic" target="_blank" rel="noopener">CalmKit</a></li>
+        <li><a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" target="_blank" rel="noopener">Companion Guide</a></li>
         <li><a href="https://volunteer.healthmatters.clinic" target="_blank" rel="noopener">Volunteer</a></li>
         <li><a href="https://partners.healthmatters.clinic" target="_blank" rel="noopener">Partners</a></li>
       </ul>
@@ -776,6 +805,17 @@ footer{background:#0a0a0a;color:#fff;padding:80px 40px 40px}
 
   // Footer year
   var yr = document.getElementById('yr'); if(yr) yr.textContent = new Date().getFullYear();
+})();
+</script>
+<!-- Post height to parent so the Webflow iframe auto-resizes when this page is embedded under /programs -->
+<script>
+(function(){
+  if (window.self === window.top) return;
+  function send(){ window.parent.postMessage({ type: 'efHeight', height: document.documentElement.scrollHeight }, '*'); }
+  send();
+  window.addEventListener('load', send);
+  if (window.ResizeObserver) { new ResizeObserver(send).observe(document.documentElement); }
+  setTimeout(send, 1500);
 })();
 </script>
 </body>
