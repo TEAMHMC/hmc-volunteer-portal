@@ -267,12 +267,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                 </form>
                 {partnerMode ? (
                     <div className="mt-6 p-4 rounded-2xl border text-xs" style={{ background: 'rgba(245,158,11,.04)', borderColor: 'rgba(245,158,11,.15)', color: '#555' }}>
-                        <p className="font-black uppercase tracking-widest text-[10px] mb-3" style={{ color: '#f59e0b' }}>As an HMC Referral Partner, your portal gives you:</p>
+                        <p className="font-black uppercase tracking-widest text-[10px] mb-3" style={{ color: '#f59e0b' }}>Your HMC Partner Portal gives you:</p>
                         <ul className="space-y-1.5 mb-4 font-bold text-zinc-600">
-                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Incoming referral notifications from HMC staff</li>
-                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> One-click status updates (Accept, In Progress, Completed)</li>
-                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Your organization profile (editable)</li>
-                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Performance metrics and outcome tracking</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> List events on the HMC Event Finder with flyer support</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Real-time RSVP notifications when someone registers</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Incoming referral notifications and one-click status updates</li>
+                            <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Your organization profile and performance metrics</li>
                         </ul>
                         <p className="text-zinc-400 font-bold leading-relaxed">
                             Don't have an account yet? Partners are invite-only. Email{' '}
@@ -294,26 +294,29 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
           </div>
         ) : partnerMode ? (
           <div className="max-w-[1200px] text-center space-y-8 md:space-y-16 animate-in fade-in duration-1000">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[1200px] max-h-[1200px] opacity-[0.03] pointer-events-none -z-10">
+              <Activity className="w-full h-full text-zinc-900" strokeWidth={0.5} />
+            </div>
              <div className="space-y-4 md:space-y-8">
                 <div className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-1.5 md:py-2 border rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] mb-2 md:mb-4" style={{ background: 'rgba(245,158,11,.06)', color: '#f59e0b', borderColor: 'rgba(245,158,11,.15)' }}>
-                   <div className="w-2 h-2 rounded-full" style={{ background: '#f59e0b' }} /> HMC Referral Partner Network
+                   <Zap size={12} className="animate-pulse md:w-[14px] md:h-[14px]" style={{ color: '#f59e0b' }} /> HMC Partner Network
                 </div>
                 <h1 className="text-4xl sm:text-5xl md:text-8xl lg:text-[90px] font-black text-zinc-900 tracking-tighter leading-[0.9] md:leading-[0.85] mb-4 md:mb-8 italic uppercase">
-                  Partner<br/>
-                  <span style={{ background: 'linear-gradient(to right, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Portal.</span>
+                  Serve Your<br/>
+                  <span style={{ background: 'linear-gradient(to right, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Community.</span>
                 </h1>
                 <p className="text-sm md:text-lg lg:text-xl text-zinc-400 font-bold max-w-4xl mx-auto leading-relaxed italic px-2">
-                  Manage your referrals, update your organization profile, and track outcomes — all in one place.
+                  List events, receive RSVP notifications, manage referrals, and track your community impact — all in one place.
                 </p>
              </div>
              <div className="pt-4 md:pt-8 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
                 <button
                   onClick={handleVolunteerLoginClick}
-                  className="w-full md:w-auto border border-black text-zinc-900 px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4 group"
+                  className="w-full md:w-auto border border-black px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide shadow-elevation-2 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4 group"
                   style={{ background: '#f59e0b', color: '#0f0f0f' }}
                 >
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ background: '#0f0f0f' }} />
-                  Sign In <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
+                  Partner Login <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
                 </button>
                 <a
                   href="mailto:partner@healthmatters.clinic"
@@ -347,6 +350,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
                 </button>
+                <a
+                  href="/tour"
+                  className="w-full md:w-auto bg-white border border-black text-zinc-900 px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4"
+                >
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-black" />
+                  Tour the Platform
+                </a>
                 <div className="flex items-center gap-3 md:gap-4 bg-zinc-900 border border-zinc-700 rounded-full px-2 py-2 md:px-3 md:py-2.5 shadow-elevation-2">
                    <div className="flex -space-x-2 md:-space-x-2.5">
                       {[
