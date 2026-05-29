@@ -2981,6 +2981,7 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
 
         // Role-based volunteer list: coordinators/admins get full data; regular volunteers get stripped-down safe subset
         const isElevatedUser = userProfile.isAdmin || COORDINATOR_ROLES.includes(userProfile.role);
+        // Regular volunteers only get what's needed for messaging: identity + presence
         const volunteersForUser = isElevatedUser
             ? volunteersWithOnlineStatus
             : (volunteersWithOnlineStatus as any[]).map(v => ({
@@ -2993,8 +2994,6 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
                 avatarUrl: v.avatarUrl,
                 isOnline: v.isOnline,
                 status: v.status,
-                completedTrainingIds: v.completedTrainingIds,
-                completedHIPAATraining: v.completedHIPAATraining,
             }));
 
         // Fetch gamification profile
