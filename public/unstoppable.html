@@ -200,6 +200,38 @@ section{padding:96px 48px}
 .impact-context{font-size:13px;color:#888;line-height:1.5}
 .impact-source{margin-top:40px;text-align:center;font-size:13px;color:#888;font-style:italic}
 
+/* THE REPORT SECTION (ASICS-style: copy + key findings on one side, tilted report cover on the other) */
+.report{background:#0f0f0f;color:#fff;overflow:hidden}
+.report-inner{display:grid;grid-template-columns:1.05fr .95fr;gap:72px;align-items:center;margin-top:8px}
+.report-eyebrow{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#7b93ff;margin-bottom:16px}
+.report-title{font-size:clamp(48px,7vw,104px);font-weight:900;font-style:italic;text-transform:uppercase;line-height:.86;letter-spacing:-.04em;color:#fff;margin-bottom:24px}
+.report-body{font-size:18px;color:rgba(255,255,255,.6);line-height:1.65;max-width:540px;margin-bottom:36px}
+.report-findings{display:grid;grid-template-columns:1fr 1fr;gap:20px 36px;margin-bottom:40px}
+.report-finding{border-top:1px solid rgba(255,255,255,.12);padding-top:18px}
+.report-finding-num{font-size:clamp(26px,3vw,36px);font-weight:900;font-style:italic;letter-spacing:-.03em;line-height:1;color:#fff;margin-bottom:8px}
+.report-finding-num .from{color:rgba(255,255,255,.4)}
+.report-finding-num .arrow{color:#233dff;padding:0 4px}
+.report-finding-label{font-size:14px;color:rgba(255,255,255,.55);line-height:1.45}
+.report-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.report-actions .btn-secondary{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55)}
+.report-actions .btn-secondary::before{background:#fff}
+.report-actions .btn-secondary:hover{background:rgba(255,255,255,.08)}
+/* Tilted report cover, built entirely in CSS (no external image) */
+.report-visual{position:relative;display:flex;align-items:center;justify-content:center;min-height:480px}
+.report-visual-shape{position:absolute;width:340px;height:340px;border-radius:36px;background:linear-gradient(135deg,#233dff,#5e74ff);filter:blur(2px);opacity:.55;transform:rotate(-12deg) translate(28px,-18px);z-index:0}
+.report-visual-shape.two{width:200px;height:200px;background:linear-gradient(135deg,#7b93ff,#233dff);opacity:.35;transform:rotate(14deg) translate(-90px,120px);border-radius:50%}
+.report-cover{position:relative;z-index:1;width:300px;background:linear-gradient(165deg,#f7f8ff 0%,#eef1ff 100%);color:#0f1230;border-radius:14px;padding:36px 30px 30px;box-shadow:0 40px 80px rgba(0,0,0,.5),0 8px 20px rgba(0,0,0,.3);transform:rotate(6deg);transition:transform .6s cubic-bezier(.22,1,.36,1)}
+.report-cover::before{content:'';position:absolute;left:0;top:0;bottom:0;width:7px;background:#233dff;border-radius:14px 0 0 14px}
+.report:hover .report-cover{transform:rotate(2deg) translateY(-6px)}
+.report-cover-logo{display:flex;align-items:center;gap:10px;margin-bottom:48px}
+.report-cover-logo img{width:34px;height:34px;border-radius:8px}
+.report-cover-logo span{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#0f1230;line-height:1.2}
+.report-cover-kicker{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#233dff;margin-bottom:10px}
+.report-cover-title{font-size:46px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-.03em;line-height:.9;color:#0f1230;margin-bottom:14px}
+.report-cover-meta{font-size:13px;font-weight:600;color:#444;line-height:1.5;margin-bottom:4px}
+.report-cover-rule{height:1px;background:rgba(15,18,48,.12);margin:24px 0 14px}
+.report-cover-foot{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888}
+
 /* DIGITAL COMPANION SECTION */
 .companion{background:#fff}
 .companion-inner{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;margin-top:56px}
@@ -242,6 +274,8 @@ section{padding:96px 48px}
   .hero{padding:80px 24px 80px}
   section{padding:72px 24px}
   .about-inner{grid-template-columns:1fr;gap:48px}
+  .report-inner{grid-template-columns:1fr;gap:56px}
+  .report-visual{min-height:420px;order:-1}
   .formats-grid{grid-template-columns:1fr}
   .tools-grid{grid-template-columns:1fr 1fr}
   .hero-stats{gap:32px}
@@ -255,6 +289,8 @@ section{padding:96px 48px}
   .hero-actions{flex-direction:column;align-items:stretch}
   .btn-primary,.btn-secondary{justify-content:center}
   .impact-stats{grid-template-columns:1fr 1fr}
+  .report-findings{grid-template-columns:1fr}
+  .report-cover{width:84vw;max-width:300px}
   .tools-grid{grid-template-columns:1fr}
   .companion-inner{grid-template-columns:1fr;gap:48px}
   .nav-cta-outline{display:none}
@@ -272,6 +308,8 @@ section{padding:96px 48px}
   .animate-up{opacity:1 !important;animation:none !important}
   [data-reveal],[data-stagger]>*{opacity:1 !important;transform:none !important}
   .format-card:hover,.tool-card:hover,.impact-stat:hover,.module-card:hover,.kinetic-cta .btn-light:hover,.story-card:hover{transform:none !important}
+  .report:hover .report-cover{transform:rotate(6deg) !important}
+  .report-cover{transition:none !important}
   .hero-slide{transition:none !important}
   .scroll-down-circle{animation:none !important}
   .story-banner-text{opacity:1 !important;transform:none !important;transition:none !important}
@@ -464,6 +502,57 @@ section{padding:96px 48px}
 
     </div>
     <p class="impact-source" data-reveal>Source: Unstoppable Participant Evaluation, presented to LACDMH, Health Matters Clinic 2025</p>
+  </div>
+</section>
+
+<!-- THE REPORT (ASICS-style): features the real LACDMH evaluation with key findings + a CSS-built tilted report cover -->
+<section class="report" aria-labelledby="report-heading">
+  <div class="container">
+    <div class="report-inner" data-reveal>
+      <div class="report-copy">
+        <p class="report-eyebrow">Key Findings</p>
+        <h2 class="report-title" id="report-heading">The Report.</h2>
+        <p class="report-body">Health Matters Clinic measured the impact of the Unstoppable workshop using a retrospective pre-then-post evaluation, presented to the Los Angeles County Department of Mental Health. The results were clear: healing-centered, culturally affirming mental health education works.</p>
+        <div class="report-findings" role="list">
+          <div class="report-finding" role="listitem">
+            <p class="report-finding-num"><span class="from">28%</span><span class="arrow">to</span>69%</p>
+            <p class="report-finding-label">Comfort discussing mental health in the Black community (Strongly Agree)</p>
+          </div>
+          <div class="report-finding" role="listitem">
+            <p class="report-finding-num"><span class="from">15%</span><span class="arrow">to</span>57%</p>
+            <p class="report-finding-label">Able to identify mental health symptoms in Black youth and adults</p>
+          </div>
+          <div class="report-finding" role="listitem">
+            <p class="report-finding-num"><span class="from">21%</span><span class="arrow">to</span>58%</p>
+            <p class="report-finding-label">Awareness of community mental health resources</p>
+          </div>
+          <div class="report-finding" role="listitem">
+            <p class="report-finding-num"><span class="from">22%</span><span class="arrow">to</span>53%</p>
+            <p class="report-finding-label">Feeling equipped to support others</p>
+          </div>
+        </div>
+        <div class="report-actions">
+          <!-- REPLACE_WITH_LACDMH_REPORT_URL: swap the href below for the full lacounty.gov report deep link -->
+          <a href="https://file.lacounty.gov" target="_blank" rel="noopener noreferrer" class="btn-primary">Read the Full Report</a>
+          <a href="#impact-heading" class="btn-secondary">View Key Findings</a>
+        </div>
+      </div>
+      <div class="report-visual" aria-hidden="true">
+        <div class="report-visual-shape"></div>
+        <div class="report-visual-shape two"></div>
+        <div class="report-cover">
+          <div class="report-cover-logo">
+            <img src="https://cdn.prod.website-files.com/67359e6040140078962e8a54/6912e29e5710650a4f45f53f_Untitled%20(256%20x%20256%20px).png" alt="" width="34" height="34">
+            <span>Health Matters<br>Clinic</span>
+          </div>
+          <p class="report-cover-kicker">Final Report</p>
+          <p class="report-cover-title">Unstoppable</p>
+          <p class="report-cover-meta">Participant Evaluation Summary</p>
+          <div class="report-cover-rule"></div>
+          <p class="report-cover-foot">Presented to LACDMH 2025</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -681,7 +770,7 @@ section{padding:96px 48px}
     </div>
     <div>
       <p style="font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.3);margin:0 0 20px;">Community</p>
-      <nav style="display:flex;flex-direction:column;gap:12px;">
+      <nav style="display:flex;flex-direction:column;gap:12px;background:none;border:none;padding:0;position:static;">
         <a href="https://eventfinder.healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Event Finder</a>
         <a href="https://www.healthmatters.clinic/resources/resourcedirectory" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Resource Directory</a>
         <a href="https://calmkit.healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">CalmKit</a>
@@ -691,7 +780,7 @@ section{padding:96px 48px}
     </div>
     <div>
       <p style="font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.3);margin:0 0 20px;">Unstoppable</p>
-      <nav style="display:flex;flex-direction:column;gap:12px;">
+      <nav style="display:flex;flex-direction:column;gap:12px;background:none;border:none;padding:0;position:static;">
         <a href="https://eventfinder.healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Find an Event</a>
         <a href="https://healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Download the Guide</a>
         <a href="https://calmkit.healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">CalmKit</a>
@@ -701,7 +790,7 @@ section{padding:96px 48px}
     </div>
     <div>
       <p style="font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.3);margin:0 0 20px;">Contact</p>
-      <nav style="display:flex;flex-direction:column;gap:12px;">
+      <nav style="display:flex;flex-direction:column;gap:12px;background:none;border:none;padding:0;position:static;">
         <a href="mailto:unstoppable@healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Unstoppable Program</a>
         <a href="mailto:partner@healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Partnerships</a>
         <a href="mailto:contact@healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">General</a>

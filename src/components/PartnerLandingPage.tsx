@@ -12,20 +12,20 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
     onLogin(true);
   };
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", background: '#030b1f', color: '#fff', minHeight: '100vh', WebkitFontSmoothing: 'antialiased' }}>
+    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", background: '#fff', color: '#0a0e28', minHeight: '100vh', WebkitFontSmoothing: 'antialiased' }}>
 
       {/* NAV */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(3,11,31,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,.07)', padding: '16px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,.07)', padding: '16px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <a href="https://www.healthmatters.clinic" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <img src={APP_CONFIG.BRAND.logoUrl} alt="Health Matters Clinic" width={36} height={36} style={{ borderRadius: 8, background: '#fff', objectFit: 'contain' }} />
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#fff' }}>
-            HMC <span style={{ color: 'rgba(255,255,255,.45)' }}>PARTNER PORTAL</span>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#0a0e28' }}>
+            HMC <span style={{ color: 'rgba(10,14,40,.45)' }}>PARTNER PORTAL</span>
           </span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={onRegister}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.8)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#0a0e28', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             Create Account
           </button>
@@ -40,26 +40,26 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
       </nav>
 
       {/* HERO */}
-      <section style={{ background: 'linear-gradient(135deg, #030b1f 0%, #0b1547 40%, #1a0635 75%, #0a0a20 100%)', padding: '96px 48px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ background: 'linear-gradient(135deg, #fff4ec 0%, #fdeef5 45%, #f0eeff 100%)', padding: '96px 48px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* Grid overlay */}
-        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)', backgroundSize: '60px 60px', WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)', maskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)', pointerEvents: 'none' }} />
-        {/* Blue radial glow */}
-        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(35,61,255,.35), transparent)', pointerEvents: 'none' }} />
-        {/* Purple accent glow */}
-        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 50% 40% at 80% 80%, rgba(120,40,255,.15), transparent)', pointerEvents: 'none' }} />
+        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(0,0,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.03) 1px,transparent 1px)', backgroundSize: '60px 60px', WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)', maskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent)', pointerEvents: 'none' }} />
+        {/* Warm peach radial glow */}
+        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,160,110,.18), transparent)', pointerEvents: 'none' }} />
+        {/* Lavender accent glow */}
+        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 50% 40% at 80% 80%, rgba(150,120,255,.12), transparent)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(35,61,255,.15)', border: '1px solid rgba(35,61,255,.4)', borderRadius: 100, padding: '8px 16px', marginBottom: 28, fontSize: 12, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(120,150,255,.9)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(35,61,255,.08)', border: '1px solid rgba(35,61,255,.3)', borderRadius: 100, padding: '8px 16px', marginBottom: 28, fontSize: 12, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: '#233dff' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#233dff', display: 'inline-block', flexShrink: 0 }} />
             HMC Partner Network
           </div>
 
-          <h1 style={{ fontSize: 'clamp(52px, 7.5vw, 100px)', fontWeight: 900, lineHeight: .9, letterSpacing: '-.04em', maxWidth: 900, margin: '0 auto 28px', color: '#fff', fontStyle: 'italic', textTransform: 'uppercase' }}>
+          <h1 style={{ fontSize: 'clamp(52px, 7.5vw, 100px)', fontWeight: 900, lineHeight: .9, letterSpacing: '-.04em', maxWidth: 900, margin: '0 auto 28px', color: '#0a0e28', fontStyle: 'italic', textTransform: 'uppercase' }}>
             Serve Your<br />
             <span style={{ background: 'linear-gradient(135deg, #f9c74f 0%, #ff8c42 60%, #ff5f7e 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Community.</span>
           </h1>
 
-          <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: 'rgba(255,255,255,.5)', maxWidth: 620, margin: '0 auto 44px', lineHeight: 1.65, fontStyle: 'italic' }}>
+          <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: '#555', maxWidth: 620, margin: '0 auto 44px', lineHeight: 1.65, fontStyle: 'italic' }}>
             The platform for health and wellness organizations to list events, collect RSVPs, and reach thousands of community members across Los Angeles.
           </p>
 
@@ -74,9 +74,9 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
             </button>
             <button
               onClick={handleLogin}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,.07)', color: '#fff', border: '1.5px solid rgba(255,255,255,.25)', borderRadius: 100, padding: '18px 40px', fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#fff', color: '#0a0e28', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '18px 40px', fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,.7)', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0a0e28', display: 'inline-block', flexShrink: 0 }} />
               Partner Login
             </button>
           </div>
