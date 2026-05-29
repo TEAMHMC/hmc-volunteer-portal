@@ -5688,6 +5688,57 @@ app.get('/api/public/events-schema', async (_req: Request, res: Response) => {
   }
 });
 
+// GET /api/public/ads — server-side proxy for the Event Finder ad banners.
+// The Event Finder fetches this instead of calling GAS directly: GAS responds with a 302
+// redirect to script.googleusercontent.com, which browser fetch() can fail to follow in some
+// contexts (iframes, Safari), silently returning no ads. Fetching server-side avoids that.
+// Mirrors the /api/public/events pattern: short in-memory cache + 6s GAS timeout.
+let _gasAdsCache: { ads: any[]; fetchedAt: number } | null = null;
+const GAS_ADS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const fetchGASAdsCached = async (): Promise<any[]> => {
+  const now = Date.now();
+  if (_gasAdsCache && (now - _gasAdsCache.fetchedAt) < GAS_ADS_CACHE_TTL_MS) {
+    return _gasAdsCache.ads;
+  }
+  if (!APPS_SCRIPT_EVENTS_URL) {
+    return _gasAdsCache?.ads || [];
+  }
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 6000);
+    const response = await fetch(`${APPS_SCRIPT_EVENTS_URL}?action=get_ads`, {
+      signal: controller.signal,
+      redirect: 'follow',
+    });
+    clearTimeout(tid);
+    if (response.ok) {
+      const data = await response.json() as any;
+      if (data && data.success && Array.isArray(data.ads)) {
+        _gasAdsCache = { ads: data.ads, fetchedAt: now };
+        console.log(`[PUBLIC ADS] GAS returned ${data.ads.length} ad(s)`);
+        return data.ads;
+      }
+    }
+  } catch (err: any) {
+    console.warn('[PUBLIC ADS] GAS fetch failed:', err.name === 'AbortError' ? 'timed out' : err.message);
+  }
+  // Serve stale cache if a refresh fails
+  return _gasAdsCache?.ads || [];
+};
+
+app.get('/api/public/ads', async (_req: Request, res: Response) => {
+  try {
+    const ads = await fetchGASAdsCached();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+    res.json({ success: true, ads });
+  } catch (error: any) {
+    console.error('[PUBLIC ADS] Failed to fetch ads:', error);
+    res.status(500).json({ success: false, ads: [], error: 'Failed to fetch ads' });
+  }
+});
+
 // --- VOLUNTEER MATCH FOR PUBLIC RSVPS ---
 const processVolunteerMatch = async (
   rsvpId: string,
