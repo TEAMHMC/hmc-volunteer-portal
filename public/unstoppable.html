@@ -148,14 +148,18 @@ section{padding:96px 48px}
 .stories-track::-webkit-scrollbar-track{background:transparent}
 /* Lead/trail spacers so first/last cards align with the page gutter */
 .stories-track::before,.stories-track::after{content:'';flex:0 0 max(24px,calc((100vw - 1100px) / 2));}
-.story-card{position:relative;flex:0 0 300px;height:430px;border-radius:20px;overflow:hidden;scroll-snap-align:start;text-decoration:none;color:#fff;background:#1a1a1a;box-shadow:0 12px 30px rgba(0,0,0,.18);transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease}
+.story-card{position:relative;flex:0 0 340px;height:520px;border-radius:20px;overflow:hidden;scroll-snap-align:start;text-decoration:none;color:#fff;background:#1a1a1a;box-shadow:0 12px 30px rgba(0,0,0,.18);transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;display:flex;flex-direction:column;justify-content:flex-end}
 .story-card:hover{transform:translateY(-6px);box-shadow:0 22px 50px rgba(0,0,0,.28)}
-.story-card-photo{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;transition:transform .8s cubic-bezier(.22,1,.36,1)}
+.story-card-photo{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;transition:transform .8s cubic-bezier(.22,1,.36,1);filter:grayscale(.05) contrast(1.04)}
 .story-card:hover .story-card-photo{transform:scale(1.07)}
-.story-card::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,15,15,0) 30%,rgba(15,15,15,.45) 60%,rgba(15,15,15,.92) 100%);pointer-events:none}
-.story-card-body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px}
-.story-card-name{font-size:32px;font-weight:900;font-style:italic;letter-spacing:-.02em;line-height:1;margin-bottom:8px;color:#fff}
-.story-card-teaser{font-size:14px;color:rgba(255,255,255,.78);line-height:1.45}
+.story-card::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(15,15,15,.15) 0%,rgba(15,15,15,.55) 40%,rgba(15,15,15,.95) 100%);pointer-events:none}
+.story-card-body{position:relative;z-index:2;padding:26px 24px 24px}
+.story-card-quote{font-size:24px;font-weight:900;font-style:italic;letter-spacing:-.02em;line-height:1.1;color:#fff;text-transform:none;margin-bottom:14px}
+.story-card-context{font-size:13px;color:rgba(255,255,255,.78);line-height:1.5;margin-bottom:12px}
+.story-card-source{font-size:11px;color:rgba(255,255,255,.55);line-height:1.45;letter-spacing:.01em;margin-bottom:14px}
+.story-card-cta{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#7b93ff;border-top:1px solid rgba(255,255,255,.18);padding-top:12px}
+.story-card-cta::after{content:'\2192';transition:transform .35s ease}
+.story-card:hover .story-card-cta::after{transform:translateX(4px)}
 .story-card-tag{position:absolute;top:18px;left:18px;z-index:2;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:rgba(35,61,255,.85);color:#fff;padding:5px 11px;border-radius:100px}
 
 /* WHAT IS UNSTOPPABLE SECTION */
@@ -296,7 +300,7 @@ section{padding:96px 48px}
   .nav-cta-outline{display:none}
   .formats-grid{grid-template-columns:1fr}
   .format-card{min-height:320px}
-  .story-card{flex-basis:78vw;height:400px}
+  .story-card{flex-basis:80vw;height:500px}
 }
 
 /* ACCESSIBILITY: honor reduced-motion preferences.
@@ -327,7 +331,7 @@ section{padding:96px 48px}
     <span class="nav-logo-text">HMC <span>UNSTOPPABLE</span></span>
   </a>
   <div class="nav-actions">
-    <a href="https://www.healthmatters.clinic/programs" class="nav-cta-outline">Download the Guide</a>
+    <a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" class="nav-cta-outline">Download the Guide</a>
     <a href="https://eventfinder.healthmatters.clinic" class="nav-cta">Find Events</a>
   </div>
 </nav>
@@ -337,9 +341,9 @@ section{padding:96px 48px}
 <section class="hero" aria-labelledby="hero-heading">
   <!-- HERO PHOTO CAROUSEL: cross-fades every 5s behind the title. -->
   <div class="hero-carousel" aria-hidden="true">
-    <div class="hero-slide active" data-hero-slide style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8ad2/69a9266fde1c09ebf3c71344_Unstoppable%20Workshop%20-%20Mar-Palmdale.png')"></div>
-    <div class="hero-slide" data-hero-slide style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/69cadd444510433a9168ef33_IMG_1688.jpg')"></div>
-    <div class="hero-slide" data-hero-slide style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/6a197bbb5e63b99a00f9b7cf_1-event-finder.jpg')"></div>
+    <div class="hero-slide active" data-hero-slide style="background-image:url('/unstoppable/photos/DSC_2935.jpg')"></div>
+    <div class="hero-slide" data-hero-slide style="background-image:url('/unstoppable/photos/DSC_3084.jpg')"></div>
+    <div class="hero-slide" data-hero-slide style="background-image:url('/unstoppable/photos/DSC_2596.jpg')"></div>
   </div>
   <div class="hero-scrim" aria-hidden="true"></div>
   <div class="hero-grid" aria-hidden="true"></div>
@@ -349,7 +353,7 @@ section{padding:96px 48px}
   <p class="hero-sub animate-up delay-2">Our flagship mental health program, anchored by the <strong style="color:#fff;font-weight:700;">Power of Healing &amp; Growth</strong> workshop. A healing-centered curriculum built for and with Black and underserved communities in Los Angeles. Workshop-tested. LACDMH-recognized. Digitally expanded.</p>
   <div class="hero-actions animate-up delay-3">
     <a href="https://eventfinder.healthmatters.clinic" class="btn-primary">Attend an Event</a>
-    <a href="https://www.healthmatters.clinic/programs" class="btn-secondary">Download the Guide</a>
+    <a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" class="btn-secondary">Download the Guide</a>
   </div>
   <div class="hero-stats" role="list">
     <div role="listitem">
@@ -433,7 +437,7 @@ section{padding:96px 48px}
     <div class="formats-grid" data-reveal data-stagger>
 
       <a href="https://eventfinder.healthmatters.clinic" class="format-card" aria-label="MOVE: Live Walk and Run events">
-        <div class="format-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/69f41f2a45f0fff255de1585_Live%20Unstoppable%205.9.26%20-%20Lineup.png')"></div>
+        <div class="format-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_3084.jpg')"></div>
         <p class="format-eyebrow">Format 01</p>
         <h3 class="format-name">MOVE</h3>
         <p class="format-sub">Live Walk &amp; Run</p>
@@ -442,7 +446,7 @@ section{padding:96px 48px}
       </a>
 
       <a href="https://eventfinder.healthmatters.clinic" class="format-card" aria-label="HEAL: Wellness Meetup events">
-        <div class="format-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/69f41f2afb5cb5986253b781_Unstoppable%20Meetup%205.20.26%20-%20DR.%20BOUNDS.png')"></div>
+        <div class="format-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_2675.jpg')"></div>
         <p class="format-eyebrow">Format 02</p>
         <h3 class="format-name">HEAL</h3>
         <p class="format-sub">Wellness Meetup</p>
@@ -451,7 +455,7 @@ section{padding:96px 48px}
       </a>
 
       <a href="https://eventfinder.healthmatters.clinic" class="format-card" aria-label="EXPERIENCE: Virtual Session events">
-        <div class="format-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/69f4237add212835e8d24016_Unstoppable%20X%205.27.26%20-%20Lineup.png')"></div>
+        <div class="format-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_3070.jpg')"></div>
         <p class="format-eyebrow">Format 03</p>
         <h3 class="format-name">EXPERIENCE</h3>
         <p class="format-sub">Virtual Session</p>
@@ -552,7 +556,7 @@ section{padding:96px 48px}
 
 <!-- SCROLL-REVEAL STORY BANNER (full-bleed event photo, text fades in on scroll) -->
 <section class="story-banner" aria-labelledby="story-banner-heading">
-  <div class="story-banner-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/69ca36bc8816b348b95101c9_IMG_7321.jpg')"></div>
+  <div class="story-banner-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_2867.jpg')"></div>
   <h2 class="story-banner-text" id="story-banner-heading">Read the stories of the people moving their minds.</h2>
 </section>
 
@@ -568,45 +572,55 @@ section{padding:96px 48px}
     </span>
   </div>
   <!-- Horizontal track: scroll-snaps card-to-card; drag-to-scroll enabled via JS. -->
-  <div class="stories-track" data-stories-track role="list" aria-label="Community stories">
-    <a href="https://www.healthmatters.clinic/programs" class="story-card" role="listitem" aria-label="Case study: The Silent Weight of Stigma">
-      <div class="story-card-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa961f15351ec1bc5243e_P1100963.jpeg')"></div>
-      <span class="story-card-tag">Case Study</span>
+  <div class="stories-track" data-stories-track role="list" aria-label="Community case studies">
+    <a href="/unstoppable/case-studies/alang-2019-stigma.pdf" class="story-card" role="listitem" aria-label="Case study: The Silent Weight of Stigma in Black Mental Health" target="_blank" rel="noopener">
+      <div class="story-card-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_2602.jpg')"></div>
+      <span class="story-card-tag">Case Study 01</span>
       <div class="story-card-body">
-        <p class="story-card-name">The Silent Weight of Stigma</p>
-        <p class="story-card-teaser">Even as more people talk about mental health, many Black folks still fear reaching out. Source: Journal of Health Care for the Poor and Underserved.</p>
+        <p class="story-card-quote">"Access isn't the finish line. Real change means breaking stigma, rebuilding trust, and honoring lived experience."</p>
+        <p class="story-card-context">Even with more people talking about mental health, many Black folks still feel scared to reach out, after too many bad experiences with the system.</p>
+        <p class="story-card-source">Alang, S. (2019). Addressing mental health stigma in African American communities. Journal of Health Care for the Poor and Underserved, 30(1), 4 to 10.</p>
+        <span class="story-card-cta">Read the case study</span>
       </div>
     </a>
-    <a href="https://www.healthmatters.clinic/programs" class="story-card" role="listitem" aria-label="Case study: The Crisis Facing Black Men">
-      <div class="story-card-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9a26489edb0895bc219_Website_Kerry.jpeg')"></div>
-      <span class="story-card-tag">Case Study</span>
+    <a href="/unstoppable/case-studies/ayon-garcia-2023-migration.pdf" class="story-card" role="listitem" aria-label="Case study: The Hidden Toll of Moving While Black" target="_blank" rel="noopener">
+      <div class="story-card-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_2963.jpg')"></div>
+      <span class="story-card-tag">Case Study 02</span>
       <div class="story-card-body">
-        <p class="story-card-name">The Crisis Facing Black Men</p>
-        <p class="story-card-teaser">The invisible burden of "manning up" is costing lives. Source: APA Monitor.</p>
+        <p class="story-card-quote">"Moving isn't just about a new address. It can shake who you are."</p>
+        <p class="story-card-context">For Black teens, migrating during adolescence can double the risk of psychosis. Care has to be culturally rooted, trauma aware, and built for the journey.</p>
+        <p class="story-card-source">Ayon, C., and Garcia, S. J. (2023). The impact of migration on mental health in Black adolescents. PLOS Mental Health.</p>
+        <span class="story-card-cta">Read the case study</span>
       </div>
     </a>
-    <a href="https://www.healthmatters.clinic/programs" class="story-card" role="listitem" aria-label="Case study: Barriers Beyond the Clinic">
-      <div class="story-card-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/69cadd444510433a9168ef33_IMG_1688.jpg')"></div>
-      <span class="story-card-tag">Case Study</span>
+    <a href="/unstoppable/case-studies/lindsey-2010-youth-barriers.pdf" class="story-card" role="listitem" aria-label="Case study: Barriers Beyond the Clinic for Black Youth" target="_blank" rel="noopener">
+      <div class="story-card-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_3214.jpg')"></div>
+      <span class="story-card-tag">Case Study 03</span>
       <div class="story-card-body">
-        <p class="story-card-name">Barriers Beyond the Clinic</p>
-        <p class="story-card-teaser">Stigma, broken trust, and no way to get there: what stops Black youth from getting help. Source: Children and Youth Services Review.</p>
+        <p class="story-card-quote">"Three walls block the way: stigma, no trust, and no way to get there."</p>
+        <p class="story-card-context">To reach Black youth, we have to meet them where they are, with care that is real, not just clinical, in schools, homes, and community spaces that feel safe.</p>
+        <p class="story-card-source">Lindsey, M. A., Joe, S., and Nebbitt, V. (2010). Barriers to mental health services for African American youth. Children and Youth Services Review, 32(6), 760 to 768.</p>
+        <span class="story-card-cta">Read the case study</span>
       </div>
     </a>
-    <a href="https://www.healthmatters.clinic/programs" class="story-card" role="listitem" aria-label="Case study: Moving While Black">
-      <div class="story-card-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8a54/690aa9607ca39931abff9f95_Profile%20Image.jpeg')"></div>
-      <span class="story-card-tag">Case Study</span>
+    <a href="/unstoppable/case-studies/abrams-2024-strong-black-woman.pdf" class="story-card" role="listitem" aria-label="Case study: Strength at a Cost, the Strong Black Woman Schema" target="_blank" rel="noopener">
+      <div class="story-card-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_2571.jpg')"></div>
+      <span class="story-card-tag">Case Study 04</span>
       <div class="story-card-body">
-        <p class="story-card-name">Moving While Black</p>
-        <p class="story-card-teaser">Migration in adolescence can double the risk of psychosis for Black teens. Source: PLOS Mental Health.</p>
+        <p class="story-card-quote">"Pushing through isn't always power. Sometimes it's pain in disguise."</p>
+        <p class="story-card-context">Always holding it together, without rest, without room to fall apart, can lead to anxiety, depression, and burnout. Vulnerability is survival evolved.</p>
+        <p class="story-card-source">Abrams, J. A., Hill, A., and Maxwell, M. (2024). The strong Black woman schema and its impact on mental health. Journal of Black Psychology.</p>
+        <span class="story-card-cta">Read the case study</span>
       </div>
     </a>
-    <a href="https://www.healthmatters.clinic/programs" class="story-card" role="listitem" aria-label="Case study: Strength at a Cost">
-      <div class="story-card-photo" aria-hidden="true" style="background-image:url('https://cdn.prod.website-files.com/67359e6040140078962e8ad2/690eb640f851c84db76796d3_SMO%20Flyer.jpg')"></div>
-      <span class="story-card-tag">Case Study</span>
+    <a href="/unstoppable/case-studies/williams-2021-black-men.pdf" class="story-card" role="listitem" aria-label="Case study: The Mental Health Crisis Facing Black Men" target="_blank" rel="noopener">
+      <div class="story-card-photo" aria-hidden="true" style="background-image:url('/unstoppable/photos/DSC_2589.jpg')"></div>
+      <span class="story-card-tag">Case Study 05</span>
       <div class="story-card-body">
-        <p class="story-card-name">Strength at a Cost</p>
-        <p class="story-card-teaser">The Strong Black Woman archetype: always holding it together can lead to burnout. Source: Journal of the American Psychiatric Nurses Association.</p>
+        <p class="story-card-quote">"Feeling is not weakness. It's power."</p>
+        <p class="story-card-context">Black men carry invisible burdens. Pressures to man up, stay silent, and push through are costing lives. Change starts by flipping the script on masculinity.</p>
+        <p class="story-card-source">Williams, D. R. (2021). Addressing mental health disparities in Black men. APA Monitor on Psychology, 52(7), 24 to 31.</p>
+        <span class="story-card-cta">Read the case study</span>
       </div>
     </a>
   </div>
@@ -620,7 +634,7 @@ section{padding:96px 48px}
         <p class="section-label">The Digital Companion</p>
         <h2 class="section-title" id="companion-heading">Take the tools with you.</h2>
         <p class="section-sub">Everything in the Unstoppable workshop, the self-reflection tools, the mental health resources, the Calm Kit exercises, the advocacy playbook, is available as a 45-page digital companion guide. Pay what you can.</p>
-        <a href="https://www.healthmatters.clinic/programs" class="btn-primary" style="margin-top:32px;display:inline-flex;">Get the Digital Companion Guide</a>
+        <a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" class="btn-primary" style="margin-top:32px;display:inline-flex;">Get the Digital Companion Guide</a>
       </div>
       <div>
         <p style="font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#233dff;margin-bottom:24px;">What is inside</p>
@@ -739,7 +753,7 @@ section{padding:96px 48px}
       <h2 class="cta-title" id="cta-heading">Ready to join the <span class="blue">movement?</span></h2>
       <div class="cta-actions">
         <a href="https://eventfinder.healthmatters.clinic" class="btn-primary" style="font-size:16px;padding:18px 44px;">Find an Event</a>
-        <a href="https://www.healthmatters.clinic/programs" class="btn-secondary" style="font-size:16px;padding:18px 44px;">Download the Guide</a>
+        <a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" class="btn-secondary" style="font-size:16px;padding:18px 44px;">Download the Guide</a>
       </div>
       <p class="cta-note">Want to bring Unstoppable to your community? Email us at <a href="mailto:unstoppable@healthmatters.clinic">unstoppable@healthmatters.clinic</a></p>
     </div>
@@ -773,7 +787,7 @@ section{padding:96px 48px}
       <p style="font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.3);margin:0 0 20px;">Unstoppable</p>
       <nav style="display:flex;flex-direction:column;gap:12px;background:none;border:none;padding:0;position:static;">
         <a href="https://eventfinder.healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Find an Event</a>
-        <a href="https://www.healthmatters.clinic/programs" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Download the Guide</a>
+        <a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Download the Guide</a>
         <a href="https://calmkit.healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">CalmKit</a>
         <a href="https://www.healthmatters.clinic/initiatives" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Initiatives</a>
         <a href="mailto:unstoppable@healthmatters.clinic" style="font-size:13px;color:rgba(255,255,255,.6);text-decoration:none;">Contact Us</a>
