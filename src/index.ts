@@ -1141,7 +1141,7 @@ const EmailTemplates = {
       <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 800; color: #0f0f0f;">You're Invited to Join Our Board</h2>
       <p>Dear ${data.volunteerName},</p>
       <p>On behalf of Health Matters Clinic, we would like to personally invite you to serve as a <strong>${data.role || 'Board Member'}</strong>.</p>
-      <p>HMC is a community-centered health organization dedicated to breaking down barriers to care in underserved communities across Los Angeles. Our board provides strategic oversight and ensures our mission serves those who need it most.</p>
+      <p>Health Matters Clinic is a Los Angeles-based 501(c)(3) nonprofit advancing health equity through our Unstoppable mental health program, free community wellness events, primary care screenings, and a growing suite of digital tools — designed for and with underserved communities across Los Angeles County. Our board provides strategic oversight and ensures our mission serves those who need it most.</p>
       <p>The commitment is designed to be manageable — four quarterly meetings per year, with materials delivered seven days in advance. All governance documents are completed digitally through our portal.</p>
       ${data.customMessage ? `<p style="background:#f5f3ef;border-left:3px solid #233dff;padding:12px 16px;border-radius:4px;font-style:italic;">${data.customMessage}</p>` : ''}
       ${actionButton('Apply to the Board', `${EMAIL_CONFIG.WEBSITE_URL}/join?role=Board+Member${data.referralCode ? '&ref=' + data.referralCode : ''}`)}
