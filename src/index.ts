@@ -15,7 +15,7 @@ import fs from 'fs';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import Papa from 'papaparse';
 import { STATIC_MODULE_CONTENT } from './staticModuleContent';
-import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS, TIER_1_IDS, TIER_2_CORE_IDS, hasCompletedAllModules } from './constants';
+import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, CORE_VOLUNTEER_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS, TIER_1_IDS, TIER_2_CORE_IDS, hasCompletedAllModules } from './constants';
 
 // --- CONFIGURATION ---
 dotenv.config();
@@ -14208,8 +14208,8 @@ async function runEngagementEmails() {
 
       // ── 1. TRAINING NUDGE ─────────────────────────────────────────────────
       // Approved 7+ days ago, Tier 2A still incomplete, sent <3 times, gap ≥14 days
-      // Skip governance roles (Board Member, Community Advisory Board) — they don't need core volunteer training
-      if (!v.coreVolunteerStatus && approvedAt && approvedAt < sevenDaysAgo && !GOVERNANCE_ROLES.includes(role)) {
+      // Only send to Core Volunteer / Volunteer roles — coordinators, leads, and governance skip this pipeline
+      if (!v.coreVolunteerStatus && approvedAt && approvedAt < sevenDaysAgo && CORE_VOLUNTEER_ROLES.includes(role)) {
         const missing = TIER_2_CORE_IDS.filter(id => !completedIds.includes(id));
         if (missing.length > 0) {
           const lastSent = eng.training_nudge ? new Date(eng.training_nudge) : null;

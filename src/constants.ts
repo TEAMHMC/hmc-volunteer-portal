@@ -14,6 +14,10 @@ export const COORDINATOR_AND_LEAD_ROLES = [
 
 export const GOVERNANCE_ROLES = ['Board Member', 'Community Advisory Board'];
 
+// Roles that go through the core volunteer training pipeline.
+// Everyone else (coordinators, leads, governance) is excluded from training nudge emails.
+export const CORE_VOLUNTEER_ROLES = ['Core Volunteer', 'Volunteer'];
+
 export const EVENT_MANAGEMENT_ROLES = [...COORDINATOR_AND_LEAD_ROLES];
 
 export const BROADCAST_ROLES = COORDINATOR_AND_LEAD_ROLES;
