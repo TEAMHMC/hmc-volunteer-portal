@@ -14208,7 +14208,8 @@ async function runEngagementEmails() {
 
       // ── 1. TRAINING NUDGE ─────────────────────────────────────────────────
       // Approved 7+ days ago, Tier 2A still incomplete, sent <3 times, gap ≥14 days
-      if (!v.coreVolunteerStatus && approvedAt && approvedAt < sevenDaysAgo) {
+      // Skip governance roles (Board Member, Community Advisory Board) — they don't need core volunteer training
+      if (!v.coreVolunteerStatus && approvedAt && approvedAt < sevenDaysAgo && !GOVERNANCE_ROLES.includes(role)) {
         const missing = TIER_2_CORE_IDS.filter(id => !completedIds.includes(id));
         if (missing.length > 0) {
           const lastSent = eng.training_nudge ? new Date(eng.training_nudge) : null;
