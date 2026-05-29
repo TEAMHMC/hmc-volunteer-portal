@@ -2981,20 +2981,30 @@ app.get('/auth/me', verifyToken, async (req: Request, res: Response) => {
 
         // Role-based volunteer list: coordinators/admins get full data; regular volunteers get stripped-down safe subset
         const isElevatedUser = userProfile.isAdmin || COORDINATOR_ROLES.includes(userProfile.role);
-        // Regular volunteers only get what's needed for messaging: identity + presence
+        // Peer visibility: requires coreVolunteerStatus + 3 attended events
+        // Below that threshold, only coordinators/admins are visible (for support messaging)
+        const hasPeerAccess = isElevatedUser || (
+            userProfile.coreVolunteerStatus === true &&
+            (userProfile.eventsAttended || 0) >= 3
+        );
+        const messagingSubset = (v: any) => ({
+            id: v.id,
+            displayName: v.displayName,
+            preferredName: v.preferredName,
+            legalFirstName: v.legalFirstName,
+            legalLastName: v.legalLastName,
+            role: v.role,
+            avatarUrl: v.avatarUrl,
+            isOnline: v.isOnline,
+            status: v.status,
+        });
         const volunteersForUser = isElevatedUser
             ? volunteersWithOnlineStatus
-            : (volunteersWithOnlineStatus as any[]).map(v => ({
-                id: v.id,
-                displayName: v.displayName,
-                preferredName: v.preferredName,
-                legalFirstName: v.legalFirstName,
-                legalLastName: v.legalLastName,
-                role: v.role,
-                avatarUrl: v.avatarUrl,
-                isOnline: v.isOnline,
-                status: v.status,
-            }));
+            : hasPeerAccess
+                ? (volunteersWithOnlineStatus as any[]).map(messagingSubset)
+                : (volunteersWithOnlineStatus as any[])
+                    .filter(v => v.isAdmin || COORDINATOR_ROLES.includes(v.role))
+                    .map(messagingSubset);
 
         // Fetch gamification profile
         let gamification = null;
@@ -7012,6 +7022,11 @@ app.get('/api/public/volunteer-checkin-status', rateLimit(120, 60000), async (re
       return res.json({ status: 'already_checked_in', eventTitle: d2.eventTitle || '', eventDate: d2.eventDate || '', eventTime: d2.eventTime || '', volunteerName: d2.volunteerName || '' });
     }
     await doc2.ref.update({ checkedIn: true, checkedInAt: now.toISOString() });
+    if (d2.volunteerId) {
+        db.collection('volunteers').doc(d2.volunteerId).update({
+            eventsAttended: admin.firestore.FieldValue.increment(1)
+        }).catch(e => console.warn('[CHECKIN-TOKEN] eventsAttended increment failed:', e));
+    }
     console.log(`[CHECKIN-TOKEN] Volunteer ${d2.volunteerId} checked in via token for shift ${d2.shiftId}`);
     return res.json({ status: 'active', eventTitle: d2.eventTitle || '', eventDate: d2.eventDate || '', eventTime: d2.eventTime || '', eventLocation: d2.eventLocation || '', volunteerName: d2.volunteerName || '' });
 
