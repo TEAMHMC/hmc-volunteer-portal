@@ -12989,6 +12989,7 @@ async function executeShiftReminder(): Promise<{ sent: number; failed: number; s
 
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
+      if (opp.program === 'Partner Event') continue;
       const time = opp.time || opp.startTime || 'your scheduled time';
       const location = opp.serviceLocation || opp.location || 'the event location';
 
@@ -13080,6 +13081,7 @@ async function executePostShiftThankYou(): Promise<{ sent: number; failed: numbe
 
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
+      if (opp.program === 'Partner Event') continue;
 
       // Collect volunteer IDs from shift assignments AND rsvpedEventIds
       const targetVolunteerIds = new Set<string>();
@@ -13164,6 +13166,7 @@ async function executePostEventDebrief(): Promise<{ sent: number; failed: number
 
     for (const oppDoc of oppsSnap.docs) {
       const opp = oppDoc.data();
+      if (opp.program === 'Partner Event') continue;
 
       // Parse the event's end time
       let endHour = 14, endMinute = 0; // default 2:00 PM
@@ -13594,6 +13597,7 @@ async function executeEventReminderCadence(smsOnly = false): Promise<{ sent: num
 
     for (const event of allEvents) {
       const opp = event.data;
+      if (opp.program === 'Partner Event') continue;
       const eventDate = opp.date; // YYYY-MM-DD
       const eventDateTime = new Date(ensurePacificTime(eventDate + 'T' + (opp.time || opp.startTime || '09:00')));
       const hoursUntil = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);

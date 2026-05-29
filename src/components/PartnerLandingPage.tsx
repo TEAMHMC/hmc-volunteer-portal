@@ -23,9 +23,6 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           </span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <a href="mailto:partner@healthmatters.clinic" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, textDecoration: 'none', letterSpacing: '.02em', transition: 'color .2s' }}>
-            Request Access
-          </a>
           <button
             onClick={onRegister}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.7)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
@@ -52,16 +49,16 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(249,199,79,.12)', border: '1px solid rgba(249,199,79,.3)', borderRadius: 100, padding: '8px 16px', marginBottom: 28, fontSize: 12, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(249,199,79,.85)' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f9c74f', display: 'inline-block', flexShrink: 0 }} />
-            HMC Referral Partner Network
+            HMC Partner Network
           </div>
 
           <h1 style={{ fontSize: 'clamp(52px, 7.5vw, 100px)', fontWeight: 900, lineHeight: .9, letterSpacing: '-.04em', maxWidth: 900, margin: '0 auto 28px', color: '#fff' }}>
-            The HMC<br />
-            <span style={{ color: '#f9c74f' }}>Partner Portal</span>
+            Serve Your<br />
+            <span style={{ color: '#f9c74f' }}>Community.</span>
           </h1>
 
-          <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: 'rgba(255,255,255,.5)', maxWidth: 580, margin: '0 auto 44px', lineHeight: 1.65 }}>
-            A dedicated workspace for organizations that HMC refers clients to. Manage referrals, update your profile, and track your community impact.
+          <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: 'rgba(255,255,255,.5)', maxWidth: 620, margin: '0 auto 44px', lineHeight: 1.65 }}>
+            List events, receive real-time RSVP notifications, manage referrals, and track your community impact — all in one place.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -105,13 +102,13 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               },
               {
                 num: '02',
-                title: 'You Receive a Secure Invite',
-                desc: 'An invite email arrives with a secure, single-use registration link. Complete your profile and set your password — no lengthy application required.',
+                title: 'Create Your Account',
+                desc: 'Create a free partner account in minutes. Complete your organization profile and set your preferences. No lengthy application required.',
               },
               {
                 num: '03',
-                title: 'Log In and Manage Referrals',
-                desc: 'Access your Partner Portal any time to see incoming referrals, update statuses, edit your organization profile, and track your impact metrics.',
+                title: 'List Events and Manage Referrals',
+                desc: 'Submit events to the HMC Event Finder, get notified when someone RSVPs, manage incoming referrals, and track your community impact.',
               },
             ].map((step) => (
               <div key={step.num} style={{ background: '#f5f5f4', border: '1px solid rgba(0,0,0,.06)', borderRadius: 20, padding: '32px 28px' }}>
@@ -129,13 +126,13 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(249,199,79,.7)', marginBottom: 16 }}>What You Get</p>
           <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#fff' }}>Everything you need<br />in one place.</h2>
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,.5)', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Your portal surfaces exactly what you need to respond quickly, stay organized, and demonstrate your community impact.</p>
+          <p style={{ fontSize: 18, color: 'rgba(255,255,255,.5)', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Your portal gives you the tools to reach more people, stay organized, and demonstrate your community impact.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
             {[
               {
-                title: 'Referral Inbox',
-                desc: 'See every client referral HMC sends your way, with relevant details about the person\'s needs, contact information, and referral date.',
+                title: 'Event Finder Listing',
+                desc: 'Submit events directly to the HMC Event Finder. Attach a flyer, set your date and location, and reach thousands of community members across Los Angeles.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.95 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.86 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -143,8 +140,8 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
                 ),
               },
               {
-                title: 'Status Updates',
-                desc: 'Accept referrals, mark them in progress, log outcomes — one click per action. Keep HMC staff informed without back-and-forth emails.',
+                title: 'RSVP Notifications',
+                desc: 'Get a real-time email every time someone registers for your event through the HMC Event Finder. Know your attendance before event day.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
@@ -152,8 +149,8 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
                 ),
               },
               {
-                title: 'Organization Profile',
-                desc: 'Keep your services, hours, languages spoken, eligibility requirements, and contact information current so HMC makes accurate referrals.',
+                title: 'Referral Inbox',
+                desc: 'See every client referral HMC sends your way. Accept, update status, and log outcomes with one click. No back-and-forth emails.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -163,7 +160,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               },
               {
                 title: 'Performance Dashboard',
-                desc: 'Track your referral volume, acceptance rate, completion rate, and average response time over rolling time periods.',
+                desc: 'Track event RSVPs, referral volume, acceptance rate, and outcomes over rolling time periods. Demonstrate your community impact with data.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -191,7 +188,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>Who Qualifies</p>
               <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Built for organizations<br />we work with.</h2>
               <p style={{ fontSize: 17, color: '#555', lineHeight: 1.7, marginBottom: 28 }}>
-                The partner portal is for organizations that HMC actively refers clients to. We currently work with partners across Los Angeles County, including:
+                The partner portal is for community organizations working alongside HMC across Los Angeles County. This includes organizations that host events, receive referrals, or collaborate on health equity programs:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Clinics and community health centers', 'Housing and shelter providers', 'Food programs and pantries', 'Legal aid and advocacy organizations', 'Behavioral health and recovery services', 'Social service agencies'].map((item) => (
@@ -210,7 +207,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(249,199,79,.7)', marginBottom: 20 }}>Get Started</p>
               <h3 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1, marginBottom: 16, color: '#fff' }}>Interested in becoming an HMC Referral Partner?</h3>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 24 }}>
-                Create your partner account in minutes and start managing referrals right away. Or reach out to our team if you have questions first.
+                Create your free partner account in minutes. List your first event or start managing referrals right away. Reach out if you have questions first.
               </p>
               <button
                 onClick={onRegister}
