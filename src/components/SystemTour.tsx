@@ -15,11 +15,11 @@ const tourSteps = [
   },
   {
     title: 'Training Academy',
-    content: 'Start here. Complete your orientation videos to become an HMC Champion. If you apply for a specialized role, your additional training unlocks here too — self-paced, on any device.',
+    content: 'Start here. Complete your orientation videos to become an HMC Champion. If you apply for a specialized role, your additional training unlocks here too, self-paced, on any device.',
   },
   {
     title: 'My Missions',
-    content: 'Once you\'re cleared for events, this is where you register for shifts. On the day of an event, tap any active shift to open Event Ops Mode — your real-time command center.',
+    content: 'Once you\'re cleared for events, this is where you register for shifts. On the day of an event, tap any active shift to open Event Ops Mode: your real-time command center.',
   },
   {
     title: 'Event Ops Mode',
@@ -57,7 +57,7 @@ const SystemTour: React.FC<SystemTourProps> = ({ onComplete, onClose, onNavigate
                     <img src={APP_CONFIG.BRAND.logoUrl} alt="HMC" className="w-14 h-14" />
                 </div>
 
-                <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tight">{currentStep.title}</h2>
+                <h2 className="text-xl md:text-3xl font-black text-[#233dff] tracking-tighter uppercase italic">{currentStep.title}</h2>
                 <p className="text-zinc-500 mt-4 font-bold text-sm md:text-lg leading-relaxed">{currentStep.content}</p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-between mt-10 gap-4">
