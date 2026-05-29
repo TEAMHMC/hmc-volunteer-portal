@@ -60,7 +60,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           </h1>
 
           <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: 'rgba(255,255,255,.5)', maxWidth: 620, margin: '0 auto 44px', lineHeight: 1.65, fontStyle: 'italic' }}>
-            The free platform for health and wellness organizations to list events, collect RSVPs, and reach thousands of community members across Los Angeles.
+            The platform for health and wellness organizations to list events, collect RSVPs, and reach thousands of community members across Los Angeles.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -80,7 +80,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
             </button>
           </div>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,.3)', marginTop: 20 }}>
-            Free for all community organizations.{' '}
+            Plans available for every organization.{' '}
             <button onClick={onRegister} style={{ background: 'none', border: 'none', color: 'rgba(120,150,255,.8)', cursor: 'pointer', fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}>
               Create your account in 2 minutes.
             </button>
@@ -93,13 +93,13 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>How It Works</p>
           <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Up and running in minutes.</h2>
-          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create a free account and start listing events today.</p>
+          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create an account and start listing events today.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               {
                 num: '01',
-                title: 'Create a Free Account',
+                title: 'Create Your Account',
                 desc: 'Sign up with your organization email. No application, no approval process. Your account is ready immediately.',
               },
               {
@@ -190,7 +190,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#f9c74f', marginBottom: 16 }}>Who It's For</p>
               <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Any health or wellness<br />org in Los Angeles.</h2>
               <p style={{ fontSize: 17, color: '#555', lineHeight: 1.7, marginBottom: 28 }}>
-                You do not need to be an existing HMC partner. If your organization hosts free or low-cost health and wellness events for the LA community, this platform is for you:
+                You do not need to be an existing HMC partner. If your organization hosts health and wellness events for the LA community, this platform is for you:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Clinics and community health centers', 'Mental health and behavioral health providers', 'Food programs, pantries, and resource fairs', 'Fitness, wellness, and movement programs', 'Housing, legal aid, and social service agencies', 'Faith-based and neighborhood organizations'].map((item) => (
@@ -209,7 +209,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(249,199,79,.7)', marginBottom: 20 }}>Get Started</p>
               <h3 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1, marginBottom: 16, color: '#fff' }}>Ready to reach more people?</h3>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 24 }}>
-                Create your free account and list your first event today. No approval process, no cost. Just a better way to connect with your community.
+                Create your account and list your first event today. No lengthy approval process. Just a better way to connect with your community.
               </p>
               <button
                 onClick={onRegister}
