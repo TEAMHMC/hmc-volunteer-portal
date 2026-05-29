@@ -350,13 +350,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                   <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-white" />
                   Get Started <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-2 transition-transform" />
                 </button>
-                <a
-                  href="/tour"
-                  className="w-full md:w-auto bg-white border border-black text-zinc-900 px-8 md:px-10 py-4 md:py-6 rounded-full font-bold text-sm md:text-base uppercase tracking-wide hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4"
-                >
-                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-black" />
-                  Tour the Platform
-                </a>
                 <div className="flex items-center gap-3 md:gap-4 bg-zinc-900 border border-zinc-700 rounded-full px-2 py-2 md:px-3 md:py-2.5 shadow-elevation-2">
                    <div className="flex -space-x-2 md:-space-x-2.5">
                       {[
