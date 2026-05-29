@@ -663,15 +663,21 @@ const sendSMS = async (
     return { sent: false, reason: 'not_configured' };
   }
 
-  // Check opt-in if we have a userId
+  // Check opt-in if we have a userId — also check if their email is suppressed
   if (userId) {
     try {
       const volDoc = await db.collection('volunteers').doc(userId).get();
       if (volDoc.exists) {
-        const prefs = volDoc.data()?.notificationPrefs;
+        const volData = volDoc.data();
+        const prefs = volData?.notificationPrefs;
         if (prefs?.smsAlerts === false) {
           console.log(`[SMS] Skipped — user ${userId} opted out of SMS`);
           return { sent: false, reason: 'opted_out' };
+        }
+        // Block SMS if their email is on the suppression list
+        if (volData?.email && await isEmailSuppressed(volData.email)) {
+          console.log(`[SMS] Blocked — user ${userId} email is suppressed`);
+          return { sent: false, reason: 'suppressed' };
         }
       }
     } catch (e) {
@@ -1629,12 +1635,27 @@ const EmailTemplates = {
   }),
 };
 
+// Global email/SMS suppression check — covers unsubscribe requests, abuse, compliance
+const isEmailSuppressed = async (email: string): Promise<boolean> => {
+  if (!email) return false;
+  try {
+    const doc = await db.collection('email_suppressions').doc(email.toLowerCase().trim()).get();
+    return doc.exists;
+  } catch { return false; }
+};
+
 // Email Service Class - Uses Google Apps Script
 class EmailService {
   static async send(
     templateName: keyof typeof EmailTemplates,
     data: EmailTemplateData
   ): Promise<{ sent: boolean; reason?: string }> {
+    // Global suppression list — always checked regardless of template type
+    if (data.toEmail && await isEmailSuppressed(data.toEmail)) {
+      console.log(`[EMAIL] Blocked — ${data.toEmail} is on suppression list`);
+      return { sent: false, reason: 'suppressed' };
+    }
+
     // Check opt-in for non-transactional emails
     const transactionalTypes = ['email_verification', 'password_reset', 'login_confirmation'];
     if (!transactionalTypes.includes(templateName) && data.userId) {
@@ -6219,6 +6240,13 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
 
         if (!eventId || !name || !email) {
             return res.status(400).json({ error: 'eventId, name, and email are required' });
+        }
+
+        // Global suppression — silently succeed so the UI doesn't expose suppression status,
+        // but log so staff can see it. No email, no SMS, no Firestore write.
+        if (await isEmailSuppressed(email)) {
+            console.log(`[PUBLIC RSVP] Suppressed registration attempt from ${email} for ${eventId}`);
+            return res.json({ success: true, suppressed: true });
         }
 
         // reCAPTCHA verification (soft — log failures but don't block to avoid breaking existing integrations)
@@ -12773,6 +12801,32 @@ app.post('/api/admin/update-volunteer-profile', verifyToken, requireAdmin, async
     res.json({ success: true });
 });
 
+// ── EMAIL SUPPRESSION MANAGEMENT (admin only) ──────────────────────────────
+app.post('/api/admin/suppress-email', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  const { email, reason } = req.body;
+  if (!email) return res.status(400).json({ error: 'email required' });
+  const key = email.toLowerCase().trim();
+  await db.collection('email_suppressions').doc(key).set({
+    email: key, reason: reason || 'admin request',
+    addedAt: new Date().toISOString(),
+    addedBy: (req as any).user?.profile?.email || 'admin',
+  });
+  console.log(`[SUPPRESSION] Added ${key} by ${(req as any).user?.profile?.email}`);
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/suppress-email/:email', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  const key = decodeURIComponent(req.params.email).toLowerCase().trim();
+  await db.collection('email_suppressions').doc(key).delete();
+  console.log(`[SUPPRESSION] Removed ${key} by ${(req as any).user?.profile?.email}`);
+  res.json({ success: true });
+});
+
+app.get('/api/admin/suppress-email', verifyToken, requireAdmin, async (_req: Request, res: Response) => {
+  const snap = await db.collection('email_suppressions').get();
+  res.json(snap.docs.map(d => d.data()));
+});
+
 // Delete a volunteer (admin only)
 app.delete('/api/admin/volunteer/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -17197,6 +17251,24 @@ bootstrapAdmin();
 seedHmcContentIndex();
 fixInglewoodCoordinates();
 deduplicateWellnessMeetup();
+
+// Seed known suppression entries on startup
+(async () => {
+  const known = [
+    { email: 'lurabeaumont@gmail.com', reason: 'unsubscribe request — May 2026' },
+  ];
+  for (const entry of known) {
+    const key = entry.email.toLowerCase().trim();
+    const doc = await db.collection('email_suppressions').doc(key).get();
+    if (!doc.exists) {
+      await db.collection('email_suppressions').doc(key).set({
+        email: key, reason: entry.reason,
+        addedAt: new Date().toISOString(), addedBy: 'system',
+      });
+      console.log(`[SUPPRESSION] Seeded ${key}`);
+    }
+  }
+})().catch(e => console.warn('[SUPPRESSION] Seed error:', e));
 
 const server = app.listen(PORT, () => {
     console.log(`[SERVER] Server listening on port ${PORT}`);
