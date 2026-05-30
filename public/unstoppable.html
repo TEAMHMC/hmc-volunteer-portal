@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unstoppable | Health Matters Clinic</title>
-<meta name="description" content="The Unstoppable Workshop, Walks, Meetups, and Experience are four ways HMC is closing the mental health gap in our communities.">
+<meta name="description" content="Unstoppable is a community-built mental health program for Black and underserved Los Angeles. The Workshop, Live Unstoppable walks and runs, Wellness Meetups, and The Unstoppable Experience.">
 <meta property="og:title" content="Unstoppable | Health Matters Clinic">
-<meta property="og:description" content="Four ways HMC is closing the mental health gap in our communities: the Workshop, Live Unstoppable Walks, Wellness Meetups, and The Unstoppable Experience.">
+<meta property="og:description" content="Four community-built formats closing the mental health gap in Black and underserved Los Angeles: the Workshop, Live Unstoppable, Wellness Meetups, and The Unstoppable Experience.">
 <meta property="og:image" content="/unstoppable/photos/DSC_3421.jpg">
 <link rel="icon" href="/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +20,7 @@ a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 
-/* Scroll-rise animation, applied via .rise-on-scroll and toggled by IntersectionObserver */
+/* Scroll-rise animation */
 .rise-on-scroll{opacity:0;transform:translateY(28px);transition:opacity 700ms cubic-bezier(0.16,1,0.3,1),transform 700ms cubic-bezier(0.16,1,0.3,1)}
 .rise-on-scroll.is-visible{opacity:1;transform:translateY(0)}
 @media (prefers-reduced-motion:reduce){
@@ -28,19 +28,18 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   *{animation:none!important;transition:none!important}
 }
 
-/* ===== 1. HERO ===== */
+/* ===== A. HERO ===== */
 .hero{position:relative;height:100vh;height:100dvh;min-height:640px;width:100%;overflow:hidden;background:#0a0a0a;color:#fff}
 .hero-carousel{position:absolute;inset:0;z-index:0}
 .hero-slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1.4s ease-in-out;transform:scale(1.04)}
 .hero-slide.active{opacity:1}
-.hero-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.18) 50%,rgba(0,0,0,.55) 100%);pointer-events:none}
+.hero-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.18) 50%,rgba(0,0,0,.6) 100%);pointer-events:none}
 .hero-top{position:absolute;top:24px;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:16px}
 .hero-logo{display:inline-flex;align-items:center;gap:10px}
-.hero-logo img{height:38px;width:auto;filter:brightness(0) invert(1)}
-.hero-logo-text{color:#fff;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.hero-logo img{height:42px;width:auto;filter:brightness(0) invert(1)}
 
-/* Floating white pill nav (ASICS style) */
-.hero-pill{display:inline-flex;align-items:center;gap:4px;background:#fff;border-radius:100px;padding:6px 6px 6px 22px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+/* Floating white pill nav (ASICS style): single rounded white pill containing all links */
+.hero-pill{display:inline-flex;align-items:center;gap:2px;background:#fff;border-radius:100px;padding:5px 5px 5px 20px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .hero-pill a.hero-pill-link{color:#0a0a0a;font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:10px 14px;border-radius:100px;white-space:nowrap;transition:background .2s,color .2s;text-decoration:none}
 .hero-pill a.hero-pill-link:hover{background:#f0eef5}
 .hero-pill .hero-pill-cta{display:inline-flex;align-items:center;background:#233dff;color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.02em;padding:10px 18px;border-radius:100px;white-space:nowrap;transition:background .2s;text-decoration:none}
@@ -51,13 +50,13 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .hero-pill-burger span::before,.hero-pill-burger span::after{content:'';position:absolute;left:0;width:16px;height:2px;background:#fff}
 .hero-pill-burger span::before{top:-5px}.hero-pill-burger span::after{top:5px}
 
-/* Mobile-only solo hamburger (hidden on desktop) */
+/* Mobile hamburger */
 .hero-burger-mobile{display:none;width:44px;height:44px;border-radius:50%;background:#fff;color:#0a0a0a;align-items:center;justify-content:center;border:none;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .hero-burger-mobile span{display:block;width:18px;height:2px;background:#0a0a0a;position:relative}
 .hero-burger-mobile span::before,.hero-burger-mobile span::after{content:'';position:absolute;left:0;width:18px;height:2px;background:#0a0a0a}
 .hero-burger-mobile span::before{top:-6px}.hero-burger-mobile span::after{top:6px}
 
-/* Full-screen mobile menu overlay */
+/* Full-screen menu overlay */
 .hero-menu-overlay{position:fixed;inset:0;background:#0a0a0a;color:#fff;z-index:1000;display:none;flex-direction:column;padding:24px 28px;overflow-y:auto}
 .hero-menu-overlay.open{display:flex}
 .hero-menu-overlay .menu-close{align-self:flex-end;width:44px;height:44px;border-radius:50%;background:#fff;color:#0a0a0a;display:inline-flex;align-items:center;justify-content:center;border:none;cursor:pointer;font-size:24px;font-weight:300;line-height:1}
@@ -65,90 +64,142 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .hero-menu-overlay nav a{display:block;color:#fff;font-style:italic;font-weight:800;font-size:34px;letter-spacing:-.01em;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.12);text-decoration:none}
 .hero-menu-overlay nav a.menu-cta{color:#fff;background:#233dff;border:none;border-radius:100px;padding:16px 24px;font-style:normal;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;margin-top:18px}
 
-.hero-content{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:0 clamp(20px,4vw,40px) clamp(48px,8vw,80px);display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:32px}
-.hero-title{color:#fff;font-style:italic;font-weight:900;letter-spacing:-.02em;line-height:.92;font-size:clamp(56px,12vw,160px);text-shadow:0 4px 30px rgba(0,0,0,.4);word-break:break-word;text-align:left;max-width:11ch}
-.hero-tagline{justify-self:end;max-width:320px;color:#fff;font-size:clamp(13px,1.2vw,15px);line-height:1.55;font-weight:400;text-shadow:0 2px 12px rgba(0,0,0,.5);text-align:left}
+/* Hero content: title BOTTOM-LEFT, tagline BOTTOM-RIGHT */
+.hero-content{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:0 clamp(20px,4vw,40px) clamp(80px,9vw,110px);display:grid;grid-template-columns:1.5fr 1fr;align-items:end;gap:32px;pointer-events:none}
+.hero-title{color:#fff;font-style:italic;font-weight:900;letter-spacing:-.03em;line-height:.88;font-size:clamp(56px,13vw,200px);text-shadow:0 4px 30px rgba(0,0,0,.4);word-break:keep-all;text-align:left;max-width:12ch}
+.hero-tagline{justify-self:end;align-self:end;max-width:320px;color:#fff;font-size:clamp(13px,1.15vw,14.5px);line-height:1.6;font-weight:400;text-shadow:0 2px 12px rgba(0,0,0,.55);text-align:left}
 .hero-scroll{position:absolute;right:32px;bottom:24px;z-index:5;color:#fff;font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;width:64px;height:64px;border-radius:50%;border:1px solid rgba(255,255,255,.55);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:rgba(255,255,255,.06);backdrop-filter:blur(4px);transition:background .25s,transform .25s}
 .hero-scroll:hover{background:rgba(255,255,255,.14);transform:translateY(-2px)}
 
-@media (max-width:760px){
+@media (max-width:880px){
   .hero{min-height:560px}
-  .hero-content{grid-template-columns:1fr;padding:0 22px 88px;gap:14px}
-  .hero-title{font-size:clamp(56px,15vw,96px);line-height:.94;max-width:100%}
+  .hero-content{grid-template-columns:1fr;padding:0 22px 100px;gap:14px}
+  .hero-title{font-size:clamp(56px,15vw,96px);line-height:.92;max-width:100%}
   .hero-tagline{justify-self:start;max-width:100%;font-size:13.5px}
   .hero-top{padding:0 18px;top:18px}
-  .hero-logo img{height:30px}
-  .hero-logo-text{display:none}
+  .hero-logo img{height:32px}
   .hero-pill{display:none}
   .hero-burger-mobile{display:inline-flex}
   .hero-scroll{right:18px;bottom:18px;width:54px;height:54px;font-size:9px}
 }
 
-/* ===== 2. MISSION SCHPILL ===== */
-.schpill{padding:clamp(64px,9vw,96px) clamp(22px,4vw,32px);background:#fff;text-align:center}
-.schpill p{max-width:780px;margin:0 auto;font-size:clamp(18px,2.6vw,30px);line-height:1.45;color:#0a0a0a;font-weight:400}
+/* ===== B. KINETIC MARQUEE ===== */
+.kinetic{background:#233dff;color:#fff;padding:clamp(18px,2vw,28px) 0;overflow:hidden;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)}
+.kinetic-track{display:flex;gap:48px;width:max-content;animation:kineticScroll 30s linear infinite;align-items:center}
+.kinetic-track span{font-style:italic;font-weight:900;font-size:clamp(36px,5vw,68px);letter-spacing:-.02em;line-height:1;white-space:nowrap;text-transform:uppercase}
+.kinetic-dot{width:14px;height:14px;border-radius:50%;background:#fff;flex-shrink:0;opacity:.8}
+@keyframes kineticScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.kinetic-track{animation:none}}
 
-/* ===== 3. TWO-SLIDE MISSION CAROUSEL ===== */
-.mission{position:relative;background:linear-gradient(135deg,#ece6f8 0%,#dcd1f0 55%,#cdbff0 100%);padding:clamp(72px,10vw,120px) clamp(22px,4vw,32px);overflow:hidden}
-.mission-track{position:relative;max-width:1100px;margin:0 auto;min-height:280px}
-.mission-slide{position:absolute;inset:0;opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease;display:flex;flex-direction:column;align-items:center;text-align:center}
-.mission-slide.active{opacity:1;transform:translateY(0);position:relative}
-.mission-slide:not(.active){pointer-events:none}
-.mission-slide h2{font-style:italic;font-weight:900;font-size:clamp(32px,6vw,72px);line-height:1;letter-spacing:-.02em;color:#1a1633;margin-bottom:24px;max-width:900px}
-.mission-slide p{max-width:680px;font-size:clamp(14.5px,1.6vw,16px);line-height:1.65;color:#2a2540;font-weight:400}
-.mission-dots{position:absolute;top:50%;right:max(12px,env(safe-area-inset-right));transform:translateY(-50%);display:flex;flex-direction:column;gap:14px;z-index:3}
-.mission-dot{width:14px;height:14px;border-radius:50%;background:rgba(26,22,51,.3);border:2px solid rgba(26,22,51,.15);cursor:pointer;padding:0;transition:background .25s,transform .25s,border-color .25s;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:transparent}
-.mission-dot::before{content:'';width:10px;height:10px;border-radius:50%;background:rgba(26,22,51,.3);transition:background .25s,transform .25s}
-.mission-dot:hover::before{transform:scale(1.25)}
-.mission-dot.active::before{background:#1a1633}
-@media (max-width:760px){
-  .mission-dots{right:6px;flex-direction:row;top:auto;bottom:8px;left:50%;transform:translateX(-50%);gap:6px}
-}
-
-/* ===== 3b. STATS BAND (between mission carousel and format sections) ===== */
-.stats-band{background:#0a0a0a;color:#fff;padding:clamp(48px,7vw,88px) clamp(22px,4vw,40px)}
+/* ===== C. STATS BAND ===== */
+.stats-band{background:#f5efe3;color:#0a0a0a;padding:clamp(48px,7vw,88px) clamp(22px,4vw,40px)}
 .stats-band-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,3vw,40px)}
-.stats-band-item{display:flex;flex-direction:column;gap:8px;border-left:1px solid rgba(255,255,255,.18);padding-left:clamp(16px,2vw,24px)}
+.stats-band-item{display:flex;flex-direction:column;gap:8px;border-left:1px solid rgba(10,10,10,.14);padding-left:clamp(16px,2vw,24px)}
 .stats-band-item:first-child{border-left:none;padding-left:0}
-.stats-band-num{font-style:italic;font-weight:900;font-size:clamp(40px,5vw,68px);line-height:.95;letter-spacing:-.02em;color:#fff}
+.stats-band-num{font-style:italic;font-weight:900;font-size:clamp(40px,5.4vw,72px);line-height:.95;letter-spacing:-.02em;color:#0a0a0a}
 .stats-band-num small{font-size:.5em;font-weight:700;opacity:.7;margin-left:2px}
-.stats-band-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.72);line-height:1.4}
+.stats-band-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:rgba(10,10,10,.6);line-height:1.4}
 @media (max-width:880px){
   .stats-band-inner{grid-template-columns:repeat(2,1fr);gap:28px}
   .stats-band-item:nth-child(3){border-left:none;padding-left:0}
 }
 @media (max-width:480px){
   .stats-band-inner{grid-template-columns:1fr;gap:24px}
-  .stats-band-item{border-left:none;padding-left:0;border-top:1px solid rgba(255,255,255,.18);padding-top:18px}
+  .stats-band-item{border-left:none;padding-left:0;border-top:1px solid rgba(10,10,10,.14);padding-top:18px}
   .stats-band-item:first-child{border-top:none;padding-top:0}
 }
 
-/* ===== 4. FULL-SCREEN FORMAT SECTIONS ===== */
-.format{position:relative;height:100vh;height:100dvh;min-height:560px;width:100%;overflow:hidden;color:#fff}
+/* ===== D. MISSION CAROUSEL (two slides, right-side dots) ===== */
+.mission{position:relative;background:linear-gradient(135deg,#ece6f8 0%,#dcd1f0 55%,#cdbff0 100%);padding:clamp(80px,10vw,128px) clamp(60px,8vw,120px) clamp(80px,10vw,128px) clamp(22px,4vw,32px);overflow:hidden}
+.mission-eyebrow{display:block;text-align:center;font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;color:#1a1633;margin-bottom:clamp(28px,4vw,40px)}
+.mission-track{position:relative;max-width:1100px;margin:0 auto;min-height:320px}
+.mission-slide{position:absolute;inset:0;opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center}
+.mission-slide.active{opacity:1;transform:translateY(0);position:relative}
+.mission-slide:not(.active){pointer-events:none}
+.mission-slide h2{font-style:italic;font-weight:900;font-size:clamp(34px,6.2vw,76px);line-height:1;letter-spacing:-.02em;color:#1a1633;margin-bottom:28px;max-width:1000px}
+.mission-slide p{max-width:720px;font-size:clamp(15px,1.6vw,17px);line-height:1.65;color:#2a2540;font-weight:400}
+.mission-dots{position:absolute;top:50%;right:max(20px,env(safe-area-inset-right));transform:translateY(-50%);display:flex;flex-direction:column;gap:14px;z-index:3}
+.mission-dot{width:44px;height:44px;border-radius:50%;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none}
+.mission-dot::before{content:'';width:10px;height:10px;border-radius:50%;background:rgba(26,22,51,.3);transition:background .25s,transform .25s}
+.mission-dot:hover::before{transform:scale(1.25)}
+.mission-dot.active::before{background:#233dff;transform:scale(1.2)}
+@media (max-width:760px){
+  .mission{padding:64px 22px 96px}
+  .mission-dots{right:auto;flex-direction:row;top:auto;bottom:24px;left:50%;transform:translateX(-50%);gap:8px}
+}
+
+/* ===== E. FULL-BLEED FORMAT SECTIONS ===== */
+.format{position:relative;height:100vh;height:100dvh;min-height:620px;width:100%;overflow:hidden;color:#fff}
 .format-bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
-.format-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.35) 55%,rgba(0,0,0,.78) 100%);z-index:1}
-.format-content{position:absolute;left:0;right:0;bottom:0;padding:0 clamp(22px,4vw,40px) clamp(44px,6vw,64px);z-index:2;display:grid;grid-template-columns:1.4fr 1fr;gap:clamp(24px,4vw,48px);align-items:end}
-.format-title{font-style:italic;font-weight:900;text-transform:uppercase;font-size:clamp(44px,9vw,128px);line-height:.92;letter-spacing:-.01em;word-break:break-word}
-.format-side{font-size:clamp(13.5px,1.4vw,14.5px);line-height:1.6;max-width:380px}
+.format-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.35) 55%,rgba(0,0,0,.8) 100%);z-index:1}
+/* Title centered, allcaps bold italic */
+.format-title{position:absolute;left:0;right:0;top:50%;transform:translateY(-58%);z-index:3;text-align:center;font-style:italic;font-weight:900;text-transform:uppercase;font-size:clamp(48px,11vw,160px);line-height:.9;letter-spacing:-.02em;color:#fff;padding:0 16px;text-shadow:0 4px 30px rgba(0,0,0,.4);word-break:keep-all}
+/* Copy + logistics bottom-left */
+.format-content{position:absolute;left:0;right:0;bottom:0;padding:0 clamp(22px,4vw,40px) clamp(36px,5vw,56px);z-index:3;display:grid;grid-template-columns:1.2fr 1fr;gap:clamp(24px,4vw,48px);align-items:end}
+.format-side{font-size:clamp(13.5px,1.4vw,15px);line-height:1.6;max-width:460px;color:rgba(255,255,255,.92)}
 .format-side p{margin-bottom:16px}
-.format-meta{display:flex;flex-direction:column;gap:6px;font-size:13px;color:rgba(255,255,255,.85);margin-bottom:18px}
-.format-meta span{display:flex;gap:10px}
-.format-meta span::before{content:'';width:4px;height:4px;border-radius:50%;background:#fff;flex-shrink:0;margin-top:8px}
+.format-meta{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:rgba(255,255,255,.8);margin-bottom:18px}
+.format-meta span{display:flex;gap:10px;line-height:1.45}
+.format-meta span::before{content:'';width:4px;height:4px;border-radius:50%;background:#fff;flex-shrink:0;margin-top:7px}
 .format-cta{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#0a0a0a;padding:14px 26px;border-radius:100px;font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;transition:transform .25s,background .25s;min-height:44px}
 .format-cta:hover{transform:translateY(-2px);background:#f0eef5}
-.format-thumbs{position:absolute;right:40px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:14px;z-index:2}
-.format-thumbs img{width:88px;height:120px;object-fit:cover;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+/* Inline thumbnails: small rounded squares overlapping the right edge */
+.format-thumbs{justify-self:end;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:340px}
+.format-thumbs img{width:100%;aspect-ratio:1/1.2;object-fit:cover;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.45);transition:transform .4s}
+.format-thumbs img:hover{transform:scale(1.04)}
 @media (max-width:880px){
-  .format-content{grid-template-columns:1fr;gap:18px}
-  .format-thumbs{position:static;transform:none;flex-direction:row;justify-content:flex-start;gap:10px;margin-top:14px;padding:0 22px}
-  .format-thumbs img{width:64px;height:84px}
+  .format-title{font-size:clamp(44px,12vw,84px);transform:translateY(-68%)}
+  .format-content{grid-template-columns:1fr;gap:14px;padding-bottom:42px}
+  .format-thumbs{grid-template-columns:repeat(3,1fr);max-width:none;gap:8px}
+  .format-thumbs img{aspect-ratio:1/1}
 }
 @media (max-width:520px){
   .format-thumbs{display:none}
-  .format-title{font-size:clamp(40px,11vw,72px)}
 }
 
-/* ===== 4b. FORMAT FAQs ===== */
+/* ===== F.1 STAT-CALLOUT SECTION (ASICS huge-number with ring graphics) ===== */
+.statcall{background:#f5efe3;padding:clamp(80px,11vw,140px) clamp(22px,4vw,40px);text-align:center;position:relative;overflow:hidden}
+.statcall-eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;color:#233dff;margin-bottom:24px;display:block}
+.statcall-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,6vw,96px);align-items:start}
+.statcall-item{position:relative;padding:60px 20px 20px;text-align:center}
+.statcall-item .ring{position:absolute;left:50%;top:0;transform:translateX(-50%);width:clamp(220px,28vw,320px);height:clamp(220px,28vw,320px);border-radius:50%;border:1px solid rgba(35,61,255,.18);z-index:0;pointer-events:none}
+.statcall-item .ring::before{content:'';position:absolute;inset:14px;border-radius:50%;border:1px solid rgba(35,61,255,.12)}
+.statcall-item .ring::after{content:'';position:absolute;inset:28px;border-radius:50%;border:1px solid rgba(35,61,255,.08)}
+.statcall-num{position:relative;z-index:1;font-style:italic;font-weight:900;font-size:clamp(110px,18vw,220px);line-height:.85;letter-spacing:-.04em;color:#233dff;margin-bottom:14px}
+.statcall-num .arrow{font-size:.45em;color:rgba(35,61,255,.55);font-weight:700;margin:0 4px;vertical-align:middle}
+.statcall-num small{font-size:.4em;font-weight:800;vertical-align:top;margin-left:4px}
+.statcall-copy{position:relative;z-index:1;font-style:italic;font-weight:800;font-size:clamp(16px,1.8vw,20px);line-height:1.35;color:#1a1633;max-width:360px;margin:0 auto;letter-spacing:-.01em}
+.statcall-lede{max-width:760px;margin:clamp(48px,6vw,72px) auto 0;font-size:clamp(17px,2.2vw,24px);line-height:1.4;color:#1a1633;font-weight:500;letter-spacing:-.01em}
+@media (max-width:760px){
+  .statcall-grid{grid-template-columns:1fr;gap:48px}
+}
+
+/* ===== F.2 SPLIT-PHOTO QUOTE SECTION ===== */
+.splitquote{background:#fff;padding:clamp(80px,11vw,140px) clamp(22px,4vw,40px);position:relative;overflow:hidden}
+.splitquote-inner{max-width:1200px;margin:0 auto}
+.splitquote-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,56px);margin-bottom:clamp(56px,7vw,88px)}
+.splitquote-card .photo{width:100%;aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:#222;margin-bottom:24px}
+.splitquote-card .photo img{width:100%;height:100%;object-fit:cover;transition:transform .8s}
+.splitquote-card:hover .photo img{transform:scale(1.04)}
+.splitquote-card .quote{font-style:italic;font-weight:900;font-size:clamp(22px,3.4vw,38px);line-height:1.08;letter-spacing:-.02em;color:#0a0a0a;max-width:480px}
+.splitquote-cta{display:grid;grid-template-columns:1.2fr 1fr;gap:clamp(28px,4vw,56px);align-items:center;padding-top:clamp(40px,5vw,64px);border-top:1px solid #ebe7f0}
+.splitquote-cta-text{font-style:italic;font-weight:900;font-size:clamp(28px,4.5vw,52px);line-height:1;letter-spacing:-.02em;color:#0a0a0a;margin-bottom:24px}
+.splitquote-cta-btn{display:inline-flex;align-items:center;gap:10px;background:#0a0a0a;color:#fff;padding:16px 30px;border-radius:100px;font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;transition:background .25s,transform .25s;min-height:48px}
+.splitquote-cta-btn:hover{background:#233dff;transform:translateY(-2px)}
+.splitquote-tilted{position:relative;height:clamp(320px,42vw,440px);display:flex;align-items:center;justify-content:center}
+.splitquote-tilted .cover{width:min(280px,72vw);height:clamp(320px,42vw,420px);background:linear-gradient(135deg,#233dff 0%,#1a2bcc 100%);border-radius:8px;box-shadow:0 30px 70px rgba(15,15,40,.3),0 10px 25px rgba(35,61,255,.22);transform:rotate(7deg);position:relative;overflow:hidden;padding:clamp(22px,3vw,32px);color:#fff;display:flex;flex-direction:column;justify-content:space-between;transition:transform 1.2s cubic-bezier(0.16,1,0.3,1)}
+.splitquote-tilted .cover:hover{transform:rotate(4deg) translateY(-6px)}
+.splitquote-tilted .cover-eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;opacity:.85}
+.splitquote-tilted .cover-h{font-style:italic;font-weight:900;font-size:34px;line-height:.95;letter-spacing:-.01em;margin-top:8px}
+.splitquote-tilted .cover-photo{position:absolute;inset:auto 0 0 0;height:60%;opacity:.4;mix-blend-mode:luminosity;background-size:cover;background-position:center}
+.splitquote-tilted .cover-foot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.9;position:relative;z-index:2}
+@media (max-width:760px){
+  .splitquote-grid{grid-template-columns:1fr;gap:40px}
+  .splitquote-cta{grid-template-columns:1fr;gap:28px}
+  .splitquote-tilted{height:340px}
+}
+
+/* ===== FAQs (preserved) ===== */
 .faqs{background:#fff;color:#0a0a0a;padding:clamp(72px,10vw,128px) 0}
 .faqs-head{max-width:1200px;margin:0 auto;padding:0 clamp(24px,4vw,40px);display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(28px,5vw,56px);align-items:end;margin-bottom:clamp(48px,6vw,72px)}
 .faqs-title{font-style:italic;font-weight:900;font-size:clamp(44px,7vw,96px);line-height:.95;letter-spacing:-.02em}
@@ -173,7 +224,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   .faq-item summary{padding:16px 0;font-size:15px;min-height:44px}
 }
 
-/* ===== 5. READ THEIR STORIES ===== */
+/* ===== G. READ THEIR STORIES (continuous marquee) ===== */
 .stories{background:#f5efe3;padding:clamp(72px,10vw,120px) 0 clamp(80px,11vw,140px);overflow:hidden}
 .stories-head{max-width:1200px;margin:0 auto;padding:0 clamp(22px,4vw,40px);display:grid;grid-template-columns:1fr 1.2fr;gap:clamp(24px,4vw,48px);margin-bottom:clamp(40px,6vw,64px);align-items:end}
 .stories-title{color:#233dff;font-style:italic;font-weight:900;font-size:clamp(44px,8vw,112px);line-height:.95;letter-spacing:-.02em}
@@ -182,14 +233,14 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .stories-track-wrap{overflow:hidden;position:relative;-webkit-overflow-scrolling:touch}
 .stories-track{display:flex;gap:24px;padding:0 clamp(22px,4vw,40px);animation:storiesMarquee 60s linear infinite;width:max-content}
 .stories-track:hover{animation-play-state:paused}
-@keyframes storiesMarquee{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 12px))}}
+@keyframes storiesMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .story-card{position:relative;flex-shrink:0;width:340px;height:480px;border-radius:14px;overflow:hidden;background:#222;cursor:pointer;transition:transform .35s ease;display:block;color:#fff}
 .story-card:hover{transform:translateY(-6px)}
 .story-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .8s ease;filter:grayscale(.05) contrast(1.04)}
 .story-card:hover img{transform:scale(1.04)}
 .story-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.55) 45%,rgba(0,0,0,.92) 100%)}
 .story-card-body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px}
-.story-card-quote{color:#fff;font-style:italic;font-weight:900;font-size:22px;line-height:1.12;letter-spacing:-.01em;margin-bottom:14px}
+.story-card-quote{color:#fff;font-style:italic;font-weight:900;font-size:22px;line-height:1.15;letter-spacing:-.01em;margin-bottom:14px}
 .story-card-source{color:rgba(255,255,255,.78);font-size:11.5px;line-height:1.5;margin-bottom:14px}
 .story-card-meta{color:#fff;font-size:11px;letter-spacing:.14em;font-weight:800;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(255,255,255,.22);padding-top:12px}
 .story-card-meta::after{content:'\2192';font-size:14px;transition:transform .3s ease}
@@ -203,24 +254,33 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   .story-card-body{padding:20px}
 }
 
-/* ===== 6. STREET INTERVIEWS + SUBMIT YOUR STORY ===== */
-.street{background:#0a0a0a;color:#fff;padding:clamp(72px,10vw,120px) clamp(22px,4vw,40px)}
-.street-inner{max-width:1200px;margin:0 auto}
-.street-head{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);margin-bottom:clamp(40px,6vw,64px);align-items:end}
-.street-title{font-style:italic;font-weight:900;font-size:clamp(40px,7vw,96px);line-height:.95;letter-spacing:-.02em}
-.street-intro{font-size:clamp(14px,1.4vw,15px);line-height:1.65;color:rgba(255,255,255,.78)}
-.street-intro .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#fff;margin-bottom:12px;display:block}
-.street-videos{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:96px}
-.street-video{position:relative;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#1a1a1a;cursor:pointer}
-.street-video img{width:100%;height:100%;object-fit:cover;opacity:.7;transition:opacity .3s,transform .6s}
-.street-video:hover img{opacity:.9;transform:scale(1.03)}
-.street-video::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 8px 30px rgba(0,0,0,.4)}
-.street-video::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-40%,-50%);z-index:1;width:0;height:0;border-style:solid;border-width:11px 0 11px 18px;border-color:transparent transparent transparent #0a0a0a}
-.street-video-label{position:absolute;left:14px;bottom:14px;z-index:2;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+/* ===== H. SHARE YOUR STORY + SUBMIT ===== */
+.share{background:linear-gradient(135deg,#e6efff 0%,#cdd9fa 60%,#b9c8f8 100%);padding:clamp(72px,10vw,120px) clamp(22px,4vw,40px);color:#0a0a0a}
+.share-inner{max-width:1200px;margin:0 auto}
+.share-head{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);margin-bottom:clamp(40px,6vw,64px);align-items:end}
+.share-title{font-style:italic;font-weight:900;font-size:clamp(40px,7vw,96px);line-height:.95;letter-spacing:-.02em;color:#0a0a0a}
+.share-intro{font-size:clamp(14px,1.4vw,15.5px);line-height:1.65;color:#1a1633}
+.share-intro .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:#233dff;margin-bottom:12px;display:block}
+.share-cta{margin-top:18px;display:inline-flex;align-items:center;gap:10px;background:#0a0a0a;color:#fff;padding:14px 26px;border-radius:100px;font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;transition:background .25s,transform .25s;min-height:44px}
+.share-cta:hover{background:#233dff;transform:translateY(-2px)}
+/* Portrait row */
+.share-portraits{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2vw,24px);margin-bottom:clamp(56px,7vw,88px)}
+.share-portrait{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#222}
+.share-portrait img{width:100%;height:100%;object-fit:cover;transition:transform .8s}
+.share-portrait:hover img{transform:scale(1.04)}
+.share-portrait::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.7) 100%)}
+.share-portrait .lbl{position:absolute;left:18px;bottom:16px;z-index:2;color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em}
+@media (max-width:760px){
+  .share-head{grid-template-columns:1fr;gap:18px;align-items:start}
+  .share-portraits{grid-template-columns:repeat(3,1fr);gap:10px}
+}
+@media (max-width:480px){
+  .share-portraits{grid-template-columns:1fr;gap:14px}
+}
 
-.submit-block{background:#fff;color:#0a0a0a;border-radius:24px;padding:clamp(28px,5vw,64px);display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(24px,4vw,48px);align-items:start}
-.submit-block h3{font-style:italic;font-weight:900;font-size:clamp(32px,5vw,64px);line-height:.95;letter-spacing:-.02em;margin-bottom:18px}
-.submit-block .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#233dff;margin-bottom:14px;display:block}
+.submit-block{background:#fff;color:#0a0a0a;border-radius:24px;padding:clamp(28px,5vw,56px);display:grid;grid-template-columns:1fr 1.2fr;gap:clamp(24px,4vw,48px);align-items:start;box-shadow:0 20px 60px rgba(15,15,40,.08)}
+.submit-block h3{font-style:italic;font-weight:900;font-size:clamp(28px,4.5vw,52px);line-height:.95;letter-spacing:-.02em;margin-bottom:18px}
+.submit-block .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:#233dff;margin-bottom:14px;display:block}
 .submit-block p{font-size:clamp(14px,1.4vw,15px);line-height:1.6;color:#2a2540;max-width:420px}
 .submit-form{display:flex;flex-direction:column;gap:14px}
 .submit-form label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#444;margin-bottom:4px;display:block}
@@ -236,23 +296,16 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .submit-msg.show{display:block}
 .submit-msg.ok{background:#dff5e8;color:#0e6b3a}
 .submit-msg.err{background:#fde2e2;color:#a01818}
-
 @media (max-width:880px){
-  .street-head{grid-template-columns:1fr;gap:18px;margin-bottom:36px;align-items:start}
-  .street-videos{grid-template-columns:repeat(2,1fr);margin-bottom:48px}
-  .submit-block{grid-template-columns:1fr;gap:24px}
+  .submit-block{grid-template-columns:1fr;gap:24px;padding:28px}
   .submit-row{grid-template-columns:1fr}
   .submit-btn{max-width:none}
 }
-@media (max-width:520px){
-  .street-videos{grid-template-columns:1fr;gap:14px}
-  .street-video{max-width:340px;margin:0 auto}
-}
 
-/* ===== 7. RESOURCES & PRODUCTS ===== */
+/* ===== I. RESOURCES & PRODUCTS ===== */
 .resources{background:#fff;padding:clamp(72px,10vw,120px) 0}
 .resources-head{max-width:1200px;margin:0 auto;padding:0 clamp(22px,4vw,40px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);margin-bottom:40px;align-items:end}
-.resources-title{font-style:italic;font-weight:900;font-size:clamp(40px,7vw,96px);line-height:.95;letter-spacing:-.02em;color:#0a0a0a}
+.resources-title{color:#233dff;font-style:italic;font-weight:900;font-size:clamp(40px,7vw,96px);line-height:.95;letter-spacing:-.02em}
 .resources-intro{font-size:clamp(14px,1.4vw,15px);line-height:1.65;color:#2a2540}
 .resources-intro .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#233dff;margin-bottom:12px;display:block}
 .filter-chips{max-width:1200px;margin:0 auto 32px;padding:0 clamp(22px,4vw,40px);display:flex;gap:10px;flex-wrap:wrap}
@@ -276,7 +329,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   .resource-card-img{height:min(72vw,260px)}
 }
 
-/* ===== 8. THE REPORT ===== */
+/* ===== J. THE REPORT ===== */
 .report{background:#f5efe3;padding:clamp(80px,11vw,140px) clamp(22px,4vw,40px);position:relative;overflow:hidden}
 .report-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(40px,6vw,80px);align-items:center}
 .report-eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#233dff;margin-bottom:18px;display:block}
@@ -303,57 +356,61 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .report-cover-foot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.9;position:relative;z-index:2}
 .report-accent{position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(255,193,160,.55) 0%,transparent 70%);top:-40px;right:-60px;pointer-events:none}
 .report-accent.b{background:radial-gradient(circle,rgba(170,200,255,.55) 0%,transparent 70%);top:auto;bottom:-60px;left:-60px;right:auto}
-
 @media (max-width:880px){
   .report-inner{grid-template-columns:1fr;gap:40px}
   .report-buttons{gap:10px}
   .report-btn{flex:1 1 240px;justify-content:center;padding:16px 22px;font-size:12.5px}
 }
 
-/* ===== 9. SUPPORTERS ===== */
-.supporters{background:#fff;padding:clamp(72px,10vw,120px) clamp(22px,4vw,40px);text-align:center}
-.supporters-eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#233dff;margin-bottom:18px;display:block}
-.supporters-title{font-style:italic;font-weight:900;font-size:clamp(40px,7vw,96px);line-height:.95;letter-spacing:-.02em;color:#0a0a0a;margin-bottom:24px}
-.supporters-sub{font-size:clamp(14px,1.4vw,15px);line-height:1.6;color:#444;max-width:560px;margin:0 auto clamp(40px,6vw,64px)}
-.logo-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:clamp(20px,3vw,36px);align-items:center}
-.logo-grid > *{height:72px;display:flex;align-items:center;justify-content:center;filter:grayscale(.5) brightness(.95);opacity:.85;transition:filter .3s,opacity .3s,transform .3s}
+/* ===== L. SUPPORTERS (Stronger Together) ===== */
+.supporters{background:linear-gradient(135deg,#e6efff 0%,#cdd9fa 60%,#b9c8f8 100%);padding:clamp(72px,10vw,120px) clamp(22px,4vw,40px);text-align:center}
+.supporters-eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;color:#233dff;margin-bottom:18px;display:block}
+.supporters-title{font-style:italic;font-weight:900;font-size:clamp(44px,8vw,112px);line-height:.95;letter-spacing:-.02em;color:#0a0a0a;margin-bottom:24px}
+.supporters-sub{font-size:clamp(14px,1.4vw,15.5px);line-height:1.6;color:#1a1633;max-width:620px;margin:0 auto clamp(40px,6vw,64px)}
+.logo-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,3vw,36px);align-items:center;background:#fff;border-radius:18px;padding:clamp(28px,4vw,48px);box-shadow:0 16px 50px rgba(15,15,40,.08)}
+.logo-grid > *{height:88px;display:flex;align-items:center;justify-content:center;filter:grayscale(.3) brightness(.98);opacity:.9;transition:filter .3s,opacity .3s,transform .3s}
 .logo-grid > *:hover{filter:none;opacity:1;transform:translateY(-3px)}
-.logo-grid img{max-width:140px;max-height:56px;width:auto;height:auto;object-fit:contain}
+.logo-grid img{max-width:160px;max-height:64px;width:auto;height:auto;object-fit:contain}
 .logo-grid .logo-text{font-size:13px;font-weight:700;color:#666;letter-spacing:.04em;text-align:center}
-@media (max-width:520px){
-  .logo-grid{grid-template-columns:repeat(2,1fr);gap:20px}
-  .logo-grid > *{height:60px}
+@media (max-width:760px){
+  .logo-grid{grid-template-columns:repeat(2,1fr);gap:20px;padding:24px}
+  .logo-grid > *{height:64px}
 }
 
-/* ===== 10. FOOTER ===== */
+/* ===== M. FOOTER ===== */
 footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw,40px) clamp(32px,5vw,40px)}
-.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:clamp(24px,4vw,48px);margin-bottom:clamp(40px,6vw,56px)}
+.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:clamp(24px,4vw,48px);margin-bottom:clamp(40px,6vw,56px)}
 .footer-brand{display:flex;flex-direction:column;gap:18px}
-.footer-brand img{height:40px;width:auto;filter:brightness(0) invert(1)}
-.footer-brand p{font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.7);max-width:300px}
-.footer-col h5{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#fff;margin-bottom:18px}
+.footer-brand img{height:46px;width:auto;filter:brightness(0) invert(1)}
+.footer-brand p{font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.7);max-width:340px}
+.footer-brand .donate-btn{display:inline-flex;align-items:center;gap:8px;background:#233dff;color:#fff;padding:13px 24px;border-radius:100px;font-weight:700;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;width:fit-content;transition:background .25s,transform .25s;min-height:44px}
+.footer-brand .donate-btn:hover{background:#fff;color:#0a0a0a;transform:translateY(-2px)}
+.footer-col h5{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:#fff;margin-bottom:18px}
 .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .footer-col a{font-size:13.5px;color:rgba(255,255,255,.7);transition:color .2s}
 .footer-col a:hover{color:#fff}
 .footer-bottom{max-width:1200px;margin:0 auto;border-top:1px solid rgba(255,255,255,.12);padding-top:28px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.55)}
+.footer-bottom a{color:rgba(255,255,255,.55);transition:color .2s}
+.footer-bottom a:hover{color:#fff}
 @media (max-width:760px){
   .footer-inner{grid-template-columns:1fr 1fr;gap:32px}
+  .footer-brand{grid-column:1/-1}
   .footer-col a{font-size:14px;line-height:1.8;display:inline-block;min-height:32px}
 }
-@media (max-width:420px){
+@media (max-width:480px){
   .footer-inner{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- ================ 1. HERO ================ -->
+<!-- ================ A. HERO ================ -->
 <section class="hero" id="top">
   <div class="hero-carousel" aria-hidden="true">
-    <!-- 4 rotating photos: 1) Workshop  2) Live Unstoppable walk/run  3) Wellness Meetup  4) The Unstoppable Experience panel -->
-    <div class="hero-slide active" style="background-image:url('/unstoppable/photos/DSC_3421.jpg')"></div>
+    <!-- 4 rotating photos: 1) Workshop panel speakers  2) Live Unstoppable run/walk  3) Wellness Meetup group  4) Unstoppable Experience panel -->
+    <div class="hero-slide active" style="background-image:url('/unstoppable/photos/DSC_2675.jpg')"></div>
     <div class="hero-slide" style="background-image:url('/unstoppable/photos/DSC_3084.jpg')"></div>
-    <div class="hero-slide" style="background-image:url('/unstoppable/photos/DSC_3954.jpg')"></div>
+    <div class="hero-slide" style="background-image:url('/unstoppable/photos/DSC_3421.jpg')"></div>
     <div class="hero-slide" style="background-image:url('/unstoppable/photos/DSC_2571.jpg')"></div>
   </div>
   <div class="hero-scrim"></div>
@@ -361,7 +418,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   <div class="hero-top">
     <a class="hero-logo" href="/">
       <img src="/unstoppable/unstoppable-logo-white.png" alt="Health Matters Clinic" onerror="this.style.display='none'">
-      <span class="hero-logo-text">Health Matters Clinic</span>
     </a>
 
     <div class="hero-pill" role="navigation" aria-label="Page sections">
@@ -384,13 +440,17 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     <h1 class="hero-title">Unstoppable.</h1>
     <p class="hero-tagline">Unstoppable is a community-built mental health program for Black and underserved Los Angeles.</p>
   </div>
-  <a class="hero-scroll" href="#schpill" aria-label="Scroll to next section">Scroll</a>
+  <a class="hero-scroll" href="#kinetic" aria-label="Scroll to next section">Scroll</a>
 </section>
 
-<!-- Full-screen mobile/menu overlay (also openable from desktop hamburger) -->
+<!-- Full-screen menu overlay -->
 <div class="hero-menu-overlay" id="menuOverlay" role="dialog" aria-modal="true" aria-label="Site menu" hidden>
   <button class="menu-close" type="button" aria-label="Close menu" data-close-menu>&times;</button>
   <nav>
+    <a href="#mission" data-close-menu>The Mission</a>
+    <a href="#format-live" data-close-menu>Live Unstoppable</a>
+    <a href="#format-workshop" data-close-menu>The Workshop</a>
+    <a href="#format-experience" data-close-menu>The Experience</a>
     <a href="#stories" data-close-menu>Stories</a>
     <a href="#share" data-close-menu>Share Your Story</a>
     <a href="#resources" data-close-menu>Resources &amp; Products</a>
@@ -399,42 +459,37 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   </nav>
 </div>
 
-<!-- ================ 2. MISSION SCHPILL ================ -->
-<section class="schpill" id="schpill">
-  <p class="rise-on-scroll">The more we move, talk, and show up for each other, the more our communities heal.</p>
-</section>
-
-<!-- ================ 3. TWO-SLIDE MISSION CAROUSEL ================ -->
-<section class="mission" id="mission">
-  <div class="mission-track">
-    <div class="mission-slide active">
-      <h2 class="rise-on-scroll">The more we move, the more we heal.</h2>
-      <p class="rise-on-scroll">Across Los Angeles, Black and underserved communities still carry the heaviest mental health burdens with the fewest culturally relevant places to turn. Unstoppable closes that gap with healing-centered spaces built by and for the people who need them most.</p>
-    </div>
-    <div class="mission-slide">
-      <h2 class="rise-on-scroll">A grassroots model with citywide reach.</h2>
-      <p class="rise-on-scroll">HMC's Unstoppable initiative brings together thousands of Angelenos through workshops, community walks, wellness meetups, and the Unstoppable Experience podcast, proving that movement, conversation, and showing up together changes outcomes.</p>
-    </div>
-  </div>
-  <div class="mission-dots" role="tablist" aria-label="Mission slides">
-    <button class="mission-dot active" data-slide="0" aria-label="Slide 1"></button>
-    <button class="mission-dot" data-slide="1" aria-label="Slide 2"></button>
+<!-- ================ B. KINETIC MARQUEE ================ -->
+<section class="kinetic" id="kinetic" aria-hidden="true">
+  <div class="kinetic-track">
+    <span>Heal</span><span class="kinetic-dot"></span>
+    <span>Transform</span><span class="kinetic-dot"></span>
+    <span>Unstoppable</span><span class="kinetic-dot"></span>
+    <span>Move</span><span class="kinetic-dot"></span>
+    <span>Heal</span><span class="kinetic-dot"></span>
+    <span>Transform</span><span class="kinetic-dot"></span>
+    <span>Unstoppable</span><span class="kinetic-dot"></span>
+    <span>Move</span><span class="kinetic-dot"></span>
+    <span>Heal</span><span class="kinetic-dot"></span>
+    <span>Transform</span><span class="kinetic-dot"></span>
+    <span>Unstoppable</span><span class="kinetic-dot"></span>
+    <span>Move</span><span class="kinetic-dot"></span>
   </div>
 </section>
 
-<!-- ================ 3b. STATS BAND ================ -->
+<!-- ================ C. STATS BAND ================ -->
 <section class="stats-band" id="stats" aria-label="Program impact at a glance">
   <div class="stats-band-inner">
     <div class="stats-band-item rise-on-scroll">
       <span class="stats-band-num" data-count="69"><span class="count-val">0</span><small>%</small></span>
-      <span class="stats-band-lbl">Mental Health Comfort</span>
+      <span class="stats-band-lbl">Mental Health Comfort Increased</span>
     </div>
     <div class="stats-band-item rise-on-scroll">
       <span class="stats-band-num" data-count="5"><span class="count-val">0</span></span>
       <span class="stats-band-lbl">Modules</span>
     </div>
     <div class="stats-band-item rise-on-scroll">
-      <span class="stats-band-num" data-count="3"><span class="count-val">0</span></span>
+      <span class="stats-band-num" data-count="4"><span class="count-val">0</span></span>
       <span class="stats-band-lbl">Event Formats</span>
     </div>
     <div class="stats-band-item rise-on-scroll">
@@ -444,12 +499,31 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   </div>
 </section>
 
-<!-- ================ 4. FULL-SCREEN FORMAT SECTIONS ================ -->
+<!-- ================ D. MISSION CAROUSEL (two slides, right-side dots) ================ -->
+<section class="mission" id="mission">
+  <span class="mission-eyebrow rise-on-scroll">Mission</span>
+  <div class="mission-track">
+    <div class="mission-slide active">
+      <h2 class="rise-on-scroll">The more we move, the more we heal.</h2>
+      <p class="rise-on-scroll">Yet Black and underserved Angelenos still face deep stigma, distrust, and barriers to mental health support that compound across a lifetime.</p>
+    </div>
+    <div class="mission-slide">
+      <h2 class="rise-on-scroll">A grassroots model with citywide reach.</h2>
+      <p class="rise-on-scroll">Health Matters Clinic's flagship Unstoppable program, built with and for the community, explores the cultural realities that shape mental health and the grassroots support that drives healing.</p>
+    </div>
+  </div>
+  <div class="mission-dots" role="tablist" aria-label="Mission slides">
+    <button class="mission-dot active" data-slide="0" aria-label="Slide 1"></button>
+    <button class="mission-dot" data-slide="1" aria-label="Slide 2"></button>
+  </div>
+</section>
+
+<!-- ================ E. FULL-BLEED FORMAT SECTIONS ================ -->
 <section class="format" id="format-live">
   <div class="format-bg" style="background-image:url('/unstoppable/photos/DSC_3084.jpg')"></div>
   <div class="format-scrim"></div>
+  <h2 class="format-title rise-on-scroll">Live Unstoppable</h2>
   <div class="format-content">
-    <h2 class="format-title rise-on-scroll">Live<br>Unstoppable</h2>
     <div class="format-side rise-on-scroll">
       <p>Monthly community walks and runs that turn movement into medicine. Lace up with neighbors, certified mental health champions, and Crenshaw runners who show that healing happens out loud, in public, together.</p>
       <div class="format-meta">
@@ -459,20 +533,21 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
       </div>
       <a class="format-cta" href="https://events.healthmatters.clinic" target="_blank" rel="noopener">Join the next walk</a>
     </div>
-  </div>
-  <div class="format-thumbs">
-    <img src="/unstoppable/photos/DSC_3070.jpg" alt="" loading="lazy">
-    <img src="/unstoppable/photos/DSC_2963.jpg" alt="" loading="lazy">
+    <div class="format-thumbs rise-on-scroll">
+      <img src="/unstoppable/photos/DSC_3070.jpg" alt="" loading="lazy">
+      <img src="/unstoppable/photos/DSC_2963.jpg" alt="" loading="lazy">
+      <img src="/unstoppable/photos/DSC_3214.jpg" alt="" loading="lazy">
+    </div>
   </div>
 </section>
 
 <section class="format" id="format-workshop">
   <div class="format-bg" style="background-image:url('/unstoppable/photos/DSC_2675.jpg')"></div>
   <div class="format-scrim"></div>
+  <h2 class="format-title rise-on-scroll">Power of Healing &amp; Growth</h2>
   <div class="format-content">
-    <h2 class="format-title rise-on-scroll">The<br>Workshop</h2>
     <div class="format-side rise-on-scroll">
-      <p>The Power of Healing &amp; Growth Workshop is HMC's flagship in-person curriculum. Five modules. One day. A LACDMH-recognized program that moves participants from "I don't talk about this" to "I'm ready to keep talking."</p>
+      <p>HMC's flagship in-person curriculum, the workshop within Unstoppable. Five modules. One day. A LACDMH-recognized program that moves participants from "I don't talk about this" to "I'm ready to keep talking."</p>
       <div class="format-meta">
         <span>5-module healing-centered curriculum</span>
         <span>Hosted at community centers and partner clinics</span>
@@ -480,18 +555,19 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
       </div>
       <a class="format-cta" href="/unstoppable/the-unstoppable-workshop-final-report.pdf" target="_blank" rel="noopener">Workshop report</a>
     </div>
-  </div>
-  <div class="format-thumbs">
-    <img src="/unstoppable/photos/DSC_2589.jpg" alt="" loading="lazy">
-    <img src="/unstoppable/photos/DSC_2596.jpg" alt="" loading="lazy">
+    <div class="format-thumbs rise-on-scroll">
+      <img src="/unstoppable/photos/DSC_2589.jpg" alt="" loading="lazy">
+      <img src="/unstoppable/photos/DSC_2596.jpg" alt="" loading="lazy">
+      <img src="/unstoppable/photos/DSC_2602.jpg" alt="" loading="lazy">
+    </div>
   </div>
 </section>
 
 <section class="format" id="format-experience">
   <div class="format-bg" style="background-image:url('/unstoppable/photos/DSC_2571.jpg')"></div>
   <div class="format-scrim"></div>
+  <h2 class="format-title rise-on-scroll">The Unstoppable Experience</h2>
   <div class="format-content">
-    <h2 class="format-title rise-on-scroll">The Unstoppable<br>Experience</h2>
     <div class="format-side rise-on-scroll">
       <p>A virtual podcast and panel series spotlighting the artists, athletes, clinicians, and everyday people who make their healing public. Real conversations, no scripts, recorded with our community as the studio audience.</p>
       <div class="format-meta">
@@ -501,14 +577,65 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
       </div>
       <a class="format-cta" href="https://www.youtube.com/@healthmattersclinic" target="_blank" rel="noopener">Watch the series</a>
     </div>
-  </div>
-  <div class="format-thumbs">
-    <img src="/unstoppable/photos/DSC_3613.jpg" alt="" loading="lazy">
-    <img src="/unstoppable/photos/DSC_3954.jpg" alt="" loading="lazy">
+    <div class="format-thumbs rise-on-scroll">
+      <img src="/unstoppable/photos/DSC_3613.jpg" alt="" loading="lazy">
+      <img src="/unstoppable/photos/DSC_3954.jpg" alt="" loading="lazy">
+      <img src="/unstoppable/photos/DSC_2910.jpg" alt="" loading="lazy">
+    </div>
   </div>
 </section>
 
-<!-- ================ 4b. FORMAT FAQs ================ -->
+<!-- ================ F.1 STAT-CALLOUT SECTION ================ -->
+<section class="statcall" id="statcall" aria-label="Headline impact stats">
+  <span class="statcall-eyebrow rise-on-scroll">Headline findings</span>
+  <div class="statcall-grid">
+    <div class="statcall-item rise-on-scroll">
+      <div class="ring" aria-hidden="true"></div>
+      <div class="statcall-num">69<small>%</small></div>
+      <p class="statcall-copy">Workshop participants reported new comfort discussing mental health, up from 28% before the program.</p>
+    </div>
+    <div class="statcall-item rise-on-scroll">
+      <div class="ring" aria-hidden="true"></div>
+      <div class="statcall-num">57<small>%</small></div>
+      <p class="statcall-copy">Knew where to find culturally relevant local resources after the workshop, up from just 15% before.</p>
+    </div>
+  </div>
+  <p class="statcall-lede rise-on-scroll">When healing-centered programming reaches Black and underserved communities, comfort, awareness, and help-seeking move together.</p>
+</section>
+
+<!-- ================ F.2 SPLIT-PHOTO QUOTE + REPORT CTA ================ -->
+<section class="splitquote" id="splitquote">
+  <div class="splitquote-inner">
+    <div class="splitquote-grid">
+      <div class="splitquote-card rise-on-scroll">
+        <div class="photo"><img src="/unstoppable/photos/DSC_2935.jpg" alt="" loading="lazy"></div>
+        <p class="quote">"Care has to start where life is lived."</p>
+      </div>
+      <div class="splitquote-card rise-on-scroll">
+        <div class="photo"><img src="/unstoppable/photos/DSC_3070.jpg" alt="" loading="lazy"></div>
+        <p class="quote">"Healing happens in community."</p>
+      </div>
+    </div>
+    <div class="splitquote-cta">
+      <div class="rise-on-scroll">
+        <p class="splitquote-cta-text">Download our report to discover more.</p>
+        <a class="splitquote-cta-btn" href="/unstoppable/the-unstoppable-workshop-final-report.pdf" target="_blank" rel="noopener">Read the Workshop Report</a>
+      </div>
+      <div class="splitquote-tilted rise-on-scroll" aria-hidden="true">
+        <div class="cover">
+          <div>
+            <span class="cover-eyebrow">Health Matters Clinic</span>
+            <h3 class="cover-h">The Unstoppable Workshop</h3>
+          </div>
+          <div class="cover-photo" style="background-image:url('/unstoppable/photos/DSC_2675.jpg')"></div>
+          <span class="cover-foot">2026 &middot; LACDMH SPA 6</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================ K. FORMAT FAQs ================ -->
 <section class="faqs" id="faqs">
   <div class="faqs-head">
     <h2 class="faqs-title rise-on-scroll">How each<br>format works</h2>
@@ -522,7 +649,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     <div class="faq-group rise-on-scroll">
       <h3>The Workshop</h3>
       <p class="group-sub">Power of Healing &amp; Growth, five modules, one day.</p>
-
       <details class="faq-item">
         <summary>What is the Workshop?</summary>
         <div class="faq-answer">
@@ -531,7 +657,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           <span class="feedback-note">Format refined after community feedback in 2024 and 2025.</span>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>How was it built?</summary>
         <div class="faq-answer">
@@ -540,7 +665,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           <span class="feedback-note">Modules were updated after the Q2 2025 feedback sessions.</span>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>Who is it for?</summary>
         <div class="faq-answer">
@@ -548,7 +672,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           <p>The Workshop is also offered to partner organizations, schools, and faith communities that want to bring the curriculum to their own members.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>How do I bring it to my community?</summary>
         <div class="faq-answer">
@@ -561,7 +684,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     <div class="faq-group rise-on-scroll">
       <h3>Live Unstoppable</h3>
       <p class="group-sub">Monthly community walks and runs.</p>
-
       <details class="faq-item">
         <summary>What happens at a Live Unstoppable walk or run?</summary>
         <div class="faq-answer">
@@ -570,21 +692,18 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           <span class="feedback-note">The relaxed-pace format came directly from 2024 walk feedback.</span>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>Do I need to be a runner?</summary>
         <div class="faq-answer">
           <p>No. Live Unstoppable is open to all ages and paces. Walkers, joggers, runners, strollers, and folks with mobility aids are all welcome. The route always has a walk-friendly version.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>When and where?</summary>
         <div class="faq-answer">
           <p>Monthly, the second Saturday at 8:00 AM. Routes rotate across Crenshaw, Leimert Park, and South LA. Specific locations and any weather updates are posted on the Event Finder.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>How do I join?</summary>
         <div class="faq-answer">
@@ -596,7 +715,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     <div class="faq-group rise-on-scroll">
       <h3>Wellness Meetups</h3>
       <p class="group-sub">Small-group conversations on healing.</p>
-
       <details class="faq-item">
         <summary>What is a Wellness Meetup?</summary>
         <div class="faq-answer">
@@ -605,21 +723,18 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           <span class="feedback-note">Group-size cap was lowered in response to 2025 participant feedback.</span>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>How often?</summary>
         <div class="faq-answer">
           <p>Wellness Meetups happen multiple times per month across LA County, with themes rotating based on what the community is asking for. The next dates are posted on the Event Finder.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>What does feedback look like?</summary>
         <div class="faq-answer">
           <p>After every Meetup we ask participants what was useful, what was missing, and what they want to talk about next. That feedback shapes future themes and the way we facilitate. The Unstoppable Report tracks these outcomes over time.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>How do I host one?</summary>
         <div class="faq-answer">
@@ -631,7 +746,6 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     <div class="faq-group rise-on-scroll">
       <h3>The Unstoppable Experience</h3>
       <p class="group-sub">A virtual podcast and panel series.</p>
-
       <details class="faq-item">
         <summary>What is the virtual Experience?</summary>
         <div class="faq-answer">
@@ -639,21 +753,18 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           <span class="feedback-note">Conversational format was chosen after audience feedback on early panels.</span>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>Who has been on?</summary>
         <div class="faq-answer">
           <p>Guests span LA's arts, sports, and clinical communities, including mental health champions, performers, and frontline community organizers. Episodes feature both well-known voices and neighbors who have never told their story on a public platform before.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>Where do I watch?</summary>
         <div class="faq-answer">
           <p>New episodes drop monthly on the <a href="https://www.youtube.com/@healthmattersclinic" target="_blank" rel="noopener" style="color:#233dff;text-decoration:underline">HMC YouTube channel</a> and major podcast platforms. Highlights and Shorts are shared on Instagram.</p>
         </div>
       </details>
-
       <details class="faq-item">
         <summary>Can I be a guest?</summary>
         <div class="faq-answer">
@@ -665,13 +776,13 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   </div>
 </section>
 
-<!-- ================ 5. READ THEIR STORIES ================ -->
+<!-- ================ G. READ THEIR STORIES (continuous marquee) ================ -->
 <section class="stories" id="stories">
   <div class="stories-head">
     <h2 class="stories-title rise-on-scroll">Read their<br>stories</h2>
     <div class="stories-intro rise-on-scroll">
       <span class="eyebrow">Ambassadors</span>
-      <p>Read about the research behind Unstoppable and the studies guiding our work. Each card opens a Google Scholar search for the published study informing how we design healing spaces for Black and underserved communities.</p>
+      <p>The research behind Unstoppable and the studies guiding our work. Each card opens a Google Scholar search for the published study informing how we design healing spaces for Black and underserved communities.</p>
     </div>
   </div>
   <div class="stories-track-wrap">
@@ -683,7 +794,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
         <div class="story-card-body">
           <p class="story-card-quote">"Access isn't the finish line. Real change means breaking stigma and rebuilding trust."</p>
           <p class="story-card-source">Alang, S. (2019). Addressing mental health stigma in African American communities. Journal of Health Care for the Poor and Underserved, 30(1), 4 to 10.</p>
-          <div class="story-card-meta">Read case study</div>
+          <div class="story-card-meta">Read the case study</div>
         </div>
       </a>
       <a class="story-card" href="https://scholar.google.com/scholar?q=Ayon+Garcia+2023+impact+of+migration+on+mental+health+in+Black+adolescents+PLOS+Mental+Health" target="_blank" rel="noopener" data-story="ayon">
@@ -692,7 +803,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
         <div class="story-card-body">
           <p class="story-card-quote">"Moving isn't just about a new address. It can shake who you are."</p>
           <p class="story-card-source">Ayon, C., and Garcia, S. J. (2023). The impact of migration on mental health in Black adolescents. PLOS Mental Health.</p>
-          <div class="story-card-meta">Read case study</div>
+          <div class="story-card-meta">Read the case study</div>
         </div>
       </a>
       <a class="story-card" href="https://scholar.google.com/scholar?q=Lindsey+Joe+Nebbitt+2010+Barriers+to+mental+health+services+for+African+American+youth" target="_blank" rel="noopener" data-story="lindsey">
@@ -701,7 +812,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
         <div class="story-card-body">
           <p class="story-card-quote">"Three walls block the way: stigma, no trust, and no way to get there."</p>
           <p class="story-card-source">Lindsey, M. A., Joe, S., and Nebbitt, V. (2010). Barriers to mental health services for African American youth. Children and Youth Services Review, 32(6), 760 to 768.</p>
-          <div class="story-card-meta">Read case study</div>
+          <div class="story-card-meta">Read the case study</div>
         </div>
       </a>
       <a class="story-card" href="https://scholar.google.com/scholar?q=Abrams+Hill+Maxwell+2024+strong+Black+woman+schema+and+its+impact+on+mental+health" target="_blank" rel="noopener" data-story="abrams">
@@ -710,7 +821,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
         <div class="story-card-body">
           <p class="story-card-quote">"Pushing through isn't always power. Sometimes it's pain in disguise."</p>
           <p class="story-card-source">Abrams, J. A., Hill, A., and Maxwell, M. (2024). The strong Black woman schema and its impact on mental health. Journal of Black Psychology.</p>
-          <div class="story-card-meta">Read case study</div>
+          <div class="story-card-meta">Read the case study</div>
         </div>
       </a>
       <a class="story-card" href="https://scholar.google.com/scholar?q=Williams+2021+Addressing+mental+health+disparities+in+Black+men+APA+Monitor" target="_blank" rel="noopener" data-story="williams">
@@ -719,43 +830,44 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
         <div class="story-card-body">
           <p class="story-card-quote">"Feeling is not weakness. It's power."</p>
           <p class="story-card-source">Williams, D. R. (2021). Addressing mental health disparities in Black men. APA Monitor on Psychology, 52(7), 24 to 31.</p>
-          <div class="story-card-meta">Read case study</div>
+          <div class="story-card-meta">Read the case study</div>
         </div>
       </a>
     </div>
   </div>
 </section>
 
-<!-- ================ 6. STREET INTERVIEWS + SUBMIT YOUR STORY ================ -->
-<section class="street" id="street">
-  <div class="street-inner">
-    <div class="street-head">
-      <h2 class="street-title rise-on-scroll">What makes<br>you unstoppable?</h2>
-      <div class="street-intro rise-on-scroll">
-        <span class="eyebrow">Street Interviews</span>
-        <p>We took the question to corners, parks, and start lines across Los Angeles. Hear neighbors answer in their own words, and then add yours.</p>
+<!-- ================ H. SHARE YOUR STORY (street interviews + submit) ================ -->
+<section class="share" id="share">
+  <div class="share-inner">
+    <div class="share-head">
+      <h2 class="share-title rise-on-scroll">Share your<br>story.</h2>
+      <div class="share-intro rise-on-scroll">
+        <span class="eyebrow">Are you making a difference?</span>
+        <p>We took the question to corners, parks, and start lines across Los Angeles. Hear neighbors answer in their own words, then add yours. Post your story on Instagram, TikTok, or YouTube and paste the link below.</p>
+        <a class="share-cta" href="#submit-form">Share your story</a>
       </div>
     </div>
-    <!-- TODO Erica: replace these poster images and href with actual YouTube Short URLs once published -->
-    <div class="street-videos rise-on-scroll">
-      <a class="street-video" href="#" data-video="short-1">
-        <img src="/unstoppable/photos/DSC_2596.jpg" alt="">
-        <span class="street-video-label">Crenshaw &middot; Spring 2026</span>
+    <!-- Portrait row (HMC street interview people) -->
+    <div class="share-portraits rise-on-scroll">
+      <a class="share-portrait" href="#submit-form">
+        <img src="/unstoppable/photos/DSC_2596.jpg" alt="" loading="lazy">
+        <span class="lbl">Crenshaw &middot; Spring 2026</span>
       </a>
-      <a class="street-video" href="#" data-video="short-2">
-        <img src="/unstoppable/photos/DSC_2602.jpg" alt="">
-        <span class="street-video-label">Leimert Park</span>
+      <a class="share-portrait" href="#submit-form">
+        <img src="/unstoppable/photos/DSC_2602.jpg" alt="" loading="lazy">
+        <span class="lbl">Leimert Park</span>
       </a>
-      <a class="street-video" href="#" data-video="short-3">
-        <img src="/unstoppable/photos/DSC_3214.jpg" alt="">
-        <span class="street-video-label">Live Unstoppable Run</span>
+      <a class="share-portrait" href="#submit-form">
+        <img src="/unstoppable/photos/DSC_3214.jpg" alt="" loading="lazy">
+        <span class="lbl">Live Unstoppable Run</span>
       </a>
     </div>
 
-    <div class="submit-block rise-on-scroll" id="share">
+    <div class="submit-block rise-on-scroll" id="submit-form">
       <div>
         <span class="eyebrow">Submit your story</span>
-        <h3>Share what makes you unstoppable.</h3>
+        <h3>Tell us what makes you unstoppable.</h3>
         <p>Post your story on Instagram, TikTok, or YouTube, then paste the link here. We feature submissions on the Unstoppable page and our channels with your consent.</p>
       </div>
       <form class="submit-form" id="storyForm" novalidate>
@@ -765,14 +877,14 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
             <input id="sf-first" name="first_name" type="text" required autocomplete="given-name">
           </div>
           <div>
-            <label for="sf-email">Email</label>
+            <label for="sf-email">Email address</label>
             <input id="sf-email" name="email" type="email" required autocomplete="email">
           </div>
         </div>
         <div class="submit-row">
           <div>
             <label for="sf-loc">Location (City, State)</label>
-            <input id="sf-loc" name="location" type="text" placeholder="Los Angeles, CA">
+            <input id="sf-loc" name="location" type="text" placeholder="Los Angeles, CA" required>
           </div>
           <div>
             <label for="sf-org">Organization (optional)</label>
@@ -780,8 +892,8 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
           </div>
         </div>
         <div>
-          <label for="sf-link">Link to your social media post (Instagram, TikTok, or YouTube)</label>
-          <input id="sf-link" name="social_link" type="url" placeholder="https://instagram.com/p/..." required>
+          <label for="sf-link">Link to your social media post (Instagram, TikTok, or YouTube) (optional)</label>
+          <input id="sf-link" name="social_link" type="url" placeholder="https://instagram.com/p/...">
         </div>
         <div>
           <label for="sf-story">Your story (max 250 words)</label>
@@ -802,7 +914,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   </div>
 </section>
 
-<!-- ================ 7. RESOURCES & PRODUCTS ================ -->
+<!-- ================ I. RESOURCES & PRODUCTS ================ -->
 <section class="resources" id="resources">
   <div class="resources-head">
     <h2 class="resources-title rise-on-scroll">Get your mind<br>moving</h2>
@@ -872,7 +984,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   </div>
 </section>
 
-<!-- ================ 8. THE REPORT ================ -->
+<!-- ================ J. THE REPORT ================ -->
 <section class="report" id="report">
   <div class="report-accent"></div>
   <div class="report-accent b"></div>
@@ -880,7 +992,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     <div>
       <span class="report-eyebrow rise-on-scroll">Key findings</span>
       <h2 class="report-title rise-on-scroll">The<br>Report</h2>
-      <p class="report-lead rise-on-scroll">HMC commissioned the Unstoppable evaluation to measure what happens when healing-centered programming reaches Black and underserved communities. LACDMH-validated outcomes from our first workshop cohorts:</p>
+      <p class="report-lead rise-on-scroll">Health Matters Clinic, in partnership with LACDMH, commissioned a multi-year evaluation of Unstoppable's impact on mental health stigma and help-seeking. Discover the key findings and read the full report.</p>
       <div class="report-stats rise-on-scroll">
         <div class="report-stat"><span class="num">28<small>&rarr;</small>69<small>%</small></span><span class="lbl">Comfort discussing mental health</span></div>
         <div class="report-stat"><span class="num">15<small>&rarr;</small>57<small>%</small></span><span class="lbl">Aware of local resources</span></div>
@@ -888,7 +1000,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
         <div class="report-stat"><span class="num">22<small>&rarr;</small>53<small>%</small></span><span class="lbl">Confident seeking care</span></div>
       </div>
       <div class="report-buttons rise-on-scroll">
-        <a class="report-btn primary" href="/unstoppable/the-unstoppable-final-report.pdf" target="_blank" rel="noopener">View the Final Report</a>
+        <a class="report-btn primary" href="/unstoppable/the-unstoppable-final-report.pdf" target="_blank" rel="noopener">Final Report</a>
         <a class="report-btn secondary" href="/unstoppable/the-unstoppable-workshop-final-report.pdf" target="_blank" rel="noopener">Workshop Final Report</a>
       </div>
     </div>
@@ -905,64 +1017,69 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   </div>
 </section>
 
-<!-- ================ 9. SUPPORTERS ================ -->
+<!-- ================ L. SUPPORTERS (Stronger Together) ================ -->
 <section class="supporters" id="supporters">
   <span class="supporters-eyebrow rise-on-scroll">Our Supporters</span>
-  <h2 class="supporters-title rise-on-scroll">Stronger Together</h2>
-  <p class="supporters-sub rise-on-scroll">Unstoppable is made possible by an alliance of public health, community, and creative partners.</p>
+  <h2 class="supporters-title rise-on-scroll">Stronger<br>Together</h2>
+  <p class="supporters-sub rise-on-scroll">Unstoppable is made possible by an alliance of public health, community, and creative partners across Los Angeles County.</p>
   <div class="logo-grid rise-on-scroll">
     <div><img src="/unstoppable/lacdmh-logo.png" alt="LACDMH" loading="lazy"></div>
     <div><img src="/unstoppable/takeaction-logo.png" alt="Take Action LA" loading="lazy"></div>
-    <div><img src="/unstoppable/partner-take-action.png" alt="Take Action LA" loading="lazy"></div>
+    <div><img src="/unstoppable/partner-take-action.png" alt="Take Action LA partner" loading="lazy"></div>
     <div><img src="/unstoppable/partner-mhsa.png" alt="MHSA" loading="lazy"></div>
     <div><img src="/unstoppable/partner-embodiology.png" alt="Embodiology" loading="lazy"></div>
     <div><img src="/unstoppable/partner-mental-mango.jpg" alt="Mental Mango" loading="lazy"></div>
     <div><img src="/unstoppable/partner-cyfer.png" alt="Cyfer" loading="lazy"></div>
-    <!-- TODO Erica: swap in additional sponsor logos as confirmed (Wow Flower Project, SPA 6 community partners) -->
+    <!-- TODO Erica: swap in additional sponsor logos as confirmed -->
     <div class="logo-text">Wow Flower Project</div>
   </div>
 </section>
 
-<!-- ================ 10. FOOTER ================ -->
+<!-- ================ M. FOOTER ================ -->
 <footer id="site-footer">
   <div class="footer-inner">
     <div class="footer-brand">
       <img src="/unstoppable/unstoppable-logo-white.png" alt="Health Matters Clinic" onerror="this.style.display='none'">
-      <p>Health Matters Clinic is a Los Angeles nonprofit closing the mental health gap in Black and underserved communities through healing-centered programs, free digital tools, and grassroots community organizing.</p>
+      <p>Health Matters Clinic is a 501(c)(3) Los Angeles nonprofit closing the mental health gap in Black and underserved communities through healing-centered programs, free digital tools, and grassroots community organizing.</p>
+      <a class="donate-btn" href="https://www.givelively.org/donate/health-matters-clinic" target="_blank" rel="noopener">Support our mission</a>
     </div>
     <div class="footer-col">
       <h5>Unstoppable</h5>
       <ul>
+        <li><a href="#mission">About Unstoppable</a></li>
         <li><a href="#format-workshop">The Workshop</a></li>
         <li><a href="#format-live">Live Unstoppable</a></li>
+        <li><a href="#faqs">Wellness Meetups</a></li>
         <li><a href="#format-experience">The Experience</a></li>
-        <li><a href="#faqs">FAQs</a></li>
-        <li><a href="#stories">Research</a></li>
+        <li><a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" target="_blank" rel="noopener">Download the Guide</a></li>
+        <li><a href="#report">The Report</a></li>
       </ul>
     </div>
     <div class="footer-col">
-      <h5>Tools</h5>
+      <h5>HMC Tools</h5>
       <ul>
         <li><a href="https://events.healthmatters.clinic" target="_blank" rel="noopener">Event Finder</a></li>
+        <li><a href="https://resources.healthmatters.clinic" target="_blank" rel="noopener">Resource Directory</a></li>
+        <li><a href="https://checkyourself.healthmatters.clinic" target="_blank" rel="noopener">Check Yourself</a></li>
         <li><a href="https://calmkit.healthmatters.clinic" target="_blank" rel="noopener">CalmKit</a></li>
-        <li><a href="/unstoppable/the-unstoppable-workshop-digital-companion-guide.pdf" target="_blank" rel="noopener">Companion Guide</a></li>
-        <li><a href="https://volunteer.healthmatters.clinic" target="_blank" rel="noopener">Volunteer</a></li>
-        <li><a href="https://partners.healthmatters.clinic" target="_blank" rel="noopener">Partners</a></li>
+        <li><a href="https://partners.healthmatters.clinic" target="_blank" rel="noopener">Partner Portal</a></li>
+        <li><a href="https://volunteer.healthmatters.clinic" target="_blank" rel="noopener">Volunteer Portal</a></li>
       </ul>
     </div>
     <div class="footer-col">
       <h5>Connect</h5>
       <ul>
-        <li><a href="mailto:hello@healthmatters.clinic">hello@healthmatters.clinic</a></li>
+        <li><a href="mailto:hello@healthmatters.clinic">Contact</a></li>
         <li><a href="https://www.instagram.com/healthmatters.clinic" target="_blank" rel="noopener">Instagram</a></li>
+        <li><a href="https://www.linkedin.com/company/health-matters-clinic" target="_blank" rel="noopener">LinkedIn</a></li>
         <li><a href="https://www.youtube.com/@healthmattersclinic" target="_blank" rel="noopener">YouTube</a></li>
-        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="https://www.givelively.org/donate/health-matters-clinic" target="_blank" rel="noopener">Donate</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
-    <span>&copy; <span id="yr"></span> Health Matters Clinic. All rights reserved.</span>
-    <span>Recognized by LACDMH &middot; Serving LA County SPA 6 and beyond</span>
+    <span>&copy; <span id="yr"></span> Health Matters Clinic. All rights reserved. 501(c)(3) Nonprofit.</span>
+    <span><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/cookies">Cookies</a> &middot; <a href="https://healthmatters.clinic" target="_blank" rel="noopener">healthmatters.clinic</a></span>
   </div>
 </footer>
 
@@ -1049,11 +1166,10 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     setInterval(function(){ setMission((missionIdx+1) % missionSlides.length); }, 6000);
   }
 
-  // ===== Stories: duplicate cards for infinite marquee =====
+  // ===== Stories: duplicate cards for seamless infinite marquee (no blank end space) =====
   var storiesTrack = document.getElementById('storiesTrack');
   if(storiesTrack){
     var original = storiesTrack.innerHTML;
-    // Duplicate twice so the keyframes (translateX -50%) loop seamlessly.
     storiesTrack.innerHTML = original + original;
   }
 
@@ -1073,7 +1189,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
   });
 
   // ===== Submit story form =====
-  // POSTs to the volunteer portal API. Erica: wire /api/public/unstoppable-stories on the server if it does not yet exist.
+  // POSTs to /api/public/unstoppable-stories. Erica: server endpoint still needs to be wired on the volunteer-portal backend.
   var form = document.getElementById('storyForm');
   var msg = document.getElementById('sf-msg');
   if(form){
@@ -1086,12 +1202,10 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
       payload.consent = !!form.querySelector('input[name="consent"]').checked;
       payload.privacy = !!form.querySelector('input[name="privacy"]').checked;
 
-      // Light client-side validation
-      if(!payload.first_name || !payload.email || !payload.social_link || !payload.consent || !payload.privacy){
+      if(!payload.first_name || !payload.email || !payload.location || !payload.consent || !payload.privacy){
         msg.textContent = 'Please complete the required fields and consent boxes.';
         msg.classList.add('show','err'); return;
       }
-      // Cap to 250 words
       if((payload.story||'').split(/\s+/).filter(Boolean).length > 250){
         msg.textContent = 'Please keep your story to 250 words or fewer.';
         msg.classList.add('show','err'); return;
@@ -1117,7 +1231,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
     });
   }
 
-  // ===== IntersectionObserver scroll-rise (with staggered children) =====
+  // ===== IntersectionObserver scroll-rise =====
   var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!prefersReduced && 'IntersectionObserver' in window){
     var io = new IntersectionObserver(function(entries){
@@ -1129,8 +1243,7 @@ footer{background:#0a0a0a;color:#fff;padding:clamp(56px,8vw,80px) clamp(22px,4vw
       });
     }, {threshold: 0.12, rootMargin: '0px 0px -60px 0px'});
 
-    // Stagger sibling rise targets inside containers
-    document.querySelectorAll('.resource-card, .story-card, .report-stat').forEach(function(el, i){
+    document.querySelectorAll('.resource-card, .story-card, .report-stat, .statcall-item, .splitquote-card').forEach(function(el, i){
       el.classList.add('rise-on-scroll');
       el.style.transitionDelay = ((i % 6) * 80) + 'ms';
     });
