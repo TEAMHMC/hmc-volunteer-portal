@@ -11,7 +11,7 @@
 <link rel="icon" href="/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Questrial&family=Lato:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;font-size:16px;-webkit-text-size-adjust:100%}
@@ -28,12 +28,14 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   *{animation:none!important;transition:none!important}
 }
 
-/* ===== A. HERO (homeHeader) ===== */
+/* ===== A. HERO (homeHeader) — ASICS Move Her Mind layout ===== */
 .hero{position:relative;height:100vh;height:100dvh;min-height:640px;width:100%;overflow:hidden;background:#0a0a0a;color:#fff}
 .hero-carousel{position:absolute;inset:0;z-index:0}
-.hero-slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1.4s ease-in-out;transform:scale(1.04)}
-.hero-slide.active{opacity:1}
-.hero-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.18) 50%,rgba(0,0,0,.6) 100%);pointer-events:none}
+.hero-slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transform:scale(1.04);transition:opacity 1.4s ease-in-out}
+.hero-slide.active{opacity:1;animation:heroKenBurns 9s ease-out forwards}
+@keyframes heroKenBurns{from{transform:scale(1.04)}to{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.hero-slide.active{animation:none;transform:scale(1.04)}}
+.hero-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.15) 30%,rgba(0,0,0,.25) 65%,rgba(0,0,0,.75) 100%);pointer-events:none}
 .hero-top{position:absolute;top:24px;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:16px}
 .hero-logo{display:inline-flex;align-items:center;gap:10px}
 .hero-logo img{height:42px;width:auto;filter:brightness(0) invert(1)}
@@ -64,23 +66,27 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .hero-menu-overlay nav a{display:block;color:#fff;font-style:italic;font-weight:800;font-size:34px;letter-spacing:-.01em;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.12);text-decoration:none}
 .hero-menu-overlay nav a.menu-cta{color:#fff;background:#233dff;border:none;border-radius:100px;padding:16px 24px;font-style:normal;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;margin-top:18px}
 
-/* Hero content: title BOTTOM-LEFT, tagline BOTTOM-RIGHT */
-.hero-content{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:0 clamp(20px,4vw,40px) clamp(80px,9vw,110px);display:grid;grid-template-columns:1.5fr 1fr;align-items:end;gap:32px;pointer-events:none}
-.hero-title{color:#fff;font-style:italic;font-weight:900;letter-spacing:-.03em;line-height:.88;font-size:clamp(56px,13vw,200px);text-shadow:0 4px 30px rgba(0,0,0,.4);word-break:keep-all;text-align:left;max-width:12ch}
-.hero-tagline{justify-self:end;align-self:end;max-width:320px;color:#fff;font-size:clamp(13px,1.15vw,14.5px);line-height:1.6;font-weight:400;text-shadow:0 2px 12px rgba(0,0,0,.55);text-align:left}
-.hero-scroll{position:absolute;right:32px;bottom:24px;z-index:5;color:#fff;font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;width:64px;height:64px;border-radius:50%;border:1px solid rgba(255,255,255,.55);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:rgba(255,255,255,.06);backdrop-filter:blur(4px);transition:background .25s,transform .25s}
-.hero-scroll:hover{background:rgba(255,255,255,.14);transform:translateY(-2px)}
+/* Hero content: title centered-vertical, left-aligned, stacked 2-line ASICS-style */
+.hero-content{position:absolute;inset:0;z-index:4;padding:0 clamp(22px,5vw,80px);display:flex;flex-direction:column;justify-content:center;pointer-events:none;max-width:1400px;margin:0 auto;left:0;right:0}
+.hero-title{color:#fff;font-style:italic;font-weight:900;letter-spacing:-.035em;line-height:.86;font-size:clamp(64px,13.5vw,210px);text-shadow:0 4px 30px rgba(0,0,0,.45);text-align:left;max-width:14ch;margin-bottom:clamp(20px,2.4vw,32px);text-transform:none}
+.hero-title .line{display:block}
+.hero-title .line-2{padding-left:clamp(36px,7vw,140px)} /* echoes ASICS staggered indent of "Her Mind" */
+.hero-tagline{max-width:540px;color:#fff;font-family:'Questrial','Inter',sans-serif;font-size:clamp(15px,1.4vw,19px);line-height:1.5;font-weight:400;text-shadow:0 2px 12px rgba(0,0,0,.55);text-align:left;padding-left:clamp(36px,7vw,140px);letter-spacing:-.005em}
+.hero-scroll{position:absolute;right:clamp(22px,4vw,44px);bottom:clamp(22px,3vw,36px);z-index:5;color:#fff;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;width:72px;height:72px;border-radius:50%;border:1px solid rgba(255,255,255,.6);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:rgba(255,255,255,.06);backdrop-filter:blur(4px);transition:background .25s,transform .25s,border-color .25s}
+.hero-scroll:hover{background:rgba(255,255,255,.16);border-color:#fff;transform:translateY(-2px)}
+.hero-scroll::after{content:'';position:absolute;left:50%;bottom:14px;width:1px;height:14px;background:rgba(255,255,255,.55);transform:translateX(-50%)}
 
 @media (max-width:880px){
   .hero{min-height:560px}
-  .hero-content{grid-template-columns:1fr;padding:0 22px 100px;gap:14px}
-  .hero-title{font-size:clamp(56px,15vw,96px);line-height:.92;max-width:100%}
-  .hero-tagline{justify-self:start;max-width:100%;font-size:13.5px}
+  .hero-content{padding:0 22px;justify-content:flex-end;padding-bottom:clamp(96px,18vw,130px)}
+  .hero-title{font-size:clamp(56px,15vw,100px);line-height:.9;max-width:100%;margin-bottom:18px}
+  .hero-title .line-2{padding-left:clamp(20px,7vw,40px)}
+  .hero-tagline{max-width:100%;font-size:14.5px;padding-left:clamp(20px,7vw,40px)}
   .hero-top{padding:0 18px;top:18px}
   .hero-logo img{height:32px}
   .hero-pill{display:none}
   .hero-burger-mobile{display:inline-flex}
-  .hero-scroll{right:18px;bottom:18px;width:54px;height:54px;font-size:9px}
+  .hero-scroll{right:18px;bottom:18px;width:60px;height:60px;font-size:9px}
 }
 
 /* ===== B. SLIDER MISSION (lavender, right-side dots) ===== */
@@ -348,8 +354,11 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   </div>
 
   <div class="hero-content">
-    <h1 class="hero-title">Unstoppable.</h1>
-    <p class="hero-tagline">Unstoppable is a community-built mental health program for Black and underserved Los Angeles.</p>
+    <h1 class="hero-title">
+      <span class="line line-1">Live</span>
+      <span class="line line-2">Unstoppable.</span>
+    </h1>
+    <p class="hero-tagline">A community-built mental health program for Black and underserved Los Angeles. Movement, healing, and conversations that make us well.</p>
   </div>
   <a class="hero-scroll" href="#mission" aria-label="Scroll to next section">Scroll</a>
 </section>
