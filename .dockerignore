@@ -1,0 +1,63 @@
+# Exclude heavy local-only directories from the Docker build context.
+# Without this, `COPY . .` ships node_modules (~495M), .git (~174M),
+# and dist (~6M) into the builder image and the Cloud Build tarball,
+# inflating build time and risking context size limits.
+
+# Dependencies (reinstalled inside the image via npm ci)
+node_modules
+**/node_modules
+
+# Local build output (Dockerfile rebuilds inside the container)
+dist
+build
+.next
+out
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*-service-account.json
+*service-account*.json
+firebase-adminsdk*.json
+credentials*.json
+secrets
+.secrets
+
+# Editor and OS noise
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# Logs and caches
+*.log
+npm-debug.log*
+.cache
+coverage
+.nyc_output
+
+# Firebase local state
+.firebase
+.firebaserc
+
+# Docs and meta files not needed at runtime
+README.md
+LICENSE
+COMPLETE_FILE_INVENTORY.md
+FILE_MANIFEST.txt
+IMPLEMENTATION_GUIDE_v4.0.md
+WEBFLOW_EVENT_SCHEMA.md
+volunteer-portal-launch-email.md
+
+# Apps Script source (deployed separately, not needed in container)
+email-service.gs

@@ -75,9 +75,6 @@ secrets/
 __pycache__/
 .Python
 
-# Docker
-.dockerignore
-
 # Development
 .cache/
 *.orig
