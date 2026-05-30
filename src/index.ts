@@ -20044,6 +20044,135 @@ app.post('/api/admin/resource-suggestions/:id/reject', verifyToken, requireAdmin
     }
 });
 
+// POST /api/public/unstoppable-stories — Public submission from Unstoppable landing page
+// Stores submission in `unstoppable_stories` for admin review; sends confirmation + admin notification.
+app.post('/api/public/unstoppable-stories', rateLimit(5, 3600000), async (req: Request, res: Response) => {
+    try {
+        const {
+            firstName,
+            email,
+            location,
+            organization,
+            socialPostUrl,
+            story,
+            consentMarketing,
+            consentPrivacy,
+        } = req.body || {};
+
+        // Required fields
+        if (!firstName || typeof firstName !== 'string' || !firstName.trim()) {
+            return res.status(400).json({ error: 'First name is required' });
+        }
+        if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            return res.status(400).json({ error: 'A valid email address is required' });
+        }
+        if (!location || typeof location !== 'string' || !location.trim()) {
+            return res.status(400).json({ error: 'Location is required' });
+        }
+        if (!story || typeof story !== 'string' || !story.trim()) {
+            return res.status(400).json({ error: 'Story is required' });
+        }
+
+        // Word count cap (split by whitespace, count non-empty tokens)
+        const wordCount = story.trim().split(/\s+/).filter(Boolean).length;
+        if (wordCount > 250) {
+            return res.status(400).json({ error: 'Story must be 250 words or fewer' });
+        }
+
+        // Both consent checkboxes must be true
+        if (consentMarketing !== true || consentPrivacy !== true) {
+            return res.status(400).json({ error: 'Both consent checkboxes must be checked to submit' });
+        }
+
+        // Optional URL validation (Instagram, TikTok, YouTube, etc. — any valid http(s) URL)
+        let normalizedSocialUrl = '';
+        if (socialPostUrl !== undefined && socialPostUrl !== null && String(socialPostUrl).trim() !== '') {
+            const raw = String(socialPostUrl).trim();
+            try {
+                const parsed = new URL(raw);
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                    return res.status(400).json({ error: 'Social post URL must be http or https' });
+                }
+                normalizedSocialUrl = parsed.toString();
+            } catch {
+                return res.status(400).json({ error: 'Social post URL is not a valid URL' });
+            }
+        }
+
+        // Suppression check — reject if submitter email is on suppression list
+        const normalizedEmail = email.trim().toLowerCase();
+        if (await isEmailSuppressed(normalizedEmail)) {
+            return res.status(400).json({ error: 'This email address cannot be used for submissions.' });
+        }
+
+        const storyDoc = {
+            firstName: firstName.trim(),
+            email: normalizedEmail,
+            location: location.trim(),
+            organization: (typeof organization === 'string' ? organization.trim() : ''),
+            socialPostUrl: normalizedSocialUrl,
+            story: story.trim(),
+            wordCount,
+            consentMarketing: true,
+            consentPrivacy: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'pending_review',
+            source: 'unstoppable_page',
+        };
+
+        const ref = await db.collection('unstoppable_stories').add(storyDoc);
+        const storyId = ref.id;
+
+        // Confirmation email to submitter (no em dashes, no emojis)
+        try {
+            const confirmSubject = 'Thank you for sharing your story - Health Matters Clinic';
+            const confirmHtml = `
+                <p>Hi ${storyDoc.firstName},</p>
+                <p>Thank you for sharing your story with Health Matters Clinic. We have received your submission and our team will review it shortly.</p>
+                <p>If we would like to feature your story, a member of our team will follow up with you at this email address. We will not publish or share your story without your consent.</p>
+                <p>With gratitude,<br>The Health Matters Clinic Team</p>
+            `.trim();
+            const confirmText = `Hi ${storyDoc.firstName},\n\nThank you for sharing your story with Health Matters Clinic. We have received your submission and our team will review it shortly.\n\nIf we would like to feature your story, a member of our team will follow up with you at this email address. We will not publish or share your story without your consent.\n\nWith gratitude,\nThe Health Matters Clinic Team`;
+            await sendEmailRaw(normalizedEmail, confirmSubject, confirmHtml, confirmText);
+        } catch (emailErr) {
+            console.error('[UNSTOPPABLE-STORIES] Confirmation email failed:', emailErr);
+        }
+
+        // Admin notification with all submitted fields
+        try {
+            const adminEmail = process.env.STORIES_NOTIFY_EMAIL || 'stories@healthmatters.clinic';
+            const adminSubject = `New Unstoppable story submission: ${storyDoc.firstName} (${storyDoc.location})`;
+            const escapeHtml = (s: string) => s
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const adminHtml = `
+                <p>A new story has been submitted via the Unstoppable page.</p>
+                <p><strong>Story ID:</strong> ${storyId}</p>
+                <p><strong>First name:</strong> ${escapeHtml(storyDoc.firstName)}</p>
+                <p><strong>Email:</strong> ${escapeHtml(storyDoc.email)}</p>
+                <p><strong>Location:</strong> ${escapeHtml(storyDoc.location)}</p>
+                <p><strong>Organization:</strong> ${escapeHtml(storyDoc.organization || 'Not provided')}</p>
+                <p><strong>Social post URL:</strong> ${storyDoc.socialPostUrl ? `<a href="${escapeHtml(storyDoc.socialPostUrl)}">${escapeHtml(storyDoc.socialPostUrl)}</a>` : 'Not provided'}</p>
+                <p><strong>Word count:</strong> ${wordCount}</p>
+                <p><strong>Consent marketing:</strong> yes</p>
+                <p><strong>Consent privacy:</strong> yes</p>
+                <p><strong>Story:</strong></p>
+                <blockquote style="border-left:3px solid #ccc;padding-left:12px;margin-left:0;white-space:pre-wrap;">${escapeHtml(storyDoc.story)}</blockquote>
+                <p>Review pending submissions in the admin portal.</p>
+            `.trim();
+            const adminText = `New Unstoppable story submission.\n\nStory ID: ${storyId}\nFirst name: ${storyDoc.firstName}\nEmail: ${storyDoc.email}\nLocation: ${storyDoc.location}\nOrganization: ${storyDoc.organization || 'Not provided'}\nSocial post URL: ${storyDoc.socialPostUrl || 'Not provided'}\nWord count: ${wordCount}\nConsent marketing: yes\nConsent privacy: yes\n\nStory:\n${storyDoc.story}`;
+            await sendEmailRaw(adminEmail, adminSubject, adminHtml, adminText);
+        } catch (emailErr) {
+            console.error('[UNSTOPPABLE-STORIES] Admin notification email failed:', emailErr);
+        }
+
+        return res.json({ ok: true, storyId });
+    } catch (error: any) {
+        console.error('[UNSTOPPABLE-STORIES] Failed:', error);
+        return res.status(500).json({ error: 'Failed to submit story' });
+    }
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {
