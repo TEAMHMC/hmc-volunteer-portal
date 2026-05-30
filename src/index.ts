@@ -19949,6 +19949,115 @@ app.post('/api/public/suggest-resource', rateLimit(5, 3600000), async (req: Requ
     }
 });
 
+// POST /api/public/referrals — Resource Directory routes Request a Referral submissions here.
+// Replaces the old mailto: flow so HMC can track referrals, notify the owning partner,
+// and monetize the routing layer downstream. Cors handled globally (healthmatters.clinic
+// subdomains and teamhmc.github.io are allowed). Rate limit: 10 submissions per IP per hour.
+app.post('/api/public/referrals', rateLimit(10, 3600000), async (req: Request, res: Response) => {
+    try {
+        const {
+            resourceId,
+            resourceName,
+            memberName,
+            memberEmail,
+            memberPhone,
+            reasonForReferral,
+            urgencyLevel,
+            preferredContactMethod,
+        } = req.body || {};
+
+        // Required-field validation
+        if (!resourceId || typeof resourceId !== 'string' || !resourceId.trim()) {
+            return res.status(400).json({ ok: false, error: 'resourceId is required' });
+        }
+        if (!resourceName || typeof resourceName !== 'string' || !resourceName.trim()) {
+            return res.status(400).json({ ok: false, error: 'resourceName is required' });
+        }
+        if (!memberName || typeof memberName !== 'string' || !memberName.trim()) {
+            return res.status(400).json({ ok: false, error: 'memberName is required' });
+        }
+        if (!memberEmail || typeof memberEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(memberEmail.trim())) {
+            return res.status(400).json({ ok: false, error: 'A valid memberEmail is required' });
+        }
+        if (!reasonForReferral || typeof reasonForReferral !== 'string' || !reasonForReferral.trim()) {
+            return res.status(400).json({ ok: false, error: 'reasonForReferral is required' });
+        }
+
+        const cleanEmail = memberEmail.trim().toLowerCase();
+
+        // Reject suppressed emails before writing or sending mail
+        if (await isEmailSuppressed(cleanEmail)) {
+            console.log(`[REFERRAL] Blocked submission from suppressed email: ${maskEmail(cleanEmail)}`);
+            return res.status(403).json({ ok: false, error: 'This email address has unsubscribed and cannot submit referrals.' });
+        }
+
+        const allowedUrgency = ['routine', 'urgent'];
+        const safeUrgency = allowedUrgency.includes(urgencyLevel) ? urgencyLevel : 'routine';
+        const safeContactMethod = (typeof preferredContactMethod === 'string' && preferredContactMethod.trim())
+            ? preferredContactMethod.trim().substring(0, 200)
+            : 'email';
+
+        const record = {
+            resourceId: resourceId.trim().substring(0, 200),
+            resourceName: resourceName.trim().substring(0, 300),
+            memberName: memberName.trim().substring(0, 200),
+            memberEmail: cleanEmail,
+            memberPhone: (typeof memberPhone === 'string' ? memberPhone.trim() : '').substring(0, 50),
+            reasonForReferral: reasonForReferral.trim().substring(0, 5000),
+            urgencyLevel: safeUrgency,
+            preferredContactMethod: safeContactMethod,
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            source: 'resource_directory',
+        };
+
+        const ref = await db.collection('referrals').add(record);
+        console.log(`[REFERRAL] Stored ${ref.id} for ${maskEmail(cleanEmail)} -> ${record.resourceName}`);
+
+        const ts = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+        const urgencyTag = safeUrgency === 'urgent' ? '[URGENT] ' : '';
+
+        // Confirmation email to the member (fire-and-forget; logged on failure)
+        const memberSubject = 'We received your referral request - Health Matters Clinic';
+        const memberHtml = `<p>Hi ${record.memberName},</p>
+<p>Thank you for reaching out through the Health Matters Clinic Resource Directory. We have received your referral request for <strong>${record.resourceName}</strong> and our team will follow up within 1 to 2 business days.</p>
+<p>If your situation is urgent and you need immediate help, please call 988 (Suicide and Crisis Lifeline) or 211 (Los Angeles County community resources).</p>
+<p>You can reply to this email if you need to add anything to your request.</p>
+<p>With care,<br/>The Health Matters Clinic team</p>`;
+        const memberText = `Hi ${record.memberName},\n\nThank you for reaching out through the Health Matters Clinic Resource Directory. We have received your referral request for ${record.resourceName} and our team will follow up within 1 to 2 business days.\n\nIf your situation is urgent and you need immediate help, please call 988 or 211.\n\nWith care,\nThe Health Matters Clinic team`;
+        sendEmailRaw(cleanEmail, memberSubject, memberHtml, memberText).catch((err) => {
+            console.error('[REFERRAL] Member confirmation email failed:', err);
+        });
+
+        // Admin notification with full referral details
+        const adminEmail = process.env.REFERRALS_NOTIFY_EMAIL || 'admin@healthmatters.clinic';
+        if (!(await isEmailSuppressed(adminEmail))) {
+            const adminSubject = `${urgencyTag}New referral request: ${record.resourceName}`;
+            const adminHtml = `<p><strong>${urgencyTag}New referral submitted via Resource Directory</strong></p>
+<p><strong>Resource:</strong> ${record.resourceName} (id: ${record.resourceId})<br/>
+<strong>Urgency:</strong> ${record.urgencyLevel}<br/>
+<strong>Submitted:</strong> ${ts} PT</p>
+<p><strong>Member name:</strong> ${record.memberName}<br/>
+<strong>Member email:</strong> ${record.memberEmail}<br/>
+<strong>Member phone:</strong> ${record.memberPhone || '(not provided)'}<br/>
+<strong>Preferred contact method:</strong> ${record.preferredContactMethod}</p>
+<p><strong>Reason for referral:</strong><br/>${record.reasonForReferral.replace(/\n/g, '<br/>')}</p>
+<p>Referral id: ${ref.id}<br/>Follow up within 1 to 2 business days.</p>`;
+            const adminText = `${urgencyTag}New referral request\n\nResource: ${record.resourceName} (id: ${record.resourceId})\nUrgency: ${record.urgencyLevel}\nSubmitted: ${ts} PT\n\nMember name: ${record.memberName}\nMember email: ${record.memberEmail}\nMember phone: ${record.memberPhone || '(not provided)'}\nPreferred contact method: ${record.preferredContactMethod}\n\nReason for referral:\n${record.reasonForReferral}\n\nReferral id: ${ref.id}\nFollow up within 1 to 2 business days.`;
+            sendEmailRaw(adminEmail, adminSubject, adminHtml, adminText).catch((err) => {
+                console.error('[REFERRAL] Admin notification email failed:', err);
+            });
+        } else {
+            console.log(`[REFERRAL] Admin notify email ${adminEmail} is suppressed; skipping notification.`);
+        }
+
+        return res.json({ ok: true, referralId: ref.id });
+    } catch (error: any) {
+        console.error('[REFERRAL] Failed to submit:', error);
+        return res.status(500).json({ ok: false, error: 'Failed to submit referral' });
+    }
+});
+
 // GET /api/admin/resource-suggestions — List all suggestions (admin only)
 app.get('/api/admin/resource-suggestions', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
