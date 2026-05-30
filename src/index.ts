@@ -19621,10 +19621,10 @@ app.get('/board', (req: Request, res: Response) => {
   res.sendFile(path.join(buildPath, 'board.html'));
 });
 
-// --- PUBLIC UNSTOPPABLE PROGRAM PAGE (no auth required) ---
-app.get('/unstoppable', (_req: Request, res: Response) => {
-  res.sendFile(path.join(buildPath, 'unstoppable.html'));
-});
+// Unstoppable program page has moved to its own standalone GitHub Pages
+// site (teamhmc.github.io/Unstoppable) so it can be iframe-embedded in
+// Webflow without the portal in the middle. The /api/public/unstoppable-
+// stories endpoint below still handles form submissions from that page.
 
 // --- PUBLIC TRAINING GUIDE (no auth required) ---
 app.get('/training', (req: Request, res: Response) => {
