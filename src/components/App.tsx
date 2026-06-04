@@ -9,6 +9,7 @@ import PartnerPortalView from './PartnerPortalView';
 import PartnerAcceptInvite from './PartnerAcceptInvite';
 import PartnerLandingPage from './PartnerLandingPage';
 import PartnerRegisterPage from './PartnerRegisterPage';
+import PublicSurveyView from './PublicSurveyView';
 import SystemTour from './SystemTour';
 import Toast from './Toast';
 import { Volunteer, Opportunity, Shift, SupportTicket, Announcement, Message } from '../types';
@@ -31,12 +32,13 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [gamification, setGamification] = useState<any>(null);
 
-  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerLanding' | 'partnerRegister'>(() => {
+  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerLanding' | 'partnerRegister' | 'publicSurvey'>(() => {
     if (typeof window === 'undefined') return 'landing';
     const params = new URLSearchParams(window.location.search);
     const page = params.get('page');
     const pathname = window.location.pathname;
     const hostname = window.location.hostname;
+    if (pathname === '/survey' || pathname.startsWith('/survey/')) return 'publicSurvey';
     if (page === 'partner' || pathname === '/partner' || pathname.startsWith('/partner/') || hostname === 'partner.healthmatters.clinic') return 'partnerLanding';
     return 'landing';
   });
@@ -124,6 +126,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   useEffect(() => {
     const checkAuth = async () => {
       if (typeof window === 'undefined') { setLoading(false); return; }
+      if (view === 'publicSurvey') { setLoading(false); return; }
       const token = localStorage.getItem('authToken');
       if (!token) {
         // Auto-start onboarding if referral link was used
@@ -300,6 +303,9 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       setAllVolunteers(prev => prev.map(v => v.id === user.id ? { ...v, ...user } : v));
   }
   
+  // Public token-based survey route — no auth required, render before the loading gate
+  if (view === 'publicSurvey') return <PublicSurveyView />;
+
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
        <div className="w-20 h-20 border-t-4 border-b-4 border-brand rounded-full animate-spin" />

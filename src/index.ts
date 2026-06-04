@@ -20282,6 +20282,240 @@ app.post('/api/public/unstoppable-stories', rateLimit(5, 3600000), async (req: R
     }
 });
 
+// ============ PUBLIC SURVEY ENDPOINTS (token-based, no auth) ============
+// These power the /survey?formId=...&token=<volunteerId> link emailed to volunteers
+// via the quarterly check-in blast (see /api/forms/:formId/send-blast above).
+// The volunteer ID itself is the unguessable bearer token — same shape Firestore
+// uses to key the volunteers collection (e.g. google_<UID>).
+
+// Mirror of FormBuilder DEFAULT_FORMS so the server can validate formId + return
+// the form structure without the client. Kept minimal: only the forms that get
+// emailed as survey blasts (internal volunteer-facing surveys). If Erica saves a
+// custom form in Firestore `forms/{id}`, that wins over this default.
+const DEFAULT_FORMS_SERVER: Array<{
+    id: string;
+    title: string;
+    description: string;
+    fields: Array<{ id: string; type: string; question: string; options?: string[]; required?: boolean }>;
+}> = [
+    {
+        id: 'volunteer-satisfaction',
+        title: 'Volunteer Satisfaction Check-In',
+        description: 'Quarterly survey to gauge volunteer engagement, satisfaction, and retention risk.',
+        fields: [
+            { id: 'vs1', type: 'Rating', question: 'Overall, how satisfied are you with your volunteer experience at HMC?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vs2', type: 'Rating', question: 'How supported do you feel by your coordinator or team lead?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vs3', type: 'Multiple Choice', question: 'How likely are you to continue volunteering with HMC in the next 6 months?', options: ['Definitely', 'Probably', 'Unsure', 'Unlikely'], required: true },
+            { id: 'vs4', type: 'Checkboxes', question: 'What motivates you to volunteer? (Select all that apply)', options: ['Making an impact', 'Learning new skills', 'Building community', 'Resume/career development', 'Social connection', 'Mission alignment'], required: false },
+            { id: 'vs5', type: 'Short Text', question: 'Is there anything we could do to improve your experience?', required: false },
+        ],
+    },
+    {
+        id: 'volunteer-debrief',
+        title: 'Post-Event Volunteer Debrief',
+        description: 'Internal debrief survey for volunteers after an event. Measures team performance, communication, and areas for improvement.',
+        fields: [
+            { id: 'vd1', type: 'Rating', question: 'How clear were your role and responsibilities before the event?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vd2', type: 'Multiple Choice', question: 'Did you receive adequate information about the event beforehand (location, time, parking, what to bring)?', options: ['Yes, everything was clear', 'Mostly, a few details were missing', 'Some info was provided but key details were unclear', 'No, I felt unprepared'], required: true },
+            { id: 'vd3', type: 'Multiple Choice', question: 'Did you feel adequately trained for your assigned tasks?', options: ['Yes, fully prepared', 'Mostly, minor gaps', 'Somewhat, needed more guidance', 'No, I was not trained for what I was asked to do'], required: true },
+            { id: 'vd4', type: 'Rating', question: 'How well did the team communicate during the event?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vd5', type: 'Rating', question: 'How organized and well-run was the event overall?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vd6', type: 'Rating', question: 'How adequate were the supplies, equipment, and materials provided?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vd7', type: 'Multiple Choice', question: 'Was your workload during the event manageable?', options: ['Yes, it was well-balanced', 'Slightly too much but manageable', 'Overwhelmed, needed more help', 'Too light, I could have done more'], required: true },
+            { id: 'vd8', type: 'Multiple Choice', question: 'Did you feel supported by your coordinator or team lead during the event?', options: ['Yes, very supported', 'Mostly, they were available when needed', 'Somewhat, hard to reach at times', 'No, I felt on my own'], required: true },
+            { id: 'vd9', type: 'Rating', question: 'How would you rate the overall impact on clients/community members served?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vd10', type: 'Multiple Choice', question: 'Were there any safety or clinical concerns during the event?', options: ['No concerns', 'Minor issue that was handled', 'Concern that needs follow-up', 'Serious issue, please contact me'], required: true },
+            { id: 'vd11', type: 'Rating', question: 'How would you rate your overall experience at this event?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'vd12', type: 'Multiple Choice', question: 'Would you volunteer for a similar event again?', options: ['Definitely yes', 'Probably yes', 'Unsure', 'Probably not'], required: true },
+            { id: 'vd13', type: 'Short Text', question: 'What went well that we should repeat at future events?', required: false },
+            { id: 'vd14', type: 'Short Text', question: 'What could be improved for next time?', required: false },
+            { id: 'vd15', type: 'Short Text', question: 'Any other comments, concerns, or shout-outs for fellow volunteers?', required: false },
+        ],
+    },
+    {
+        id: 'event-feedback',
+        title: 'Post-Event Feedback Survey',
+        description: 'Gather attendee feedback on community events and workshops.',
+        fields: [
+            { id: 'q1', type: 'Rating', question: 'How would you rate your overall event experience?', options: ['1', '2', '3', '4', '5'], required: true },
+            { id: 'q2', type: 'Short Text', question: 'Do you have any feedback for the event coordinators?', required: false },
+        ],
+    },
+];
+
+// Volunteer ID shape: Firestore doc IDs are arbitrary, but our generators produce
+// alphanumeric + underscore/hyphen (e.g. google_117169..., or auto-generated 20-char IDs).
+const VOLUNTEER_TOKEN_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const loadSurveyForm = async (formId: string) => {
+    // Prefer Firestore-saved form (if Erica customized it in the admin Forms tab)
+    try {
+        const doc = await db.collection('forms').doc(formId).get();
+        if (doc.exists) {
+            const data = doc.data() as any;
+            if (data && Array.isArray(data.fields) && data.fields.length > 0) {
+                return {
+                    id: formId,
+                    title: data.title || formId,
+                    description: data.description || '',
+                    fields: data.fields,
+                    isActive: data.isActive !== false,
+                };
+            }
+        }
+    } catch (err) {
+        console.warn('[PUBLIC-SURVEY] Firestore form lookup failed, falling back to defaults:', (err as any)?.message);
+    }
+    const fallback = DEFAULT_FORMS_SERVER.find(f => f.id === formId);
+    if (fallback) return { ...fallback, isActive: true };
+    return null;
+};
+
+// GET /api/public/survey-form?formId=...&token=...
+// Returns the form definition plus the volunteer's first name for a warm greeting.
+// 404 = invalid token, 410 = inactive volunteer, 400 = bad params.
+app.get('/api/public/survey-form', rateLimit(20, 3600000), async (req: Request, res: Response) => {
+    try {
+        const formId = String(req.query.formId || '').trim();
+        const token = String(req.query.token || '').trim();
+
+        if (!formId || !/^[A-Za-z0-9_-]{1,100}$/.test(formId)) {
+            return res.status(400).json({ error: 'invalid_form_id' });
+        }
+        if (!token || !VOLUNTEER_TOKEN_REGEX.test(token)) {
+            return res.status(400).json({ error: 'invalid_token' });
+        }
+
+        const form = await loadSurveyForm(formId);
+        if (!form || form.isActive === false) {
+            return res.status(404).json({ error: 'form_not_found' });
+        }
+
+        const volDoc = await db.collection('volunteers').doc(token).get();
+        if (!volDoc.exists) {
+            return res.status(404).json({ error: 'invalid_token' });
+        }
+        const vol = volDoc.data() as any;
+        if (vol?.status === 'inactive') {
+            return res.status(410).json({ error: 'inactive_volunteer' });
+        }
+
+        const firstName = (vol?.legalFirstName
+            || vol?.preferredFirstName
+            || (vol?.name ? String(vol.name).split(' ')[0] : '')
+            || vol?.firstName
+            || 'Volunteer').toString();
+
+        return res.json({
+            form: {
+                id: form.id,
+                title: form.title,
+                description: form.description,
+                fields: form.fields,
+            },
+            volunteer: { firstName },
+        });
+    } catch (error: any) {
+        console.error('[PUBLIC-SURVEY] Form fetch failed:', error);
+        return res.status(500).json({ error: 'server_error' });
+    }
+});
+
+// POST /api/public/survey-responses
+// Body: { formId, token, answers: { [fieldId]: value } }
+// Dedup: 1 submission per (formId, volunteerId) per 24h.
+app.post('/api/public/survey-responses', rateLimit(10, 3600000), async (req: Request, res: Response) => {
+    try {
+        const { formId, token, answers } = req.body || {};
+
+        if (!formId || typeof formId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(formId)) {
+            return res.status(400).json({ error: 'invalid_form_id' });
+        }
+        if (!token || typeof token !== 'string' || !VOLUNTEER_TOKEN_REGEX.test(token)) {
+            return res.status(400).json({ error: 'invalid_token' });
+        }
+        if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+            return res.status(400).json({ error: 'answers_required', message: 'Answers must be an object keyed by field id.' });
+        }
+
+        const form = await loadSurveyForm(formId);
+        if (!form || form.isActive === false) {
+            return res.status(404).json({ error: 'form_not_found' });
+        }
+
+        const volDoc = await db.collection('volunteers').doc(token).get();
+        if (!volDoc.exists) {
+            return res.status(404).json({ error: 'invalid_token' });
+        }
+        const vol = volDoc.data() as any;
+        if (vol?.status === 'inactive') {
+            return res.status(410).json({ error: 'inactive_volunteer' });
+        }
+
+        // Required-field validation against the form definition
+        const missing: string[] = [];
+        for (const field of (form.fields || [])) {
+            if (!field.required) continue;
+            const raw = (answers as any)[field.id];
+            if (raw === undefined || raw === null) {
+                missing.push(field.id);
+                continue;
+            }
+            if (Array.isArray(raw)) {
+                if (raw.length === 0) missing.push(field.id);
+            } else if (typeof raw === 'string') {
+                if (!raw.trim()) missing.push(field.id);
+            }
+        }
+        if (missing.length > 0) {
+            return res.status(400).json({ error: 'missing_required_fields', fields: missing });
+        }
+
+        // 24h dedup window — blocks accidental double-submits but allows re-taking next quarter.
+        const dedupSinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const recentSnap = await db.collection('surveyResponses')
+            .where('formId', '==', formId)
+            .where('respondentId', '==', token)
+            .get();
+        const duplicate = recentSnap.docs.some(d => {
+            const submittedAt = d.data().submittedAt;
+            if (!submittedAt) return false;
+            const iso = typeof submittedAt === 'string'
+                ? submittedAt
+                : submittedAt?.toDate?.()?.toISOString?.() || '';
+            return iso > dedupSinceIso;
+        });
+        if (duplicate) {
+            return res.status(409).json({ error: 'duplicate', message: 'You have already submitted this survey today.' });
+        }
+
+        const firstName = (vol?.legalFirstName
+            || vol?.preferredFirstName
+            || (vol?.name ? String(vol.name).split(' ')[0] : '')
+            || vol?.firstName
+            || 'Volunteer').toString();
+
+        const docRef = await db.collection('surveyResponses').add({
+            formId,
+            formTitle: form.title,
+            respondentId: token,
+            respondentName: firstName,
+            respondentType: 'volunteer',
+            volunteerId: token, // mirror for compatibility with task spec
+            responses: answers,
+            answers,
+            source: 'email_link',
+            submittedAt: new Date().toISOString(),
+        });
+
+        console.log(`[PUBLIC-SURVEY] Response saved: ${docRef.id} formId=${formId} token=${token}`);
+        return res.json({ ok: true, responseId: docRef.id });
+    } catch (error: any) {
+        console.error('[PUBLIC-SURVEY] Submit failed:', error);
+        return res.status(500).json({ error: 'server_error' });
+    }
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {
