@@ -20058,6 +20058,34 @@ app.post('/api/public/referrals', rateLimit(10, 3600000), async (req: Request, r
     }
 });
 
+// GET /api/public/validate-address — Geocode an address via Google Maps (server-side key, no frontend exposure)
+app.get('/api/public/validate-address', rateLimit(30, 3600000), async (req: Request, res: Response) => {
+    try {
+        const MAPS_KEY = process.env.GOOGLE_MAPS_API_KEY;
+        if (!MAPS_KEY) return res.status(503).json({ valid: false, error: 'Address validation not configured' });
+        const { street, city, zip } = req.query;
+        if (!street || !city || !zip) return res.status(400).json({ valid: false, error: 'street, city, and zip are required' });
+        const address = encodeURIComponent(`${street}, ${city}, CA ${zip}, USA`);
+        const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${MAPS_KEY}`);
+        const data: any = await r.json();
+        if (data.status !== 'OK' || !data.results?.length) {
+            return res.json({ valid: false, formatted: null });
+        }
+        const result = data.results[0];
+        const types = result.types || [];
+        const isStreetLevel = types.some((t: string) => ['street_address', 'premise', 'subpremise', 'route'].includes(t));
+        return res.json({
+            valid: isStreetLevel,
+            formatted: result.formatted_address || null,
+            lat: result.geometry?.location?.lat || null,
+            lng: result.geometry?.location?.lng || null,
+        });
+    } catch (e: any) {
+        console.error('[VALIDATE ADDRESS]', e.message);
+        return res.status(500).json({ valid: false, error: 'Validation failed' });
+    }
+});
+
 // POST /api/public/wildfire-relief — Resource Directory disaster relief intake form
 app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Request, res: Response) => {
     try {
