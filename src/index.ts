@@ -20058,6 +20058,80 @@ app.post('/api/public/referrals', rateLimit(10, 3600000), async (req: Request, r
     }
 });
 
+// POST /api/public/wildfire-relief — Resource Directory disaster relief intake form
+app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Request, res: Response) => {
+    try {
+        const {
+            isLAWildfires, householdSize, householdDetails, urgentNeeds, otherNeeds,
+            isDisplaced, priorStreet, priorCity, priorZip,
+            canPickUp, deliveryName, deliveryStreet, deliveryCity, deliveryZip,
+            gofundmeUrl,
+        } = req.body || {};
+
+        if (!deliveryStreet || !deliveryCity || !deliveryZip) {
+            return res.status(400).json({ ok: false, error: 'Delivery address is required' });
+        }
+
+        const record = {
+            isLAWildfires: !!isLAWildfires,
+            householdSize: String(householdSize || '').substring(0, 20),
+            householdDetails: String(householdDetails || '').substring(0, 500),
+            urgentNeeds: String(urgentNeeds || '').substring(0, 1000),
+            otherNeeds: String(otherNeeds || '').substring(0, 500),
+            isDisplaced: !!isDisplaced,
+            priorStreet: String(priorStreet || '').substring(0, 200),
+            priorCity: String(priorCity || '').substring(0, 100),
+            priorZip: String(priorZip || '').substring(0, 20),
+            canPickUp: !!canPickUp,
+            deliveryName: String(deliveryName || '').substring(0, 200),
+            deliveryStreet: String(deliveryStreet || '').substring(0, 200),
+            deliveryCity: String(deliveryCity || '').substring(0, 100),
+            deliveryZip: String(deliveryZip || '').substring(0, 20),
+            gofundmeUrl: String(gofundmeUrl || '').substring(0, 500),
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            source: 'resource_directory',
+        };
+
+        const ref = await db.collection('wildfire_relief_requests').add(record);
+        console.log(`[WILDFIRE RELIEF] Stored ${ref.id} — ${record.deliveryCity}`);
+
+        const ts = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+        const needsList = [record.urgentNeeds, record.otherNeeds].filter(Boolean).join(', ') || 'Not specified';
+        const addressLine = [record.deliveryStreet, record.deliveryCity, record.deliveryZip].filter(Boolean).join(', ');
+        const priorLine = record.isDisplaced
+            ? ([record.priorStreet, record.priorCity, record.priorZip].filter(Boolean).join(', ') || 'Not provided')
+            : 'Not displaced';
+
+        const notifyHtml = `<p><strong>New disaster relief request submitted via Resource Directory</strong></p>
+<p><strong>LA Wildfires related:</strong> ${record.isLAWildfires ? 'Yes' : 'No'}<br/>
+<strong>Submitted:</strong> ${ts} PT</p>
+<p><strong>Household size:</strong> ${record.householdSize || 'Not provided'}<br/>
+<strong>Household details:</strong> ${record.householdDetails || 'None'}</p>
+<p><strong>Urgent needs:</strong><br/>${needsList.replace(/,\s*/g, '<br/>')}</p>
+<p><strong>Displaced:</strong> ${record.isDisplaced ? 'Yes' : 'No'}<br/>
+<strong>Prior address:</strong> ${priorLine}<br/>
+<strong>Available for pickup:</strong> ${record.canPickUp ? 'Yes' : 'No'}<br/>
+<strong>Delivery address:</strong> ${addressLine}${record.deliveryName ? ' (Attn: ' + record.deliveryName + ')' : ''}</p>
+<p><strong>GoFundMe:</strong> ${record.gofundmeUrl ? '<a href="' + record.gofundmeUrl + '">' + record.gofundmeUrl + '</a>' : 'None provided'}</p>
+<p>Request id: ${ref.id}</p>`;
+
+        const notifyText = `New disaster relief request\n\nLA Wildfires: ${record.isLAWildfires ? 'Yes' : 'No'}\nSubmitted: ${ts} PT\n\nHousehold size: ${record.householdSize}\nHousehold details: ${record.householdDetails}\n\nUrgent needs: ${needsList}\n\nDisplaced: ${record.isDisplaced ? 'Yes' : 'No'}\nPrior address: ${priorLine}\nCan pick up: ${record.canPickUp ? 'Yes' : 'No'}\nDelivery address: ${addressLine}\n\nGoFundMe: ${record.gofundmeUrl || 'None'}\n\nRequest id: ${ref.id}`;
+
+        sendEmailRaw(
+            'lawr@healthmatters.clinic',
+            `New Relief Request — ${record.isLAWildfires ? 'LA Wildfires' : 'Disaster'} — ${record.deliveryCity}`,
+            notifyHtml,
+            notifyText
+        ).catch(err => console.error('[WILDFIRE RELIEF] Notify email failed:', err));
+
+        return res.json({ ok: true, requestId: ref.id });
+    } catch (error: any) {
+        console.error('[WILDFIRE RELIEF] Failed:', error);
+        return res.status(500).json({ ok: false, error: 'Failed to submit relief request' });
+    }
+});
+
 // GET /api/admin/resource-suggestions — List all suggestions (admin only)
 app.get('/api/admin/resource-suggestions', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
