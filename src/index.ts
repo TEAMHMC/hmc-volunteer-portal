@@ -20400,11 +20400,11 @@ app.get('/api/public/survey-form', rateLimit(20, 3600000), async (req: Request, 
             return res.status(410).json({ error: 'inactive_volunteer' });
         }
 
-        const firstName = (vol?.legalFirstName
-            || vol?.preferredFirstName
-            || (vol?.name ? String(vol.name).split(' ')[0] : '')
-            || vol?.firstName
-            || 'Volunteer').toString();
+        // Use the SAME name resolution the email-blast uses (index.ts:9794) so the
+        // email greeting and the survey greeting can never disagree. Trim to defend
+        // against legacy records with trailing whitespace in name fields.
+        const firstNameRaw = String(vol?.name || vol?.firstName || 'Volunteer').trim();
+        const firstName = (firstNameRaw.split(/\s+/)[0] || 'Volunteer').trim();
 
         return res.json({
             form: {
@@ -20489,11 +20489,11 @@ app.post('/api/public/survey-responses', rateLimit(10, 3600000), async (req: Req
             return res.status(409).json({ error: 'duplicate', message: 'You have already submitted this survey today.' });
         }
 
-        const firstName = (vol?.legalFirstName
-            || vol?.preferredFirstName
-            || (vol?.name ? String(vol.name).split(' ')[0] : '')
-            || vol?.firstName
-            || 'Volunteer').toString();
+        // Use the SAME name resolution the email-blast uses (index.ts:9794) so the
+        // email greeting and the survey greeting can never disagree. Trim to defend
+        // against legacy records with trailing whitespace in name fields.
+        const firstNameRaw = String(vol?.name || vol?.firstName || 'Volunteer').trim();
+        const firstName = (firstNameRaw.split(/\s+/)[0] || 'Volunteer').trim();
 
         const docRef = await db.collection('surveyResponses').add({
             formId,
