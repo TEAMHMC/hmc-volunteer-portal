@@ -8017,7 +8017,7 @@ app.post('/api/partners/register-self', async (req: Request, res: Response) => {
             contactEmail: emailLower,
             contactPhone: phone ? phone.trim() : '',
             website: website ? website.trim() : '',
-            servicesProvided: servicesProvided ? [servicesProvided.trim()] : [],
+            servicesProvided: Array.isArray(servicesProvided) ? servicesProvided.map((s: any) => String(s).trim()).filter(Boolean) : (servicesProvided ? [String(servicesProvided).trim()] : []),
             status: 'Active',
             partnerSince: now,
             portalAccess: true,
@@ -8097,7 +8097,7 @@ app.post('/api/partners/register-self', async (req: Request, res: Response) => {
                     <li><strong>Email:</strong> ${emailLower}</li>
                     ${phone ? `<li><strong>Phone:</strong> ${phone.trim()}</li>` : ''}
                     ${website ? `<li><strong>Website:</strong> ${website.trim()}</li>` : ''}
-                    ${servicesProvided ? `<li><strong>Services:</strong> ${servicesProvided.trim()}</li>` : ''}
+                    ${servicesProvided ? `<li><strong>Services:</strong> ${Array.isArray(servicesProvided) ? servicesProvided.join(', ') : String(servicesProvided)}</li>` : ''}
                 </ul>
                 <p>Agency ID: ${partnerAgencyId}</p>
             ${emailFooter()}`;
