@@ -20162,6 +20162,35 @@ app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Requ
     }
 });
 
+// POST /api/public/newsletter-signup — Footer newsletter subscription
+app.post('/api/public/newsletter-signup', rateLimit(5, 3600000), async (req: Request, res: Response) => {
+    try {
+        const { email, source } = req.body || {};
+        if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            return res.status(400).json({ ok: false, error: 'Valid email is required' });
+        }
+        const cleanEmail = email.trim().toLowerCase();
+        if (await isEmailSuppressed(cleanEmail)) {
+            return res.json({ ok: true }); // silently accept — don't reveal suppression
+        }
+        const existing = await db.collection('newsletter_subscribers').where('email', '==', cleanEmail).limit(1).get();
+        if (!existing.empty) {
+            return res.json({ ok: true }); // already subscribed
+        }
+        await db.collection('newsletter_subscribers').add({
+            email: cleanEmail,
+            source: String(source || 'footer').substring(0, 50),
+            subscribedAt: new Date().toISOString(),
+            active: true,
+        });
+        console.log(`[NEWSLETTER] New subscriber: ${maskEmail(cleanEmail)}`);
+        return res.json({ ok: true });
+    } catch (error: any) {
+        console.error('[NEWSLETTER] Failed:', error);
+        return res.status(500).json({ ok: false, error: 'Signup failed' });
+    }
+});
+
 // GET /api/admin/resource-suggestions — List all suggestions (admin only)
 app.get('/api/admin/resource-suggestions', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
