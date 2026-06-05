@@ -20090,10 +20090,10 @@ app.get('/api/public/validate-address', rateLimit(30, 3600000), async (req: Requ
 app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Request, res: Response) => {
     try {
         const {
-            isLAWildfires, householdSize, householdDetails, urgentNeeds, otherNeeds,
+            isLAWildfires, householdAdults, householdChildren, householdDetails, urgentNeeds, otherNeeds,
             isDisplaced, priorStreet, priorCity, priorZip,
             canPickUp, deliveryName, deliveryStreet, deliveryCity, deliveryZip,
-            gofundmeUrl,
+            gofundmeUrl, consentToShare,
         } = req.body || {};
 
         if (!deliveryStreet || !deliveryCity || !deliveryZip) {
@@ -20102,8 +20102,10 @@ app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Requ
 
         const record = {
             isLAWildfires: !!isLAWildfires,
-            householdSize: String(householdSize || '').substring(0, 20),
+            householdAdults: String(householdAdults || '').substring(0, 10),
+            householdChildren: String(householdChildren || '').substring(0, 10),
             householdDetails: String(householdDetails || '').substring(0, 500),
+            consentToShare: !!consentToShare,
             urgentNeeds: String(urgentNeeds || '').substring(0, 1000),
             otherNeeds: String(otherNeeds || '').substring(0, 500),
             isDisplaced: !!isDisplaced,
@@ -20134,7 +20136,7 @@ app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Requ
         const notifyHtml = `<p><strong>New disaster relief request submitted via Resource Directory</strong></p>
 <p><strong>LA Wildfires related:</strong> ${record.isLAWildfires ? 'Yes' : 'No'}<br/>
 <strong>Submitted:</strong> ${ts} PT</p>
-<p><strong>Household size:</strong> ${record.householdSize || 'Not provided'}<br/>
+<p><strong>Adults:</strong> ${record.householdAdults || '?'} | <strong>Children under 18:</strong> ${record.householdChildren || '?'}<br/>
 <strong>Household details:</strong> ${record.householdDetails || 'None'}</p>
 <p><strong>Urgent needs:</strong><br/>${needsList.replace(/,\s*/g, '<br/>')}</p>
 <p><strong>Displaced:</strong> ${record.isDisplaced ? 'Yes' : 'No'}<br/>
@@ -20144,7 +20146,7 @@ app.post('/api/public/wildfire-relief', rateLimit(10, 3600000), async (req: Requ
 <p><strong>GoFundMe:</strong> ${record.gofundmeUrl ? '<a href="' + record.gofundmeUrl + '">' + record.gofundmeUrl + '</a>' : 'None provided'}</p>
 <p>Request id: ${ref.id}</p>`;
 
-        const notifyText = `New disaster relief request\n\nLA Wildfires: ${record.isLAWildfires ? 'Yes' : 'No'}\nSubmitted: ${ts} PT\n\nHousehold size: ${record.householdSize}\nHousehold details: ${record.householdDetails}\n\nUrgent needs: ${needsList}\n\nDisplaced: ${record.isDisplaced ? 'Yes' : 'No'}\nPrior address: ${priorLine}\nCan pick up: ${record.canPickUp ? 'Yes' : 'No'}\nDelivery address: ${addressLine}\n\nGoFundMe: ${record.gofundmeUrl || 'None'}\n\nRequest id: ${ref.id}`;
+        const notifyText = `New disaster relief request\n\nLA Wildfires: ${record.isLAWildfires ? 'Yes' : 'No'}\nSubmitted: ${ts} PT\n\nAdults: ${record.householdAdults} | Children: ${record.householdChildren}\nHousehold details: ${record.householdDetails}\n\nUrgent needs: ${needsList}\n\nDisplaced: ${record.isDisplaced ? 'Yes' : 'No'}\nPrior address: ${priorLine}\nCan pick up: ${record.canPickUp ? 'Yes' : 'No'}\nDelivery address: ${addressLine}\n\nGoFundMe: ${record.gofundmeUrl || 'None'}\n\nRequest id: ${ref.id}`;
 
         sendEmailRaw(
             'lawr@healthmatters.clinic',
