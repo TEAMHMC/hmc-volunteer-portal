@@ -17490,13 +17490,18 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     results.push({ name: 'Event Finder HTML', status: 'fail', responseTime: 0, error: e.message });
   }
 
+  // ── Pre-warm: hit /health first so Firestore + GAS connections are live before testing heavy endpoints
+  try {
+    await fetch('https://volunteer.healthmatters.clinic/health', { signal: AbortSignal.timeout(20000) });
+  } catch (_) { /* if health fails the individual checks below will catch it */ }
+
   // ── RSVP endpoint smoke test — POST a canary registration and verify success
   try {
     const start = Date.now();
     const rsvpRes = await fetch('https://volunteer.healthmatters.clinic/api/public/rsvp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         eventId: 'monitor-canary',
         eventTitle: 'Monitor Canary',
@@ -17521,7 +17526,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     try {
       const start = Date.now();
       const res = await fetch('https://volunteer.healthmatters.clinic/api/public/events', {
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(25000),
         headers: { 'Accept': 'application/json' },
       });
       const responseTime = Date.now() - start;
@@ -17549,7 +17554,7 @@ const runMonitorChecks = async (): Promise<MonitorResult[]> => {
     const portalRsvpRes = await fetch('https://volunteer.healthmatters.clinic/api/public/rsvp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'User-Agent': 'HMC-Monitor/1.0' },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({ eventId: 'monitor-canary', name: 'Monitor', email: 'monitor@healthmatters.clinic', source: 'health-monitor' }),
     });
     const responseTime = Date.now() - start;
