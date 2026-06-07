@@ -4020,7 +4020,10 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
         const timeoutMs = Math.max(5000, Math.min(Number(req.body.timeoutMs) || 25000, 60000));
 
         // Only actual TTS models support responseModalities: ['AUDIO']
+        // Try stable GA names first, then preview names as fallback
         const TTS_MODELS = [
+            'gemini-2.5-flash-tts',
+            'gemini-2.5-pro-tts',
             'gemini-2.5-flash-preview-tts',
             'gemini-2.5-pro-preview-tts',
         ];
@@ -4081,7 +4084,10 @@ app.post('/api/calmkit/tts', async (req: Request, res: Response) => {
         }
 
         if (!anyAttempted) return res.status(503).json({ error: 'TTS not available' });
-        if (!audio) return res.status(502).json({ error: 'No audio in response', lastStatus });
+        if (!audio) {
+            console.error(`[CALMKIT TTS] All models failed. lastStatus=${lastStatus}. Models tried: ${TTS_MODELS.join(', ')}`);
+            return res.status(502).json({ error: 'No audio in response', lastStatus, modelsTried: TTS_MODELS });
+        }
 
         res.json({ success: true, audio });
     } catch (e: any) {
