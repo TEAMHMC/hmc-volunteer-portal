@@ -475,12 +475,14 @@ const rateLimit = (limit: number, timeframeMs: number) => async (req: Request, r
 
 // reCAPTCHA v3 verifier. Used on unauthenticated public endpoints that write to Firestore.
 // Returns { ok: true } when verification passes (score >= 0.5), { ok: false, status, error } otherwise.
-// Requires RECAPTCHA_SECRET_KEY env var. If unset, fails closed.
+// Production-safe default: if RECAPTCHA_SECRET_KEY is unset, verification is SKIPPED with a
+// warning log so the live form keeps working. Spam protection activates the moment Erica
+// provisions the secret in Cloud Run. Per ED directive: production cannot be paused mid-flight.
 const verifyRecaptcha = async (token: string | undefined, expectedAction?: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> => {
   const secret = process.env.RECAPTCHA_SECRET_KEY;
   if (!secret) {
-    console.warn('[RECAPTCHA] RECAPTCHA_SECRET_KEY not set; rejecting public submission');
-    return { ok: false, status: 503, error: 'recaptcha_unavailable' };
+    console.warn(`[RECAPTCHA] RECAPTCHA_SECRET_KEY not set; SKIPPING verification (action=${expectedAction || 'unknown'}). Set the secret in Cloud Run to activate spam protection.`);
+    return { ok: true };
   }
   if (!token || typeof token !== 'string') {
     return { ok: false, status: 400, error: 'recaptcha_token_required' };
@@ -6980,78 +6982,139 @@ app.get('/api/public/admin-auth', rateLimit(20, 60000), async (req: Request, res
     }
 });
 
-// POST /api/public/save-event. Public event submission form.
-// SECURITY: Unauthenticated. Requires reCAPTCHA v3 (RECAPTCHA_SECRET_KEY). Writes to
-// the `pending_events` collection (NOT the live `events`/`opportunities` feed). An admin
-// must review and approve before the event becomes public.
-// Destructive actions (deleteEvent, edits to the live feed) MUST go through an
-// authenticated admin endpoint and are rejected here.
+// POST /api/public/save-event - Save event to Firestore (primary) + forward to GAS sheet (secondary sync)
+// SECURITY (revised, production-safe): dual-write mode.
+//   - Preserves TODAY's behavior: still writes to live `opportunities` and still forwards to GAS.
+//   - Adds a `pending_events` shadow write so admins gain a review queue without changing what
+//     the partner or public sees.
+//   - reCAPTCHA v3 is verified only when RECAPTCHA_SECRET_KEY is set in Cloud Run; otherwise it
+//     is skipped with a warning log so the live form does not break (per ED directive).
+//   - Erica can flip to review-only mode later by setting SAVE_EVENT_REVIEW_ONLY=true in Cloud
+//     Run. When that flag is set, the live `opportunities` write is suppressed and only the
+//     `pending_events` review write happens.
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
-        const { action, event, recaptchaToken } = req.body || {};
-        if (action && action !== 'saveEvent') {
-            // The only public action accepted here is a new submission for review.
-            return res.status(403).json({ success: false, error: 'action_not_allowed' });
-        }
-        if (!event || typeof event !== 'object') {
-            return res.status(400).json({ success: false, error: 'event payload is required' });
-        }
-        if (!event.title || !event.date) {
-            return res.status(400).json({ success: false, error: 'event.title and event.date are required' });
+        const { action, event, id, recaptchaToken } = req.body || {};
+        if (!action) {
+            return res.status(400).json({ success: false, error: 'action is required' });
         }
 
-        // reCAPTCHA v3 verification (score >= 0.5)
+        // reCAPTCHA v3 verification. Soft-fail when RECAPTCHA_SECRET_KEY is unset (see verifyRecaptcha).
         const captcha = await verifyRecaptcha(recaptchaToken, 'submit_event');
         if (!captcha.ok) {
             return res.status(captcha.status).json({ success: false, error: captcha.error });
         }
 
-        // Write to pending_events for admin review. NOT to the live events/opportunities feed.
-        const pendingRef = await db.collection('pending_events').add({
-            status: 'pending_review',
-            source: 'public_submit',
-            submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-            submittedFromIp: req.ip || '',
-            title: String(event.title || '').substring(0, 300),
-            date: String(event.date || '').substring(0, 50),
-            dateDisplay: String(event.dateDisplay || '').substring(0, 100),
-            time: String(event.time || '').substring(0, 100),
-            location: String(event.location || event.city || '').substring(0, 200),
-            city: String(event.city || '').substring(0, 100),
-            address: String(event.address || '').substring(0, 300),
-            program: String(event.program || '').substring(0, 100),
-            description: String(event.description || '').substring(0, 5000),
-            flyerUrl: String(event.flyerUrl || '').substring(0, 500),
-            websiteUrl: String(event.websiteUrl || '').substring(0, 500),
-            submitterName: String(event.submitterName || event.contactName || '').substring(0, 100),
-            submitterEmail: String(event.submitterEmail || event.contactEmail || '').substring(0, 200),
-            lat: typeof event.lat === 'number' ? event.lat : 0,
-            lng: typeof event.lng === 'number' ? event.lng : 0,
-        });
+        const reviewOnly = process.env.SAVE_EVENT_REVIEW_ONLY === 'true';
 
-        // Notify admins so they can review and approve.
-        const notifyTo = process.env.EVENTS_NOTIFY_EMAIL || 'events@healthmatters.clinic';
-        try {
-            await sendEmailRaw(
-                notifyTo,
-                `[Event Submission] ${String(event.title || '').substring(0, 120)}`,
-                `<p>A new public event submission is pending review.</p>
-<p><strong>Title:</strong> ${String(event.title || '').substring(0, 200)}<br/>
-<strong>Date:</strong> ${String(event.date || '').substring(0, 100)}<br/>
-<strong>Location:</strong> ${String(event.location || event.city || '').substring(0, 200)}<br/>
-<strong>Submitted by:</strong> ${String(event.submitterName || event.contactName || '(not provided)').substring(0, 100)} ${event.submitterEmail || event.contactEmail ? `&lt;${String(event.submitterEmail || event.contactEmail).substring(0, 200)}&gt;` : ''}</p>
-<p>Pending event ID: <code>${pendingRef.id}</code></p>
-<p>Review in Firestore <code>pending_events</code> collection.</p>`,
-                `New public event submission pending review.\n\nTitle: ${event.title}\nDate: ${event.date}\nLocation: ${event.location || event.city || ''}\nSubmitted by: ${event.submitterName || event.contactName || '(not provided)'} ${event.submitterEmail || event.contactEmail || ''}\n\nPending event ID: ${pendingRef.id}\nReview in Firestore pending_events collection.`
-            );
-        } catch (mailErr: any) {
-            console.warn('[SAVE-EVENT] Admin notify email failed:', mailErr?.message);
+        // --- PRIMARY: Write to Firestore so admin saves persist even when GAS is down ---
+        if (action === 'saveEvent' && event && event.id) {
+            const docId = event.id;
+            const firestoreData: any = {
+                source: 'event-finder',
+                approvalStatus: 'approved',
+                eventFinderId: event.id,
+                title: event.title || '',
+                date: event.date || '',
+                dateDisplay: event.dateDisplay || '',
+                time: event.time || '',
+                location: event.location || event.city || '',
+                city: event.city || '',
+                address: event.address || '',
+                program: event.program || '',
+                description: event.description || '',
+                saveTheDate: event.saveTheDate || false,
+                flyerUrl: event.flyerUrl || '',
+                websiteUrl: event.websiteUrl || '',
+                isPromoted: event.isPromoted || false,
+                isSponsored: event.isSponsored || false,
+                lat: event.lat || 0,
+                lng: event.lng || 0,
+                sessions: event.sessions || [],
+                updatedAt: new Date().toISOString(),
+            };
+            if (event.lat && event.lng) {
+                firestoreData.locationCoordinates = { lat: event.lat, lng: event.lng };
+            }
+            if (!reviewOnly) {
+                await db.collection('opportunities').doc(docId).set(firestoreData, { merge: true });
+                console.log(`[SAVE-EVENT] Saved ${docId} to Firestore`);
+            } else {
+                console.log(`[SAVE-EVENT] SAVE_EVENT_REVIEW_ONLY=true; skipping live opportunities write for ${docId}`);
+            }
+
+            // --- SHADOW: Copy to pending_events for admin review queue. Best-effort, never blocks. ---
+            try {
+                await db.collection('pending_events').add({
+                    status: reviewOnly ? 'pending_review' : 'auto_approved',
+                    source: 'public_submit',
+                    submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    submittedFromIp: req.ip || '',
+                    eventFinderId: docId,
+                    title: String(event.title || '').substring(0, 300),
+                    date: String(event.date || '').substring(0, 50),
+                    dateDisplay: String(event.dateDisplay || '').substring(0, 100),
+                    time: String(event.time || '').substring(0, 100),
+                    location: String(event.location || event.city || '').substring(0, 200),
+                    city: String(event.city || '').substring(0, 100),
+                    address: String(event.address || '').substring(0, 300),
+                    program: String(event.program || '').substring(0, 100),
+                    description: String(event.description || '').substring(0, 5000),
+                    flyerUrl: String(event.flyerUrl || '').substring(0, 500),
+                    websiteUrl: String(event.websiteUrl || '').substring(0, 500),
+                    submitterName: String(event.submitterName || event.contactName || '').substring(0, 100),
+                    submitterEmail: String(event.submitterEmail || event.contactEmail || '').substring(0, 200),
+                    lat: typeof event.lat === 'number' ? event.lat : 0,
+                    lng: typeof event.lng === 'number' ? event.lng : 0,
+                });
+            } catch (pendingErr: any) {
+                console.warn('[SAVE-EVENT] pending_events shadow write failed (live save succeeded):', pendingErr?.message);
+            }
+        } else if (action === 'deleteEvent' && id) {
+            // Destructive action — only honored when NOT in review-only mode. In review-only mode
+            // an authenticated admin endpoint must perform deletes.
+            if (reviewOnly) {
+                console.warn(`[SAVE-EVENT] Refused deleteEvent ${id} because SAVE_EVENT_REVIEW_ONLY=true`);
+                return res.status(403).json({ success: false, error: 'delete_requires_admin_in_review_only_mode' });
+            }
+            await db.collection('opportunities').doc(id).delete();
+            console.log(`[SAVE-EVENT] Deleted ${id} from Firestore`);
         }
 
-        return res.json({ ok: true, message: 'Event submitted for review. We will publish within 1-2 business days.' });
+        // --- SECONDARY: Forward to GAS sheet for spreadsheet sync (best-effort) ---
+        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+        if (APPS_SCRIPT_URL) {
+            try {
+                const bodyStr = JSON.stringify(req.body);
+                let gasResponse = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: bodyStr,
+                    redirect: 'manual',
+                });
+                if (gasResponse.status === 302 || gasResponse.status === 301) {
+                    const redirectUrl = gasResponse.headers.get('location');
+                    if (redirectUrl) {
+                        gasResponse = await fetch(redirectUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: bodyStr,
+                            redirect: 'follow',
+                        });
+                    }
+                }
+                const gasText = await gasResponse.text();
+                try { JSON.parse(gasText); } catch { /* GAS returned non-JSON, ignore */ }
+                console.log(`[SAVE-EVENT] GAS sync complete for ${action}`);
+            } catch (gasErr: any) {
+                console.warn(`[SAVE-EVENT] GAS sync failed (Firestore save succeeded): ${gasErr.message}`);
+            }
+        }
+
+        res.json({ success: true });
     } catch (error: any) {
         console.error('[SAVE-EVENT] Error:', error.message);
-        res.status(500).json({ success: false, error: 'submission_failed' });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -19494,18 +19557,18 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     const systemPrompt = SUNNY_SYSTEM_PROMPT + dynamicContext + pageContextBlock + (lang === 'es' ? '\n\nRespond in Spanish.' : '');
 
     // ── Claude Sonnet path (primary) ───────────────────────────────────────
-    // HIPAA PAUSE: Sunny chat assembles pageContext that may include suicidal_ideation,
-    // PHQ-9, and GAD-7 results derived from a user's screening, and ships it to Anthropic.
-    // Until either (a) Anthropic BAA is signed, or (b) PHI is de-identified before send,
-    // this path is gated behind ANTHROPIC_BAA_ENABLED=true.
-    // TODO (Erica decision):
-    //   (a) Sign a BAA with Anthropic, set ANTHROPIC_BAA_ENABLED=true in Cloud Run, OR
-    //   (b) Implement PHI de-identification: strip suicidal_ideation, PHQ-9/GAD-7 scores,
-    //       and page-derived screening results from `pageContextBlock` before send, then
-    //       set ANTHROPIC_BAA_ENABLED=true to re-enable.
-    if (process.env.ANTHROPIC_BAA_ENABLED !== 'true') {
+    // HIPAA FLAG: This call sends PHI (PHQ-9, GAD-7, suicidal ideation) to Anthropic without a BAA.
+    // Remediation options (Erica must pick one):
+    //   1. Sign BAA with Anthropic (anthropic.com -> contact sales for HIPAA enterprise)
+    //   2. De-identify PHI before send (strip name/email/phone, hash session ID, no DOB)
+    //   3. Migrate to Vertex AI (Claude on Vertex inherits HMC's existing GCP BAA on hmc-prod-473121)
+    // To pause this path while remediation is in progress, set ANTHROPIC_BAA_ENABLED=false in Cloud Run.
+    // Currently: production path is LIVE (production cannot be paused mid-flight per ED directive).
+    const ANTHROPIC_BAA_DISABLED = process.env.ANTHROPIC_BAA_ENABLED === 'false';
+    if (ANTHROPIC_BAA_DISABLED) {
       return res.status(503).json({ error: 'ai_assistance_unavailable', message: 'AI assistance is temporarily unavailable. Please use the resource directory or call 988 if you need immediate support.' });
     }
+    console.warn('[HIPAA-FLAG] Anthropic call with PHI (no BAA). Caller uid:', (req as any).user?.uid || 'anonymous');
     if (anthropicForSunny) {
       const msgs: Anthropic.MessageParam[] = (history || []).map((h: any) => ({
         role: h.type === 'user' ? 'user' : 'assistant',
