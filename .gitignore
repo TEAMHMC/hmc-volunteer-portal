@@ -12,10 +12,14 @@ out/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Local Cloud Build overrides (may contain secret values)
+cloudbuild.local.yaml
 
 # IDE and Editor
 .vscode/

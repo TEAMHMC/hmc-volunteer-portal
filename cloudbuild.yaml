@@ -8,6 +8,9 @@ steps:
     args: ['push', 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:$COMMIT_SHA']
 
   # 3. Deploy the new container image to Cloud Run
+  #    Public-safe env vars (Google OAuth client IDs) stay in --update-env-vars.
+  #    Sensitive values (Apps Script webhook URLs) are pulled from Secret Manager
+  #    at deploy time via --update-secrets. See docs/SECRETS.md for provisioning.
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       - 'run'
@@ -25,7 +28,9 @@ steps:
       - '--min-instances=1'
       - '--concurrency=50'
       - '--update-env-vars'
-      - 'EMAIL_SERVICE_URL=https://script.google.com/macros/s/AKfycbzNXenW0AYsfGY0_7x4rPpziEs5CWGtdRF9U5quU59V1TI7eBTV-CS5zH45_l-0cyN5_g/exec,APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbyM6jD_8ePyk4_M2Ki0gKFjq0AKZZSonZFqirvygPDlFv06lz6tFtDE0BBGhAc95FZsBA/exec,GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com,VITE_GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com'
+      - 'GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com,VITE_GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com'
+      - '--update-secrets'
+      - 'EMAIL_SERVICE_URL=EMAIL_SERVICE_URL:latest,APPS_SCRIPT_URL=APPS_SCRIPT_URL:latest'
 
 images:
   - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:$COMMIT_SHA'
