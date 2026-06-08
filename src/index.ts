@@ -263,6 +263,9 @@ const generateAIContent = async (
 };
 
 const app = express();
+// SECURITY: Cloud Run sits behind Google Front End. Without this, req.ip returns the
+// load balancer IP for every request and IP-based rate limiting collapses to a single bucket.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 8080;
 
 // --- SSE CLIENT REGISTRY ---
@@ -467,6 +470,42 @@ const rateLimit = (limit: number, timeframeMs: number) => async (req: Request, r
       inMemoryRateLimits.set(memKey, { count: 1, resetAt: now + timeframeMs });
     }
     return next();
+  }
+};
+
+// reCAPTCHA v3 verifier. Used on unauthenticated public endpoints that write to Firestore.
+// Returns { ok: true } when verification passes (score >= 0.5), { ok: false, status, error } otherwise.
+// Requires RECAPTCHA_SECRET_KEY env var. If unset, fails closed.
+const verifyRecaptcha = async (token: string | undefined, expectedAction?: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> => {
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secret) {
+    console.warn('[RECAPTCHA] RECAPTCHA_SECRET_KEY not set; rejecting public submission');
+    return { ok: false, status: 503, error: 'recaptcha_unavailable' };
+  }
+  if (!token || typeof token !== 'string') {
+    return { ok: false, status: 400, error: 'recaptcha_token_required' };
+  }
+  try {
+    const params = new URLSearchParams({ secret, response: token });
+    const r = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data: any = await r.json();
+    if (!data?.success) return { ok: false, status: 400, error: 'recaptcha_failed' };
+    if (typeof data.score === 'number' && data.score < 0.5) {
+      console.warn(`[RECAPTCHA] Low score ${data.score} action=${data.action}`);
+      return { ok: false, status: 400, error: 'recaptcha_low_score' };
+    }
+    if (expectedAction && data.action && data.action !== expectedAction) {
+      return { ok: false, status: 400, error: 'recaptcha_action_mismatch' };
+    }
+    return { ok: true };
+  } catch (e: any) {
+    console.warn('[RECAPTCHA] Verification error:', e?.message);
+    return { ok: false, status: 503, error: 'recaptcha_verify_error' };
   }
 };
 
@@ -2095,9 +2134,17 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
             return res.status(403).json({ error: 'Unauthorized: Session expired.' });
         }
 
-        // Sliding window: auto-extend session if < 30 min remaining
+        // Sliding window: auto-extend session if < 30 min remaining,
+        // BUT never past the absolute lifetime ceiling anchored at createdAt.
         const thirtyMinFromNow = new Date(Date.now() + 30 * 60 * 1000);
         if (expiresDate < thirtyMinFromNow) {
+            const createdAtMs: number | undefined = typeof session.createdAt === 'number'
+              ? session.createdAt
+              : (session.createdAt?.toMillis ? session.createdAt.toMillis() : undefined);
+            if (typeof createdAtMs === 'number' && (Date.now() - createdAtMs) > 90 * 24 * 60 * 60 * 1000) {
+                try { await db.collection('sessions').doc(sessionToken).delete(); } catch {}
+                return res.status(401).json({ error: 'session_expired_absolute' });
+            }
             const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000); // extend by 2 hours
             await db.collection('sessions').doc(sessionToken).update({ expires: newExpires });
         }
@@ -2199,9 +2246,15 @@ const createSession = async (uid: string, res: Response) => {
 
     const sessionToken = crypto.randomBytes(64).toString('hex');
     const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours (reduced from 24 for security)
-    await db.collection('sessions').doc(sessionToken).set({ uid, expires });
+    // SECURITY: createdAt anchors the absolute session lifetime ceiling (see SESSION_MAX_LIFETIME_MS).
+    // Sliding refresh extends `expires`, but once Date.now() - createdAt > MAX, refresh is refused.
+    await db.collection('sessions').doc(sessionToken).set({ uid, expires, createdAt: Date.now() });
     res.json({ token: sessionToken, user: { ...user, id: uid } });
 };
+
+// SECURITY: Absolute upper bound on a session token's lifetime, regardless of sliding refresh.
+// 90 days. After this, even an active user must re-authenticate.
+const SESSION_MAX_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
 
 // ═══════════════════════════════════════════════════════════════
 // ROLE CONSTANTS — Imported from src/constants.ts (single source of truth)
@@ -2916,8 +2969,23 @@ app.post('/api/auth/refresh-session', verifyToken, async (req: Request, res: Res
     try {
         const sessionToken = req.headers.authorization?.split('Bearer ')[1];
         if (!sessionToken) return res.status(403).json({ error: 'No session token' });
+
+        // SECURITY: Enforce absolute session lifetime ceiling. Sliding refresh cannot extend
+        // a session past SESSION_MAX_LIFETIME_MS from its original creation timestamp.
+        const sessionRef = db.collection('sessions').doc(sessionToken);
+        const snap = await sessionRef.get();
+        if (!snap.exists) return res.status(403).json({ error: 'No session token' });
+        const sessionData = snap.data() as any;
+        const createdAt: number | undefined = typeof sessionData.createdAt === 'number'
+          ? sessionData.createdAt
+          : (sessionData.createdAt?.toMillis ? sessionData.createdAt.toMillis() : undefined);
+        if (typeof createdAt === 'number' && (Date.now() - createdAt) > SESSION_MAX_LIFETIME_MS) {
+            try { await sessionRef.delete(); } catch {}
+            return res.status(401).json({ error: 'session_expired_absolute' });
+        }
+
         const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000); // extend by 2 hours
-        await db.collection('sessions').doc(sessionToken).update({ expires: newExpires });
+        await sessionRef.update({ expires: newExpires });
         res.json({ success: true, expiresAt: newExpires.toISOString() });
     } catch (error) {
         console.error('[Session Refresh] Failed:', error);
@@ -6554,7 +6622,17 @@ app.post('/api/public/rsvp', rateLimit(200, 60000), async (req: Request, res: Re
     }
 });
 
-// POST /api/public/check-yourself-aggregate — anonymous aggregate ping from Check Yourself tool
+// HIPAA retention: anonymous screening records expire after 30 days. Erica must enable a
+// Firestore TTL policy on the `retentionExpiresAt` field for these collections via gcloud:
+//   gcloud firestore fields ttls update retentionExpiresAt \
+//     --collection-group=check_yourself_stats --enable-ttl
+//   gcloud firestore fields ttls update retentionExpiresAt \
+//     --collection-group=check_yourself_connects --enable-ttl
+//   gcloud firestore fields ttls update retentionExpiresAt \
+//     --collection-group=check_yourself_followup_requests --enable-ttl
+const CHECK_YOURSELF_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+// POST /api/public/check-yourself-aggregate. Anonymous aggregate ping from Check Yourself tool.
 // No PII accepted or stored. Records severity bands + language only for population health tracking.
 app.post('/api/public/check-yourself-aggregate', rateLimit(60, 60000), async (req: Request, res: Response) => {
   try {
@@ -6568,6 +6646,8 @@ app.post('/api/public/check-yourself-aggregate', rateLimit(60, 60000), async (re
       suicidal_ideation: suicidal_ideation === true,
       lang: lang === 'es' ? 'es' : 'en',
       recorded_at: new Date().toISOString(),
+      // HIPAA retention: Firestore TTL must be enabled on this field (see comment above).
+      retentionExpiresAt: new Date(Date.now() + CHECK_YOURSELF_RETENTION_MS),
     });
     res.json({ ok: true });
   } catch (e: any) {
@@ -6576,41 +6656,83 @@ app.post('/api/public/check-yourself-aggregate', rateLimit(60, 60000), async (re
   }
 });
 
-// POST /api/public/check-yourself-connect — opt-in request from Check Yourself for HMC follow-up
-// Fires when a user with severe symptoms or suicidal ideation explicitly requests outreach.
+// POST /api/public/check-yourself-connect. Opt-in screening result + optional follow-up request.
+//
+// HIPAA notes:
+//   - `check_yourself_connects` stores ONLY anonymized screening results + an anonymized
+//     session ID. No name/contact/email/phone is written here.
+//   - If the user opted in to follow-up (`requestFollowup === true`) AND provided a contact
+//     method, the identifying fields are written to a SEPARATE
+//     `check_yourself_followup_requests` collection cross-linked by sessionId.
+//   - Both collections carry `retentionExpiresAt` so a Firestore TTL policy auto-deletes
+//     after 30 days. The follow-up collection is intended to be locked down by Firestore
+//     security rules to admin/clinical access only.
+// reCAPTCHA v3 is required because this endpoint is intentionally public (anonymous
+// self-screening) and writes Firestore documents.
 app.post('/api/public/check-yourself-connect', rateLimit(10, 60000), async (req: Request, res: Response) => {
   try {
-    const { name, contact, phq9_severity, gad7_severity, suicidal_ideation, lang } = req.body;
-    if (!contact || contact.trim().length < 3) return res.status(400).json({ error: 'contact is required' });
-    const record = {
-      name: (name || '').substring(0, 100),
-      contact: contact.substring(0, 200),
+    const { name, contact, phq9_severity, gad7_severity, suicidal_ideation, lang, recaptchaToken, requestFollowup } = req.body || {};
+
+    const captcha = await verifyRecaptcha(recaptchaToken, 'check_yourself');
+    if (!captcha.ok) {
+      return res.status(captcha.status).json({ error: captcha.error });
+    }
+
+    const wantsFollowup = requestFollowup === true && typeof contact === 'string' && contact.trim().length >= 3;
+    const sessionId = `cy_${crypto.randomBytes(12).toString('hex')}`;
+    const retentionExpiresAt = new Date(Date.now() + CHECK_YOURSELF_RETENTION_MS);
+    const lng = lang === 'es' ? 'es' : 'en';
+
+    // Anonymized screening record. No name, email, phone, or contact field.
+    const anonRecord = {
+      sessionId,
       phq9_severity: phq9_severity || 'unknown',
       gad7_severity: gad7_severity || 'unknown',
       suicidal_ideation: suicidal_ideation === true,
-      lang: lang === 'es' ? 'es' : 'en',
+      lang: lng,
       source: 'check_yourself',
+      followup_requested: wantsFollowup,
       requested_at: new Date().toISOString(),
+      retentionExpiresAt,
     };
-    await db.collection('check_yourself_connects').add(record);
-    const ts = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-    const urgency = suicidal_ideation ? '[URGENT] ' : '';
-    const alertHtml = `<p><strong>${urgency}Check Yourself -- Community Member Requested Outreach</strong></p>
+    await db.collection('check_yourself_connects').add(anonRecord);
+
+    // Identifying follow-up payload only if user opted in AND provided contact info.
+    // Cross-linked by sessionId so clinical follow-up can correlate without merging PHI back.
+    if (wantsFollowup) {
+      await db.collection('check_yourself_followup_requests').add({
+        sessionId,
+        name: typeof name === 'string' ? name.substring(0, 100) : '',
+        contact: contact.substring(0, 200),
+        lang: lng,
+        suicidal_ideation: suicidal_ideation === true,
+        requested_at: new Date().toISOString(),
+        retentionExpiresAt,
+      });
+
+      const ts = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+      const urgency = suicidal_ideation ? '[URGENT] ' : '';
+      const safeName = (typeof name === 'string' ? name : '').substring(0, 100) || '(not provided)';
+      const safeContact = String(contact).substring(0, 200);
+      const alertHtml = `<p><strong>${urgency}Check Yourself -- Community Member Requested Outreach</strong></p>
 <p>Someone completed Check Yourself and asked HMC to reach out to them.</p>
-<p><strong>Name:</strong> ${record.name || '(not provided)'}<br/>
-<strong>Contact:</strong> ${record.contact}<br/>
-<strong>PHQ-9:</strong> ${record.phq9_severity} &nbsp;|&nbsp; <strong>GAD-7:</strong> ${record.gad7_severity}<br/>
+<p><strong>Name:</strong> ${safeName}<br/>
+<strong>Contact:</strong> ${safeContact}<br/>
+<strong>PHQ-9:</strong> ${anonRecord.phq9_severity} &nbsp;|&nbsp; <strong>GAD-7:</strong> ${anonRecord.gad7_severity}<br/>
 <strong>Suicidal ideation indicated:</strong> ${suicidal_ideation ? 'Yes' : 'No'}<br/>
-<strong>Language:</strong> ${record.lang}<br/>
+<strong>Language:</strong> ${lng}<br/>
+<strong>Session:</strong> ${sessionId}<br/>
 <strong>Time:</strong> ${ts} PT</p>
 ${suicidal_ideation ? '<p><strong>Note: Suicidal ideation was indicated. 988 was surfaced to this user on the results screen.</strong></p>' : ''}
 <p>Follow up as soon as possible.</p>`;
-    sendEmailRaw(
-      'medical@healthmatters.clinic',
-      `${urgency}Check Yourself Outreach Request — ${ts}`,
-      alertHtml,
-      `${urgency}Check Yourself outreach request\n\nName: ${record.name || '(not provided)'}\nContact: ${record.contact}\nPHQ-9: ${record.phq9_severity} | GAD-7: ${record.gad7_severity}\nSuicidal ideation: ${suicidal_ideation ? 'Yes' : 'No'}\nLanguage: ${record.lang}\nTime: ${ts} PT\n\nFollow up as soon as possible.`
-    ).catch(() => {});
+      sendEmailRaw(
+        'medical@healthmatters.clinic',
+        `${urgency}Check Yourself Outreach Request -- ${ts}`,
+        alertHtml,
+        `${urgency}Check Yourself outreach request\n\nName: ${safeName}\nContact: ${safeContact}\nPHQ-9: ${anonRecord.phq9_severity} | GAD-7: ${anonRecord.gad7_severity}\nSuicidal ideation: ${suicidal_ideation ? 'Yes' : 'No'}\nLanguage: ${lng}\nSession: ${sessionId}\nTime: ${ts} PT\n\nFollow up as soon as possible.`
+      ).catch(() => {});
+    }
+
     res.json({ ok: true });
   } catch (e: any) {
     console.error('[CHECK-YOURSELF] Connect request failed:', e.message);
@@ -6728,14 +6850,20 @@ app.post('/api/public/sync-event', rateLimit(30, 60000), async (req: Request, re
 
 // POST /api/admin/backfill-rsvps-to-sheet - Backfill missed Firestore RSVPs to Google Sheet via GAS POST
 // GAS handles dedup (same email+event = resend confirmation only) and confirmation emails.
-// Auth: ?secret=hmc-backfill-2026
+// Auth: ?secret=<BACKFILL_SECRET env var>. If env var is unset, the route is disabled.
 app.post('/api/admin/backfill-rsvps-to-sheet', async (req: Request, res: Response) => {
     try {
-        const BACKFILL_SECRET = process.env.BACKFILL_SECRET || 'hmc-backfill-2026';
+        const BACKFILL_SECRET = process.env.BACKFILL_SECRET;
+        if (!BACKFILL_SECRET) {
+            // Refuse to compare against an empty string. That would allow any caller to pass.
+            return res.status(503).json({ error: 'backfill_disabled' });
+        }
         const querySecret = (req.query.secret as string) || '';
         const authHeader = req.headers.authorization || '';
-        if (querySecret !== BACKFILL_SECRET && !authHeader.startsWith('Bearer ')) {
-            return res.status(403).json({ error: 'Unauthorized — pass ?secret=hmc-backfill-2026' });
+        const bearerSecret = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        if (querySecret !== BACKFILL_SECRET && bearerSecret !== BACKFILL_SECRET) {
+            console.warn('[BACKFILL] Auth failed from IP', req.ip);
+            return res.status(401).json({ error: 'invalid_credentials' });
         }
         if (!APPS_SCRIPT_EVENTS_URL) {
             return res.status(503).json({ error: 'APPS_SCRIPT_URL not configured' });
@@ -6852,84 +6980,78 @@ app.get('/api/public/admin-auth', rateLimit(20, 60000), async (req: Request, res
     }
 });
 
-// POST /api/public/save-event - Save event to Firestore (primary) + forward to GAS sheet (secondary sync)
+// POST /api/public/save-event. Public event submission form.
+// SECURITY: Unauthenticated. Requires reCAPTCHA v3 (RECAPTCHA_SECRET_KEY). Writes to
+// the `pending_events` collection (NOT the live `events`/`opportunities` feed). An admin
+// must review and approve before the event becomes public.
+// Destructive actions (deleteEvent, edits to the live feed) MUST go through an
+// authenticated admin endpoint and are rejected here.
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
-        const { action, event, id } = req.body;
-        if (!action) {
-            return res.status(400).json({ success: false, error: 'action is required' });
+        const { action, event, recaptchaToken } = req.body || {};
+        if (action && action !== 'saveEvent') {
+            // The only public action accepted here is a new submission for review.
+            return res.status(403).json({ success: false, error: 'action_not_allowed' });
+        }
+        if (!event || typeof event !== 'object') {
+            return res.status(400).json({ success: false, error: 'event payload is required' });
+        }
+        if (!event.title || !event.date) {
+            return res.status(400).json({ success: false, error: 'event.title and event.date are required' });
         }
 
-        // --- PRIMARY: Write to Firestore so admin saves persist even when GAS is down ---
-        if (action === 'saveEvent' && event && event.id) {
-            const docId = event.id;
-            const firestoreData: any = {
-                source: 'event-finder',
-                approvalStatus: 'approved',
-                eventFinderId: event.id,
-                title: event.title || '',
-                date: event.date || '',
-                dateDisplay: event.dateDisplay || '',
-                time: event.time || '',
-                location: event.location || event.city || '',
-                city: event.city || '',
-                address: event.address || '',
-                program: event.program || '',
-                description: event.description || '',
-                saveTheDate: event.saveTheDate || false,
-                flyerUrl: event.flyerUrl || '',
-                websiteUrl: event.websiteUrl || '',
-                isPromoted: event.isPromoted || false,
-                isSponsored: event.isSponsored || false,
-                lat: event.lat || 0,
-                lng: event.lng || 0,
-                sessions: event.sessions || [],
-                updatedAt: new Date().toISOString(),
-            };
-            if (event.lat && event.lng) {
-                firestoreData.locationCoordinates = { lat: event.lat, lng: event.lng };
-            }
-            await db.collection('opportunities').doc(docId).set(firestoreData, { merge: true });
-            console.log(`[SAVE-EVENT] Saved ${docId} to Firestore`);
-        } else if (action === 'deleteEvent' && id) {
-            await db.collection('opportunities').doc(id).delete();
-            console.log(`[SAVE-EVENT] Deleted ${id} from Firestore`);
+        // reCAPTCHA v3 verification (score >= 0.5)
+        const captcha = await verifyRecaptcha(recaptchaToken, 'submit_event');
+        if (!captcha.ok) {
+            return res.status(captcha.status).json({ success: false, error: captcha.error });
         }
 
-        // --- SECONDARY: Forward to GAS sheet for spreadsheet sync (best-effort) ---
-        const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-        if (APPS_SCRIPT_URL) {
-            try {
-                const bodyStr = JSON.stringify(req.body);
-                let gasResponse = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: bodyStr,
-                    redirect: 'manual',
-                });
-                if (gasResponse.status === 302 || gasResponse.status === 301) {
-                    const redirectUrl = gasResponse.headers.get('location');
-                    if (redirectUrl) {
-                        gasResponse = await fetch(redirectUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: bodyStr,
-                            redirect: 'follow',
-                        });
-                    }
-                }
-                const gasText = await gasResponse.text();
-                try { JSON.parse(gasText); } catch { /* GAS returned non-JSON, ignore */ }
-                console.log(`[SAVE-EVENT] GAS sync complete for ${action}`);
-            } catch (gasErr: any) {
-                console.warn(`[SAVE-EVENT] GAS sync failed (Firestore save succeeded): ${gasErr.message}`);
-            }
+        // Write to pending_events for admin review. NOT to the live events/opportunities feed.
+        const pendingRef = await db.collection('pending_events').add({
+            status: 'pending_review',
+            source: 'public_submit',
+            submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+            submittedFromIp: req.ip || '',
+            title: String(event.title || '').substring(0, 300),
+            date: String(event.date || '').substring(0, 50),
+            dateDisplay: String(event.dateDisplay || '').substring(0, 100),
+            time: String(event.time || '').substring(0, 100),
+            location: String(event.location || event.city || '').substring(0, 200),
+            city: String(event.city || '').substring(0, 100),
+            address: String(event.address || '').substring(0, 300),
+            program: String(event.program || '').substring(0, 100),
+            description: String(event.description || '').substring(0, 5000),
+            flyerUrl: String(event.flyerUrl || '').substring(0, 500),
+            websiteUrl: String(event.websiteUrl || '').substring(0, 500),
+            submitterName: String(event.submitterName || event.contactName || '').substring(0, 100),
+            submitterEmail: String(event.submitterEmail || event.contactEmail || '').substring(0, 200),
+            lat: typeof event.lat === 'number' ? event.lat : 0,
+            lng: typeof event.lng === 'number' ? event.lng : 0,
+        });
+
+        // Notify admins so they can review and approve.
+        const notifyTo = process.env.EVENTS_NOTIFY_EMAIL || 'events@healthmatters.clinic';
+        try {
+            await sendEmailRaw(
+                notifyTo,
+                `[Event Submission] ${String(event.title || '').substring(0, 120)}`,
+                `<p>A new public event submission is pending review.</p>
+<p><strong>Title:</strong> ${String(event.title || '').substring(0, 200)}<br/>
+<strong>Date:</strong> ${String(event.date || '').substring(0, 100)}<br/>
+<strong>Location:</strong> ${String(event.location || event.city || '').substring(0, 200)}<br/>
+<strong>Submitted by:</strong> ${String(event.submitterName || event.contactName || '(not provided)').substring(0, 100)} ${event.submitterEmail || event.contactEmail ? `&lt;${String(event.submitterEmail || event.contactEmail).substring(0, 200)}&gt;` : ''}</p>
+<p>Pending event ID: <code>${pendingRef.id}</code></p>
+<p>Review in Firestore <code>pending_events</code> collection.</p>`,
+                `New public event submission pending review.\n\nTitle: ${event.title}\nDate: ${event.date}\nLocation: ${event.location || event.city || ''}\nSubmitted by: ${event.submitterName || event.contactName || '(not provided)'} ${event.submitterEmail || event.contactEmail || ''}\n\nPending event ID: ${pendingRef.id}\nReview in Firestore pending_events collection.`
+            );
+        } catch (mailErr: any) {
+            console.warn('[SAVE-EVENT] Admin notify email failed:', mailErr?.message);
         }
 
-        res.json({ success: true });
+        return res.json({ ok: true, message: 'Event submitted for review. We will publish within 1-2 business days.' });
     } catch (error: any) {
         console.error('[SAVE-EVENT] Error:', error.message);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: 'submission_failed' });
     }
 });
 
@@ -17722,7 +17844,13 @@ app.post('/api/monitor/run', async (req: Request, res: Response) => {
   res.json({ results, failures: failures.length });
 });
 
-app.get('/api/monitor/status', async (req: Request, res: Response) => {
+// SECURITY: Monitor status exposes full infra topology (service endpoints, hostnames,
+// health check details). Admin-only: verifyToken AND an inline isAdmin check.
+app.get('/api/monitor/status', verifyToken, async (req: Request, res: Response) => {
+  const isAdmin = !!(req as any).user?.profile?.isAdmin;
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'admin_required' });
+  }
   const results = await runMonitorChecks();
   res.json({ checked: new Date().toISOString(), results });
 });
@@ -19366,6 +19494,18 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     const systemPrompt = SUNNY_SYSTEM_PROMPT + dynamicContext + pageContextBlock + (lang === 'es' ? '\n\nRespond in Spanish.' : '');
 
     // ── Claude Sonnet path (primary) ───────────────────────────────────────
+    // HIPAA PAUSE: Sunny chat assembles pageContext that may include suicidal_ideation,
+    // PHQ-9, and GAD-7 results derived from a user's screening, and ships it to Anthropic.
+    // Until either (a) Anthropic BAA is signed, or (b) PHI is de-identified before send,
+    // this path is gated behind ANTHROPIC_BAA_ENABLED=true.
+    // TODO (Erica decision):
+    //   (a) Sign a BAA with Anthropic, set ANTHROPIC_BAA_ENABLED=true in Cloud Run, OR
+    //   (b) Implement PHI de-identification: strip suicidal_ideation, PHQ-9/GAD-7 scores,
+    //       and page-derived screening results from `pageContextBlock` before send, then
+    //       set ANTHROPIC_BAA_ENABLED=true to re-enable.
+    if (process.env.ANTHROPIC_BAA_ENABLED !== 'true') {
+      return res.status(503).json({ error: 'ai_assistance_unavailable', message: 'AI assistance is temporarily unavailable. Please use the resource directory or call 988 if you need immediate support.' });
+    }
     if (anthropicForSunny) {
       const msgs: Anthropic.MessageParam[] = (history || []).map((h: any) => ({
         role: h.type === 'user' ? 'user' : 'assistant',
@@ -20657,6 +20797,55 @@ app.post('/api/public/survey-responses', rateLimit(10, 3600000), async (req: Req
     } catch (error: any) {
         console.error('[PUBLIC-SURVEY] Submit failed:', error);
         return res.status(500).json({ error: 'server_error' });
+    }
+});
+
+// --- GENERIC GEMINI PROXY (server-side key only) ---
+// HIPAA NOTE: Google Gemini API does not have a BAA with HMC. Callers MUST
+// strip PHI (names, DOB, contact info, clinical identifiers) before sending.
+// If PHI must be processed, route through a Vertex AI endpoint under the
+// HMC GCP project with a signed Google Cloud BAA instead.
+app.post('/api/ai/gemini', rateLimit(30, 3600000), verifyToken, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { prompt, system, model, temperature } = req.body || {};
+
+        if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+            return res.status(400).json({ error: 'prompt_required' });
+        }
+        if (prompt.length > 8000) {
+            return res.status(400).json({ error: 'prompt_too_long', max: 8000 });
+        }
+        if (system !== undefined && (typeof system !== 'string' || system.length > 4000)) {
+            return res.status(400).json({ error: 'invalid_system' });
+        }
+        if (temperature !== undefined && (typeof temperature !== 'number' || temperature < 0 || temperature > 2)) {
+            return res.status(400).json({ error: 'invalid_temperature' });
+        }
+
+        const modelName = (typeof model === 'string' && model.startsWith('gemini-')) ? model : GEMINI_MODEL;
+
+        if (!ai || !GEMINI_API_KEY) {
+            console.warn('[AI] /api/ai/gemini called but no API key configured');
+            return res.status(503).json({ error: 'ai_not_configured' });
+        }
+
+        console.log(`[AI] uid=${user?.uid || 'unknown'} model=${modelName} promptLen=${prompt.length}`);
+
+        // Use SDK directly so we can pass systemInstruction + temperature without
+        // changing the shared generateAIContent helper signature used elsewhere.
+        const sdkModel = ai.getGenerativeModel({
+            model: modelName,
+            systemInstruction: typeof system === 'string' && system.trim().length > 0 ? system : undefined,
+            generationConfig: typeof temperature === 'number' ? { temperature } : undefined,
+        });
+        const result = await sdkModel.generateContent(prompt);
+        const text = result.response.text();
+
+        return res.json({ text });
+    } catch (error: any) {
+        console.error('[AI] /api/ai/gemini error:', error?.message || error);
+        return res.status(500).json({ error: 'ai_error' });
     }
 });
 
