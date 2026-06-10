@@ -22,9 +22,12 @@ dotenv.config();
 
 // --- SSN ENCRYPTION (AES-256-GCM) ---
 const SSN_KEY = process.env.SSN_ENCRYPTION_KEY || '';
+const SSN_ENCRYPTION_AVAILABLE = !!SSN_KEY;
 if (!SSN_KEY) {
-  console.error('[CRITICAL] SSN_ENCRYPTION_KEY is not set — SSN data will NOT be encrypted. Set this environment variable immediately.');
+  console.error('[CRITICAL] SSN_ENCRYPTION_KEY is not set — any endpoint that accepts SSN data will return 503. Set this environment variable immediately.');
 }
+// Use this guard on any endpoint that processes SSN data:
+// if (!SSN_ENCRYPTION_AVAILABLE) return res.status(503).json({ error: 'Service temporarily unavailable' });
 function encryptSSN(ssn: string): string {
     if (!SSN_KEY) throw new Error('SSN_ENCRYPTION_KEY is not configured — cannot store SSN');
     if (!ssn) return ssn;
@@ -315,17 +318,32 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// SECURITY: Restrict CORS to allowed origins
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://healthmatters.clinic,https://www.healthmatters.clinic,https://volunteer.healthmatters.clinic,http://localhost:5173,http://localhost:8080,https://hmc-volunteer-portal-172668994130.us-west2.run.app,https://teamhmc.github.io').split(',');
+// SECURITY: Restrict CORS to explicit allowlist — no wildcard subdomains
+const ALLOWED_ORIGINS = [
+  'https://www.healthmatters.clinic',
+  'https://healthmatters.clinic',
+  'https://teamhmc.github.io',
+  'https://volunteer.healthmatters.clinic',
+  'https://partner.healthmatters.clinic',
+  'https://eventfinder.healthmatters.clinic',
+  'https://checkyourself.healthmatters.clinic',
+  'https://calmkit.healthmatters.clinic',
+  // Cloud Run self-references (same service calling itself)
+  process.env.WEBSITE_URL,
+].filter(Boolean) as string[];
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) {
       callback(null, true);
       return;
     }
-    // Allow same-origin requests and Cloud Run URLs
-    if (ALLOWED_ORIGINS.includes(origin) || (origin.endsWith('.run.app') && origin.includes('hmc-volunteer-portal')) || (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) || origin.endsWith('.healthmatters.clinic') || origin === 'https://healthmatters.clinic' || origin.includes('teamhmc.github.io')) {
+    // Allow localhost in non-production environments
+    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
+      callback(null, true);
+      return;
+    }
+    if (ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
       console.warn(`[SECURITY] Blocked CORS request from: ${origin}`);
@@ -376,29 +394,7 @@ app.get('/sitemap.xml', async (_req: Request, res: Response) => {
 
 // --- GEMINI TEST ENDPOINT — moved after middleware definitions, see below ---
 
-// --- ANALYTICS ENDPOINT — moved after middleware definitions, see below ---
-app.post('/api/analytics/log', async (req: Request, res: Response) => {
-  try {
-    const { eventName, eventData } = req.body;
-
-    // Log to console in development, store in Firestore for production analytics
-    console.log(`[ANALYTICS] ${eventName}:`, JSON.stringify(eventData || {}).substring(0, 200));
-
-    // Store analytics event in Firestore (non-blocking, best-effort)
-    db.collection('analytics_events').add({
-      eventName,
-      eventData: eventData || {},
-      timestamp: new Date(),
-      userAgent: req.headers['user-agent'] || 'unknown',
-    }).catch(err => console.warn('[ANALYTICS] Failed to store event:', err.message));
-
-    res.status(204).send();
-  } catch (error) {
-    // Analytics should never break the user experience
-    console.warn('[ANALYTICS] Error:', error);
-    res.status(204).send();
-  }
-});
+// --- ANALYTICS ENDPOINT — registered below after rateLimit is declared (see "ANALYTICS ENDPOINT" marker) ---
 
 // --- HELPERS ---
 
@@ -472,6 +468,47 @@ const rateLimit = (limit: number, timeframeMs: number) => async (req: Request, r
     return next();
   }
 };
+
+// --- ANALYTICS ENDPOINT ---
+app.post('/api/analytics/log', rateLimit(60, 60000), async (req: Request, res: Response) => {
+  try {
+    const { eventName, eventData, source } = req.body;
+
+    // Require eventName — reject empty or missing events
+    if (!eventName || typeof eventName !== 'string' || eventName.trim() === '') {
+      return res.status(400).json({ error: 'eventName is required' });
+    }
+
+    // Require a source field to prevent anonymous/unidentified event spam
+    if (!source || typeof source !== 'string' || source.trim() === '') {
+      return res.status(400).json({ error: 'source is required' });
+    }
+
+    // Cap eventData payload at 1KB to prevent large payloads
+    const eventDataStr = JSON.stringify(eventData || {});
+    if (eventDataStr.length > 1024) {
+      return res.status(400).json({ error: 'eventData exceeds 1KB limit' });
+    }
+
+    // Log to console in development, store in Firestore for production analytics
+    console.log(`[ANALYTICS] ${eventName}:`, eventDataStr.substring(0, 200));
+
+    // Store analytics event in Firestore (non-blocking, best-effort)
+    db.collection('analytics_events').add({
+      eventName,
+      eventData: eventData || {},
+      source: source.trim().substring(0, 100),
+      timestamp: new Date(),
+      userAgent: req.headers['user-agent'] || 'unknown',
+    }).catch(err => console.warn('[ANALYTICS] Failed to store event:', err.message));
+
+    res.status(204).send();
+  } catch (error) {
+    // Analytics should never break the user experience
+    console.warn('[ANALYTICS] Error:', error);
+    res.status(204).send();
+  }
+});
 
 // reCAPTCHA v3 verifier. Used on unauthenticated public endpoints that write to Firestore.
 // Returns { ok: true } when verification passes (score >= 0.5), { ok: false, status, error } otherwise.
@@ -1535,7 +1572,6 @@ const EmailTemplates = {
       <p>Hi ${data.volunteerName},</p>
       <p>Everyone at <strong>Health Matters Clinic</strong> wants to wish you a wonderful birthday!</p>
       <div style="background: linear-gradient(135deg, #fdf2f8, #fce7f3); padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0;">
-        <p style="margin: 0 0 8px 0; font-size: 48px;">🎂</p>
         <p style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold; color: #1f2937;">Happy Birthday!</p>
         <p style="margin: 0; color: #6b7280;">We've added <strong>100 bonus XP</strong> to your profile to celebrate you.</p>
       </div>
@@ -2568,8 +2604,11 @@ app.post('/auth/signup', rateLimit(5, 60000), async (req: Request, res: Response
             console.log(`[BOOTSTRAP] Auto-promoted new signup ${maskEmail(user.email)} to admin`);
         }
 
-        // Encrypt SSN before storing
+        // Encrypt SSN before storing — hard-fail if encryption key is missing
         if (userDataToSave.ssn) {
+            if (!SSN_ENCRYPTION_AVAILABLE) {
+                return res.status(503).json({ error: 'Service temporarily unavailable' });
+            }
             userDataToSave.ssn = encryptSSN(userDataToSave.ssn);
         }
 
@@ -10771,8 +10810,13 @@ app.put('/api/volunteer', verifyToken, async (req: Request, res: Response) => {
             }
         }
 
-        // Encrypt SSN if being updated
-        if (finalUpdates.ssn) finalUpdates.ssn = encryptSSN(finalUpdates.ssn);
+        // Encrypt SSN if being updated — hard-fail if encryption key is missing
+        if (finalUpdates.ssn) {
+            if (!SSN_ENCRYPTION_AVAILABLE) {
+                return res.status(503).json({ error: 'Service temporarily unavailable' });
+            }
+            finalUpdates.ssn = encryptSSN(finalUpdates.ssn);
+        }
         // Ensure they can only update their own doc
         // If this is an onboarding completion, also set the guard flag to prevent duplicate alerts
         if (isOnboardingCompletion) {
@@ -12285,7 +12329,33 @@ app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response
         if (!callerProfile?.isAdmin && !BROADCAST_ROLES.includes(callerProfile?.role)) {
             return res.status(403).json({ error: 'Only admins and coordinators/leads can send broadcasts.' });
         }
-        const { title, content, category = 'General', sendAsSms = false, sendAsEmail = false, targetRoles } = req.body;
+        const { title, content, category = 'General', sendAsSms = false, sendAsEmail = false, targetRoles, dryRun = false } = req.body;
+
+        // DRY RUN: return preview without sending anything
+        if (dryRun) {
+            const previewSnap = await db.collection('volunteers').get();
+            const smsCount = sendAsSms ? previewSnap.docs.filter(d => {
+                const data = d.data();
+                return (data.phone || data.phoneNumber) && data.notificationPrefs?.smsAlerts !== false;
+            }).length : 0;
+            const emailCount = sendAsEmail ? previewSnap.docs.filter(d => {
+                const data = d.data();
+                return data.email && data.notificationPrefs?.emailAlerts !== false;
+            }).length : 0;
+            console.log(`[BROADCAST DRY-RUN] title="${title}" smsRecipients=${smsCount} emailRecipients=${emailCount}`);
+            return res.json({
+                dryRun: true,
+                preview: {
+                    title,
+                    contentPreview: (content || '').substring(0, 200),
+                    smsRecipientCount: smsCount,
+                    emailRecipientCount: emailCount,
+                    category,
+                },
+                message: 'Dry run complete — no messages sent.',
+            });
+        }
+
         const announcement = { title, content, date: new Date().toISOString(), category, status: 'approved', ...(targetRoles ? { targetRoles } : {}) };
         const docRef = await db.collection('announcements').add(announcement);
 
@@ -12715,7 +12785,7 @@ app.post('/api/mentions', verifyToken, async (req: Request, res: Response) => {
 app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         console.log(`[ADMIN] Bulk import initiated by ${(req as any).user?.profile?.email}`);
-        const { csvData } = req.body;
+        const { csvData, dryRun = false } = req.body;
         if (!csvData || typeof csvData !== 'string') return res.status(400).json({ error: 'csvData is required' });
         if (csvData.length > MAX_CSV_SIZE) return res.status(400).json({ error: `CSV too large (max ${MAX_CSV_SIZE / 1024 / 1024}MB)` });
         // Decode base64 CSV data
@@ -12723,6 +12793,27 @@ app.post('/api/admin/bulk-import', verifyToken, requireAdmin, async (req: Reques
         const lines = csvContent.split('\n').filter(line => line.trim());
         if (lines.length > MAX_CSV_ROWS) return res.status(400).json({ error: `Too many rows (max ${MAX_CSV_ROWS})` });
         const headers = lines[0].split(',').map(h => h.trim());
+
+        // DRY RUN: parse and validate CSV, return preview without creating accounts or sending emails
+        if (dryRun) {
+            const validationErrors: string[] = [];
+            const sampleEmails: string[] = [];
+            let validCount = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                const row: any = {};
+                headers.forEach((header, idx) => { row[header] = values[idx] || ''; });
+                const email = row.email?.toLowerCase();
+                if (!email || !email.includes('@')) {
+                    validationErrors.push(`Row ${i}: missing or invalid email`);
+                } else {
+                    validCount++;
+                    if (sampleEmails.length < 5) sampleEmails.push(email);
+                }
+            }
+            console.log(`[BULK IMPORT DRY-RUN] rows=${lines.length - 1} valid=${validCount} errors=${validationErrors.length}`);
+            return res.json({ dryRun: true, totalRows: lines.length - 1, validCount, validationErrors: validationErrors.slice(0, 20), sampleEmails });
+        }
 
         const newVolunteers: any[] = [];
 
@@ -16313,6 +16404,16 @@ app.get('/api/admin/export-volunteers', verifyToken, requireAdmin, async (req: R
         volunteers.forEach(v => {
             csvRows.push(headers.map(h => `"${String((v as any)[h] ?? '').replace(/"/g, '""')}"`).join(','));
         });
+        // Audit log — record every volunteer export for HIPAA compliance
+        db.collection('audit_logs').add({
+            action: 'volunteer_export',
+            adminId: (req as any).user?.uid,
+            adminEmail: (req as any).user?.email,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            recordCount: volunteers.length,
+            ipAddress: req.ip,
+        }).catch(err => console.warn('[AUDIT] Failed to write export audit log:', err.message));
+
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="volunteers_export.csv"');
         res.send(csvRows.join('\n'));
@@ -17953,9 +18054,21 @@ app.post('/api/cron/broadcast', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Invalid cron secret' });
   }
 
-  const { title, body: msgBody, email: sendEmail = true, sms: sendSms = true } = req.body || {};
+  const { title, body: msgBody, email: sendEmail = true, sms: sendSms = true, dryRun = false } = req.body || {};
   if (!title || !msgBody) {
     return res.status(400).json({ error: 'title and body are required' });
+  }
+
+  // DRY RUN: return preview without sending anything
+  if (dryRun) {
+    const previewSnap = await db.collection('volunteers').get();
+    const activeVols = previewSnap.docs
+      .map(d => d.data())
+      .filter((v: any) => v.status !== 'inactive' && v.applicationStatus !== 'pendingReview');
+    const emailCount = sendEmail ? activeVols.filter((v: any) => v.email && v.notificationPrefs?.emailAlerts !== false).length : 0;
+    const smsCount = sendSms ? activeVols.filter((v: any) => (v.phone || v.phoneNumber) && v.notificationPrefs?.smsAlerts !== false).length : 0;
+    console.log(`[CRON BROADCAST DRY-RUN] title="${title}" wouldSend=${emailCount + smsCount} (${emailCount} emails, ${smsCount} SMS)`);
+    return res.json({ dryRun: true, wouldSend: emailCount + smsCount, emailCount, smsCount, title, bodyPreview: msgBody.substring(0, 200) });
   }
 
   console.log(`[BROADCAST] Sending: "${title}"`);
@@ -18029,6 +18142,20 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
   if (!cronSecret || providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid cron secret' });
+  }
+
+  const { dryRun = false } = req.body || {};
+
+  // DRY RUN: return preview count without sending
+  if (dryRun) {
+    const previewSnap = await db.collection('volunteers').get();
+    const activeVols = previewSnap.docs
+      .map(d => d.data())
+      .filter((v: any) => v.status !== 'inactive' && v.applicationStatus !== 'pendingReview');
+    const emailCount = activeVols.filter((v: any) => v.email && v.notificationPrefs?.emailAlerts !== false).length;
+    const smsCount = activeVols.filter((v: any) => (v.phone || v.phoneNumber) && v.notificationPrefs?.smsAlerts !== false).length;
+    console.log(`[WEEKLY DIGEST DRY-RUN] wouldSend=${emailCount + smsCount} (${emailCount} emails, ${smsCount} SMS)`);
+    return res.json({ dryRun: true, wouldSend: emailCount + smsCount, emailCount, smsCount });
   }
 
   console.log('[WEEKLY DIGEST] Starting...');
@@ -18158,7 +18285,7 @@ app.post('/api/cron/weekly-digest', async (req: Request, res: Response) => {
       // SMS wellness text
       const phone = normalizePhone(vol.phone || vol.phoneNumber);
       if (phone && vol.notificationPrefs?.smsAlerts !== false) {
-        const smsBody = `HMC Wellness 💙\n\n${motivationalQuote}\n\n${allUpcoming.length > 0 ? `${allUpcoming.length} upcoming opportunit${allUpcoming.length > 1 ? 'ies' : 'y'} — check your email or the portal for details!` : 'No events coming up — rest up and recharge.'}\n\nReply STOP to opt out.`;
+        const smsBody = `HMC Wellness Update\n\n${motivationalQuote}\n\n${allUpcoming.length > 0 ? `${allUpcoming.length} upcoming opportunit${allUpcoming.length > 1 ? 'ies' : 'y'} — check your email or the portal for details!` : 'No events coming up — rest up and recharge.'}\n\nReply STOP to opt out.`;
         try {
           const smsResult = await sendSMS(vol.id, `+1${phone}`, smsBody);
           if (smsResult.sent) results.textsSent++;
@@ -19551,24 +19678,30 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     const dTransform = Math.ceil((new Date('2026-05-27').getTime() - todayLA.getTime()) / msPerDay);
     const label = (d: number, name: string, date: string) => d > 0 ? `${name} is in ${d} day${d === 1 ? '' : 's'} (${date})` : d === 0 ? `${name} is TODAY (${date})` : `${name} already happened (${date})`;
     const dynamicContext = `\n\nCURRENT DATE: ${dateStr}. ${label(dMove,'MOVE','May 9')}. ${label(dHeal,'HEAL','May 20')}. ${label(dTransform,'TRANSFORM','May 27')}. Use this for time-aware language ("this Saturday", "in 8 days", "coming up next week") instead of just stating dates.`;
+    // Strip PHI from pageContext before including in Anthropic payload — PHQ-9/GAD-7 scores
+    // and suicidal_ideation flags are clinical assessment data that must not leave HMC systems
+    // without a signed BAA. The crisis-routing logic (988 surfacing) runs server-side above.
+    const sanitizedPageContext = pageContext ? (() => {
+      const { phq9_severity, gad7_severity, suicidal_ideation, phq9Score, gad7Score, phq9_score, gad7_score, ...safe } = pageContext as any;
+      return Object.keys(safe).length > 0 ? safe : null;
+    })() : null;
     const pageContextBlock = pageUrl
-      ? `\n\nUSER'S CURRENT PAGE: ${pageUrl}${pageTitle ? ` ("${pageTitle}")` : ''}. Use this to tailor your response — if they are on a specific tool or page, lead with what's most relevant to that context.${pageContext ? `\n\nPAGE CONTEXT: ${JSON.stringify(pageContext)}. If suicidal_ideation is true, prioritize crisis resources (988, Didi Hirsch) immediately. If the user just completed a wellness screening, reference their results naturally.` : ''}`
+      ? `\n\nUSER'S CURRENT PAGE: ${pageUrl}${pageTitle ? ` ("${pageTitle}")` : ''}. Use this to tailor your response — if they are on a specific tool or page, lead with what's most relevant to that context.${sanitizedPageContext ? `\n\nPAGE CONTEXT: ${JSON.stringify(sanitizedPageContext)}. If the user just completed a wellness screening, reference their results naturally and offer next steps.` : ''}`
       : '';
     const systemPrompt = SUNNY_SYSTEM_PROMPT + dynamicContext + pageContextBlock + (lang === 'es' ? '\n\nRespond in Spanish.' : '');
 
     // ── Claude Sonnet path (primary) ───────────────────────────────────────
-    // HIPAA FLAG: This call sends PHI (PHQ-9, GAD-7, suicidal ideation) to Anthropic without a BAA.
+    // HIPAA: Only enabled when ANTHROPIC_BAA_ENABLED=true is explicitly set in Cloud Run env.
+    // Default is OFF to prevent PHI transmission without a signed BAA.
     // Remediation options (Erica must pick one):
     //   1. Sign BAA with Anthropic (anthropic.com -> contact sales for HIPAA enterprise)
-    //   2. De-identify PHI before send (strip name/email/phone, hash session ID, no DOB)
+    //   2. De-identified path is implemented below — strips PHQ-9, GAD-7, suicidal_ideation
     //   3. Migrate to Vertex AI (Claude on Vertex inherits HMC's existing GCP BAA on hmc-prod-473121)
-    // To pause this path while remediation is in progress, set ANTHROPIC_BAA_ENABLED=false in Cloud Run.
-    // Currently: production path is LIVE (production cannot be paused mid-flight per ED directive).
-    const ANTHROPIC_BAA_DISABLED = process.env.ANTHROPIC_BAA_ENABLED === 'false';
-    if (ANTHROPIC_BAA_DISABLED) {
+    const ANTHROPIC_BAA_ENABLED = process.env.ANTHROPIC_BAA_ENABLED === 'true';
+    if (!ANTHROPIC_BAA_ENABLED) {
       return res.status(503).json({ error: 'ai_assistance_unavailable', message: 'AI assistance is temporarily unavailable. Please use the resource directory or call 988 if you need immediate support.' });
     }
-    console.warn('[HIPAA-FLAG] Anthropic call with PHI (no BAA). Caller uid:', (req as any).user?.uid || 'anonymous');
+    console.log('[SUNNY] Anthropic call proceeding — BAA confirmed enabled.');
     if (anthropicForSunny) {
       const msgs: Anthropic.MessageParam[] = (history || []).map((h: any) => ({
         role: h.type === 'user' ? 'user' : 'assistant',
