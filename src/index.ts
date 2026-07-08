@@ -15,7 +15,7 @@ import fs from 'fs';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import Papa from 'papaparse';
 import { STATIC_MODULE_CONTENT } from './staticModuleContent';
-import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, CORE_VOLUNTEER_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS, TIER_1_IDS, TIER_2_CORE_IDS, hasCompletedAllModules } from './constants';
+import { COORDINATOR_AND_LEAD_ROLES, GOVERNANCE_ROLES, CORE_VOLUNTEER_ROLES, EVENT_MANAGEMENT_ROLES, BROADCAST_ROLES, ORG_CALENDAR_ROLES, REGISTRATION_MANAGEMENT_ROLES, BOARD_FORM_CONTENTS, TIER_1_IDS, TIER_2_CORE_IDS, hasCompletedAllModules, PROGRAM_TRAINING_REQUIREMENTS } from './constants';
 
 // --- CONFIGURATION ---
 dotenv.config();
@@ -12095,11 +12095,25 @@ app.post('/api/events/register', verifyToken, async (req: Request, res: Response
         const qualifiedTypes = (eligibility.qualifiedEventTypes || []).map((t: string) => t.toLowerCase());
 
         // Check program-specific gates based on event category
+        // Auto-heal: if volunteer completed all required modules but gate was never persisted, fix it now
+        const completedTrainingIds: string[] = volunteerData.completedTrainingIds || [];
         if (eventCategory.includes('street medicine') && !eligibility.streetMedicineGate) {
-          return res.status(400).json({ error: 'You must complete Street Medicine training before registering for Street Medicine events' });
+          const streetMedIds = PROGRAM_TRAINING_REQUIREMENTS['street_medicine'] || [];
+          if (streetMedIds.length > 0 && hasCompletedAllModules(completedTrainingIds, streetMedIds)) {
+            eligibility.streetMedicineGate = true;
+            volunteerRef.update({ 'eventEligibility.streetMedicineGate': true }).catch(() => {});
+          } else {
+            return res.status(400).json({ error: 'You must complete Street Medicine training before registering for Street Medicine events' });
+          }
         }
         if ((eventCategory.includes('clinical') || eventCategory.includes('screening') || eventCategory.includes('vaccination')) && !eligibility.clinicGate) {
-          return res.status(400).json({ error: 'You must complete Clinical training before registering for clinical events' });
+          const clinicIds = PROGRAM_TRAINING_REQUIREMENTS['clinical'] || [];
+          if (clinicIds.length > 0 && hasCompletedAllModules(completedTrainingIds, clinicIds)) {
+            eligibility.clinicGate = true;
+            volunteerRef.update({ 'eventEligibility.clinicGate': true }).catch(() => {});
+          } else {
+            return res.status(400).json({ error: 'You must complete Clinical training before registering for clinical events' });
+          }
         }
       }
     }
