@@ -16939,6 +16939,85 @@ app.post('/api/team/invite', verifyToken, async (req: Request, res: Response) =>
     } catch (e: any) { console.error('[ERROR]', e.message); res.status(500).json({ error: 'Internal server error' }); }
 });
 
+// GET /api/team/event-attendance — which team members are signed up for which events
+// Access: admin OR isTeamLead. Regular volunteers never see this.
+app.get('/api/team/event-attendance', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const callerData = user.profile;
+    if (!callerData?.isAdmin && !callerData?.isTeamLead) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Who is on this lead's team?
+    const teamSnap = callerData.isAdmin
+      ? null
+      : await db.collection('volunteers').where('managedBy', '==', user.uid).get();
+
+    const teamMembers: { id: string; name: string }[] = callerData.isAdmin
+      ? [] // admin gets all — handled client-side via allVolunteers prop
+      : (teamSnap?.docs || []).map(d => ({ id: d.id, name: (d.data() as any).name || 'Unknown' }));
+
+    // Collect all unique shiftIds across the team
+    const shiftIdSet = new Set<string>();
+    for (const { id } of teamMembers) {
+      const doc = await db.collection('volunteers').doc(id).get();
+      const data = doc.data() as any;
+      (data?.assignedShiftIds || []).forEach((sid: string) => shiftIdSet.add(sid));
+    }
+
+    if (shiftIdSet.size === 0) return res.json([]);
+
+    // Fetch shift details and resolve parent opportunity titles/dates
+    const shiftIds = [...shiftIdSet];
+    const shiftDocs = await Promise.all(shiftIds.map(sid => db.collection('shifts').doc(sid).get()));
+
+    // Group by opportunityId so we surface event-level grouping
+    const oppIdMap: Record<string, { shiftIds: string[]; memberIds: string[] }> = {};
+    for (let i = 0; i < shiftIds.length; i++) {
+      const sid = shiftIds[i];
+      const data = shiftDocs[i].exists ? (shiftDocs[i].data() as any) : null;
+      if (!data) continue;
+      const oppId = data.opportunityId || sid;
+      if (!oppIdMap[oppId]) oppIdMap[oppId] = { shiftIds: [], memberIds: [] };
+      oppIdMap[oppId].shiftIds.push(sid);
+      // Which team members are in this shift?
+      for (const m of teamMembers) {
+        const mDoc = await db.collection('volunteers').doc(m.id).get();
+        const mData = mDoc.data() as any;
+        if ((mData?.assignedShiftIds || []).includes(sid) && !oppIdMap[oppId].memberIds.includes(m.id)) {
+          oppIdMap[oppId].memberIds.push(m.id);
+        }
+      }
+    }
+
+    // Fetch opportunity titles + dates for display
+    const oppIds = Object.keys(oppIdMap);
+    const oppDocs = await Promise.all(oppIds.map(oid => db.collection('opportunities').doc(oid).get()));
+
+    const result = oppIds.map((oid, i) => {
+      const oData = oppDocs[i].exists ? (oppDocs[i].data() as any) : null;
+      return {
+        eventId: oid,
+        title: oData?.title || 'Unknown Event',
+        date: oData?.date || '',
+        location: oData?.location || '',
+        category: oData?.category || '',
+        attendees: oppIdMap[oid].memberIds.map(mid => {
+          const m = teamMembers.find(tm => tm.id === mid);
+          return { id: mid, name: m?.name || 'Unknown' };
+        }),
+      };
+    }).filter(e => e.attendees.length > 0)
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+    res.json(result);
+  } catch (e: any) {
+    console.error('[ERROR]', e.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // --- INCIDENT PERSISTENCE ---
 app.post('/api/incidents/create', verifyToken, async (req: Request, res: Response) => {
     try {

@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Volunteer } from '../types';
-import { Users, UserCheck, Calendar, MessageSquare, Search, UserPlus, X, Mail, Loader2, Trash2, CheckCircle } from 'lucide-react';
+import { Users, UserCheck, Calendar, MessageSquare, Search, UserPlus, X, Mail, Loader2, Trash2, CheckCircle, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { toastService } from '../services/toastService';
+
+interface EventAttendance {
+  eventId: string;
+  title: string;
+  date: string;
+  location: string;
+  category: string;
+  attendees: { id: string; name: string }[];
+}
 
 interface CoordinatorViewProps {
   user: Volunteer;
@@ -23,6 +32,9 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', groupName: '' });
   const [isInviting, setIsInviting] = useState(false);
+  const [eventAttendance, setEventAttendance] = useState<EventAttendance[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
 
   useEffect(() => {
     const pending = myTeam.filter(v => v.status === 'onboarding' || v.status === 'applicant').length;
@@ -31,14 +43,21 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
     setUpcomingShifts(teamShiftCount);
   }, [allVolunteers, user.id]);
 
+  useEffect(() => {
+    if (myTeam.length === 0) return;
+    setAttendanceLoading(true);
+    apiService.get('/api/team/event-attendance')
+      .then((data: EventAttendance[]) => setEventAttendance(data || []))
+      .catch(() => {})
+      .finally(() => setAttendanceLoading(false));
+  }, [allVolunteers, user.id]);
+
   const activeCount = myTeam.filter(v => v.status === 'active').length;
 
-  // Filter team roster by search
   const filteredTeam = myTeam.filter(v =>
     !searchQuery || v.name.toLowerCase().includes(searchQuery.toLowerCase()) || v.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Volunteers available to add (not self, not already managed)
   const availableToAdd = allVolunteers.filter(v =>
     v.id !== user.id &&
     !v.managedBy &&
@@ -97,6 +116,10 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
 
   const inputClass = "w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-brand/30 font-bold text-sm";
   const labelClass = "text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] block mb-2";
+
+  const today = new Date().toISOString().split('T')[0];
+  const upcomingEvents = eventAttendance.filter(e => !e.date || e.date >= today);
+  const pastEvents = eventAttendance.filter(e => e.date && e.date < today);
 
   return (
     <div className="space-y-10 animate-in fade-in">
@@ -196,6 +219,46 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
         </div>
       )}
 
+      {/* Team Event Attendance */}
+      {myTeam.length > 0 && (
+        <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h3 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight uppercase">Team Event Attendance</h3>
+            {attendanceLoading && <Loader2 size={18} className="animate-spin text-zinc-400" />}
+          </div>
+          {!attendanceLoading && eventAttendance.length === 0 && (
+            <p className="text-zinc-400 font-bold text-sm text-center py-8">No team members are registered for any events yet.</p>
+          )}
+          {!attendanceLoading && upcomingEvents.length > 0 && (
+            <div className="space-y-3 mb-6">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Upcoming</p>
+              {upcomingEvents.map(ev => (
+                <EventAttendanceRow
+                  key={ev.eventId}
+                  event={ev}
+                  isExpanded={expandedEvent === ev.eventId}
+                  onToggle={() => setExpandedEvent(expandedEvent === ev.eventId ? null : ev.eventId)}
+                />
+              ))}
+            </div>
+          )}
+          {!attendanceLoading && pastEvents.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">Past</p>
+              {pastEvents.map(ev => (
+                <EventAttendanceRow
+                  key={ev.eventId}
+                  event={ev}
+                  isExpanded={expandedEvent === ev.eventId}
+                  onToggle={() => setExpandedEvent(expandedEvent === ev.eventId ? null : ev.eventId)}
+                  past
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Team Roster */}
       <div className="bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm hover:shadow-2xl transition-shadow">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
@@ -266,6 +329,59 @@ const CoordinatorView: React.FC<CoordinatorViewProps> = ({ user, allVolunteers, 
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+const EventAttendanceRow: React.FC<{
+  event: EventAttendance;
+  isExpanded: boolean;
+  onToggle: () => void;
+  past?: boolean;
+}> = ({ event, isExpanded, onToggle, past }) => {
+  const formattedDate = event.date
+    ? new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    : '';
+
+  return (
+    <div className={`border rounded-2xl overflow-hidden transition-all ${past ? 'border-zinc-100 opacity-70' : 'border-zinc-200'}`}>
+      <button
+        onClick={onToggle}
+        className="w-full p-4 flex items-center justify-between gap-4 text-left hover:bg-zinc-50 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-2 h-2 rounded-full shrink-0 ${past ? 'bg-zinc-300' : 'bg-brand'}`} />
+          <div className="min-w-0">
+            <p className="font-bold text-zinc-800 text-sm truncate">{event.title}</p>
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              {formattedDate && <span className="text-[11px] text-zinc-400 font-bold">{formattedDate}</span>}
+              {event.location && (
+                <span className="text-[11px] text-zinc-400 font-bold flex items-center gap-1">
+                  <MapPin size={10} /> {event.location}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs font-black text-brand bg-brand/10 px-3 py-1 rounded-full">
+            {event.attendees.length} attending
+          </span>
+          {isExpanded ? <ChevronUp size={16} className="text-zinc-400" /> : <ChevronDown size={16} className="text-zinc-400" />}
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-1 border-t border-zinc-100 bg-zinc-50">
+          <div className="flex flex-wrap gap-2 pt-3">
+            {event.attendees.map(a => (
+              <span key={a.id} className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-full px-3 py-1.5 text-xs font-bold text-zinc-700">
+                <span className="w-5 h-5 rounded-full bg-zinc-200 flex items-center justify-center text-[10px] font-black">{a.name.charAt(0)}</span>
+                {a.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
