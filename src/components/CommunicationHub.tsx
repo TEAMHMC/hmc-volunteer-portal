@@ -1252,7 +1252,7 @@ const TicketDetailModal: React.FC<{
                     <option value="">Unassigned</option>
                     <option value={user.id}>{user.name} (Me)</option>
                     {allVolunteers
-                      .filter(v => v.id !== user.id && (v.isAdmin || v.role.includes('Coordinator') || v.role.includes('Lead')))
+                      .filter(v => v.id !== user.id && (v.isAdmin || v.role?.includes('Coordinator') || v.role?.includes('Lead')))
                       .map(v => (
                         <option key={v.id} value={v.id}>{v.name}</option>
                       ))}
@@ -1434,7 +1434,7 @@ const OpsSupportView: React.FC<{
   const [typeFilter, setTypeFilter] = useState<TicketType | 'all'>('all');
 
   // Ticket visibility filtering
-  const isCoordinatorOrLead = user.role.includes('Coordinator') || user.role.includes('Lead');
+  const isCoordinatorOrLead = user.role?.includes('Coordinator') || user.role?.includes('Lead');
   const myTickets = useMemo(() => {
     if (userMode === 'admin') return supportTickets;
     return supportTickets.filter(t => {

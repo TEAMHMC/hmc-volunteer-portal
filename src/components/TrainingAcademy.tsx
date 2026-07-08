@@ -10,6 +10,7 @@ import {
   PROGRAM_STREET_MEDICINE, PROGRAM_CLINICAL,
   ROLE_SPECIFIC_MODULES, TIER_1_IDS, TIER_2_IDS,
   hasCompletedModule, hasCompletedAllModules,
+  PROGRAM_TRAINING_REQUIREMENTS,
   TrainingModule,
 } from '../constants';
 import { APP_CONFIG } from '../config';
@@ -380,6 +381,22 @@ const TrainingAcademy: React.FC<TrainingAcademyProps> = ({ user, onUpdate, onLau
         };
         analyticsService.logEvent('core_volunteer_training_complete', { userId: user.id, userRole: user.role });
         setShowCompletionMessage(true);
+      }
+
+      // Tier 3 program gates: set eligibility flags when all program-specific modules are done
+      const streetMedIds = PROGRAM_TRAINING_REQUIREMENTS['street_medicine'] || [];
+      if (streetMedIds.length > 0 && hasCompletedAllModules(newCompletedIds, streetMedIds) && !user.eventEligibility?.streetMedicineGate) {
+        updatedUser.eventEligibility = {
+          ...(updatedUser.eventEligibility || user.eventEligibility || {}),
+          streetMedicineGate: true,
+        };
+      }
+      const clinicIds = PROGRAM_TRAINING_REQUIREMENTS['clinical'] || [];
+      if (clinicIds.length > 0 && hasCompletedAllModules(newCompletedIds, clinicIds) && !user.eventEligibility?.clinicGate) {
+        updatedUser.eventEligibility = {
+          ...(updatedUser.eventEligibility || user.eventEligibility || {}),
+          clinicGate: true,
+        };
       }
 
       onUpdate(updatedUser as Volunteer);
