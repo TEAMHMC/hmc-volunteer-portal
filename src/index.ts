@@ -4920,6 +4920,22 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
                 y -= 16;
                 drawField(page1, 'Consent obtained by:', client.consentSignature, margin + 8, y);
             }
+            // Embed participant drawn signature if available
+            if (client.consentSignatureData) {
+                try {
+                    const sigB64 = client.consentSignatureData.replace(/^data:image\/png;base64,/, '');
+                    const sigBytes = Buffer.from(sigB64, 'base64');
+                    const sigImage = await pdfDoc.embedPng(sigBytes);
+                    const sigDims = sigImage.scale(0.4); // scale down to fit
+                    if (y > margin + sigDims.height + 20) {
+                        y -= 8;
+                        page1.drawText('Participant Signature:', { x: margin + 8, y, font: fontBold, size: 8, color: rgb(0.4, 0.4, 0.4) });
+                        y -= sigDims.height + 4;
+                        page1.drawImage(sigImage, { x: margin + 8, y, width: sigDims.width, height: sigDims.height });
+                        y -= 8;
+                    }
+                } catch (e) { /* skip if signature image fails */ }
+            }
         }
         drawFooter(page1);
 
@@ -5042,6 +5058,74 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
             drawFooter(page2);
         }
 
+        // === SUBSTANCE USE REFERRAL ASSESSMENT PAGE ===
+        if (client.sudReferral) {
+            const sudPage = pdfDoc.addPage([pageW, pageH]);
+            let sy = pageH - margin;
+            sudPage.drawRectangle({ x: 0, y: pageH - 6, width: pageW, height: 6, color: rgb(0.14, 0.2, 0.6) });
+            sudPage.drawText('SUBSTANCE USE REFERRAL ASSESSMENT', { x: margin, y: sy - 10, font: fontBold, size: 14, color: rgb(0.1, 0.1, 0.1) });
+            sudPage.drawText(`Referring Agency: Health Matters Clinic | Contact: ${client.assignedStaff || 'HMC Care Navigator'} | ${new Date().toLocaleDateString()}`, { x: margin, y: sy - 26, font, size: 8, color: rgb(0.5,0.5,0.5) });
+            sy -= 50;
+            const sud = client.sudReferral;
+
+            // Program preference
+            if (sud.programPreference?.length) {
+                sy = drawSectionHeader(sudPage, 'Program of Interest', sy);
+                sud.programPreference.forEach((p: string) => drawCheckbox(sudPage, p, true, margin + 8 + (sud.programPreference.indexOf(p) * 140), sy));
+                sy -= 26;
+            }
+
+            // Substances
+            if (sud.substances?.length) {
+                sy = drawSectionHeader(sudPage, 'Substance Use History', sy);
+                sudPage.drawText('Substance', { x: margin+8, y: sy, font: fontBold, size: 7, color: rgb(0.4,0.4,0.4) });
+                sudPage.drawText('Amount / Route', { x: margin+120, y: sy, font: fontBold, size: 7, color: rgb(0.4,0.4,0.4) });
+                sudPage.drawText('Frequency', { x: margin+260, y: sy, font: fontBold, size: 7, color: rgb(0.4,0.4,0.4) });
+                sudPage.drawText('Last Use', { x: margin+370, y: sy, font: fontBold, size: 7, color: rgb(0.4,0.4,0.4) });
+                sy -= 14;
+                sudPage.drawLine({ start: {x: margin, y: sy+6}, end: {x: pageW-margin, y: sy+6}, thickness: 0.5, color: rgb(0.8,0.8,0.8) });
+                sud.substances.forEach((s: any) => {
+                    sudPage.drawText(s.substance||'---', { x: margin+8, y: sy, font, size: 8, color: rgb(0.1,0.1,0.1) });
+                    sudPage.drawText(s.amountRoute||'---', { x: margin+120, y: sy, font, size: 8, color: rgb(0.1,0.1,0.1) });
+                    sudPage.drawText(s.frequency||'---', { x: margin+260, y: sy, font, size: 8, color: rgb(0.1,0.1,0.1) });
+                    sudPage.drawText(s.lastUse||'---', { x: margin+370, y: sy, font, size: 8, color: rgb(0.1,0.1,0.1) });
+                    sy -= 16;
+                });
+                sy -= 10;
+            }
+
+            // Medications
+            if (sud.medications?.length) {
+                sy = drawSectionHeader(sudPage, 'Current Medications', sy);
+                sud.medications.forEach((m: any) => {
+                    drawField(sudPage, m.name||'---', m.dosage||'---', margin+8, sy);
+                    sy -= 16;
+                });
+                sy -= 10;
+            }
+
+            // Clinical flags
+            sy = drawSectionHeader(sudPage, 'Clinical Assessment', sy);
+            drawField(sudPage, 'Require Detox:', sud.requiresDetox === true ? 'Yes' : sud.requiresDetox === false ? 'No' : '---', margin+8, sy);
+            drawField(sudPage, 'MAT Interest:', sud.matInterest === true ? 'Yes' : sud.matInterest === false ? 'No' : '---', margin+280, sy);
+            sy -= 18;
+            drawField(sudPage, 'Seizures (current):', sud.seizureNow === true ? 'Yes' : sud.seizureNow === false ? 'No' : '---', margin+8, sy);
+            drawField(sudPage, 'Seizure History:', sud.seizureHistory === true ? 'Yes' : sud.seizureHistory === false ? 'No' : '---', margin+280, sy);
+            sy -= 18;
+            if (sud.seizureExplain) { drawField(sudPage, 'Seizure Details:', sud.seizureExplain, margin+8, sy); sy -= 18; }
+            if (sud.withdrawalStatus) { drawField(sudPage, 'Withdrawal Status:', sud.withdrawalStatus, margin+8, sy); sy -= 18; }
+            if (sud.expectedWithdrawal) { drawField(sudPage, 'Expected W/D:', sud.expectedWithdrawal, margin+8, sy); sy -= 18; }
+            if (sud.matHistory) { drawField(sudPage, 'Prior MAT:', sud.matHistory, margin+8, sy); sy -= 18; }
+            if (sud.behavioralHealthDiagnosis) {
+                sy -= 4;
+                sy = drawSectionHeader(sudPage, 'Mental Health / Behavioral Health Diagnosis', sy);
+                const diagLines = wrapText(sud.behavioralHealthDiagnosis, contentW-16, font, 8);
+                diagLines.forEach((line: string) => { if (sy > margin+40) { sudPage.drawText(line, { x: margin+8, y: sy, font, size: 8, color: rgb(0.2,0.2,0.2) }); sy -= 12; } });
+            }
+
+            drawFooter(sudPage);
+        }
+
         const pdfBytes = await pdfDoc.save();
         const clientName = (client.firstName && client.lastName) ? `${client.firstName}_${client.lastName}` : (client.name || 'client');
         res.setHeader('Content-Type', 'application/pdf');
@@ -5050,6 +5134,163 @@ app.get('/api/clients/:clientId/intake-pdf', verifyToken, async (req: Request, r
     } catch (error: any) {
         console.error('[INTAKE PDF] Generation failed:', error);
         res.status(500).json({ error: 'Failed to generate PDF' });
+    }
+});
+
+// --- RELEASE OF INFORMATION (ROI) SAVE ---
+app.post('/api/clients/:clientId/roi', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { clientId } = req.params;
+        const { recipient, recipientEmail, disclosures, purpose, participantSignatureData, staffName, signedAt } = req.body;
+
+        const clientDoc = await db.collection('clients').doc(clientId).get();
+        if (!clientDoc.exists) return res.status(404).json({ error: 'Client not found' });
+
+        const roiRef = await db.collection('client_rois').add({
+            clientId,
+            recipient,
+            recipientEmail,
+            disclosures,
+            purpose,
+            participantSignatureData,
+            staffName,
+            signedAt: signedAt || new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+        });
+
+        res.json({ success: true, roiId: roiRef.id });
+    } catch (e: any) {
+        console.error('[ROI] Save failed:', e);
+        res.status(500).json({ error: 'Failed to save ROI' });
+    }
+});
+
+// --- RELEASE OF INFORMATION (ROI) PDF ---
+app.get('/api/clients/:clientId/roi-pdf', verifyToken, async (req: Request, res: Response) => {
+    try {
+        const { clientId } = req.params;
+        const clientDoc = await db.collection('clients').doc(clientId).get();
+        if (!clientDoc.exists) return res.status(404).json({ error: 'Client not found' });
+        const client = clientDoc.data() as any;
+
+        // Get the most recent ROI
+        const roisSnap = await db.collection('client_rois')
+            .where('clientId', '==', clientId)
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (roisSnap.empty) return res.status(404).json({ error: 'No ROI found for this client' });
+        const roi = roisSnap.docs[0].data() as any;
+
+        const pdfDoc = await PDFDocument.create();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+        const page = pdfDoc.addPage([612, 792]);
+        const margin = 50;
+        const pageW = 612;
+        const pageH = 792;
+        const contentW = pageW - margin * 2;
+        let y = pageH - margin;
+
+        // Header
+        page.drawRectangle({ x: 0, y: pageH-6, width: pageW, height: 6, color: rgb(0.14, 0.2, 0.6) });
+        page.drawText('HEALTH MATTERS CLINIC', { x: margin, y: y-10, font: fontBold, size: 13, color: rgb(0.1,0.1,0.1) });
+        page.drawText('909 Pico Blvd, Santa Monica, CA 90405 | contact@healthmatters.clinic | (323) 990-4325', { x: margin, y: y-24, font, size: 7, color: rgb(0.5,0.5,0.5) });
+        y -= 50;
+
+        page.drawText('AUTHORIZATION TO USE AND DISCLOSE PROTECTED HEALTH INFORMATION', { x: margin, y, font: fontBold, size: 11, color: rgb(0.1,0.1,0.1) });
+        page.drawText('(42 CFR Part 2 / HIPAA)', { x: margin, y: y-14, font: fontItalic, size: 9, color: rgb(0.4,0.4,0.4) });
+        y -= 36;
+
+        // Client info
+        const fullName = `${client.firstName||''} ${client.lastName||''}`.trim() || '---';
+        page.drawText('Participant: ', { x: margin, y, font: fontBold, size: 9, color: rgb(0.3,0.3,0.3) });
+        page.drawText(fullName, { x: margin+80, y, font, size: 9, color: rgb(0.1,0.1,0.1) });
+        page.drawText('Date of Birth: ', { x: margin+300, y, font: fontBold, size: 9, color: rgb(0.3,0.3,0.3) });
+        page.drawText(client.dob || client.dateOfBirth || '---', { x: margin+380, y, font, size: 9, color: rgb(0.1,0.1,0.1) });
+        y -= 24;
+
+        // Authorization direction
+        page.drawText('I hereby authorize Health Matters Clinic to disclose information with:', { x: margin, y, font, size: 9, color: rgb(0.2,0.2,0.2) });
+        y -= 18;
+        page.drawText('Organization: ', { x: margin+8, y, font: fontBold, size: 9, color: rgb(0.3,0.3,0.3) });
+        page.drawText(roi.recipient || '---', { x: margin+88, y, font, size: 9, color: rgb(0.1,0.1,0.1) });
+        y -= 16;
+        page.drawText('Contact / Email: ', { x: margin+8, y, font: fontBold, size: 9, color: rgb(0.3,0.3,0.3) });
+        page.drawText(roi.recipientEmail || '---', { x: margin+108, y, font, size: 9, color: rgb(0.1,0.1,0.1) });
+        y -= 28;
+
+        // Disclosures
+        page.drawText('INFORMATION TO BE DISCLOSED:', { x: margin, y, font: fontBold, size: 9, color: rgb(0.2,0.2,0.2) });
+        y -= 16;
+        const disclosureOptions = ['Diagnostic Assessment / Intake','Physician\'s Orders / Medical Records / Medication List','Treatment Plan','Discharge & Aftercare','Infectious Disease Status','Mental Health / Behavioral Health Diagnosis','Substance Use History'];
+        disclosureOptions.forEach(opt => {
+            const checked = Array.isArray(roi.disclosures) && roi.disclosures.includes(opt);
+            page.drawRectangle({ x: margin+8, y: y-2, width: 10, height: 10, borderColor: rgb(0.5,0.5,0.5), borderWidth: 0.5 });
+            if (checked) { page.drawText('X', { x: margin+10, y: y-1, font: fontBold, size: 7, color: rgb(0.1,0.4,0.6) }); }
+            page.drawText(opt, { x: margin+24, y, font, size: 8, color: rgb(0.2,0.2,0.2) });
+            y -= 16;
+        });
+        y -= 8;
+
+        // Purpose
+        page.drawText('PURPOSE:', { x: margin, y, font: fontBold, size: 9, color: rgb(0.2,0.2,0.2) });
+        y -= 16;
+        ['Assist in Treatment Planning','Continuity of Care'].forEach(opt => {
+            const checked = Array.isArray(roi.purpose) && roi.purpose.includes(opt);
+            page.drawRectangle({ x: margin+8, y: y-2, width: 10, height: 10, borderColor: rgb(0.5,0.5,0.5), borderWidth: 0.5 });
+            if (checked) { page.drawText('X', { x: margin+10, y: y-1, font: fontBold, size: 7, color: rgb(0.1,0.4,0.6) }); }
+            page.drawText(opt, { x: margin+24, y, font, size: 8, color: rgb(0.2,0.2,0.2) });
+            y -= 16;
+        });
+        y -= 12;
+
+        // 42 CFR Part 2 Notice
+        page.drawRectangle({ x: margin, y: y-60, width: contentW, height: 74, color: rgb(0.97, 0.97, 1.0) });
+        page.drawText('NOTICE:', { x: margin+8, y: y-8, font: fontBold, size: 8, color: rgb(0.14,0.2,0.6) });
+        const noticeEn = 'Alcohol and drug abuse information has special privacy protections under federal law (42 CFR Part 2). This authorization remains in effect for 3 years and may be revoked in writing at any time. Recipients are forbidden to re-disclose this information without specific authorization.';
+        const noticeLines = wrapText(noticeEn, contentW-16, font, 7);
+        let ny = y - 20;
+        noticeLines.forEach((line: string) => { page.drawText(line, { x: margin+8, y: ny, font, size: 7, color: rgb(0.3,0.3,0.3) }); ny -= 10; });
+        const noticeEs = 'La informacion sobre abuso de alcohol y drogas tiene protecciones especiales bajo la ley federal (42 CFR Parte 2). Esta autorizacion permanece vigente por 3 anos y puede revocarse por escrito en cualquier momento.';
+        const noticeEsLines = wrapText(noticeEs, contentW-16, fontItalic, 7);
+        noticeEsLines.forEach((line: string) => { page.drawText(line, { x: margin+8, y: ny, font: fontItalic, size: 7, color: rgb(0.4,0.4,0.4) }); ny -= 10; });
+        y -= 80;
+
+        // Participant signature
+        page.drawText('Participant Signature:', { x: margin, y, font: fontBold, size: 9, color: rgb(0.2,0.2,0.2) });
+        page.drawText(`Date: ${new Date(roi.signedAt).toLocaleDateString()}`, { x: margin+350, y, font, size: 9, color: rgb(0.2,0.2,0.2) });
+        y -= 8;
+
+        if (roi.participantSignatureData) {
+            try {
+                const sigB64 = roi.participantSignatureData.replace(/^data:image\/png;base64,/, '');
+                const sigBytes = Buffer.from(sigB64, 'base64');
+                const sigImage = await pdfDoc.embedPng(sigBytes);
+                const sigDims = sigImage.scaleToFit(200, 60);
+                page.drawImage(sigImage, { x: margin, y: y - sigDims.height, width: sigDims.width, height: sigDims.height });
+                y -= sigDims.height + 8;
+            } catch { y -= 40; }
+        } else {
+            page.drawLine({ start: {x: margin, y: y-30}, end: {x: margin+250, y: y-30}, thickness: 0.5, color: rgb(0.5,0.5,0.5) });
+            y -= 40;
+        }
+
+        page.drawText(`Printed Name: ${fullName}`, { x: margin, y, font, size: 9, color: rgb(0.2,0.2,0.2) });
+        y -= 24;
+        page.drawText(`Staff Witness: ${roi.staffName || '---'}`, { x: margin, y, font, size: 9, color: rgb(0.2,0.2,0.2) });
+        y -= 24;
+        page.drawText(`HMC Referring Agency: Health Matters Clinic | contact@healthmatters.clinic | (323) 990-4325`, { x: margin, y, font, size: 8, color: rgb(0.4,0.4,0.4) });
+
+        const pdfBytes = await pdfDoc.save();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="HMC_ROI_${fullName.replace(/\s+/g,'_')}.pdf"`);
+        res.send(Buffer.from(pdfBytes));
+    } catch (e: any) {
+        console.error('[ROI PDF]', e);
+        res.status(500).json({ error: 'Failed to generate ROI PDF' });
     }
 });
 
@@ -17782,7 +18023,7 @@ const ALERT_PHONE = process.env.ALERT_PHONE_NUMBER || '+13239904325';
 const MONITOR_TARGETS = [
   { name: 'Volunteer Portal API', url: 'https://volunteer.healthmatters.clinic/health', expectInBody: 'ok' },
   { name: 'Take Action LA', url: 'https://www.healthmatters.clinic/takeactionla', expectStatus: 200 },
-  { name: 'CalmKit', url: 'http://calmkit.healthmatters.clinic/', expectInBody: 'CalmKit' },
+  { name: 'CalmKit', url: 'https://calmkit.healthmatters.clinic/', expectInBody: 'CalmKit' },
   { name: 'Event Finder (Webflow)', url: 'https://www.healthmatters.clinic/resources/eventfinder', expectStatus: 200 },
 ];
 const APPS_SCRIPT_EVENTS_URL = process.env.APPS_SCRIPT_URL || '';
