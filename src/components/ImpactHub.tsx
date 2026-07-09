@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Volunteer } from '../types';
 import { APP_CONFIG } from '../config';
 import { apiService } from '../services/apiService';
 import { geminiService } from '../services/geminiService';
 import {
   DollarSign, BarChart3, Gift, Sparkles, Loader2, Copy, Check,
-  Trophy, Award as AwardIcon, User as UserIcon, Instagram, Linkedin, Youtube, ShoppingBag, X
+  Trophy, Award as AwardIcon, User as UserIcon, Instagram, Linkedin, Youtube, ShoppingBag, X,
+  CheckCircle, AlertCircle, RotateCcw, Clock
 } from 'lucide-react';
 
 interface ImpactHubProps {
@@ -216,6 +217,9 @@ const RewardsPanel: React.FC<{user: Volunteer, onUpdate: (u: Volunteer) => void}
         </div>
       </div>
 
+      {/* Admin: pending redemption fulfillment */}
+      {user.isAdmin && <AdminRedemptionsPanel user={user} />}
+
       {/* Rewards Store */}
       <RewardsStore user={user} onUpdate={onUpdate} />
    </div>
@@ -311,6 +315,166 @@ const RewardsStore: React.FC<{ user: Volunteer; onUpdate: (u: Volunteer) => void
         </div>
       )}
     </>
+  );
+};
+
+interface PendingRedemption {
+  id: string;
+  volunteerId: string;
+  volunteerName: string;
+  volunteerEmail: string;
+  rewardId: string;
+  rewardTitle: string;
+  pointsSpent: number;
+  status: 'pending' | 'fulfilled' | 'refunded';
+  createdAt: string;
+}
+
+const AdminRedemptionsPanel: React.FC<{ user: Volunteer }> = ({ user }) => {
+  const [redemptions, setRedemptions] = useState<PendingRedemption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [couponInputs, setCouponInputs] = useState<Record<string, string>>({});
+  const [fulfilling, setFulfilling] = useState<string | null>(null);
+  const [refunding, setRefunding] = useState<string | null>(null);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [rowSuccess, setRowSuccess] = useState<Record<string, string>>({});
+
+  const fetchRedemptions = useCallback(async () => {
+    try {
+      const data = await apiService.get('/api/admin/rewards/redemptions');
+      setRedemptions(data.redemptions || []);
+    } catch {
+      setRedemptions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRedemptions(); }, [fetchRedemptions]);
+
+  const handleFulfill = async (r: PendingRedemption) => {
+    const code = (couponInputs[r.id] || '').trim();
+    if (!code) {
+      setRowErrors(prev => ({ ...prev, [r.id]: 'Enter a coupon code first.' }));
+      return;
+    }
+    setRowErrors(prev => ({ ...prev, [r.id]: '' }));
+    setFulfilling(r.id);
+    try {
+      await apiService.post(`/api/admin/rewards/fulfill/${r.id}`, { couponCode: code });
+      setRowSuccess(prev => ({ ...prev, [r.id]: `Fulfilled. Coupon sent to ${r.volunteerEmail}.` }));
+      setRedemptions(prev => prev.filter(x => x.id !== r.id));
+    } catch (e: any) {
+      setRowErrors(prev => ({ ...prev, [r.id]: e?.message || 'Fulfill failed.' }));
+    } finally {
+      setFulfilling(null);
+    }
+  };
+
+  const handleRefund = async (r: PendingRedemption) => {
+    if (!window.confirm(`Refund ${r.pointsSpent} XP to ${r.volunteerName}? This cannot be undone.`)) return;
+    setRefunding(r.id);
+    try {
+      await apiService.post(`/api/admin/rewards/refund/${r.id}`, {});
+      setRowSuccess(prev => ({ ...prev, [r.id]: `${r.pointsSpent} XP refunded to ${r.volunteerName}.` }));
+      setRedemptions(prev => prev.filter(x => x.id !== r.id));
+    } catch (e: any) {
+      setRowErrors(prev => ({ ...prev, [r.id]: e?.message || 'Refund failed.' }));
+    } finally {
+      setRefunding(null);
+    }
+  };
+
+  if (!user.isAdmin) return null;
+
+  const pending = redemptions.filter(r => r.status === 'pending');
+
+  return (
+    <div className="bg-white rounded-2xl md:rounded-[40px] border border-zinc-100 shadow-sm p-4 md:p-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-base md:text-xl font-bold text-zinc-900 uppercase">Pending Reward Requests</h3>
+          <p className="text-xs text-zinc-400 font-bold mt-0.5">Create a Webflow discount code, paste it here, then click Fulfill to send it to the volunteer.</p>
+        </div>
+        {pending.length > 0 && (
+          <span className="px-3 py-1 rounded-full bg-rose-500 text-white text-[11px] font-black">{pending.length}</span>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold">
+          <Loader2 size={14} className="animate-spin" />
+          Loading...
+        </div>
+      ) : pending.length === 0 ? (
+        <div className="flex items-center gap-3 text-zinc-400 py-4">
+          <CheckCircle size={18} className="text-emerald-400" />
+          <span className="text-sm font-bold">No pending requests. All caught up.</span>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {pending.map(r => (
+            <div key={r.id} className="border border-zinc-100 rounded-2xl p-4 md:p-5 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-black text-sm">{r.volunteerName}</p>
+                  <p className="text-xs text-zinc-400 font-bold">{r.volunteerEmail}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-black text-zinc-700">{r.rewardTitle}</span>
+                    <span className="text-[10px] font-black text-zinc-300">{r.pointsSpent} XP</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-zinc-300 flex-shrink-0">
+                  <Clock size={11} />
+                  <span className="text-[10px] font-bold">
+                    {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={couponInputs[r.id] || ''}
+                  onChange={e => setCouponInputs(prev => ({ ...prev, [r.id]: e.target.value }))}
+                  placeholder="Paste Webflow coupon code..."
+                  className="flex-1 px-4 py-2.5 rounded-full border border-zinc-200 text-xs font-bold focus:outline-none focus:border-brand"
+                />
+                <button
+                  onClick={() => handleFulfill(r)}
+                  disabled={fulfilling === r.id || !couponInputs[r.id]?.trim()}
+                  className="px-5 py-2.5 rounded-full bg-brand text-white font-black text-[11px] uppercase tracking-[0.15em] disabled:opacity-40 hover:bg-zinc-900 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  {fulfilling === r.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                  Fulfill
+                </button>
+                <button
+                  onClick={() => handleRefund(r)}
+                  disabled={refunding === r.id}
+                  className="px-5 py-2.5 rounded-full bg-zinc-100 text-zinc-600 font-black text-[11px] uppercase tracking-[0.15em] disabled:opacity-40 hover:bg-zinc-200 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  {refunding === r.id ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                  Refund XP
+                </button>
+              </div>
+
+              {rowErrors[r.id] && (
+                <div className="flex items-center gap-2 text-rose-600 bg-rose-50 rounded-xl px-3 py-2">
+                  <AlertCircle size={12} />
+                  <span className="text-[11px] font-black">{rowErrors[r.id]}</span>
+                </div>
+              )}
+              {rowSuccess[r.id] && (
+                <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 rounded-xl px-3 py-2">
+                  <CheckCircle size={12} />
+                  <span className="text-[11px] font-black">{rowSuccess[r.id]}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

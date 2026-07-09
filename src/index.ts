@@ -19146,6 +19146,272 @@ app.post('/api/admin/rewards/refund/:redemptionId', verifyToken, async (req: Req
 });
 
 // ═══════════════════════════════════════════════════════════════
+// HEALTH CREDITS — COMMUNITY HEALTH CAPITAL LEDGER
+// $1 = 100 credits. Closed loop. Immutable ledger.
+// Corrections via reversals only. No P2P. No cash out. No expiration.
+// ═══════════════════════════════════════════════════════════════
+
+const CREDIT_CATEGORIES = ['screening', 'workshop', 'event', 'volunteer', 'navigator', 'referral', 'admin'] as const;
+type CreditCategory = typeof CREDIT_CATEGORIES[number];
+
+const CREDIT_AWARD_DEFAULTS: Record<CreditCategory, number> = {
+  screening: 200,
+  workshop: 100,
+  event: 150,
+  volunteer: 200,
+  navigator: 100,
+  referral: 75,
+  admin: 100,
+};
+
+async function getCreditAccount(userId: string) {
+  const doc = await db.collection('healthCredits').doc(userId).get();
+  if (!doc.exists) return null;
+  return doc.data() as { balance: number; lifetimeEarned: number; lifetimeSpent: number; displayName: string; email?: string; updatedAt: string };
+}
+
+// POST /api/admin/credits/award — award credits to a community member
+app.post('/api/admin/credits/award', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const awarder = (req as any).user;
+    const profile = awarder?.profile;
+    if (!profile?.isAdmin && !COORDINATOR_ROLES.includes(profile?.role)) {
+      return res.status(403).json({ error: 'Admin or Coordinator access required' });
+    }
+
+    const { userId, displayName, email, amount, reason, category, relatedEntityId, relatedEntityType } = req.body;
+    if (!userId || !displayName || !amount || !reason || !category) {
+      return res.status(400).json({ error: 'userId, displayName, amount, reason, and category are required' });
+    }
+    if (!Number.isInteger(amount) || amount <= 0 || amount > 100000) {
+      return res.status(400).json({ error: 'amount must be a positive integer (max 100,000)' });
+    }
+    if (!CREDIT_CATEGORIES.includes(category)) {
+      return res.status(400).json({ error: `category must be one of: ${CREDIT_CATEGORIES.join(', ')}` });
+    }
+
+    const accountRef = db.collection('healthCredits').doc(userId);
+    const now = new Date().toISOString();
+
+    const result = await db.runTransaction(async (tx) => {
+      const accountDoc = await tx.get(accountRef);
+      const existing = accountDoc.exists ? accountDoc.data()! : { balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
+      const balanceBefore = existing.balance ?? 0;
+      const balanceAfter = balanceBefore + amount;
+
+      const accountData = {
+        userId,
+        displayName,
+        ...(email ? { email } : {}),
+        balance: balanceAfter,
+        lifetimeEarned: (existing.lifetimeEarned ?? 0) + amount,
+        lifetimeSpent: existing.lifetimeSpent ?? 0,
+        updatedAt: now,
+        ...(accountDoc.exists ? {} : { createdAt: now }),
+      };
+
+      tx.set(accountRef, accountData, { merge: true });
+
+      const txRef = db.collection('creditTransactions').doc();
+      const txData: Record<string, any> = {
+        userId,
+        displayName,
+        type: 'award',
+        direction: 'credit',
+        amount,
+        balanceBefore,
+        balanceAfter,
+        reason,
+        category,
+        awardedBy: awarder.uid,
+        awardedByName: profile.name || profile.email || awarder.uid,
+        createdAt: now,
+      };
+      if (relatedEntityId) txData.relatedEntityId = relatedEntityId;
+      if (relatedEntityType) txData.relatedEntityType = relatedEntityType;
+      tx.set(txRef, txData);
+
+      return { transactionId: txRef.id, balanceBefore, balanceAfter };
+    });
+
+    console.log(`[CREDITS] ${profile.name || awarder.uid} awarded ${amount} credits to ${displayName} (${userId}) — ${category}: "${reason}"`);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('[CREDITS] Award failed:', error);
+    res.status(500).json({ error: 'Failed to award credits' });
+  }
+});
+
+// POST /api/admin/credits/reversal — reverse a prior transaction (immutable correction)
+app.post('/api/admin/credits/reversal', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const awarder = (req as any).user;
+    const profile = awarder?.profile;
+    if (!profile?.isAdmin) return res.status(403).json({ error: 'Admin access required for reversals' });
+
+    const { originalTransactionId, reason } = req.body;
+    if (!originalTransactionId || !reason) return res.status(400).json({ error: 'originalTransactionId and reason are required' });
+
+    const origRef = db.collection('creditTransactions').doc(originalTransactionId);
+    const now = new Date().toISOString();
+
+    const result = await db.runTransaction(async (tx) => {
+      const origDoc = await tx.get(origRef);
+      if (!origDoc.exists) throw new Error('Original transaction not found');
+      const orig = origDoc.data()!;
+      if (orig.type === 'reversal') throw new Error('Cannot reverse a reversal transaction');
+
+      const accountRef = db.collection('healthCredits').doc(orig.userId);
+      const accountDoc = await tx.get(accountRef);
+      if (!accountDoc.exists) throw new Error('Credit account not found');
+      const account = accountDoc.data()!;
+
+      const balanceBefore = account.balance ?? 0;
+      const reversalAmount = orig.amount;
+      const balanceAfter = Math.max(0, balanceBefore - reversalAmount);
+
+      tx.update(accountRef, {
+        balance: balanceAfter,
+        lifetimeEarned: Math.max(0, (account.lifetimeEarned ?? 0) - reversalAmount),
+        updatedAt: now,
+      });
+
+      const reversalRef = db.collection('creditTransactions').doc();
+      tx.set(reversalRef, {
+        userId: orig.userId,
+        displayName: orig.displayName,
+        type: 'reversal',
+        direction: 'debit',
+        amount: reversalAmount,
+        balanceBefore,
+        balanceAfter,
+        reason,
+        category: 'reversal',
+        awardedBy: awarder.uid,
+        awardedByName: profile.name || profile.email || awarder.uid,
+        reversalOf: originalTransactionId,
+        createdAt: now,
+      });
+
+      return { reversalId: reversalRef.id, balanceBefore, balanceAfter, reversedAmount: reversalAmount };
+    });
+
+    console.log(`[CREDITS] Admin ${awarder.uid} reversed transaction ${originalTransactionId}: "${reason}"`);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('[CREDITS] Reversal failed:', error);
+    res.status(500).json({ error: error.message || 'Failed to create reversal' });
+  }
+});
+
+// GET /api/admin/credits/account/:userId — get balance + full transaction history
+app.get('/api/admin/credits/account/:userId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).user?.profile;
+    if (!profile?.isAdmin && !COORDINATOR_ROLES.includes(profile?.role)) {
+      return res.status(403).json({ error: 'Admin or Coordinator access required' });
+    }
+    const { userId } = req.params;
+    const [accountDoc, txSnap] = await Promise.all([
+      db.collection('healthCredits').doc(userId).get(),
+      db.collection('creditTransactions').where('userId', '==', userId).orderBy('createdAt', 'desc').limit(100).get(),
+    ]);
+    const account = accountDoc.exists ? { id: accountDoc.id, ...accountDoc.data() } : null;
+    const transactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ account, transactions });
+  } catch (error: any) {
+    console.error('[CREDITS] Get account failed:', error);
+    res.status(500).json({ error: 'Failed to fetch credit account' });
+  }
+});
+
+// GET /api/admin/credits/ledger — full ledger with pool stats (admin only)
+app.get('/api/admin/credits/ledger', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).user?.profile;
+    if (!profile?.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const [txSnap, accountsSnap] = await Promise.all([
+      db.collection('creditTransactions').orderBy('createdAt', 'desc').limit(limit).get(),
+      db.collection('healthCredits').get(),
+    ]);
+
+    const transactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    let totalBalance = 0, totalEarned = 0, totalSpent = 0, totalAccounts = 0;
+    accountsSnap.docs.forEach(d => {
+      const data = d.data();
+      totalBalance += data.balance ?? 0;
+      totalEarned += data.lifetimeEarned ?? 0;
+      totalSpent += data.lifetimeSpent ?? 0;
+      totalAccounts++;
+    });
+
+    res.json({ transactions, pool: { totalAccounts, totalBalance, totalEarned, totalSpent } });
+  } catch (error: any) {
+    console.error('[CREDITS] Ledger failed:', error);
+    res.status(500).json({ error: 'Failed to fetch ledger' });
+  }
+});
+
+// GET /api/admin/credits/search — search members with credit accounts or find by name/email
+app.get('/api/admin/credits/search', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).user?.profile;
+    if (!profile?.isAdmin && !COORDINATOR_ROLES.includes(profile?.role)) {
+      return res.status(403).json({ error: 'Admin or Coordinator access required' });
+    }
+    const q = (req.query.q as string || '').trim().toLowerCase();
+    if (!q || q.length < 2) return res.json({ results: [] });
+
+    // Search volunteers and clients by name/email
+    const [volSnap, clientSnap] = await Promise.all([
+      db.collection('volunteers').orderBy('name').startAt(q[0].toUpperCase()).limit(50).get(),
+      db.collection('clients').orderBy('name').limit(50).get(),
+    ]);
+
+    const results: Array<{ id: string; displayName: string; email?: string; source: string }> = [];
+    volSnap.docs.forEach(d => {
+      const data = d.data();
+      const name = (data.name || '').toLowerCase();
+      const email = (data.email || '').toLowerCase();
+      if (name.includes(q) || email.includes(q)) {
+        results.push({ id: d.id, displayName: data.name || 'Unknown', email: data.email, source: 'volunteer' });
+      }
+    });
+    clientSnap.docs.forEach(d => {
+      const data = d.data();
+      const name = (data.name || data.firstName + ' ' + data.lastName || '').toLowerCase();
+      const email = (data.email || '').toLowerCase();
+      if (name.includes(q) || email.includes(q)) {
+        const displayName = data.name || [data.firstName, data.lastName].filter(Boolean).join(' ') || 'Unknown';
+        results.push({ id: d.id, displayName, email: data.email, source: 'client' });
+      }
+    });
+
+    res.json({ results: results.slice(0, 20) });
+  } catch (error: any) {
+    console.error('[CREDITS] Search failed:', error);
+    res.status(500).json({ error: 'Failed to search' });
+  }
+});
+
+// GET /api/credits/balance — authenticated user's own balance
+app.get('/api/credits/balance', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.uid;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const doc = await db.collection('healthCredits').doc(userId).get();
+    if (!doc.exists) return res.json({ balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 });
+    const data = doc.data()!;
+    res.json({ balance: data.balance ?? 0, lifetimeEarned: data.lifetimeEarned ?? 0, lifetimeSpent: data.lifetimeSpent ?? 0 });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SUNNY HARPER — AI WELLNESS NAVIGATOR CHAT
 // ═══════════════════════════════════════════════════════════════
 

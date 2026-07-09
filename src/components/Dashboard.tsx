@@ -6,7 +6,7 @@ import {
   ShieldCheck, Zap, Award, MessageSquare, HeartPulse,
   LogOut, TrendingUp, CheckCircle, ChevronRight, X, Info, BookOpen,
   GraduationCap, User, Users, DollarSign, BarChart3, FileText, Eye, Send, Database, ShieldAlert, Briefcase,
-  Bell, Menu, CalendarDays, Megaphone, Share2, Globe, Target, PenLine
+  Bell, Menu, CalendarDays, Megaphone, Share2, Globe, Target, PenLine, Coins
 } from 'lucide-react';
 import { Volunteer, ComplianceStep, Shift, Opportunity, SupportTicket, Announcement, Message } from '../types';
 import { apiService } from '../services/apiService';
@@ -42,6 +42,7 @@ const VolunteerSurveyModal = lazy(() => import('./VolunteerSurveyModal'));
 const WebflowCMS = lazy(() => import('./WebflowCMS'));
 const ProjectBoard = lazy(() => import('./ProjectBoard'));
 const PostOutreachReport = lazy(() => import('./PostOutreachReport'));
+const HealthCreditsAdmin = lazy(() => import('./HealthCreditsAdmin'));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center py-32">
@@ -238,7 +239,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects' | 'content-studio' | 'outreach-report'>(getDefaultTab(initialUser.role));
+  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'impact' | 'academy' | 'briefing' | 'docs' | 'calendar' | 'profile' | 'directory' | 'referrals' | 'referral-hub' | 'resources' | 'analytics' | 'workflows' | 'forms' | 'my-team' | 'screenings' | 'intake' | 'governance' | 'livechat' | 'meetings' | 'event-management' | 'website-cms' | 'projects' | 'content-studio' | 'outreach-report' | 'credits'>(getDefaultTab(initialUser.role));
   const [viewingAsRole, setViewingAsRole] = useState<string | null>(null);
 
   // Allow external navigation (e.g. from SystemTour CTA) to switch the active tab
@@ -568,6 +569,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
           { id: 'forms', label: 'Forms', icon: FileText },
           { id: 'projects', label: 'Projects', icon: Target },
           { id: 'website-cms', label: 'Website CMS', icon: Globe },
+          { id: 'credits', label: 'Health Credits', icon: Coins },
         ],
       });
     }
@@ -1214,6 +1216,7 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
              onLog={() => {}}
            /></TabErrorBoundary>
          )}
+         {activeTab === 'credits' && user.isAdmin && <TabErrorBoundary tab="credits"><HealthCreditsAdmin user={user} /></TabErrorBoundary>}
          {activeTab === 'governance' && GOVERNANCE_ROLES.includes(displayUser.role) && (
            <TabErrorBoundary tab="governance"><BoardGovernance user={displayUser} /></TabErrorBoundary>
          )}
