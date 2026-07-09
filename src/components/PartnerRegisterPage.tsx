@@ -144,13 +144,6 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={() => setShowAdminModal(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,.6)', display: 'inline-block', flexShrink: 0 }} />
-            Admin
-          </button>
-          <button
             onClick={() => { window.history.replaceState({}, '', '/'); onLogin(true); }}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f9c74f', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
           >
