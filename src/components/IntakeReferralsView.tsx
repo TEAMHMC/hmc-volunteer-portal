@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Volunteer, Shift, ClinicEvent, ClientRecord, ReferralRecord, AuditLog, ReferralResource } from '../types';
 import { apiService } from '../services/apiService';
 import { hasCompletedModule } from '../constants';
 import { ClipboardPaste, Search, UserPlus, CheckCircle, Loader2, X, Send, Home, Utensils, Brain, Droplets, HeartPulse, Sparkles, Bot, Phone, Mail, Users, Footprints, Edit3, Save, Flag, Bell, FileDown } from 'lucide-react';
 import { toastService } from '../services/toastService';
+import SignaturePad, { SignaturePadRef } from './SignaturePad';
 
 // --- CLIENT HISTORY BADGES ---
 const ClientHistoryBadges: React.FC<{ clientId?: string }> = ({ clientId }) => {
@@ -356,6 +357,39 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
     const [createdClient, setCreatedClient] = useState<any>(null);
     const isWalkIn = contactMethod === 'walk-in';
 
+    // Feature 1: participant drawn signature
+    const signaturePadRef = useRef<SignaturePadRef>(null);
+    const [signatureError, setSignatureError] = useState(false);
+
+    // Feature 2: optional SUD referral fields
+    const [sudSubstances, setSudSubstances] = useState<{substance: string; amountRoute: string; frequency: string; lastUse: string}[]>([{ substance: '', amountRoute: '', frequency: '', lastUse: '' }]);
+    const [sudMedications, setSudMedications] = useState<{name: string; dosage: string}[]>([{ name: '', dosage: '' }]);
+    const [sudWithdrawal, setSudWithdrawal] = useState('');
+    const [sudExpectedWD, setSudExpectedWD] = useState('');
+    const [sudSeizureNow, setSudSeizureNow] = useState<boolean | null>(null);
+    const [sudSeizureHistory, setSudSeizureHistory] = useState<boolean | null>(null);
+    const [sudSeizureExplain, setSudSeizureExplain] = useState('');
+    const [sudMatInterest, setSudMatInterest] = useState<boolean | null>(null);
+    const [sudMatHistory, setSudMatHistory] = useState('');
+    const [sudProgram, setSudProgram] = useState<string[]>([]);
+    const [sudDiagnosis, setSudDiagnosis] = useState('');
+    const [sudRequireDetox, setSudRequireDetox] = useState<boolean | null>(null);
+
+    // Feature 3: CLARE MATRIX ROI
+    const [showRoi, setShowRoi] = useState(false);
+    const [roiSigned, setRoiSigned] = useState(false);
+    const [roiRecipient, setRoiRecipient] = useState('CLARE MATRIX');
+    const [roiRecipientEmail, setRoiRecipientEmail] = useState('intakereferral@clarematrix.org');
+    const [roiDisclosures, setRoiDisclosures] = useState<string[]>(['Diagnostic Assessment / Intake']);
+    const [roiPurpose, setRoiPurpose] = useState<string[]>(['Assist in Treatment Planning']);
+    const roiSignaturePadRef = useRef<SignaturePadRef>(null);
+    const [roiSignatureError, setRoiSignatureError] = useState(false);
+    const [roiSaving, setRoiSaving] = useState(false);
+
+    const toggleSudProgram = (p: string) => setSudProgram(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+    const toggleRoiDisclosure = (d: string) => setRoiDisclosures(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    const toggleRoiPurpose = (p: string) => setRoiPurpose(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+
     const toggleRace = (race: string) => {
         const current = client.race || [];
         setClient({ ...client, race: current.includes(race) ? current.filter(r => r !== race) : [...current, race] });
@@ -376,15 +410,63 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
         } catch { toastService.error('Failed to download PDF.'); }
     };
 
+    const downloadRoiPdf = async (clientId: string) => {
+        try {
+            const token = localStorage.getItem('authToken');
+            const res = await fetch(`/api/clients/${clientId}/roi-pdf`, { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) throw new Error('ROI PDF generation failed');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch { toastService.error('Failed to download ROI PDF.'); }
+    };
+
+    const handleRoiSave = async () => {
+        const sigData = roiSignaturePadRef.current?.getSignature();
+        if (!sigData) { setRoiSignatureError(true); return; }
+        if (!createdClient?.id) return;
+        setRoiSaving(true);
+        try {
+            await apiService.post(`/api/clients/${createdClient.id}/roi`, {
+                recipient: roiRecipient,
+                recipientEmail: roiRecipientEmail,
+                disclosures: roiDisclosures,
+                purpose: roiPurpose,
+                participantSignatureData: sigData,
+                staffName: `${user.preferredFirstName || user.legalFirstName || ''} ${user.legalLastName || ''}`.trim(),
+                signedAt: new Date().toISOString(),
+            });
+            setRoiSigned(true);
+            onLog({ actionType: 'CREATE_ROI', targetSystem: 'FIRESTORE', targetId: createdClient.id, summary: `Release of Information signed for ${createdClient.firstName} ${createdClient.lastName} to ${roiRecipient}` });
+        } catch { toastService.error('Failed to save ROI.'); }
+        finally { setRoiSaving(false); }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!consentChecked) { toastService.error('Client consent is required before submitting.'); return; }
+        const sigData = signaturePadRef.current?.getSignature();
+        if (!sigData) { setSignatureError(true); return; }
         setIsSaving(true);
         const clientData = {
             ...client,
+            consentSignatureData: sigData,
             consentToShare: true,
             consentDate: new Date().toISOString(),
             consentSignature: `${user.preferredFirstName || user.legalFirstName || ''} ${user.legalLastName || ''}`.trim(),
+            sudReferral: (client.needs as any)?.substanceUse ? {
+                substances: sudSubstances.filter(s => s.substance.trim()),
+                medications: sudMedications.filter(m => m.name.trim()),
+                withdrawalStatus: sudWithdrawal,
+                expectedWithdrawal: sudExpectedWD,
+                seizureNow: sudSeizureNow,
+                seizureHistory: sudSeizureHistory,
+                seizureExplain: sudSeizureExplain,
+                matInterest: sudMatInterest,
+                matHistory: sudMatHistory,
+                programPreference: sudProgram,
+                requiresDetox: sudRequireDetox,
+                behavioralHealthDiagnosis: sudDiagnosis,
+            } : undefined,
         };
         if (isWalkIn) {
             (clientData as any).contactMethod = 'walk-in';
@@ -398,11 +480,97 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
 
     // Post-creation: show download button then continue
     if (createdClient) {
+        const needsRoi = (createdClient.needs as any)?.substanceUse === true;
+        const roiToggleCls = (active: boolean) => `px-3 py-2 rounded-full text-xs font-bold border transition-colors ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`;
+
         return (
-            <div className="max-w-xl mx-auto text-center space-y-6 animate-in fade-in py-8">
-                <CheckCircle size={48} className="mx-auto text-emerald-500" />
-                <h3 className="text-lg font-black text-zinc-900">Client Registered Successfully</h3>
-                <p className="text-sm text-zinc-500">{createdClient.firstName} {createdClient.lastName} has been added to the system.</p>
+            <div className="max-w-xl mx-auto space-y-6 animate-in fade-in py-8">
+                <div className="text-center space-y-4">
+                    <CheckCircle size={48} className="mx-auto text-emerald-500" />
+                    <h3 className="text-lg font-black text-zinc-900">Client Registered Successfully</h3>
+                    <p className="text-sm text-zinc-500">{createdClient.firstName} {createdClient.lastName} has been added to the system.</p>
+                </div>
+
+                {/* Feature 3: CLARE MATRIX ROI flow */}
+                {needsRoi && !roiSigned && (
+                    <>
+                        {!showRoi ? (
+                            <div className="p-4 md:p-6 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-4 text-center">
+                                <p className="text-[10px] font-black text-indigo-700 uppercase tracking-[0.2em]">Substance Use Referral</p>
+                                <p className="text-sm text-indigo-800">This client has a substance use referral need. Would you like to complete a Release of Information for treatment referral?</p>
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={() => setShowRoi(true)} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-brand/90 transition-all">
+                                        Complete ROI
+                                    </button>
+                                    <button onClick={() => { setActiveClient(createdClient); setView('referral'); }} className="text-xs text-indigo-500 underline hover:text-indigo-700">Skip for now</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 md:p-6 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-5 text-left">
+                                <div>
+                                    <p className="text-[10px] font-black text-indigo-700 uppercase tracking-[0.2em]">Release of Information for SUD Treatment Referral</p>
+                                    <p className="text-[11px] text-indigo-600 mt-1">42 CFR Part 2 protected. Requires participant signature.</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Disclose Information To (Organization)</label>
+                                        <input value={roiRecipient} onChange={e => setRoiRecipient(e.target.value)} className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Recipient Email</label>
+                                        <input value={roiRecipientEmail} onChange={e => setRoiRecipientEmail(e.target.value)} className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Information To Be Disclosed</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Diagnostic Assessment / Intake','Physician\'s Orders / Medical Records / Medication List','Treatment Plan','Discharge & Aftercare','Infectious Disease Status','Mental Health / Behavioral Health Diagnosis','Substance Use History'].map(d => (
+                                            <button key={d} type="button" onClick={() => toggleRoiDisclosure(d)} className={roiToggleCls(roiDisclosures.includes(d))}>{d}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Purpose</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Assist in Treatment Planning','Continuity of Care'].map(p => (
+                                            <button key={p} type="button" onClick={() => toggleRoiPurpose(p)} className={roiToggleCls(roiPurpose.includes(p))}>{p}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="p-3 bg-white border border-indigo-100 rounded-xl space-y-2">
+                                    <p className="text-[11px] text-zinc-600 leading-relaxed">Alcohol and drug abuse information has special privacy protections under federal law (42 CFR Part 2). This information may not be disclosed without the participant's written consent or a court order.</p>
+                                    <p className="text-[11px] italic text-zinc-500 leading-relaxed">La información sobre abuso de alcohol y drogas tiene protecciones especiales de privacidad bajo la ley federal (42 CFR Parte 2). Esta información no puede divulgarse sin el consentimiento escrito del participante o una orden judicial.</p>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Participant Signature</label>
+                                    <SignaturePad ref={roiSignaturePadRef} width={480} height={100} />
+                                    <button type="button" onClick={() => { roiSignaturePadRef.current?.clear(); setRoiSignatureError(false); }} className="text-xs text-zinc-400 underline mt-1">Clear</button>
+                                    {roiSignatureError && <p className="text-xs text-red-500 font-bold mt-1">Participant signature is required</p>}
+                                </div>
+
+                                <button onClick={handleRoiSave} disabled={roiSaving} className="w-full py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-brand/90 transition-all">
+                                    {roiSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Sign and Save ROI
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {needsRoi && roiSigned && (
+                    <div className="p-4 md:p-6 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3 text-center">
+                        <CheckCircle size={32} className="mx-auto text-emerald-500" />
+                        <p className="text-sm font-bold text-emerald-800">Release of Information saved.</p>
+                        <button onClick={() => downloadRoiPdf(createdClient.id)} className="w-full py-3 bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all">
+                            <FileDown size={16} /> Download ROI PDF
+                        </button>
+                    </div>
+                )}
+
                 <button onClick={() => downloadPdf(createdClient.id)} className="w-full py-3 bg-zinc-800 border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all">
                     <FileDown size={16} /> Download Intake Form (PDF)
                 </button>
@@ -546,6 +714,126 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                     </div>
                 </div>
 
+                {/* Substance Use Assessment (conditional) */}
+                {(client.needs as any)?.substanceUse && (
+                  <div className="space-y-4 p-4 md:p-6 bg-indigo-50 border border-indigo-200 rounded-2xl">
+                    <p className="text-[10px] font-black text-indigo-700 uppercase tracking-[0.2em]">Substance Use Assessment</p>
+
+                    {/* Substances table */}
+                    <div>
+                        <label className={labelCls}>Substances Used</label>
+                        <div className="space-y-2">
+                            {sudSubstances.map((row, i) => (
+                                <div key={i} className="grid grid-cols-4 gap-2 items-center">
+                                    <input placeholder="Substance" value={row.substance} onChange={e => setSudSubstances(prev => prev.map((r, j) => j === i ? { ...r, substance: e.target.value } : r))} className="p-2.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-xs font-bold" />
+                                    <input placeholder="Amount & Route" value={row.amountRoute} onChange={e => setSudSubstances(prev => prev.map((r, j) => j === i ? { ...r, amountRoute: e.target.value } : r))} className="p-2.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-xs font-bold" />
+                                    <input placeholder="Frequency" value={row.frequency} onChange={e => setSudSubstances(prev => prev.map((r, j) => j === i ? { ...r, frequency: e.target.value } : r))} className="p-2.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-xs font-bold" />
+                                    <div className="flex items-center gap-1">
+                                        <input placeholder="Last Use" value={row.lastUse} onChange={e => setSudSubstances(prev => prev.map((r, j) => j === i ? { ...r, lastUse: e.target.value } : r))} className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-xs font-bold" />
+                                        {sudSubstances.length > 1 && (
+                                            <button type="button" onClick={() => setSudSubstances(prev => prev.filter((_, j) => j !== i))} className="p-1 text-zinc-400 hover:text-red-500 shrink-0"><X size={14} /></button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button type="button" onClick={() => setSudSubstances(prev => [...prev, { substance: '', amountRoute: '', frequency: '', lastUse: '' }])} className="text-xs text-indigo-600 underline mt-2">Add Substance</button>
+                    </div>
+
+                    {/* Program preference */}
+                    <div>
+                        <label className={labelCls}>Program of Interest</label>
+                        <div className="flex flex-wrap gap-2">
+                            {['Detox','Residential','Outpatient','Opioid Treatment Program'].map(p => (
+                                <button key={p} type="button" onClick={() => toggleSudProgram(p)} className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${sudProgram.includes(p) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>{p}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Require Detox */}
+                    <div>
+                        <label className={labelCls}>Does client require Detox?</label>
+                        <div className="flex gap-2">
+                            <button type="button" onClick={() => setSudRequireDetox(true)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudRequireDetox === true ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>Yes</button>
+                            <button type="button" onClick={() => setSudRequireDetox(false)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudRequireDetox === false ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>No</button>
+                        </div>
+                    </div>
+
+                    {/* Current medications */}
+                    <div>
+                        <label className={labelCls}>Current Medications</label>
+                        <div className="space-y-2">
+                            {sudMedications.map((row, i) => (
+                                <div key={i} className="grid grid-cols-2 gap-2 items-center">
+                                    <input placeholder="Name" value={row.name} onChange={e => setSudMedications(prev => prev.map((r, j) => j === i ? { ...r, name: e.target.value } : r))} className="p-2.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-xs font-bold" />
+                                    <div className="flex items-center gap-1">
+                                        <input placeholder="Dosage" value={row.dosage} onChange={e => setSudMedications(prev => prev.map((r, j) => j === i ? { ...r, dosage: e.target.value } : r))} className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-xs font-bold" />
+                                        {sudMedications.length > 1 && (
+                                            <button type="button" onClick={() => setSudMedications(prev => prev.filter((_, j) => j !== i))} className="p-1 text-zinc-400 hover:text-red-500 shrink-0"><X size={14} /></button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button type="button" onClick={() => setSudMedications(prev => [...prev, { name: '', dosage: '' }])} className="text-xs text-indigo-600 underline mt-2">Add Medication</button>
+                    </div>
+
+                    {/* Withdrawal */}
+                    <div>
+                        <label className={labelCls}>Current Withdrawal Symptoms or Signs</label>
+                        <textarea value={sudWithdrawal} onChange={e => setSudWithdrawal(e.target.value)} rows={2} className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold resize-none" />
+                    </div>
+
+                    {/* Expected withdrawal */}
+                    <div>
+                        <label className={labelCls}>Expected Symptoms / Withdrawal</label>
+                        <textarea value={sudExpectedWD} onChange={e => setSudExpectedWD(e.target.value)} rows={2} className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold resize-none" />
+                    </div>
+
+                    {/* Seizures */}
+                    <div className="space-y-3">
+                        <div>
+                            <label className={labelCls}>Currently Experiencing Seizures?</label>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setSudSeizureNow(true)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudSeizureNow === true ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>Yes</button>
+                                <button type="button" onClick={() => setSudSeizureNow(false)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudSeizureNow === false ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>No</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className={labelCls}>History of Seizures?</label>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setSudSeizureHistory(true)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudSeizureHistory === true ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>Yes</button>
+                                <button type="button" onClick={() => setSudSeizureHistory(false)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudSeizureHistory === false ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>No</button>
+                            </div>
+                        </div>
+                        {(sudSeizureNow === true || sudSeizureHistory === true) && (
+                            <textarea value={sudSeizureExplain} onChange={e => setSudSeizureExplain(e.target.value)} rows={2} placeholder="Please explain seizure details" className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold resize-none" />
+                        )}
+                    </div>
+
+                    {/* MAT */}
+                    <div className="space-y-3">
+                        <div>
+                            <label className={labelCls}>Interested in Medication Assisted Treatment?</label>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setSudMatInterest(true)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudMatInterest === true ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>Yes</button>
+                                <button type="button" onClick={() => setSudMatInterest(false)} className={`px-4 py-2 rounded-full text-xs font-bold border transition-colors ${sudMatInterest === false ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-zinc-600 border-zinc-200 hover:border-indigo-300'}`}>No</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className={labelCls}>Prior MAT Medications</label>
+                            <textarea value={sudMatHistory} onChange={e => setSudMatHistory(e.target.value)} rows={2} className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold resize-none" />
+                        </div>
+                    </div>
+
+                    {/* Behavioral health diagnosis */}
+                    <div>
+                        <label className={labelCls}>Mental Health / Behavioral Health Diagnosis</label>
+                        <textarea value={sudDiagnosis} onChange={e => setSudDiagnosis(e.target.value)} rows={2} className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-indigo-300 text-sm font-bold resize-none" />
+                    </div>
+                  </div>
+                )}
+
                 {/* Insurance */}
                 <div className={sectionCls}>
                     <p className={labelCls}>Insurance</p>
@@ -568,15 +856,17 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                         <p className="italic text-emerald-700">Doy mi consentimiento para la divulgación de esta información únicamente con fines de referencia y coordinación. Entiendo que mi información será compartida de manera segura y solo con organizaciones directamente involucradas en ayudar con mis necesidades identificadas.</p>
                         <p className="italic text-emerald-700">Reconozco que puedo retirar este consentimiento en cualquier momento notificando por escrito al personal del programa.</p>
                     </div>
-                    <label className="flex items-center gap-3 cursor-pointer pt-2">
-                        <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} className="w-5 h-5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500" />
-                        <span className="text-sm font-bold text-emerald-800">Verbal consent obtained — client has been read and agrees to the above</span>
-                    </label>
+                    <div className="pt-2">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-2">Participant Signature</label>
+                        <SignaturePad ref={signaturePadRef} width={480} height={120} />
+                        <button type="button" onClick={() => { signaturePadRef.current?.clear(); setSignatureError(false); }} className="text-xs text-zinc-400 underline mt-1">Clear</button>
+                        {signatureError && <p className="text-xs text-red-500 font-bold mt-1">Participant signature is required</p>}
+                    </div>
                 </div>
 
                 <div className="flex gap-4">
                     <button type="button" onClick={() => setView('search')} className="flex-1 py-3 border border-black rounded-full text-sm font-bold uppercase tracking-wide">Cancel</button>
-                    <button type="submit" disabled={isSaving || !consentChecked} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">{isSaving ? 'Saving...' : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save and Continue</>}</button>
+                    <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-brand border border-black text-white rounded-full text-sm font-bold uppercase tracking-wide disabled:opacity-50 flex items-center justify-center gap-2">{isSaving ? 'Saving...' : <><span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" /> Save and Continue</>}</button>
                 </div>
             </form>
         </div>

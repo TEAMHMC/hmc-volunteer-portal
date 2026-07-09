@@ -114,12 +114,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
           )}
         </a>
         <div className="flex items-center gap-1.5 md:gap-2">
-          {!partnerMode && (
-            <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
-              <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
-              Admin
-            </button>
-          )}
+          <button onClick={handleAdminLoginClick} className="bg-white border border-black text-zinc-900 px-3 md:px-8 py-2 md:py-3.5 min-h-[44px] rounded-full font-bold text-[9px] md:text-[11px] uppercase tracking-wide flex items-center gap-1.5 md:gap-3 transition-all hover:scale-105 active:scale-95 shadow-elevation-1">
+            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black" />
+            Admin
+          </button>
           <button
             onClick={partnerMode ? handleVolunteerLoginClick : handleVolunteerLoginClick}
             style={partnerMode ? { background: '#f59e0b', borderColor: '#0f0f0f', color: '#0f0f0f' } : {}}
@@ -150,7 +148,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
               )}
               <div className="flex justify-between items-center mb-5 md:mb-8">
                   <h2 className="text-xl md:text-3xl font-black text-zinc-900 tracking-tighter uppercase italic">
-                    {partnerMode ? 'Partner Login' : isAdmin ? 'Admin' : 'Welcome Back'}
+                    {isAdmin ? 'Admin' : partnerMode ? 'Partner Login' : 'Welcome Back'}
                   </h2>
                   {!partnerMode && (
                     <button onClick={() => setShowLogin(false)} className="text-zinc-300 hover:text-zinc-900 text-sm font-bold bg-zinc-50 px-3 py-1 rounded-full transition-colors">Close</button>

@@ -728,6 +728,19 @@ const PARTNERSHIP_TYPES = [
   },
 ];
 
+const REFERRAL_CATEGORIES = [
+  { key: 'healthcare', label: 'Healthcare / Medical' },
+  { key: 'mentalHealth', label: 'Mental Health & Behavioral Health' },
+  { key: 'substanceUse', label: 'Substance Use Treatment' },
+  { key: 'housing', label: 'Housing & Shelter' },
+  { key: 'food', label: 'Food & Nutrition' },
+  { key: 'employment', label: 'Employment & Job Training' },
+  { key: 'legal', label: 'Legal Aid & Immigration' },
+  { key: 'childcare', label: 'Childcare & Child Services' },
+  { key: 'transportation', label: 'Transportation' },
+  { key: 'hivSexualHealth', label: 'HIV / Sexual Health' },
+];
+
 const ApplyTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [existingApp, setExistingApp] = useState<PartnerApplication | null>(null);
@@ -737,6 +750,7 @@ const ApplyTab: React.FC = () => {
   const [step, setStep] = useState(1);
   const [partnershipTypes, setPartnershipTypes] = useState<string[]>([]);
   const [servicesOffered, setServicesOffered] = useState('');
+  const [referralCategories, setReferralCategories] = useState<string[]>([]);
   const [eventCapabilities, setEventCapabilities] = useState('');
   const [subcontractCapabilities, setSubcontractCapabilities] = useState('');
   const [hasLiabilityInsurance, setHasLiabilityInsurance] = useState<string>('');
@@ -779,7 +793,8 @@ const ApplyTab: React.FC = () => {
   const isSubcontractor = partnershipTypes.includes('subcontractor');
 
   const canProceedStep1 = partnershipTypes.length > 0;
-  const canProceedStep2 = servicesOffered.trim().length > 0;
+  const isOfficialReferral = partnershipTypes.includes('official_referral');
+  const canProceedStep2 = servicesOffered.trim().length > 0 && (!isOfficialReferral || referralCategories.length > 0);
   const canProceedStep3 = lookingFor.trim().length > 0;
 
   const handleSubmit = async () => {
@@ -789,6 +804,7 @@ const ApplyTab: React.FC = () => {
       await apiService.post('/api/partner/apply', {
         partnershipTypes,
         servicesOffered,
+        referralCategories: isOfficialReferral ? referralCategories : undefined,
         eventCapabilities: isEventVendor ? eventCapabilities : undefined,
         subcontractCapabilities: isSubcontractor ? subcontractCapabilities : undefined,
         insuranceInfo: isSubcontractor && hasLiabilityInsurance === 'yes' ? (insuranceCertUrl || 'Yes — COI available on request') : undefined,
@@ -963,6 +979,30 @@ const ApplyTab: React.FC = () => {
               className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl outline-none focus:border-[#233DFF]/30 font-medium text-sm resize-none"
             />
           </div>
+          {isOfficialReferral && (
+            <div>
+              <label className={labelCls}>Referral categories you can accept *</label>
+              <p className="text-xs text-zinc-400 font-medium mb-3">Select all types of client referrals your organization is qualified and equipped to receive.</p>
+              <div className="flex flex-wrap gap-2">
+                {REFERRAL_CATEGORIES.map(cat => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setReferralCategories(prev =>
+                      prev.includes(cat.key) ? prev.filter(k => k !== cat.key) : [...prev, cat.key]
+                    )}
+                    className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${
+                      referralCategories.includes(cat.key)
+                        ? 'bg-[#233dff] text-white border-[#233dff]'
+                        : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-[#233dff]/30'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {isEventVendor && (
             <div>
               <label className={labelCls}>Event capabilities — what can you provide at events?</label>
