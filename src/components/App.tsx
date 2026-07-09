@@ -209,7 +209,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   // Update browser tab title based on current view
   useEffect(() => {
-    if (view === 'partnerLanding' || view === 'partnerRegister' || view === 'partnerPortal' || view === 'partnerAdmin') {
+    const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === 'partner.healthmatters.clinic';
+    if (view === 'partnerLanding' || view === 'partnerRegister' || view === 'partnerPortal' || view === 'partnerAdmin' || isPartnerDomain) {
       document.title = 'HMC Partner Portal';
     } else {
       document.title = 'HMC Volunteer Portal';
