@@ -1,16 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { APP_CONFIG } from '../config';
 
 interface PartnerLandingPageProps {
   onLogin: (partnerMode?: boolean) => void;
   onRegister: () => void;
+  onAdminLogin: (email: string, password: string) => Promise<void>;
 }
 
-const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegister }) => {
+const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegister, onAdminLogin }) => {
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminLoading, setAdminLoading] = useState(false);
+
   const handleLogin = () => {
     window.history.replaceState({}, '', '/');
     onLogin(true);
   };
+
+  const handleAdminSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError('');
+    setAdminLoading(true);
+    try {
+      await onAdminLogin(adminEmail.trim().toLowerCase(), adminPassword);
+    } catch (err: any) {
+      setAdminError(err?.message || 'Login failed. Check your credentials.');
+      setAdminLoading(false);
+    }
+  };
+
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", background: '#fff', color: '#0a0e28', minHeight: '100vh', WebkitFontSmoothing: 'antialiased' }}>
 
@@ -23,6 +43,13 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           </span>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setShowAdminModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#0a0e28', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a0e28', display: 'inline-block', flexShrink: 0 }} />
+            Admin
+          </button>
           <button
             onClick={onRegister}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#0a0e28', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
@@ -231,6 +258,58 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           </div>
         </div>
       </section>
+
+      {/* ADMIN LOGIN MODAL */}
+      {showAdminModal && (
+        <div
+          onClick={() => { setShowAdminModal(false); setAdminError(''); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,.12)', borderRadius: 16, padding: '40px 36px', width: '100%', maxWidth: 420, color: '#fff' }}
+          >
+            <div style={{ marginBottom: 28 }}>
+              <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: 8 }}>HMC Staff Only</p>
+              <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-.02em', margin: 0 }}>Admin Sign In</h2>
+            </div>
+            <form onSubmit={handleAdminSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginBottom: 6, letterSpacing: '.04em' }}>Email</label>
+                <input
+                  type="email"
+                  value={adminEmail}
+                  onChange={e => setAdminEmail(e.target.value)}
+                  placeholder="admin@healthmatters.clinic"
+                  required
+                  style={{ width: '100%', background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginBottom: 6, letterSpacing: '.04em' }}>Password</label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={e => setAdminPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                  style={{ width: '100%', background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              {adminError && (
+                <p style={{ fontSize: 13, color: '#f87171', margin: 0 }}>{adminError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={adminLoading}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: adminLoading ? 'rgba(255,255,255,.3)' : '#fff', color: '#0f0f0f', border: 'none', borderRadius: 100, padding: '14px 28px', fontSize: 13, fontWeight: 800, letterSpacing: '.04em', cursor: adminLoading ? 'not-allowed' : 'pointer', marginTop: 4 }}
+              >
+                {adminLoading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer style={{ background: '#111', color: '#fff', padding: '40px 48px', borderTop: '1px solid rgba(255,255,255,.07)' }}>

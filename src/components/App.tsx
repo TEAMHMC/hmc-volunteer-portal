@@ -9,6 +9,7 @@ import PartnerPortalView from './PartnerPortalView';
 import PartnerAcceptInvite from './PartnerAcceptInvite';
 import PartnerLandingPage from './PartnerLandingPage';
 import PartnerRegisterPage from './PartnerRegisterPage';
+import PartnerAdminPage from './PartnerAdminPage';
 import PublicSurveyView from './PublicSurveyView';
 import SystemTour from './SystemTour';
 import Toast from './Toast';
@@ -32,7 +33,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [gamification, setGamification] = useState<any>(null);
 
-  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerLanding' | 'partnerRegister' | 'publicSurvey'>(() => {
+  const [view, setView] = useState<'landing' | 'onboarding' | 'dashboard' | 'clientPortal' | 'partnerPortal' | 'partnerAdmin' | 'partnerLanding' | 'partnerRegister' | 'publicSurvey'>(() => {
     if (typeof window === 'undefined') return 'landing';
     const params = new URLSearchParams(window.location.search);
     const page = params.get('page');
@@ -109,7 +110,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
   // Don't kick users out during onboarding — they may not have a session yet
   useEffect(() => {
     const handleSessionExpired = () => {
-      if (view === 'onboarding' || view === 'landing' || view === 'clientPortal' || view === 'partnerLanding') {
+      if (view === 'onboarding' || view === 'landing' || view === 'clientPortal' || view === 'partnerLanding' || view === 'partnerRegister') {
         console.warn('[App] Session expired during onboarding/landing — ignoring (no session expected).');
         return;
       }
@@ -141,8 +142,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
           apiService.startSessionHeartbeat();
           // User needs onboarding if: isNewUser flag is set, OR they have no core application data (legalFirstName)
           const needsOnboarding = data.user.isNewUser === true && (!data.user.legalFirstName || data.user.onboardingProgress !== 100);
+          const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === 'partner.healthmatters.clinic';
           if (needsOnboarding) {
             setView('onboarding');
+          } else if (isPartnerDomain && data.user.isAdmin) {
+            setView('partnerAdmin');
           } else if (data.user.volunteerRole === 'Partner Agency') {
             setView('partnerPortal');
           } else {
@@ -205,7 +209,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   // Update browser tab title based on current view
   useEffect(() => {
-    if (view === 'partnerLanding' || view === 'partnerRegister' || view === 'partnerPortal') {
+    if (view === 'partnerLanding' || view === 'partnerRegister' || view === 'partnerPortal' || view === 'partnerAdmin') {
       document.title = 'HMC Partner Portal';
     } else {
       document.title = 'HMC Volunteer Portal';
@@ -230,8 +234,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       setAppData(fullData);
       apiService.startSessionHeartbeat();
       const needsOnboarding = fullData.user.isNewUser === true && (!fullData.user.legalFirstName || fullData.user.onboardingProgress !== 100);
+      const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === 'partner.healthmatters.clinic';
       if (needsOnboarding) {
         setView('onboarding');
+      } else if (isPartnerDomain && fullData.user.isAdmin) {
+        setView('partnerAdmin');
       } else if (fullData.user.volunteerRole === 'Partner Agency') {
         setView('partnerPortal');
       } else {
@@ -240,6 +247,22 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       analyticsService.logEvent('user_login', { userId: fullData.user.id, isAdmin });
     } else {
       throw new Error("Login failed: Invalid user data received from server.");
+    }
+  };
+
+  const handlePartnerAdminLogin = async (email: string, password: string) => {
+    const data = await apiService.post('/auth/login', { email, password, isAdmin: true });
+    if (data?.user) {
+      const fullData = await apiService.get('/auth/me');
+      setAppData(fullData);
+      if (!fullData.user.isAdmin) {
+        throw new Error('This account does not have admin access.');
+      }
+      apiService.startSessionHeartbeat();
+      setView('partnerAdmin');
+      analyticsService.logEvent('user_login', { userId: fullData.user.id, isAdmin: true });
+    } else {
+      throw new Error('Login failed. Check your credentials.');
     }
   };
   
@@ -318,7 +341,9 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   if (view === 'partnerPortal') return <PartnerPortalView onBackToLanding={handleReturnToLanding} />;
 
-  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} onRegister={() => setView('partnerRegister')} />;
+  if (view === 'partnerAdmin') return <PartnerAdminPage onLogout={handleLogout} />;
+
+  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} onRegister={() => setView('partnerRegister')} onAdminLogin={handlePartnerAdminLogin} />;
 
   if (view === 'partnerRegister') return (
     <PartnerRegisterPage
@@ -338,6 +363,7 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         }
       }}
       onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }}
+      onAdminLogin={handlePartnerAdminLogin}
     />
   );
 

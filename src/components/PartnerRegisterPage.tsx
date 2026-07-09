@@ -4,13 +4,14 @@ import { APP_CONFIG } from '../config';
 interface PartnerRegisterPageProps {
   onRegistered: () => void;
   onLogin: (partnerMode?: boolean) => void;
+  onAdminLogin: (email: string, password: string) => Promise<void>;
 }
 
 type OrgType = 'Healthcare' | 'Housing' | 'Food' | 'Legal' | 'Employment' | 'Mental Health' | 'Other';
 
 const ORG_TYPES: OrgType[] = ['Healthcare', 'Housing', 'Food', 'Legal', 'Employment', 'Mental Health', 'Other'];
 
-const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered, onLogin }) => {
+const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered, onLogin, onAdminLogin }) => {
   const [orgName, setOrgName] = useState('');
   const [orgType, setOrgType] = useState<OrgType | ''>('');
   const [contactName, setContactName] = useState('');
@@ -24,6 +25,24 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  const handleAdminSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError('');
+    setAdminLoading(true);
+    try {
+      await onAdminLogin(adminEmail.trim().toLowerCase(), adminPassword);
+    } catch (err: any) {
+      setAdminError(err?.message || 'Login failed. Check your credentials.');
+      setAdminLoading(false);
+    }
+  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -123,13 +142,22 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
             HMC <span style={{ color: '#f9c74f' }}>Partner Portal</span>
           </span>
         </a>
-        <button
-          onClick={() => { window.history.replaceState({}, '', '/'); onLogin(true); }}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f9c74f', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
-        >
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
-          Partner Login
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setShowAdminModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,.6)', display: 'inline-block', flexShrink: 0 }} />
+            Admin
+          </button>
+          <button
+            onClick={() => { window.history.replaceState({}, '', '/'); onLogin(true); }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f9c74f', color: '#0f0f0f', border: '1px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 13, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer' }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />
+            Partner Login
+          </button>
+        </div>
       </nav>
 
       {/* FORM AREA */}
@@ -315,6 +343,58 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
 
       {/* Spin animation */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* ADMIN LOGIN MODAL */}
+      {showAdminModal && (
+        <div
+          onClick={() => { setShowAdminModal(false); setAdminError(''); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,.12)', borderRadius: 16, padding: '40px 36px', width: '100%', maxWidth: 420, color: '#fff' }}
+          >
+            <div style={{ marginBottom: 28 }}>
+              <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', marginBottom: 8 }}>HMC Staff Only</p>
+              <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-.02em', margin: 0 }}>Admin Sign In</h2>
+            </div>
+            <form onSubmit={handleAdminSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginBottom: 6, letterSpacing: '.04em' }}>Email</label>
+                <input
+                  type="email"
+                  value={adminEmail}
+                  onChange={e => setAdminEmail(e.target.value)}
+                  placeholder="admin@healthmatters.clinic"
+                  required
+                  style={{ width: '100%', background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginBottom: 6, letterSpacing: '.04em' }}>Password</label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={e => setAdminPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                  style={{ width: '100%', background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              {adminError && (
+                <p style={{ fontSize: 13, color: '#f87171', margin: 0 }}>{adminError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={adminLoading}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: adminLoading ? 'rgba(249,199,79,.5)' : '#f9c74f', color: '#0f0f0f', border: 'none', borderRadius: 100, padding: '14px 28px', fontSize: 13, fontWeight: 800, letterSpacing: '.04em', cursor: adminLoading ? 'not-allowed' : 'pointer', marginTop: 4 }}
+              >
+                {adminLoading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer style={{ background: '#111', color: '#fff', padding: '32px 48px', borderTop: '1px solid rgba(255,255,255,.07)' }}>
