@@ -844,6 +844,29 @@ const NewClientForm: React.FC<{setView: Function, setActiveClient: Function, onL
                     </div>
                 </div>
 
+                {/* SSN -- optional, uninsured referrals */}
+                <div className={sectionCls}>
+                    <p className={labelCls}>Social Security Number <span className="normal-case font-medium text-zinc-400 tracking-normal">(optional -- for uninsured patients only)</span></p>
+                    <div className="max-w-[220px]">
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="XXX-XX-XXXX"
+                            maxLength={11}
+                            onChange={e => {
+                                let v = e.target.value.replace(/[^\d-]/g, '');
+                                const d = v.replace(/-/g, '');
+                                if (d.length >= 5) v = d.slice(0,3) + '-' + d.slice(3,5) + '-' + d.slice(5,9);
+                                else if (d.length >= 3) v = d.slice(0,3) + '-' + d.slice(3);
+                                else v = d;
+                                e.target.value = v;
+                                setClient({...client, ssn: v});
+                            }}
+                            className={inputCls}
+                        />
+                    </div>
+                </div>
+
                 {/* Consent to Share */}
                 <div className="p-4 md:p-6 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-4">
                     <p className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.2em]">Consent to Share Information for Referrals</p>
