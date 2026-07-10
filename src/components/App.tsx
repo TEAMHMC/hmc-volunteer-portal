@@ -314,7 +314,8 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
       localStorage.removeItem('authToken');
       setCurrentUser(null);
       setAllVolunteers([]);
-      setView('landing');
+      const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === 'partner.healthmatters.clinic';
+      setView(isPartnerDomain ? 'partnerLanding' : 'landing');
     }
   };
   
