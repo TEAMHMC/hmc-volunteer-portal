@@ -22601,34 +22601,54 @@ app.post('/api/admin/ceu/email-certificate', verifyToken, requireAdmin, async (r
     const displayDate = sessionDateDisplay || new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const issuedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const safeName = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_');
-    await sendEmail({
-      to: email,
-      subject: 'Your CE Certificate of Completion - Unstoppable Training | Health Matters Clinic',
-      html: `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
-        <p style="margin:0 0 16px">Dear ${firstName},</p>
-        <p style="margin:0 0 16px">Your certificate of completion for the Unstoppable CE training is attached to this email.</p>
-        <table style="width:100%;border-collapse:collapse;margin:0 0 20px;font-size:13px">
-          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;width:140px">Course</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_COURSE_TITLE_FULL}</td></tr>
-          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Date Completed</td><td style="padding:8px 0;border-bottom:1px solid #eee">${displayDate}</td></tr>
-          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">CE Hours</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_HOURS} Hour</td></tr>
-          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Approved Boards</td><td style="padding:8px 0;border-bottom:1px solid #eee">BBS (LCSW, LMFT, LPCC, LEP), BRN, CCAPP, Psychology</td></tr>
-          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Approval Agency</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_APPROVAL_AGENCY}</td></tr>
-          <tr><td style="padding:8px 0;font-weight:700">Certificate No</td><td style="padding:8px 0">${certId} | Issued: ${issuedDate}</td></tr>
-        </table>
-        <p style="margin:0 0 12px;font-size:13px"><strong>Important:</strong> Keep this certificate in your records for at least two years after your license renewal date. Do not submit it to the BBS unless you are selected for a CE audit.</p>
-        <p style="margin:0 0 16px;font-size:13px">Thank you for participating in the Unstoppable training.</p>
-        <p style="margin:0;font-size:13px">Health Matters Clinic<br>${HMC_MAILING_ADDRESS}<br>education@healthmatters.clinic</p>
-      </div>`,
-      attachments: [{
-        filename: `HMC_CEU_Certificate_${safeName}_${sessionDate}.pdf`,
-        content: Buffer.from(pdfBytes),
-        contentType: 'application/pdf',
-      }],
+    // Store PDF in Firestore and send a download link (email service does not support attachments)
+    const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
+    await db.collection('ceu_certificates').doc(certId).set({
+      certId, firstName, lastName, licenseType, licenseNumber: licenseNumber || '',
+      sessionDate, sessionDateDisplay: displayDate, email,
+      pdfBase64, issuedAt: new Date().toISOString(),
     });
-    res.json({ success: true, certId });
+    const PORTAL_BASE = process.env.WEBSITE_URL || 'https://hmc-volunteer-portal-172668994130.us-central1.run.app';
+    const downloadUrl = `${PORTAL_BASE}/api/public/ceu-certificate/${certId}`;
+    const subject = 'Your CE Certificate of Completion - Unstoppable Training | Health Matters Clinic';
+    const html = `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+      <p style="margin:0 0 16px">Dear ${firstName},</p>
+      <p style="margin:0 0 16px">Your certificate of completion for the Unstoppable CE training is ready for download.</p>
+      <p style="margin:0 0 20px"><a href="${downloadUrl}" style="display:inline-block;padding:12px 28px;background:#0a0a0a;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;font-size:14px">Download Certificate (PDF)</a></p>
+      <table style="width:100%;border-collapse:collapse;margin:0 0 20px;font-size:13px">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;width:140px">Course</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_COURSE_TITLE_FULL}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Date Completed</td><td style="padding:8px 0;border-bottom:1px solid #eee">${displayDate}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">CE Hours</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_HOURS} Hour</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Approved Boards</td><td style="padding:8px 0;border-bottom:1px solid #eee">BBS (LCSW, LMFT, LPCC, LEP), BRN, CCAPP, Psychology</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Approval Agency</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_APPROVAL_AGENCY}</td></tr>
+        <tr><td style="padding:8px 0;font-weight:700">Certificate No</td><td style="padding:8px 0">${certId} | Issued: ${issuedDate}</td></tr>
+      </table>
+      <p style="margin:0 0 12px;font-size:13px"><strong>Important:</strong> Keep this certificate in your records for at least two years after your license renewal date. Do not submit it to the BBS unless you are selected for a CE audit.</p>
+      <p style="margin:0 0 16px;font-size:13px">Thank you for participating in the Unstoppable training.</p>
+      <p style="margin:0;font-size:13px">Health Matters Clinic<br>${HMC_MAILING_ADDRESS}<br>education@healthmatters.clinic</p>
+    </div>`;
+    await sendEmailRaw(email, subject, html, `Dear ${firstName}, your CE certificate is ready: ${downloadUrl}`);
+    res.json({ success: true, certId, downloadUrl });
   } catch (e: any) {
     console.error('[CEU-CERT-EMAIL]', e.message);
     res.status(500).json({ error: 'Certificate email failed' });
+  }
+});
+
+// GET /api/public/ceu-certificate/:certId — serve stored CEU certificate PDF
+app.get('/api/public/ceu-certificate/:certId', async (req: Request, res: Response) => {
+  try {
+    const doc = await db.collection('ceu_certificates').doc(req.params.certId).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Certificate not found' });
+    const { pdfBase64, firstName, lastName, sessionDate } = doc.data() as any;
+    const safeName = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    const buffer = Buffer.from(pdfBase64, 'base64');
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', `attachment; filename="HMC_CEU_Certificate_${safeName}_${sessionDate}.pdf"`);
+    res.set('Cache-Control', 'private, max-age=86400');
+    res.send(buffer);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
 });
 
