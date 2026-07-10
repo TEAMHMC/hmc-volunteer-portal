@@ -17,6 +17,7 @@ import {
   Plus,
   FileDown,
   Pencil,
+  ArrowRight,
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
@@ -47,7 +48,23 @@ interface AdminPartner {
   servicesProvided?: string[];
 }
 
-type PanelTab = 'applications' | 'partners';
+type PanelTab = 'applications' | 'partners' | 'referrals';
+
+interface AdminReferral {
+  id: string;
+  clientName: string;
+  clientDob?: string;
+  partnerName: string;
+  partnerId?: string;
+  status: string;
+  serviceNeeded?: string;
+  urgency?: string;
+  notes?: string;
+  outcome?: string;
+  createdAt?: string;
+  matchedDate?: string;
+  completedDate?: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -750,6 +767,164 @@ const PartnersTab: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ReferralsTab
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<string, { badge: string; label: string }> = {
+  pending:   { badge: 'bg-amber-100 text-amber-700',   label: 'Pending' },
+  matched:   { badge: 'bg-blue-100 text-blue-700',     label: 'Matched' },
+  completed: { badge: 'bg-emerald-100 text-emerald-700', label: 'Completed' },
+  declined:  { badge: 'bg-red-100 text-red-700',       label: 'Declined' },
+  cancelled: { badge: 'bg-zinc-100 text-zinc-500',     label: 'Cancelled' },
+};
+
+const URGENCY_CONFIG: Record<string, string> = {
+  high: 'bg-red-100 text-red-700',
+  medium: 'bg-amber-100 text-amber-700',
+  low: 'bg-zinc-100 text-zinc-500',
+};
+
+const ReferralsTab: React.FC = () => {
+  const [referrals, setReferrals] = useState<AdminReferral[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [filterPartner, setFilterPartner] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+
+  const fetchReferrals = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await apiService.get('/api/admin/partner-referrals');
+      setReferrals(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load referrals.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchReferrals(); }, [fetchReferrals]);
+
+  const handleStatusUpdate = async (ref: AdminReferral, status: string) => {
+    setUpdatingId(ref.id);
+    try {
+      await apiService.patch(`/api/admin/partner-referrals/${ref.id}/status`, { status });
+      await fetchReferrals();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-zinc-300" /></div>;
+  if (error) return <div className="p-6 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3"><AlertTriangle size={18} className="text-red-500 mt-0.5 shrink-0" /><p className="text-sm font-medium text-red-700">{error}</p></div>;
+
+  const partners = [...new Set(referrals.map(r => r.partnerName))].sort();
+  const filtered = referrals.filter(r =>
+    (!filterPartner || r.partnerName === filterPartner) &&
+    (!filterStatus || r.status === filterStatus)
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-center">
+        <select
+          value={filterPartner}
+          onChange={e => setFilterPartner(e.target.value)}
+          className="px-3 py-2 text-xs font-black rounded-xl border border-zinc-200 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#233dff]/30"
+        >
+          <option value="">All Partners</option>
+          {partners.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="px-3 py-2 text-xs font-black rounded-xl border border-zinc-200 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#233dff]/30"
+        >
+          <option value="">All Statuses</option>
+          {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <span className="text-xs text-zinc-400 font-medium ml-auto">{filtered.length} referral{filtered.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-zinc-400">
+          <ArrowRight size={36} className="mx-auto mb-3 opacity-40" />
+          <p className="font-black text-sm uppercase tracking-widest">No Partner Referrals</p>
+          <p className="text-xs font-medium mt-1">Referrals sent to partner organizations will appear here.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(ref => {
+            const isExpanded = expandedId === ref.id;
+            const cfg = STATUS_CONFIG[ref.status] || STATUS_CONFIG.pending;
+            const isUpdating = updatingId === ref.id;
+            return (
+              <div key={ref.id} className="rounded-2xl border border-zinc-100 bg-white overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isExpanded ? null : ref.id)}
+                  className="w-full text-left p-4 flex items-center gap-3 hover:bg-zinc-50/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-zinc-900 text-sm">{ref.clientName}</span>
+                      <ArrowRight size={12} className="text-zinc-300 shrink-0" />
+                      <span className="font-bold text-zinc-600 text-sm truncate">{ref.partnerName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black ${cfg.badge}`}>{cfg.label}</span>
+                      {ref.urgency && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${URGENCY_CONFIG[ref.urgency] || 'bg-zinc-100 text-zinc-500'}`}>{ref.urgency} urgency</span>}
+                      {ref.serviceNeeded && <span className="text-[10px] text-zinc-400 font-medium">{ref.serviceNeeded}</span>}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {ref.createdAt && <p className="text-[10px] text-zinc-400 font-medium">{formatDate(ref.createdAt)}</p>}
+                    {isExpanded ? <ChevronDown size={14} className="text-zinc-400 ml-auto mt-1" /> : <ChevronRight size={14} className="text-zinc-400 ml-auto mt-1" />}
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-3 border-t border-zinc-100 space-y-3">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      {ref.clientDob && <div><p className={labelCls}>Date of Birth</p><p className="font-medium text-zinc-700">{ref.clientDob}</p></div>}
+                      {ref.createdAt && <div><p className={labelCls}>Referred On</p><p className="font-medium text-zinc-700">{formatDate(ref.createdAt)}</p></div>}
+                      {ref.matchedDate && <div><p className={labelCls}>Matched On</p><p className="font-medium text-zinc-700">{formatDate(ref.matchedDate)}</p></div>}
+                      {ref.completedDate && <div><p className={labelCls}>Completed On</p><p className="font-medium text-zinc-700">{formatDate(ref.completedDate)}</p></div>}
+                      {ref.outcome && <div className="col-span-2"><p className={labelCls}>Outcome</p><p className="font-medium text-zinc-700">{ref.outcome}</p></div>}
+                      {ref.notes && <div className="col-span-2"><p className={labelCls}>Notes</p><p className="font-medium text-zinc-700">{ref.notes}</p></div>}
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-100">
+                      <p className={labelCls + ' w-full mb-1'}>Update Status</p>
+                      {Object.entries(STATUS_CONFIG).filter(([k]) => k !== ref.status).map(([k, v]) => (
+                        <button
+                          key={k}
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => handleStatusUpdate(ref, k)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border transition-colors disabled:opacity-40 ${v.badge} border-current/20 hover:opacity-80`}
+                        >
+                          {isUpdating ? <Loader2 size={10} className="animate-spin" /> : null}
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PartnerAdminPanel (main export)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -759,6 +934,7 @@ const PartnerAdminPanel: React.FC = () => {
   const tabs: { id: PanelTab; label: string; icon: React.ReactNode }[] = [
     { id: 'applications', label: 'Applications', icon: <ClipboardList size={15} /> },
     { id: 'partners', label: 'Partners', icon: <Users size={15} /> },
+    { id: 'referrals', label: 'Referrals', icon: <ArrowRight size={15} /> },
   ];
 
   return (
@@ -791,6 +967,7 @@ const PartnerAdminPanel: React.FC = () => {
       <div>
         {activeTab === 'applications' && <ApplicationsTab />}
         {activeTab === 'partners' && <PartnersTab />}
+        {activeTab === 'referrals' && <ReferralsTab />}
       </div>
     </div>
   );

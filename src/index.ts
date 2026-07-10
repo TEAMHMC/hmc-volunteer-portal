@@ -8284,6 +8284,67 @@ app.get('/api/partners', verifyToken, async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/admin/partner-referrals — All referrals sent to partner organizations
+app.get('/api/admin/partner-referrals', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const [referralsSnap, clientsSnap, partnersSnap] = await Promise.all([
+            db.collection('referrals').orderBy('createdAt', 'desc').get(),
+            db.collection('clients').get(),
+            db.collection('partner_agencies').get(),
+        ]);
+
+        const clientMap: Record<string, any> = {};
+        clientsSnap.docs.forEach(d => { clientMap[d.id] = d.data(); });
+
+        const partnerMap: Record<string, string> = {};
+        partnersSnap.docs.forEach(d => { partnerMap[d.id] = d.data().name; });
+
+        const partnerReferrals = referralsSnap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter((r: any) => r.referredToPartnerId || r.referredTo)
+            .map((r: any) => {
+                const client = clientMap[r.clientId] || {};
+                return {
+                    id: r.id,
+                    clientId: r.clientId,
+                    clientName: client.firstName ? `${client.firstName} ${client.lastName || ''}`.trim() : 'Unknown Client',
+                    clientDob: client.dateOfBirth || null,
+                    partnerName: r.referredTo || (r.referredToPartnerId ? partnerMap[r.referredToPartnerId] : null) || 'Unknown Partner',
+                    partnerId: r.referredToPartnerId || null,
+                    status: r.status || 'pending',
+                    serviceNeeded: r.serviceNeeded || r.referredToDetails || null,
+                    urgency: r.urgency || null,
+                    notes: r.notes || null,
+                    outcome: r.outcome || null,
+                    createdAt: r.createdAt || null,
+                    matchedDate: r.matchedDate || null,
+                    completedDate: r.completedDate || null,
+                };
+            });
+
+        res.json(partnerReferrals);
+    } catch (error: any) {
+        console.error('[ADMIN PARTNER REFERRALS] Failed:', error);
+        res.status(500).json({ error: 'Failed to fetch partner referrals' });
+    }
+});
+
+// PATCH /api/admin/partner-referrals/:id/status — Update referral status
+app.patch('/api/admin/partner-referrals/:id/status', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { status, outcome, notes } = req.body;
+        const updates: Record<string, any> = { status };
+        if (outcome) updates.outcome = outcome;
+        if (notes) updates.notes = notes;
+        if (status === 'matched') updates.matchedDate = new Date().toISOString();
+        if (status === 'completed') updates.completedDate = new Date().toISOString();
+        await db.collection('referrals').doc(req.params.id).update(updates);
+        res.json({ success: true });
+    } catch (error: any) {
+        res.status(500).json({ error: 'Failed to update referral status' });
+    }
+});
+
 // PATCH /api/admin/partners/:id — Update partner record and regenerate agreement body
 app.patch('/api/admin/partners/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
