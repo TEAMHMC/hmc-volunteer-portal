@@ -22075,6 +22075,341 @@ app.post('/api/ai/gemini', rateLimit(30, 3600000), verifyToken, async (req: Requ
     }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// CEU SESSION MANAGEMENT — Minimum Enrollment Confirmation System
+// ═══════════════════════════════════════════════════════════════
+
+// Helper: format a date string (YYYY-MM-DD) and optional time for email display.
+function formatCeuEventDateTime(date: string, time?: string): string {
+  const d = new Date(date + 'T12:00:00'); // noon to avoid DST edge cases
+  const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
+  return time ? `${dateStr} at ${time} PT` : dateStr;
+}
+
+// Helper: build the confirmed-session email HTML.
+function buildCeuConfirmedHtml(registrantName: string, eventTitle: string, eventDate: string, eventTime: string | undefined, zoomLink: string, ceHours: number, ceBoards: string[]): string {
+  const dateTimeStr = formatCeuEventDateTime(eventDate, eventTime);
+  const boardsStr = ceBoards && ceBoards.length > 0 ? ceBoards.join(', ') : 'LACDMH-approved boards';
+  return `${emailHeader('CEU Session Confirmed')}
+    <div style="padding: 32px;">
+      <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 16px;">Hi ${registrantName},</p>
+      <p style="margin: 0 0 16px 0; color: #374151;">Great news. Your upcoming CEU training session has reached the minimum enrollment threshold and is confirmed to proceed.</p>
+      <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 700; font-size: 18px; color: #1f2937;">${eventTitle}</p>
+        <p style="margin: 0 0 8px 0; color: #374151;"><strong>Date and Time:</strong> ${dateTimeStr}</p>
+        <p style="margin: 0 0 8px 0; color: #374151;"><strong>Format:</strong> Live Zoom Session</p>
+        <p style="margin: 0 0 8px 0; color: #374151;"><strong>CE Hours:</strong> ${ceHours || 1.0} hour(s)</p>
+        <p style="margin: 0; color: #374151;"><strong>Approved Boards:</strong> ${boardsStr}</p>
+      </div>
+      <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937;">Your Zoom Link:</p>
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin: 0 0 24px 0; word-break: break-all;">
+        <a href="${zoomLink}" style="color: ${EMAIL_CONFIG.BRAND_COLOR}; font-weight: 600; text-decoration: none;">${zoomLink}</a>
+      </div>
+      <p style="margin: 0 0 16px 0; color: #374151;">Please join the session 5 minutes early to complete any technical setup. Full attendance is required to receive your CE certificate.</p>
+      <p style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937;">What You Will Learn:</p>
+      <ul style="margin: 0 0 24px 0; padding-left: 24px; color: #374151;">
+        <li style="margin-bottom: 8px;">Evidence-based strategies from the Unstoppable curriculum</li>
+        <li style="margin-bottom: 8px;">Practical tools for community health and mental wellness</li>
+        <li style="margin-bottom: 8px;">Skills aligned with LACDMH continuing education standards</li>
+      </ul>
+      <p style="margin: 0 0 16px 0; color: #374151;">Your CE certificate will be emailed to you within 5 business days of completing the session.</p>
+      <p style="margin: 0 0 4px 0; color: #374151;">We look forward to seeing you there.</p>
+      <p style="margin: 0; color: #374151;">The Health Matters Clinic Team</p>
+    </div>
+  ${emailFooter()}`;
+}
+
+// Helper: build the cancelled-session email HTML.
+function buildCeuCancelledHtml(registrantName: string, eventTitle: string, eventDate: string, eventTime: string | undefined, nextSessionUrl: string): string {
+  const dateTimeStr = formatCeuEventDateTime(eventDate, eventTime);
+  return `${emailHeader('CEU Session Update')}
+    <div style="padding: 32px;">
+      <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 16px;">Hi ${registrantName},</p>
+      <p style="margin: 0 0 16px 0; color: #374151;">We sincerely apologize for the inconvenience. Unfortunately, the following session did not reach the minimum enrollment required to proceed.</p>
+      <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; font-weight: 700; font-size: 18px; color: #1f2937;">${eventTitle}</p>
+        <p style="margin: 0; color: #374151;"><strong>Originally Scheduled:</strong> ${dateTimeStr}</p>
+      </div>
+      <p style="margin: 0 0 16px 0; color: #374151;">This session has been cancelled. A full refund will be processed within 3 to 5 business days and returned to your original payment method. You do not need to take any action to receive your refund.</p>
+      <p style="margin: 0 0 16px 0; color: #374151;">We would love to have you join us at a future session. Please visit the link below to view upcoming CEU training dates and register for the next available session.</p>
+      ${actionButton('View Upcoming CEU Sessions', nextSessionUrl)}
+      <p style="margin: 24px 0 4px 0; color: #374151;">Thank you for your interest in the Unstoppable CEU training. We hope to see you soon.</p>
+      <p style="margin: 0; color: #374151;">The Health Matters Clinic Team</p>
+    </div>
+  ${emailFooter()}`;
+}
+
+// POST /api/admin/cron/ceu-session-confirm
+// Finds paid-ceu events with dates 20-28 hours out, evaluates enrollment, sends confirmation or cancellation emails.
+// Auth: CRON_SECRET header (x-cron-secret) OR admin Bearer token.
+app.post('/api/admin/cron/ceu-session-confirm', async (req: Request, res: Response) => {
+  // Auth: cron secret OR admin Firebase token
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
+  if (!cronSecret || providedSecret !== cronSecret) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+      const token = authHeader.split('Bearer ')[1];
+      const decoded = await admin.auth().verifyIdToken(token);
+      const profile = (await db.collection('volunteers').doc(decoded.uid).get()).data();
+      if (!profile?.isAdmin) return res.status(403).json({ error: 'Admin only' });
+    } catch {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
+  const now = Date.now();
+  const windowStart = now + 20 * 60 * 60 * 1000; // 20 hours from now
+  const windowEnd   = now + 28 * 60 * 60 * 1000; // 28 hours from now
+
+  const summary: { confirmed: string[]; cancelled: string[]; skipped: string[]; errors: string[] } = {
+    confirmed: [],
+    cancelled: [],
+    skipped: [],
+    errors: [],
+  };
+
+  try {
+    // Fetch all opportunities and filter in memory (no orderBy to avoid composite index requirement)
+    const oppsSnap = await db.collection('opportunities').get();
+    const paidCeuEvents = oppsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() as any }))
+      .filter((e: any) => e.sessionType === 'paid-ceu');
+
+    for (const event of paidCeuEvents) {
+      const eventLabel = `${event.title || event.id} (${event.date})`;
+
+      // Skip if already processed
+      if (event.confirmationStatus === 'confirmed' || event.confirmationStatus === 'cancelled') {
+        summary.skipped.push(`${eventLabel} [already ${event.confirmationStatus}]`);
+        continue;
+      }
+
+      // Determine event start datetime
+      let eventStartMs: number | null = null;
+      if (event.date) {
+        if (event.startTime && typeof event.startTime === 'string' && event.startTime.match(/T\d{2}:\d{2}/)) {
+          // ISO startTime stored on the opportunity
+          eventStartMs = new Date(ensurePacificTime(event.startTime)).getTime();
+        } else {
+          let timeStr = '';
+          if (event.time) {
+            const firstPart = String(event.time).split('-')[0].trim();
+            timeStr = firstPart;
+          }
+          const combinedStr = timeStr
+            ? `${event.date} ${timeStr}`
+            : `${event.date}T12:00:00`;
+          const parsed = new Date(combinedStr);
+          if (!isNaN(parsed.getTime())) {
+            eventStartMs = parsed.getTime();
+          }
+        }
+      }
+
+      if (eventStartMs === null) {
+        summary.errors.push(`${eventLabel}: could not parse event date/time`);
+        continue;
+      }
+
+      if (eventStartMs < windowStart || eventStartMs > windowEnd) {
+        continue;
+      }
+
+      // Count active RSVPs from public_rsvps collection
+      const rsvpSnap = await db.collection('public_rsvps')
+        .where('eventId', '==', event.id)
+        .get();
+      const activeRsvps = rsvpSnap.docs
+        .map(d => d.data() as any)
+        .filter((r: any) => r.status !== 'cancelled');
+
+      const rsvpCount = activeRsvps.length;
+      const minEnrollment: number = typeof event.minEnrollment === 'number' ? event.minEnrollment : 5;
+      const isConfirmed = rsvpCount >= minEnrollment;
+      const nextSessionUrl = 'https://healthmatters.clinic/resources/eventfinder';
+
+      const eventDateStr: string = event.date || '';
+      const eventTimeStr: string | undefined = event.time ? String(event.time).split('-')[0].trim() : undefined;
+      const ceHours: number = typeof event.ceHours === 'number' ? event.ceHours : 1.0;
+      const ceBoards: string[] = Array.isArray(event.ceBoards) ? event.ceBoards : ['LACDMH'];
+
+      // Send emails to all registrants
+      const emailErrors: string[] = [];
+      for (const rsvp of activeRsvps) {
+        if (!rsvp.email) continue;
+        const firstName = (String(rsvp.name || 'Participant').split(' ')[0]) || 'Participant';
+        try {
+          if (isConfirmed) {
+            const zoomLink = event.zoomLink || '';
+            const subject = `Your Unstoppable CEU Session is Confirmed -- ${formatCeuEventDateTime(eventDateStr, eventTimeStr)}`;
+            const html = buildCeuConfirmedHtml(firstName, event.title || 'Unstoppable CEU Training', eventDateStr, eventTimeStr, zoomLink, ceHours, ceBoards);
+            const text = `Hi ${firstName},\n\nYour CEU session "${event.title || 'Unstoppable CEU Training'}" on ${formatCeuEventDateTime(eventDateStr, eventTimeStr)} is confirmed.\n\nZoom link: ${zoomLink}\n\nYour CE certificate will be emailed within 5 business days of completing the session.\n\nHealth Matters Clinic`;
+            await sendEmailRaw(rsvp.email, subject, html, text);
+          } else {
+            const subject = `Unstoppable CEU Session Update -- ${formatCeuEventDateTime(eventDateStr, eventTimeStr)}`;
+            const html = buildCeuCancelledHtml(firstName, event.title || 'Unstoppable CEU Training', eventDateStr, eventTimeStr, nextSessionUrl);
+            const text = `Hi ${firstName},\n\nWe apologize. The CEU session "${event.title || 'Unstoppable CEU Training'}" scheduled for ${formatCeuEventDateTime(eventDateStr, eventTimeStr)} has been cancelled due to not reaching minimum enrollment.\n\nA full refund will be processed within 3 to 5 business days.\n\nView upcoming sessions: ${nextSessionUrl}\n\nHealth Matters Clinic`;
+            await sendEmailRaw(rsvp.email, subject, html, text);
+          }
+        } catch (err: any) {
+          emailErrors.push(`${rsvp.email}: ${err.message}`);
+        }
+      }
+
+      // Update event in Firestore
+      const updatePayload: any = isConfirmed
+        ? { confirmationStatus: 'confirmed', confirmedAt: new Date().toISOString() }
+        : { confirmationStatus: 'cancelled', cancelledAt: new Date().toISOString() };
+      await db.collection('opportunities').doc(event.id).update(updatePayload);
+
+      if (isConfirmed) {
+        summary.confirmed.push(`${eventLabel} (${rsvpCount}/${minEnrollment} enrolled)`);
+      } else {
+        summary.cancelled.push(`${eventLabel} (${rsvpCount}/${minEnrollment} enrolled)`);
+      }
+      if (emailErrors.length > 0) {
+        summary.errors.push(`${eventLabel} email errors: ${emailErrors.join('; ')}`);
+      }
+    }
+
+    // Send summary email to Erica
+    const summaryLines: string[] = [
+      `CEU session confirmation check completed at ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT.`,
+      '',
+      `Confirmed (${summary.confirmed.length}):`,
+      ...summary.confirmed.map((s: string) => `  - ${s}`),
+      '',
+      `Cancelled (${summary.cancelled.length}):`,
+      ...summary.cancelled.map((s: string) => `  - ${s}`),
+      '',
+      `Skipped (${summary.skipped.length}):`,
+      ...summary.skipped.map((s: string) => `  - ${s}`),
+      '',
+      `Errors (${summary.errors.length}):`,
+      ...summary.errors.map((s: string) => `  - ${s}`),
+    ];
+    const summaryText = summaryLines.join('\n');
+    const summaryHtml = `${emailHeader('CEU Session Confirmation Summary')}
+      <div style="padding: 32px;">
+        <p style="margin: 0 0 16px 0; color: #374151;">The automatic CEU session confirmation check has completed.</p>
+        ${summary.confirmed.length > 0 ? `
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #16a34a;">Confirmed (${summary.confirmed.length}):</p>
+        <ul style="margin: 0 0 16px 0; padding-left: 24px; color: #374151;">${summary.confirmed.map((s: string) => `<li>${s}</li>`).join('')}</ul>` : ''}
+        ${summary.cancelled.length > 0 ? `
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #dc2626;">Cancelled (${summary.cancelled.length}):</p>
+        <ul style="margin: 0 0 16px 0; padding-left: 24px; color: #374151;">${summary.cancelled.map((s: string) => `<li>${s}</li>`).join('')}</ul>` : ''}
+        ${summary.skipped.length > 0 ? `
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #6b7280;">Skipped (already processed) (${summary.skipped.length}):</p>
+        <ul style="margin: 0 0 16px 0; padding-left: 24px; color: #374151;">${summary.skipped.map((s: string) => `<li>${s}</li>`).join('')}</ul>` : ''}
+        ${summary.errors.length > 0 ? `
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #b45309;">Errors (${summary.errors.length}):</p>
+        <ul style="margin: 0 0 16px 0; padding-left: 24px; color: #374151;">${summary.errors.map((s: string) => `<li>${s}</li>`).join('')}</ul>` : ''}
+        ${summary.confirmed.length === 0 && summary.cancelled.length === 0 ? '<p style="color: #374151;">No paid-ceu events were in the 20-28 hour window.</p>' : ''}
+      </div>
+    ${emailFooter()}`;
+
+    await sendEmailRaw('erica@healthmatters.clinic', 'CEU Session Confirmation Report', summaryHtml, summaryText).catch(() => {});
+
+    console.log('[CEU-CONFIRM] Cron complete:', summary);
+    return res.json({ success: true, summary });
+  } catch (error: any) {
+    console.error('[CEU-CONFIRM] Cron failed:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/admin/ceu-sessions
+// Returns upcoming paid-ceu events with RSVP counts, confirmationStatus, and minEnrollment.
+// Auth: Firebase admin token.
+app.get('/api/admin/ceu-sessions', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const todayStr = getPacificDate(0);
+
+    // Fetch all opportunities and filter in memory
+    const oppsSnap = await db.collection('opportunities').get();
+    const paidCeuEvents = oppsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() as any }))
+      .filter((e: any) => e.sessionType === 'paid-ceu' && e.date >= todayStr)
+      .sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
+
+    // For each event, count active RSVPs
+    const results = await Promise.all(paidCeuEvents.map(async (event: any) => {
+      const rsvpSnap = await db.collection('public_rsvps')
+        .where('eventId', '==', event.id)
+        .get();
+      const activeRsvps = rsvpSnap.docs
+        .map(d => d.data() as any)
+        .filter((r: any) => r.status !== 'cancelled');
+      const minEnrollment: number = typeof event.minEnrollment === 'number' ? event.minEnrollment : 5;
+      return {
+        id: event.id,
+        title: event.title || '',
+        date: event.date || '',
+        time: event.time || '',
+        minEnrollment,
+        rsvpCount: activeRsvps.length,
+        confirmationStatus: event.confirmationStatus || 'pending',
+        confirmedAt: event.confirmedAt || null,
+        cancelledAt: event.cancelledAt || null,
+        zoomLink: event.zoomLink || '',
+        ceHours: event.ceHours || 1.0,
+        ceBoards: event.ceBoards || ['LACDMH'],
+        sessionType: event.sessionType,
+      };
+    }));
+
+    return res.json({ sessions: results });
+  } catch (error: any) {
+    console.error('[CEU-SESSIONS] Failed:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH /api/admin/events/:id/ceu-settings
+// Sets sessionType, minEnrollment, zoomLink, ceHours, ceBoards on an existing event.
+// Auth: Firebase admin token.
+app.patch('/api/admin/events/:id/ceu-settings', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'Event id is required' });
+
+    const eventRef = db.collection('opportunities').doc(id);
+    const eventDoc = await eventRef.get();
+    if (!eventDoc.exists) return res.status(404).json({ error: 'Event not found' });
+
+    const allowed = ['sessionType', 'minEnrollment', 'zoomLink', 'ceHours', 'ceBoards'];
+    const updates: Record<string, any> = {};
+
+    for (const field of allowed) {
+      if (req.body[field] !== undefined) {
+        const val = req.body[field];
+        if (field === 'sessionType' && typeof val !== 'string') return res.status(400).json({ error: 'sessionType must be a string' });
+        if (field === 'minEnrollment' && (typeof val !== 'number' || val < 1)) return res.status(400).json({ error: 'minEnrollment must be a positive number' });
+        if (field === 'zoomLink' && typeof val !== 'string') return res.status(400).json({ error: 'zoomLink must be a string' });
+        if (field === 'ceHours' && (typeof val !== 'number' || val <= 0)) return res.status(400).json({ error: 'ceHours must be a positive number' });
+        if (field === 'ceBoards' && !Array.isArray(val)) return res.status(400).json({ error: 'ceBoards must be an array of strings' });
+        updates[field] = val;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided. Allowed: sessionType, minEnrollment, zoomLink, ceHours, ceBoards' });
+    }
+
+    updates.updatedAt = new Date().toISOString();
+    updates.updatedBy = (req as any).user?.uid || 'admin';
+
+    await eventRef.update(updates);
+    console.log(`[CEU-SETTINGS] Updated event ${id}:`, updates);
+    return res.json({ success: true, id, updated: updates });
+  } catch (error: any) {
+    console.error('[CEU-SETTINGS] Failed:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {
