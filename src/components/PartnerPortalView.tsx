@@ -13,7 +13,7 @@ import {
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type PortalTab = 'referrals' | 'organization' | 'performance' | 'apply' | 'community' | 'events' | 'agreements' | 'brand';
+type PortalTab = 'referrals' | 'organization' | 'performance' | 'apply' | 'community' | 'events' | 'agreements' | 'brand' | 'advertise';
 
 interface PartnerReferral {
   id: string;
@@ -2318,6 +2318,288 @@ const BrandAssetsTab: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tab: Advertise
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PartnerAd {
+  id: string;
+  imageUrl: string;
+  mobileImageUrl: string;
+  linkUrl: string;
+  altText: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
+}
+
+const MAX_AD_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+
+const AdvertiseTab: React.FC = () => {
+  const [imageData, setImageData] = useState('');
+  const [mimeType, setMimeType] = useState('image/jpeg');
+  const [imagePreview, setImagePreview] = useState('');
+  const [mobileImageData, setMobileImageData] = useState('');
+  const [mobileMimeType, setMobileMimeType] = useState('image/jpeg');
+  const [mobileImagePreview, setMobileImagePreview] = useState('');
+  const [altText, setAltText] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [ads, setAds] = useState<PartnerAd[]>([]);
+  const [adsLoading, setAdsLoading] = useState(true);
+
+  const loadAds = () => {
+    setAdsLoading(true);
+    apiService.get('/api/partner/ads')
+      .then((data: any) => setAds(Array.isArray(data?.ads) ? data.ads : []))
+      .catch(() => setAds([]))
+      .finally(() => setAdsLoading(false));
+  };
+
+  useEffect(() => { loadAds(); }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, isMobile: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_AD_IMAGE_BYTES) {
+      setSubmitError('Image must be 2 MB or smaller.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const result = ev.target?.result as string;
+      if (isMobile) {
+        setMobileImageData(result);
+        setMobileMimeType(file.type || 'image/jpeg');
+        setMobileImagePreview(result);
+      } else {
+        setImageData(result);
+        setMimeType(file.type || 'image/jpeg');
+        setImagePreview(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!imageData) { setSubmitError('Please select an ad image.'); return; }
+    if (!altText.trim()) { setSubmitError('Ad description is required.'); return; }
+    setSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess(false);
+    try {
+      await apiService.post('/api/partner/ads/submit', {
+        imageData,
+        mimeType,
+        mobileImageData: mobileImageData || undefined,
+        mobileMimeType: mobileImageData ? mobileMimeType : undefined,
+        linkUrl: linkUrl.trim() || undefined,
+        altText: altText.trim(),
+        notes: notes.trim() || undefined,
+      });
+      setSubmitSuccess(true);
+      setImageData('');
+      setImagePreview('');
+      setMobileImageData('');
+      setMobileImagePreview('');
+      setAltText('');
+      setLinkUrl('');
+      setNotes('');
+      loadAds();
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Submission failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const statusBadge = (status: string) => {
+    if (status === 'approved') return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase">Approved</span>;
+    if (status === 'rejected') return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-700 uppercase">Rejected</span>;
+    return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 uppercase">Pending Review</span>;
+  };
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div>
+        <h2 className="text-base font-black text-zinc-800">Advertise on the Event Finder</h2>
+        <p className="text-sm text-zinc-500 font-medium mt-1">
+          Submit an ad banner to be displayed on the HMC Event Finder. All submissions are reviewed before going live.
+          Desktop banners should be 728 x 90 pixels. Mobile banners should be 320 x 50 pixels.
+        </p>
+      </div>
+
+      {submitSuccess && (
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+          <CheckCircle size={16} className="text-emerald-600 shrink-0" />
+          <span className="text-sm font-semibold text-emerald-700">Ad submitted. Our team will review it and notify you by email.</span>
+        </div>
+      )}
+
+      {submitError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <AlertTriangle size={16} className="text-red-600 shrink-0" />
+          <span className="text-sm font-semibold text-red-700">{submitError}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-zinc-200 rounded-xl p-4 md:p-5">
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Submit a New Ad</p>
+
+        <div>
+          <label className="block text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+            Ad Image (desktop) * <span className="normal-case font-medium">728 x 90 px, max 2 MB, PNG / JPG / WebP</span>
+          </label>
+          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#233DFF] hover:text-[#233DFF] hover:bg-blue-50 transition-colors">
+            <Plus size={14} />
+            Choose Image
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={e => handleImageChange(e, false)}
+            />
+          </label>
+          {imagePreview && (
+            <div className="mt-3">
+              <img src={imagePreview} alt="Desktop preview" className="max-h-20 rounded-lg border border-zinc-200 object-contain" />
+              <button
+                type="button"
+                onClick={() => { setImageData(''); setImagePreview(''); }}
+                className="mt-1 text-xs text-red-500 font-semibold hover:underline flex items-center gap-1"
+              >
+                <X size={11} /> Remove
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+            Mobile Image (optional) <span className="normal-case font-medium">320 x 50 px, max 2 MB</span>
+          </label>
+          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#233DFF] hover:text-[#233DFF] hover:bg-blue-50 transition-colors">
+            <Plus size={14} />
+            Choose Mobile Image
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={e => handleImageChange(e, true)}
+            />
+          </label>
+          {mobileImagePreview && (
+            <div className="mt-3">
+              <img src={mobileImagePreview} alt="Mobile preview" className="max-h-12 rounded-lg border border-zinc-200 object-contain" />
+              <button
+                type="button"
+                onClick={() => { setMobileImageData(''); setMobileImagePreview(''); }}
+                className="mt-1 text-xs text-red-500 font-semibold hover:underline flex items-center gap-1"
+              >
+                <X size={11} /> Remove
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+            Ad Description (for accessibility) *
+          </label>
+          <input
+            type="text"
+            value={altText}
+            onChange={e => setAltText(e.target.value)}
+            placeholder="e.g., LA Community Health Fair - Free screenings on May 15"
+            required
+            className="w-full border-2 border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold focus:border-[#233DFF] focus:bg-blue-50 outline-none transition-colors bg-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+            Link URL (optional)
+          </label>
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full border-2 border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold focus:border-[#233DFF] focus:bg-blue-50 outline-none transition-colors bg-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+            Notes for our team (optional)
+          </label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Any context you would like to share about this ad..."
+            className="w-full border-2 border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold focus:border-[#233DFF] focus:bg-blue-50 outline-none transition-colors resize-none bg-white"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={submitting || !imageData || !altText.trim()}
+          className="w-full py-3 rounded-full text-sm font-black uppercase tracking-wider bg-[#233DFF] text-white hover:bg-[#1a2fd0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {submitting ? 'Submitting...' : 'Submit Ad for Review'}
+        </button>
+      </form>
+
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">Your Ad Submissions</p>
+        {adsLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 size={24} className="animate-spin text-zinc-300" />
+          </div>
+        ) : ads.length === 0 ? (
+          <div className="text-center py-10 text-zinc-400">
+            <p className="text-sm font-semibold">No submissions yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {ads.map(ad => (
+              <div key={ad.id} className="bg-white border border-zinc-200 rounded-xl p-4 flex items-start gap-4">
+                {ad.imageUrl && (
+                  <img
+                    src={ad.imageUrl}
+                    alt={ad.altText}
+                    className="w-20 h-10 object-cover rounded-lg border border-zinc-200 shrink-0"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {statusBadge(ad.status)}
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                      Submitted {ad.submittedAt ? new Date(ad.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-zinc-800 truncate">{ad.altText}</p>
+                  {ad.linkUrl && <p className="text-xs text-zinc-400 truncate">{ad.linkUrl}</p>}
+                  {ad.status === 'rejected' && ad.rejectionReason && (
+                    <p className="text-xs text-red-600 font-semibold mt-1">Reason: {ad.rejectionReason}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main PartnerPortalView
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2340,6 +2622,7 @@ const PartnerPortalView: React.FC<PartnerPortalProps> = ({ onBackToLanding }) =>
     { id: 'events',        label: 'Events',           mobileLabel: 'Events',     Icon: Calendar },
     { id: 'agreements',    label: 'Agreements',       mobileLabel: 'Agreements', Icon: FileText },
     { id: 'brand',         label: 'Brand Assets',     mobileLabel: 'Brand',      Icon: Palette },
+    { id: 'advertise',     label: 'Advertise',        mobileLabel: 'Advertise',  Icon: BarChart3 },
   ];
 
   const handleLogout = async () => {
@@ -2401,6 +2684,7 @@ const PartnerPortalView: React.FC<PartnerPortalProps> = ({ onBackToLanding }) =>
         {activeTab === 'events'       && <EventsTab />}
         {activeTab === 'agreements'   && <AgreementsTab />}
         {activeTab === 'brand'        && <BrandAssetsTab />}
+        {activeTab === 'advertise'    && <AdvertiseTab />}
       </main>
 
       {/* Mobile bottom nav — icon + short label, scrollable */}

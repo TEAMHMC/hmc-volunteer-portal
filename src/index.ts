@@ -22632,6 +22632,411 @@ app.post('/api/admin/ceu/email-certificate', verifyToken, requireAdmin, async (r
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTNER AD SUBMISSION + ADMIN APPROVAL QUEUE
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// GAS endpoint used for ad approval push. Falls back to APPS_SCRIPT_EVENTS_URL.
+const GAS_AD_URL = process.env.GAS_URL || APPS_SCRIPT_EVENTS_URL;
+const PORTAL_SELF_URL = process.env.WEBSITE_URL || 'https://hmc-volunteer-portal-172668994130.us-central1.run.app';
+
+// GET /api/public/partner-ad-image/:id — serve stored partner ad image (same pattern as /api/public/flyer/:id)
+app.get('/api/public/partner-ad-image/:id', async (req: Request, res: Response) => {
+  try {
+    const doc = await db.collection('partner_ad_images').doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Image not found' });
+    const { imageData, mimeType } = doc.data() as any;
+    const buffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    res.set('Content-Type', mimeType || 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.send(buffer);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/partner/ads/submit — partner submits an ad for review
+app.post('/api/partner/ads/submit', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const uid: string = (req as any).user?.uid || (req as any).user?.profile?.id || '';
+    if (!uid) return res.status(403).json({ success: false, error: 'Could not determine user identity' });
+
+    const { imageData, mimeType, mobileImageData, mobileMimeType, linkUrl, altText, notes } = req.body || {};
+    if (!imageData) return res.status(400).json({ success: false, error: 'imageData is required' });
+    if (!altText) return res.status(400).json({ success: false, error: 'altText is required' });
+
+    // Look up partner agency by portalUserId
+    const agencySnap = await db.collection('partner_agencies').where('portalUserId', '==', uid).limit(1).get();
+    let partnerName = 'Partner Organization';
+    let partnerId = '';
+    let partnerEmail = '';
+    if (!agencySnap.empty) {
+      const agDoc = agencySnap.docs[0];
+      partnerName = agDoc.data().name || 'Partner Organization';
+      partnerId = agDoc.id;
+      partnerEmail = agDoc.data().contactEmail || '';
+    } else {
+      // Fallback: look up volunteer profile for name
+      const volDoc = await db.collection('volunteers').doc(uid).get();
+      if (volDoc.exists) {
+        partnerName = (volDoc.data() as any).name || 'Partner Organization';
+        partnerEmail = (volDoc.data() as any).email || '';
+      }
+    }
+
+    const submittedAt = new Date().toISOString();
+
+    // Store desktop image in partner_ad_images
+    const imageId = `pad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await db.collection('partner_ad_images').doc(imageId).set({
+      imageData,
+      mimeType: mimeType || 'image/jpeg',
+      updatedAt: submittedAt,
+    });
+    const imageUrl = `${PORTAL_SELF_URL}/api/public/partner-ad-image/${imageId}`;
+
+    // Store optional mobile image
+    let mobileImageUrl = '';
+    if (mobileImageData) {
+      const mobileImageId = `pad-mob-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await db.collection('partner_ad_images').doc(mobileImageId).set({
+        imageData: mobileImageData,
+        mimeType: mobileMimeType || 'image/jpeg',
+        updatedAt: submittedAt,
+      });
+      mobileImageUrl = `${PORTAL_SELF_URL}/api/public/partner-ad-image/${mobileImageId}`;
+    }
+
+    // Write to partner_ads collection
+    const adRef = await db.collection('partner_ads').add({
+      partnerId,
+      partnerUid: uid,
+      partnerName,
+      partnerEmail,
+      imageUrl,
+      mobileImageUrl,
+      linkUrl: linkUrl || '',
+      altText,
+      notes: notes || '',
+      status: 'pending',
+      active: false,
+      submittedAt,
+      order: 99,
+    });
+
+    // Notify admin
+    try {
+      await sendEmailRaw(
+        'erica@healthmatters.clinic',
+        `New partner ad submission from ${partnerName}`,
+        `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+          <p>A new ad banner has been submitted for review.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;width:140px">Organization</td><td style="padding:8px 0;border-bottom:1px solid #eee">${partnerName}</td></tr>
+            <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Ad Description</td><td style="padding:8px 0;border-bottom:1px solid #eee">${altText}</td></tr>
+            <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Link URL</td><td style="padding:8px 0;border-bottom:1px solid #eee">${linkUrl || '(none)'}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:700">Submission ID</td><td style="padding:8px 0">${adRef.id}</td></tr>
+          </table>
+          <p style="margin-top:16px;font-size:13px">Log in to the EventOps admin panel to review and approve this submission.</p>
+        </div>`,
+        `New partner ad submission from ${partnerName}. Ad description: ${altText}. Link: ${linkUrl || 'none'}.`
+      );
+    } catch (emailErr: any) {
+      console.warn('[PARTNER AD SUBMIT] Admin notification email failed:', emailErr?.message);
+    }
+
+    res.json({ success: true, id: adRef.id });
+  } catch (error: any) {
+    console.error('[PARTNER AD SUBMIT] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/partner/ads — return this partner's submitted ads
+app.get('/api/partner/ads', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const uid: string = (req as any).user?.uid || (req as any).user?.profile?.id || '';
+    if (!uid) return res.status(403).json({ success: false, error: 'Could not determine user identity' });
+
+    const snap = await db.collection('partner_ads').where('partnerUid', '==', uid).get();
+    const ads = snap.docs
+      .map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          imageUrl: data.imageUrl || '',
+          mobileImageUrl: data.mobileImageUrl || '',
+          linkUrl: data.linkUrl || '',
+          altText: data.altText || '',
+          status: data.status || 'pending',
+          submittedAt: data.submittedAt || '',
+          reviewedAt: data.reviewedAt || null,
+          rejectionReason: data.rejectionReason || null,
+        };
+      })
+      .sort((a, b) => (b.submittedAt > a.submittedAt ? 1 : -1));
+
+    res.json({ success: true, ads });
+  } catch (error: any) {
+    console.error('[PARTNER ADS] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/admin/partner-ads — all submitted partner ads (admin only via Firebase session)
+app.get('/api/admin/partner-ads', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const snap = await db.collection('partner_ads').get();
+    const ads = snap.docs
+      .map(d => ({ id: d.id, ...(d.data() as any) }))
+      .sort((a, b) => (b.submittedAt > a.submittedAt ? 1 : -1));
+    res.json({ success: true, ads });
+  } catch (error: any) {
+    console.error('[ADMIN PARTNER ADS] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/partner-ads/:id/approve — admin approves a partner ad (Firebase session auth)
+app.post('/api/admin/partner-ads/:id/approve', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const docRef = db.collection('partner_ads').doc(req.params.id);
+    const doc = await docRef.get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Ad not found' });
+    const data = doc.data() as any;
+    if (data.status !== 'pending') return res.status(400).json({ success: false, error: 'Ad is not pending' });
+
+    const reviewedAt = new Date().toISOString();
+
+    // Push to GAS sheet so ad goes live in Event Finder
+    if (GAS_AD_URL) {
+      try {
+        const params = new URLSearchParams({
+          action: 'save_ad',
+          hash: process.env.GAS_ADMIN_HASH || '',
+          imageUrl: data.imageUrl || '',
+          mobileImageUrl: data.mobileImageUrl || '',
+          linkUrl: data.linkUrl || '',
+          altText: data.altText || '',
+          active: 'TRUE',
+          order: '10',
+        });
+        await fetch(`${GAS_AD_URL}?${params.toString()}`, { redirect: 'follow' });
+      } catch (gasErr: any) {
+        console.warn('[ADMIN AD APPROVE] GAS push failed (Firestore update will still proceed):', gasErr?.message);
+      }
+    }
+
+    await docRef.update({ status: 'approved', active: true, reviewedAt });
+
+    // Email the partner
+    if (data.partnerEmail) {
+      try {
+        await sendEmailRaw(
+          data.partnerEmail,
+          'Your ad submission has been approved - Health Matters Clinic',
+          `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+            <p>Hi ${data.partnerName || 'Partner'},</p>
+            <p>Your ad banner has been reviewed and approved. It is now live on the Health Matters Clinic Event Finder.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:16px">
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;width:140px">Ad Description</td><td style="padding:8px 0;border-bottom:1px solid #eee">${data.altText || ''}</td></tr>
+              <tr><td style="padding:8px 0;font-weight:700">Approved</td><td style="padding:8px 0">${reviewedAt.split('T')[0]}</td></tr>
+            </table>
+            <p style="margin-top:16px;font-size:13px">Thank you for partnering with Health Matters Clinic.</p>
+            <p style="font-size:13px">Health Matters Clinic</p>
+          </div>`,
+          `Your ad banner ("${data.altText || ''}") has been approved and is now live on the HMC Event Finder.`
+        );
+      } catch (emailErr: any) {
+        console.warn('[ADMIN AD APPROVE] Partner email failed:', emailErr?.message);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[ADMIN AD APPROVE] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/partner-ads/:id/reject — admin rejects a partner ad (Firebase session auth)
+app.post('/api/admin/partner-ads/:id/reject', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { reason } = req.body || {};
+    const docRef = db.collection('partner_ads').doc(req.params.id);
+    const doc = await docRef.get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Ad not found' });
+    const data = doc.data() as any;
+
+    const reviewedAt = new Date().toISOString();
+    await docRef.update({ status: 'rejected', active: false, rejectionReason: reason || '', reviewedAt });
+
+    // Email the partner
+    if (data.partnerEmail) {
+      try {
+        await sendEmailRaw(
+          data.partnerEmail,
+          'Your ad submission was not approved - Health Matters Clinic',
+          `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+            <p>Hi ${data.partnerName || 'Partner'},</p>
+            <p>Thank you for submitting an ad banner for the Health Matters Clinic Event Finder. After review, we are unable to approve this submission at this time.</p>
+            ${reason ? `<div style="background:#f9f9f9;border-left:4px solid #e5e7eb;padding:12px 16px;margin:16px 0;border-radius:4px"><p style="margin:0;font-size:13px"><strong>Reason:</strong> ${reason}</p></div>` : ''}
+            <p style="font-size:13px">If you have questions or would like to submit a revised ad, please contact us at events@healthmatters.clinic.</p>
+            <p style="font-size:13px">Health Matters Clinic</p>
+          </div>`,
+          `Your ad banner submission was not approved.${reason ? ' Reason: ' + reason : ''} Contact events@healthmatters.clinic with questions.`
+        );
+      } catch (emailErr: any) {
+        console.warn('[ADMIN AD REJECT] Partner email failed:', emailErr?.message);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[ADMIN AD REJECT] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUBLIC hash-gated endpoints for the Event Finder admin panel (no Firebase session required)
+// These mirror the GAS admin-auth pattern: verify a SHA-256 hash of the admin passcode
+// against the ADMIN_PASSCODE_HASH env var stored in Cloud Run.
+
+const verifyAdminHash = (hash: string): boolean => {
+  const stored = process.env.ADMIN_PASSCODE_HASH || '';
+  if (!stored) {
+    // Fallback: also accept if the provided hash matches any admin session in memory (not recommended in prod)
+    console.warn('[PUBLIC ADMIN] ADMIN_PASSCODE_HASH not configured');
+    return false;
+  }
+  return hash === stored;
+};
+
+// GET /api/public/partner-ads-pending — returns pending partner ads for EventOps admin panel
+app.get('/api/public/partner-ads-pending', rateLimit(60, 60000), async (req: Request, res: Response) => {
+  try {
+    const hash = (req.query.hash as string) || '';
+    if (!verifyAdminHash(hash)) return res.status(403).json({ success: false, error: 'Unauthorized' });
+
+    const snap = await db.collection('partner_ads').where('status', '==', 'pending').get();
+    const ads = snap.docs
+      .map(d => ({ id: d.id, ...(d.data() as any) }))
+      .sort((a, b) => (b.submittedAt > a.submittedAt ? 1 : -1));
+
+    res.json({ success: true, ads });
+  } catch (error: any) {
+    console.error('[PUBLIC PARTNER ADS PENDING] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/public/partner-ads/:id/approve — approve from EventOps admin panel
+app.post('/api/public/partner-ads/:id/approve', rateLimit(30, 60000), async (req: Request, res: Response) => {
+  try {
+    const { hash } = req.body || {};
+    if (!verifyAdminHash(hash || '')) return res.status(403).json({ success: false, error: 'Unauthorized' });
+
+    const docRef = db.collection('partner_ads').doc(req.params.id);
+    const doc = await docRef.get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Ad not found' });
+    const data = doc.data() as any;
+    if (data.status !== 'pending') return res.status(400).json({ success: false, error: 'Ad is not pending' });
+
+    const reviewedAt = new Date().toISOString();
+
+    // Push to GAS
+    if (GAS_AD_URL) {
+      try {
+        const params = new URLSearchParams({
+          action: 'save_ad',
+          hash: process.env.GAS_ADMIN_HASH || '',
+          imageUrl: data.imageUrl || '',
+          mobileImageUrl: data.mobileImageUrl || '',
+          linkUrl: data.linkUrl || '',
+          altText: data.altText || '',
+          active: 'TRUE',
+          order: '10',
+        });
+        await fetch(`${GAS_AD_URL}?${params.toString()}`, { redirect: 'follow' });
+      } catch (gasErr: any) {
+        console.warn('[PUBLIC AD APPROVE] GAS push failed:', gasErr?.message);
+      }
+    }
+
+    await docRef.update({ status: 'approved', active: true, reviewedAt });
+
+    // Email partner
+    if (data.partnerEmail) {
+      try {
+        await sendEmailRaw(
+          data.partnerEmail,
+          'Your ad submission has been approved - Health Matters Clinic',
+          `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+            <p>Hi ${data.partnerName || 'Partner'},</p>
+            <p>Your ad banner has been reviewed and approved. It is now live on the Health Matters Clinic Event Finder.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:16px">
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;width:140px">Ad Description</td><td style="padding:8px 0;border-bottom:1px solid #eee">${data.altText || ''}</td></tr>
+              <tr><td style="padding:8px 0;font-weight:700">Approved</td><td style="padding:8px 0">${reviewedAt.split('T')[0]}</td></tr>
+            </table>
+            <p style="margin-top:16px;font-size:13px">Thank you for partnering with Health Matters Clinic.</p>
+            <p style="font-size:13px">Health Matters Clinic</p>
+          </div>`,
+          `Your ad banner ("${data.altText || ''}") has been approved and is now live on the HMC Event Finder.`
+        );
+      } catch (emailErr: any) {
+        console.warn('[PUBLIC AD APPROVE] Partner email failed:', emailErr?.message);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[PUBLIC AD APPROVE] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/public/partner-ads/:id/reject — reject from EventOps admin panel
+app.post('/api/public/partner-ads/:id/reject', rateLimit(30, 60000), async (req: Request, res: Response) => {
+  try {
+    const { hash, reason } = req.body || {};
+    if (!verifyAdminHash(hash || '')) return res.status(403).json({ success: false, error: 'Unauthorized' });
+
+    const docRef = db.collection('partner_ads').doc(req.params.id);
+    const doc = await docRef.get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Ad not found' });
+    const data = doc.data() as any;
+
+    const reviewedAt = new Date().toISOString();
+    await docRef.update({ status: 'rejected', active: false, rejectionReason: reason || '', reviewedAt });
+
+    // Email partner
+    if (data.partnerEmail) {
+      try {
+        await sendEmailRaw(
+          data.partnerEmail,
+          'Your ad submission was not approved - Health Matters Clinic',
+          `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+            <p>Hi ${data.partnerName || 'Partner'},</p>
+            <p>Thank you for submitting an ad banner for the Health Matters Clinic Event Finder. After review, we are unable to approve this submission at this time.</p>
+            ${reason ? `<div style="background:#f9f9f9;border-left:4px solid #e5e7eb;padding:12px 16px;margin:16px 0;border-radius:4px"><p style="margin:0;font-size:13px"><strong>Reason:</strong> ${reason}</p></div>` : ''}
+            <p style="font-size:13px">If you have questions or would like to submit a revised ad, please contact us at events@healthmatters.clinic.</p>
+            <p style="font-size:13px">Health Matters Clinic</p>
+          </div>`,
+          `Your ad banner submission was not approved.${reason ? ' Reason: ' + reason : ''} Contact events@healthmatters.clinic with questions.`
+        );
+      } catch (emailErr: any) {
+        console.warn('[PUBLIC AD REJECT] Partner email failed:', emailErr?.message);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[PUBLIC AD REJECT] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---
 process.on('SIGTERM', () => {
   console.log('[SERVER] SIGTERM received, shutting down gracefully...');
