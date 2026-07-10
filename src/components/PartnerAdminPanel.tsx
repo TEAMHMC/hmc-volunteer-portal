@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Plus,
   FileDown,
+  Pencil,
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
@@ -98,6 +99,7 @@ const REFERRAL_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
 interface AddPartnerModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  editPartner?: AdminPartner;
 }
 
 const EMPTY_FORM = {
@@ -111,8 +113,18 @@ const EMPTY_FORM = {
   referralCategories: [] as string[],
 };
 
-const AddPartnerModal: React.FC<AddPartnerModalProps> = ({ onClose, onSuccess }) => {
-  const [form, setForm] = useState(EMPTY_FORM);
+const AddPartnerModal: React.FC<AddPartnerModalProps> = ({ onClose, onSuccess, editPartner }) => {
+  const isEdit = !!editPartner;
+  const [form, setForm] = useState(() => editPartner ? {
+    name: editPartner.name || '',
+    contactName: (editPartner as any).contactName || '',
+    contactEmail: editPartner.contactEmail || '',
+    phone: (editPartner as any).phone || '',
+    website: editPartner.website || '',
+    services: (editPartner.servicesProvided || []).join(', '),
+    partnershipTypes: editPartner.partnershipTypes || ['official_referral'],
+    referralCategories: editPartner.referralCategories || [],
+  } : EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -131,11 +143,15 @@ const AddPartnerModal: React.FC<AddPartnerModalProps> = ({ onClose, onSuccess })
     setSaving(true);
     setError('');
     try {
-      await apiService.post('/api/admin/partners/direct-add', form);
+      if (isEdit) {
+        await apiService.patch(`/api/admin/partners/${editPartner!.id}`, form);
+      } else {
+        await apiService.post('/api/admin/partners/direct-add', form);
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Failed to add partner. Please try again.');
+      setError(err?.message || `Failed to ${isEdit ? 'update' : 'add'} partner. Please try again.`);
     } finally {
       setSaving(false);
     }
@@ -152,8 +168,8 @@ const AddPartnerModal: React.FC<AddPartnerModalProps> = ({ onClose, onSuccess })
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-black tracking-tight">Add Partner Directly</h3>
-            <p className="text-xs text-zinc-500 font-medium mt-0.5">Creates partner record, generates agreement, and emails an invite link.</p>
+            <h3 className="text-lg font-black tracking-tight">{isEdit ? 'Edit Partner' : 'Add Partner Directly'}</h3>
+            <p className="text-xs text-zinc-500 font-medium mt-0.5">{isEdit ? 'Updates partner record and regenerates the partnership agreement.' : 'Creates partner record, generates agreement, and emails an invite link.'}</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 transition-colors">
             <X size={18} className="text-zinc-400" />
@@ -252,7 +268,7 @@ const AddPartnerModal: React.FC<AddPartnerModalProps> = ({ onClose, onSuccess })
               className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#233dff] text-white text-xs font-black uppercase tracking-wider rounded-full hover:bg-[#1a2de0] disabled:opacity-50 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {saving ? 'Adding Partner...' : 'Add Partner and Send Agreement'}
+              {saving ? (isEdit ? 'Saving...' : 'Adding Partner...') : (isEdit ? 'Save Changes' : 'Add Partner and Send Agreement')}
             </button>
             <button
               type="button"
@@ -462,6 +478,7 @@ const PartnersTab: React.FC = () => {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<AdminPartner | null>(null);
 
   const fetchPartners = useCallback(async () => {
     setLoading(true);
@@ -551,6 +568,13 @@ const PartnersTab: React.FC = () => {
       {showAddModal && (
         <AddPartnerModal
           onClose={() => setShowAddModal(false)}
+          onSuccess={() => fetchPartners()}
+        />
+      )}
+      {editingPartner && (
+        <AddPartnerModal
+          editPartner={editingPartner}
+          onClose={() => setEditingPartner(null)}
           onSuccess={() => fetchPartners()}
         />
       )}
@@ -658,6 +682,14 @@ const PartnersTab: React.FC = () => {
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-100">
+                      <button
+                        type="button"
+                        onClick={() => setEditingPartner(partner)}
+                        className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-200 text-zinc-700 text-xs font-black uppercase tracking-wider rounded-full hover:bg-zinc-50 transition-colors"
+                      >
+                        <Pencil size={12} />
+                        Edit
+                      </button>
                       {partner.contactEmail && (
                         <a
                           href={`mailto:${partner.contactEmail}`}

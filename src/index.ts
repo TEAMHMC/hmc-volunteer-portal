@@ -8284,6 +8284,100 @@ app.get('/api/partners', verifyToken, async (req: Request, res: Response) => {
     }
 });
 
+// PATCH /api/admin/partners/:id — Update partner record and regenerate agreement body
+app.patch('/api/admin/partners/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { name, contactName, contactEmail, phone, website, services, referralCategories, partnershipTypes } = req.body;
+        const partnerRef = db.collection('partner_agencies').doc(req.params.id);
+        const partnerDoc = await partnerRef.get();
+        if (!partnerDoc.exists) return res.status(404).json({ error: 'Partner not found' });
+
+        const updates: Record<string, any> = {};
+        if (name !== undefined) updates.name = name.trim();
+        if (contactName !== undefined) updates.contactName = contactName.trim();
+        if (contactEmail !== undefined) updates.contactEmail = contactEmail.trim().toLowerCase();
+        if (phone !== undefined) updates.phone = phone.trim();
+        if (website !== undefined) updates.website = website.trim();
+        if (services !== undefined) updates.servicesProvided = services.trim() ? [services.trim()] : [];
+        if (referralCategories !== undefined) updates.referralCategories = referralCategories;
+        if (partnershipTypes !== undefined) updates.partnershipTypes = partnershipTypes;
+        await partnerRef.update(updates);
+
+        // Regenerate agreement body text in Firestore
+        const merged = { ...partnerDoc.data(), ...updates };
+        const TYPE_LABELS: Record<string, string> = {
+            official_referral: 'Official Referral Partner', event_vendor: 'Event Vendor / Co-host',
+            subcontractor: 'Subcontractor', community: 'General Community Partner',
+        };
+        const REFERRAL_CAT_LABELS: Record<string, string> = {
+            healthcare: 'Healthcare / Medical', mentalHealth: 'Mental Health & Behavioral Health',
+            substanceUse: 'Substance Use Treatment', housing: 'Housing & Shelter',
+            food: 'Food & Nutrition', employment: 'Employment & Job Training',
+            legal: 'Legal Aid & Immigration', childcare: 'Childcare & Child Services',
+            transportation: 'Transportation', hivSexualHealth: 'HIV / Sexual Health',
+        };
+        const typesList = (merged.partnershipTypes || []).map((t: string) => TYPE_LABELS[t] || t).join(', ');
+        const catList = (merged.referralCategories || []).length > 0
+            ? (merged.referralCategories as string[]).map(c => REFERRAL_CAT_LABELS[c] || c).join(', ')
+            : 'To be determined';
+        const capLine = `${merged.name} will accept referrals in the following service areas: ${catList}.`;
+        const svcLine = (merged.servicesProvided || []).length > 0 ? `Services provided: ${(merged.servicesProvided as string[]).join(', ')}.` : '';
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+        const bodyText = `HEALTH MATTERS CLINIC — PARTNERSHIP AGREEMENT
+
+Effective Date: ${dateStr}
+
+This Partnership Agreement is entered into between Health Matters Clinic ("HMC"), a California nonprofit corporation, and ${merged.name} ("Partner").
+
+PARTNERSHIP TYPE(S): ${typesList}
+
+1. PURPOSE
+HMC and Partner agree to collaborate to improve access to health and wellness resources across Los Angeles County. This Agreement formalizes the referral and service relationship between the parties.
+
+2. PARTNER CREDENTIALS AND CAPACITY
+Partner represents and warrants that it holds all licenses, certifications, and credentials required by applicable law to deliver the services described herein and to receive client referrals. Partner agrees to notify HMC within 10 business days of any material change to its licensure status, service capacity, or organizational leadership. ${svcLine}
+
+3. REFERRAL COMMITMENT
+${capLine} Partner agrees to: respond to HMC referrals within 72 hours; update referral status in the HMC Partner Portal; notify HMC of any changes to services, capacity, or eligibility requirements; and designate a named point of contact for referral coordination.
+
+4. HMC RESPONSIBILITIES
+HMC agrees to: provide access to the Partner Portal; send referrals only for clients who match Partner's stated eligibility criteria; and maintain confidentiality of client information per applicable law.
+
+5. TERM
+This Agreement is effective upon signing and remains in effect for two (2) years, renewable annually by mutual agreement.
+
+6. DATA PRIVACY AND CONFIDENTIALITY
+Both parties agree to handle client information in compliance with all applicable federal and state privacy laws including HIPAA and, where applicable, 42 CFR Part 2 (confidentiality of substance use disorder records). Neither party shall disclose client information to third parties without appropriate written consent.
+
+7. TERMINATION
+Either party may terminate this Agreement with 30 days written notice to the other party.
+
+By signing below, both parties agree to the terms of this Agreement.
+
+Health Matters Clinic
+contact@healthmatters.clinic | (323) 990-4325 | healthmatters.clinic
+
+${merged.name}
+Authorized Signature: _______________________________
+Printed Name: _______________________________
+Title: _______________________________
+Date: _______________________________`;
+
+        // Update the most recent agreement doc
+        const agSnap = await db.collection('partner_agreements').where('partnerAgencyId', '==', req.params.id).get();
+        if (!agSnap.empty) {
+            const latest = agSnap.docs.sort((a, b) => (b.data().sentAt || '').localeCompare(a.data().sentAt || ''))[0];
+            await latest.ref.update({ bodyText, agencyName: merged.name, updatedAt: new Date().toISOString() });
+        }
+
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[PATCH PARTNER] Failed:', error);
+        res.status(500).json({ error: 'Failed to update partner' });
+    }
+});
+
 app.post('/api/partners', verifyToken, requireAdmin, async (req: Request, res: Response) => {
     try {
         if (!req.body.name) return res.status(400).json({ error: 'Partner name required' });
@@ -8476,38 +8570,82 @@ app.get('/api/admin/partners/:id/agreement-pdf', verifyToken, requireAdmin, asyn
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        const page = pdfDoc.addPage([612, 792]);
+        const pageW = 612;
+        const pageH = 792;
         const margin = 60;
-        let y = 740;
+        const contentW = pageW - margin * 2;
+        const bodySize = 10;
+        const lineH = 16;
 
-        // Header
-        page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, size: 13, font: boldFont, color: rgb(0.14, 0.24, 1) });
-        y -= 18;
-        page.drawText('Partnership Agreement', { x: margin, y, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
-        y -= 30;
-        page.drawLine({ start: { x: margin, y }, end: { x: 612 - margin, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
-        y -= 20;
-
-        // Body text
-        const lines = (agreement.bodyText || '').split('\n');
-        for (const line of lines) {
-            if (y < margin + 40) {
-                const newPage = pdfDoc.addPage([612, 792]);
-                y = 740;
-                const chunks = line.match(/.{1,90}/g) || [line];
-                for (const chunk of chunks) {
-                    newPage.drawText(chunk, { x: margin, y, size: 9, font, color: rgb(0.1, 0.1, 0.1) });
-                    y -= 14;
+        // Word-wrap a string to fit contentW at given font/size
+        const wrapLine = (text: string, f: typeof font, size: number): string[] => {
+            if (!text.trim()) return [''];
+            const words = text.split(' ');
+            const wrapped: string[] = [];
+            let cur = '';
+            for (const word of words) {
+                const test = cur ? `${cur} ${word}` : word;
+                if (f.widthOfTextAtSize(test, size) > contentW && cur) {
+                    wrapped.push(cur);
+                    cur = word;
+                } else {
+                    cur = test;
                 }
+            }
+            if (cur) wrapped.push(cur);
+            return wrapped;
+        };
+
+        let currentPage = pdfDoc.addPage([pageW, pageH]);
+        let y = pageH - 52;
+
+        const newPage = () => {
+            currentPage = pdfDoc.addPage([pageW, pageH]);
+            y = pageH - 52;
+        };
+
+        const ensureY = (needed: number) => { if (y - needed < margin) newPage(); };
+
+        // Header block
+        currentPage.drawText('HEALTH MATTERS CLINIC', { x: margin, y, size: 14, font: boldFont, color: rgb(0.14, 0.24, 1) });
+        y -= 20;
+        currentPage.drawText('Partnership Agreement', { x: margin, y, size: 10, font, color: rgb(0.5, 0.5, 0.5) });
+        y -= 18;
+        currentPage.drawLine({ start: { x: margin, y }, end: { x: pageW - margin, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+        y -= 24;
+
+        // Render bodyText line by line, skipping the redundant title line at top
+        const rawLines = (agreement.bodyText || '').split('\n');
+        // Skip first line if it's the duplicate title header
+        const startIdx = rawLines[0]?.trim().startsWith('HEALTH MATTERS CLINIC') ? 1 : 0;
+
+        for (let i = startIdx; i < rawLines.length; i++) {
+            const raw = rawLines[i];
+            const trimmed = raw.trim();
+
+            // Detect section headings: "1. PURPOSE" style or all-caps lines
+            const isSectionHead = /^\d+\.\s+[A-Z]/.test(trimmed) || (/^[A-Z][A-Z\s\-\/]{3,}$/.test(trimmed) && trimmed.length < 60);
+            const isEmpty = trimmed === '';
+
+            if (isEmpty) {
+                ensureY(lineH * 0.6);
+                y -= lineH * 0.6;
                 continue;
             }
-            const isBold = /^[0-9]+\.|^[A-Z\s]{4,}$/.test(line.trim());
-            const chunks = line.match(/.{1,90}/g) || (line === '' ? [''] : [line]);
-            for (const chunk of chunks) {
-                if (chunk.trim()) {
-                    page.drawText(chunk, { x: margin, y, size: 9, font: isBold ? boldFont : font, color: rgb(0.1, 0.1, 0.1) });
-                }
-                y -= line === '' ? 8 : 14;
+
+            if (isSectionHead) {
+                ensureY(lineH * 2);
+                y -= 4;
+                currentPage.drawText(trimmed, { x: margin, y, size: bodySize, font: boldFont, color: rgb(0.05, 0.05, 0.05) });
+                y -= lineH + 2;
+                continue;
+            }
+
+            const wrapped = wrapLine(raw, font, bodySize);
+            ensureY(wrapped.length * lineH + 4);
+            for (const wl of wrapped) {
+                currentPage.drawText(wl, { x: margin, y, size: bodySize, font, color: rgb(0.1, 0.1, 0.1) });
+                y -= lineH;
             }
         }
 
