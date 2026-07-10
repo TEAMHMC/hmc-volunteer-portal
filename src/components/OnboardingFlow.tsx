@@ -313,6 +313,23 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
       }
       if (currentStepIndex < STEPS.length - 1) {
         analyticsService.logEvent('onboarding_step_complete', { step });
+
+        // For Google pre-auth users: persist each step's data to their Firestore doc
+        // immediately so partial progress is never lost if they drop off.
+        if (preAuthUser) {
+          const STRIP = new Set(['password','verifyPassword','ssn','signature','googleCredential','authProvider','_serverDraft','resumeFile','emailVerified','passwordBypassed']);
+          const partial: Record<string, any> = {};
+          Object.entries(formData).forEach(([k, v]) => { if (!STRIP.has(k) && v !== undefined && v !== '') partial[k] = v; });
+          // Derive display name from what we have so far
+          if (partial.legalFirstName || partial.legalLastName) {
+            partial.name = `${partial.preferredFirstName || partial.legalFirstName || ''} ${partial.preferredLastName || partial.legalLastName || ''}`.trim();
+          }
+          if (partial.eContactName || partial.eContactRelationship || partial.eContactCellPhone) {
+            partial.emergencyContact = { name: partial.eContactName || '', relationship: partial.eContactRelationship || '', email: partial.eContactEmail || '', cellPhone: partial.eContactCellPhone || '' };
+          }
+          apiService.put('/api/volunteer', { ...partial, id: preAuthUser.id }).catch(() => {});
+        }
+
         setStep(STEPS[currentStepIndex + 1]);
       }
     }
