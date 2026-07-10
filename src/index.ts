@@ -8318,6 +8318,210 @@ app.delete('/api/partners/:id', verifyToken, requireAdmin, async (req: Request, 
     }
 });
 
+// POST /api/admin/partners/direct-add — Admin adds partner directly + generates agreement + sends invite
+app.post('/api/admin/partners/direct-add', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { name, contactName, contactEmail, phone, website, services, referralCategories, partnershipTypes } = req.body;
+        if (!name?.trim()) return res.status(400).json({ error: 'Organization name required' });
+        if (!contactEmail?.trim()) return res.status(400).json({ error: 'Contact email required' });
+
+        const now = new Date().toISOString();
+        const types: string[] = Array.isArray(partnershipTypes) && partnershipTypes.length > 0 ? partnershipTypes : ['official_referral'];
+
+        const partnerData: Record<string, any> = {
+            name: name.trim(),
+            contactName: contactName?.trim() || '',
+            contactEmail: contactEmail.trim().toLowerCase(),
+            phone: phone?.trim() || '',
+            website: website?.trim() || '',
+            servicesProvided: services?.trim() ? [services.trim()] : [],
+            referralCategories: Array.isArray(referralCategories) ? referralCategories : [],
+            partnershipTypes: types,
+            status: 'Active',
+            isOfficialPartner: true,
+            createdAt: now,
+            createdBy: (req as any).user?.uid,
+            addedDirectly: true,
+        };
+
+        const partnerRef = await db.collection('partner_agencies').add(partnerData);
+        const partnerId = partnerRef.id;
+
+        // Generate agreement text
+        const TYPE_LABELS: Record<string, string> = {
+            official_referral: 'Official Referral Partner',
+            event_vendor: 'Event Vendor / Co-host',
+            subcontractor: 'Subcontractor',
+            community: 'General Community Partner',
+        };
+        const typesList = types.map(t => TYPE_LABELS[t] || t).join(', ');
+
+        const REFERRAL_CAT_LABELS: Record<string, string> = {
+            healthcare: 'Healthcare / Medical', mentalHealth: 'Mental Health & Behavioral Health',
+            substanceUse: 'Substance Use Treatment', housing: 'Housing & Shelter',
+            food: 'Food & Nutrition', employment: 'Employment & Job Training',
+            legal: 'Legal Aid & Immigration', childcare: 'Childcare & Child Services',
+            transportation: 'Transportation', hivSexualHealth: 'HIV / Sexual Health',
+        };
+        const catList = Array.isArray(referralCategories) && referralCategories.length > 0
+            ? referralCategories.map((c: string) => REFERRAL_CAT_LABELS[c] || c).join(', ')
+            : 'To be determined';
+
+        const capLine = `${name} will accept referrals in the following service areas: ${catList}.`;
+        const svcLine = services?.trim() ? `Services provided: ${services.trim()}.` : '';
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+        const bodyText = `HEALTH MATTERS CLINIC — PARTNERSHIP AGREEMENT
+
+Effective Date: ${dateStr}
+
+This Partnership Agreement is entered into between Health Matters Clinic ("HMC"), a California nonprofit corporation, and ${name} ("Partner").
+
+PARTNERSHIP TYPE(S): ${typesList}
+
+1. PURPOSE
+HMC and Partner agree to collaborate to improve access to health and wellness resources across Los Angeles County. This Agreement formalizes the referral and service relationship between the parties.
+
+2. PARTNER CREDENTIALS AND CAPACITY
+Partner represents and warrants that it holds all licenses, certifications, and credentials required by applicable law to deliver the services described herein and to receive client referrals. Partner agrees to notify HMC within 10 business days of any material change to its licensure status, service capacity, or organizational leadership. ${svcLine}
+
+3. REFERRAL COMMITMENT
+${capLine} Partner agrees to: respond to HMC referrals within 72 hours; update referral status in the HMC Partner Portal; notify HMC of any changes to services, capacity, or eligibility requirements; and designate a named point of contact for referral coordination.
+
+4. HMC RESPONSIBILITIES
+HMC agrees to: provide access to the Partner Portal; send referrals only for clients who match Partner's stated eligibility criteria; and maintain confidentiality of client information per applicable law.
+
+5. TERM
+This Agreement is effective upon signing and remains in effect for two (2) years, renewable annually by mutual agreement.
+
+6. DATA PRIVACY AND CONFIDENTIALITY
+Both parties agree to handle client information in compliance with all applicable federal and state privacy laws including HIPAA and, where applicable, 42 CFR Part 2 (confidentiality of substance use disorder records). Neither party shall disclose client information to third parties without appropriate written consent.
+
+7. TERMINATION
+Either party may terminate this Agreement with 30 days written notice to the other party.
+
+By signing below, both parties agree to the terms of this Agreement.
+
+Health Matters Clinic
+contact@healthmatters.clinic | (323) 990-4325 | healthmatters.clinic
+
+${name}
+Authorized Signature: _______________________________
+Printed Name: _______________________________
+Title: _______________________________
+Date: _______________________________`;
+
+        const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+        const agreementRef = await db.collection('partner_agreements').add({
+            partnerAgencyId: partnerId,
+            agencyName: name.trim(),
+            agreementType: 'referral_partner',
+            title: `HMC Partnership Agreement — ${name.trim()}`,
+            status: 'pending_signature',
+            createdBy: (req as any).user?.uid,
+            sentAt: now,
+            expiresAt,
+            bodyText,
+        });
+
+        // Generate invite token
+        const inviteToken = crypto.randomBytes(32).toString('hex');
+        const inviteTokenExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+        await partnerRef.update({ inviteToken, inviteTokenExpiry, portalUserEmail: contactEmail.trim().toLowerCase() });
+
+        const portalUrl = `${process.env.PARTNER_PORTAL_URL || 'https://partner.healthmatters.clinic'}?partnerToken=${inviteToken}&partnerId=${partnerId}`;
+
+        // Send email
+        try {
+            await sendEmailRaw(
+                contactEmail.trim().toLowerCase(),
+                `HMC Partnership Agreement — ${name.trim()}`,
+                `${emailHeader('HMC Partnership Agreement')}
+                <p>Dear ${contactName?.trim() || name.trim()},</p>
+                <p>Health Matters Clinic is pleased to formalize a referral partnership with <strong>${name.trim()}</strong>.</p>
+                <p>A Partnership Agreement has been prepared for your review. You can review and e-sign it by creating your partner account below, or you may download, sign, and return it to <a href="mailto:partner@healthmatters.clinic">partner@healthmatters.clinic</a>.</p>
+                ${actionButton('Create Account and Sign Agreement', portalUrl)}
+                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;font-family:monospace;font-size:11px;white-space:pre-wrap;color:#374151;">${bodyText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                <p style="font-size:12px;color:#9ca3af;">This invite link expires in 72 hours. Questions? Contact <a href="mailto:partner@healthmatters.clinic">partner@healthmatters.clinic</a>.</p>
+                ${emailFooter()}`,
+                `HMC Partnership Agreement for ${name.trim()}. Review and sign at: ${portalUrl} — or sign and return this agreement to partner@healthmatters.clinic.\n\n${bodyText}`
+            );
+        } catch (emailErr) {
+            console.error('[DIRECT ADD] Email failed (non-fatal):', emailErr);
+        }
+
+        res.json({ success: true, partnerId, agreementId: agreementRef.id });
+    } catch (error: any) {
+        console.error('[DIRECT ADD] Failed:', error);
+        res.status(500).json({ error: 'Failed to add partner' });
+    }
+});
+
+// GET /api/admin/partners/:id/agreement-pdf — Download agreement as PDF
+app.get('/api/admin/partners/:id/agreement-pdf', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const snap = await db.collection('partner_agreements')
+            .where('partnerAgencyId', '==', req.params.id)
+            .get();
+
+        if (snap.empty) return res.status(404).json({ error: 'No agreement found for this partner' });
+        const sorted = snap.docs.sort((a, b) => {
+            const aDate = a.data().sentAt || '';
+            const bDate = b.data().sentAt || '';
+            return bDate.localeCompare(aDate);
+        });
+        const agreement = sorted[0].data();
+
+        const pdfDoc = await PDFDocument.create();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        const page = pdfDoc.addPage([612, 792]);
+        const margin = 60;
+        let y = 740;
+
+        // Header
+        page.drawText('HEALTH MATTERS CLINIC', { x: margin, y, size: 13, font: boldFont, color: rgb(0.14, 0.24, 1) });
+        y -= 18;
+        page.drawText('Partnership Agreement', { x: margin, y, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+        y -= 30;
+        page.drawLine({ start: { x: margin, y }, end: { x: 612 - margin, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+        y -= 20;
+
+        // Body text
+        const lines = (agreement.bodyText || '').split('\n');
+        for (const line of lines) {
+            if (y < margin + 40) {
+                const newPage = pdfDoc.addPage([612, 792]);
+                y = 740;
+                const chunks = line.match(/.{1,90}/g) || [line];
+                for (const chunk of chunks) {
+                    newPage.drawText(chunk, { x: margin, y, size: 9, font, color: rgb(0.1, 0.1, 0.1) });
+                    y -= 14;
+                }
+                continue;
+            }
+            const isBold = /^[0-9]+\.|^[A-Z\s]{4,}$/.test(line.trim());
+            const chunks = line.match(/.{1,90}/g) || (line === '' ? [''] : [line]);
+            for (const chunk of chunks) {
+                if (chunk.trim()) {
+                    page.drawText(chunk, { x: margin, y, size: 9, font: isBold ? boldFont : font, color: rgb(0.1, 0.1, 0.1) });
+                }
+                y -= line === '' ? 8 : 14;
+            }
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const safeName = (agreement.agencyName || 'Partner').replace(/[^a-z0-9]/gi, '_');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="HMC_Partnership_Agreement_${safeName}.pdf"`);
+        res.send(Buffer.from(pdfBytes));
+    } catch (error: any) {
+        console.error('[AGREEMENT PDF] Failed:', error);
+        res.status(500).json({ error: 'Failed to generate agreement PDF' });
+    }
+});
+
 // ============================================================
 // PARTNER PORTAL ENDPOINTS
 // ============================================================
