@@ -8967,22 +8967,22 @@ app.post('/api/partners/register-self', async (req: Request, res: Response) => {
 
         // Send welcome email to partner
         try {
-            const portalUrl = process.env.PORTAL_URL || 'https://volunteer.healthmatters.clinic';
-            const welcomeHtml = `${emailHeader('Welcome to the HMC Partner Portal')}
+            const portalUrl = process.env.PARTNER_PORTAL_URL || 'https://partner.healthmatters.clinic';
+            const welcomeHtml = `${emailHeader('Welcome to the HMC Partner Network')}
                 <p>Hi ${contactName.trim()},</p>
-                <p>Welcome to the Health Matters Clinic Partner Portal. Your account for <strong>${orgName.trim()}</strong> has been created and is now active.</p>
+                <p>Your partner account for <strong>${orgName.trim()}</strong> is active. You are now part of the Health Matters Clinic referral network serving Los Angeles County.</p>
                 <div style="background: #f0f9ff; padding: 24px; border-radius: 12px; margin: 24px 0; border-left: 4px solid ${EMAIL_CONFIG.BRAND_COLOR};">
-                    <p style="margin: 0 0 8px;"><strong>What you can do in the portal:</strong></p>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>View referrals sent to your organization</li>
-                        <li>Accept, update, or complete referral statuses</li>
-                        <li>Manage your organization's profile</li>
+                    <p style="margin: 0 0 12px;"><strong>What you can do in your portal:</strong></p>
+                    <ul style="margin: 0; padding-left: 20px; line-height: 2;">
+                        <li>View and respond to referrals sent to your organization</li>
+                        <li>Update referral status as clients are engaged and served</li>
+                        <li>Manage your organization profile and service categories</li>
                     </ul>
                 </div>
-                ${actionButton('Access Your Partner Portal', portalUrl)}
-                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Questions? Contact us at ${EMAIL_CONFIG.SUPPORT_EMAIL}</p>
+                ${actionButton('Go to Your Partner Portal', portalUrl)}
+                <p style="font-size: 12px; color: #9ca3af; margin-top: 24px;">Questions? Reach us at <a href="mailto:partner@healthmatters.clinic" style="color:#233dff;">partner@healthmatters.clinic</a></p>
             ${emailFooter()}`;
-            await sendEmailRaw(emailLower, 'Welcome to the HMC Partner Portal', welcomeHtml, `Hi ${contactName.trim()}, your HMC Partner Portal account for ${orgName.trim()} is now active. Log in at: ${portalUrl}`);
+            await sendEmailRaw(emailLower, 'Welcome to the HMC Partner Network', welcomeHtml, `Hi ${contactName.trim()}, your HMC Partner Portal account for ${orgName.trim()} is now active. Log in at: ${portalUrl}`);
         } catch (emailErr) {
             console.error('[PARTNER REGISTER] Welcome email failed (non-fatal):', emailErr);
         }
