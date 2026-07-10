@@ -8353,16 +8353,7 @@ Both parties agree to handle client information in compliance with all applicabl
 7. TERMINATION
 Either party may terminate this Agreement with 30 days written notice to the other party.
 
-By signing below, both parties agree to the terms of this Agreement.
-
-Health Matters Clinic
-contact@healthmatters.clinic | (323) 990-4325 | healthmatters.clinic
-
-${merged.name}
-Authorized Signature: _______________________________
-Printed Name: _______________________________
-Title: _______________________________
-Date: _______________________________`;
+By signing below, both parties agree to the terms of this Agreement.`;
 
         // Update the most recent agreement doc
         const agSnap = await db.collection('partner_agreements').where('partnerAgencyId', '==', req.params.id).get();
@@ -8494,16 +8485,7 @@ Both parties agree to handle client information in compliance with all applicabl
 7. TERMINATION
 Either party may terminate this Agreement with 30 days written notice to the other party.
 
-By signing below, both parties agree to the terms of this Agreement.
-
-Health Matters Clinic
-contact@healthmatters.clinic | (323) 990-4325 | healthmatters.clinic
-
-${name}
-Authorized Signature: _______________________________
-Printed Name: _______________________________
-Title: _______________________________
-Date: _______________________________`;
+By signing below, both parties agree to the terms of this Agreement.`;
 
         const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
         const agreementRef = await db.collection('partner_agreements').add({
@@ -8648,6 +8630,41 @@ app.get('/api/admin/partners/:id/agreement-pdf', verifyToken, requireAdmin, asyn
                 y -= lineH;
             }
         }
+
+        // Signature block — drawn cleanly with actual lines, labels below
+        ensureY(160);
+        y -= 20;
+        const sigGrey = rgb(0.5, 0.5, 0.5);
+        const sigBlack = rgb(0.05, 0.05, 0.05);
+        const halfW = (contentW - 24) / 2;
+
+        // HMC column
+        currentPage.drawText('HEALTH MATTERS CLINIC', { x: margin, y, size: 8, font: boldFont, color: sigBlack });
+        currentPage.drawText(agreement.agencyName || 'PARTNER ORGANIZATION', { x: margin + halfW + 24, y, size: 8, font: boldFont, color: sigBlack });
+        y -= 28;
+
+        currentPage.drawLine({ start: { x: margin, y }, end: { x: margin + halfW, y }, thickness: 0.5, color: sigBlack });
+        currentPage.drawLine({ start: { x: margin + halfW + 24, y }, end: { x: margin + contentW, y }, thickness: 0.5, color: sigBlack });
+        y -= 10;
+        currentPage.drawText('Authorized Signature', { x: margin, y, size: 8, font, color: sigGrey });
+        currentPage.drawText('Authorized Signature', { x: margin + halfW + 24, y, size: 8, font, color: sigGrey });
+        y -= 24;
+
+        currentPage.drawLine({ start: { x: margin, y }, end: { x: margin + halfW, y }, thickness: 0.5, color: sigBlack });
+        currentPage.drawLine({ start: { x: margin + halfW + 24, y }, end: { x: margin + contentW, y }, thickness: 0.5, color: sigBlack });
+        y -= 10;
+        currentPage.drawText('Printed Name and Title', { x: margin, y, size: 8, font, color: sigGrey });
+        currentPage.drawText('Printed Name and Title', { x: margin + halfW + 24, y, size: 8, font, color: sigGrey });
+        y -= 24;
+
+        currentPage.drawLine({ start: { x: margin, y }, end: { x: margin + halfW * 0.5, y }, thickness: 0.5, color: sigBlack });
+        currentPage.drawLine({ start: { x: margin + halfW + 24, y }, end: { x: margin + halfW + 24 + halfW * 0.5, y }, thickness: 0.5, color: sigBlack });
+        y -= 10;
+        currentPage.drawText('Date', { x: margin, y, size: 8, font, color: sigGrey });
+        currentPage.drawText('Date', { x: margin + halfW + 24, y, size: 8, font, color: sigGrey });
+        y -= 20;
+
+        currentPage.drawText('contact@healthmatters.clinic  |  (323) 990-4325  |  healthmatters.clinic', { x: margin, y, size: 7.5, font, color: sigGrey });
 
         const pdfBytes = await pdfDoc.save();
         const safeName = (agreement.agencyName || 'Partner').replace(/[^a-z0-9]/gi, '_');
