@@ -8309,6 +8309,15 @@ app.put('/api/partners/:id', verifyToken, requireAdmin, async (req: Request, res
     }
 });
 
+app.delete('/api/partners/:id', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        await db.collection('partner_agencies').doc(req.params.id).delete();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to remove partner' });
+    }
+});
+
 // ============================================================
 // PARTNER PORTAL ENDPOINTS
 // ============================================================

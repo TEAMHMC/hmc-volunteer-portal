@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Loader2,
   Send,
+  Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 
@@ -270,6 +272,7 @@ const PartnersTab: React.FC = () => {
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const fetchPartners = useCallback(async () => {
     setLoading(true);
@@ -296,6 +299,19 @@ const PartnersTab: React.FC = () => {
       alert(err?.message || 'Failed to send invite. Please try again.');
     } finally {
       setInvitingId(null);
+    }
+  };
+
+  const handleRemove = async (partner: AdminPartner) => {
+    if (!window.confirm(`Remove ${partner.name} from the partner network? This cannot be undone.`)) return;
+    setRemovingId(partner.id);
+    try {
+      await apiService.delete(`/api/partners/${partner.id}`);
+      await fetchPartners();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to remove partner.');
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -401,7 +417,27 @@ const PartnersTab: React.FC = () => {
                     <p className="text-xs text-zinc-600 font-medium">{partner.portalUserEmail}</p>
                   </div>
                 )}
-                {!hasPortal && (
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-100">
+                  {partner.contactEmail && (
+                    <a
+                      href={`mailto:${partner.contactEmail}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-200 text-zinc-700 text-xs font-black uppercase tracking-wider rounded-full hover:bg-zinc-50 transition-colors"
+                    >
+                      <Mail size={12} />
+                      Email Partner
+                    </a>
+                  )}
+                  {partner.website && (
+                    <a
+                      href={partner.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-200 text-zinc-700 text-xs font-black uppercase tracking-wider rounded-full hover:bg-zinc-50 transition-colors"
+                    >
+                      <ExternalLink size={12} />
+                      Website
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleSendInvite(partner)}
@@ -409,9 +445,18 @@ const PartnersTab: React.FC = () => {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#233dff] text-white text-xs font-black uppercase tracking-wider rounded-full hover:bg-[#1a2de0] disabled:opacity-40 transition-colors"
                   >
                     {isInviting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                    Send Portal Invite
+                    {hasPortal ? 'Resend Invite' : 'Send Portal Invite'}
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(partner)}
+                    disabled={removingId === partner.id}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 text-xs font-black uppercase tracking-wider rounded-full hover:bg-red-50 disabled:opacity-40 transition-colors"
+                  >
+                    {removingId === partner.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    Remove
+                  </button>
+                </div>
               </div>
             )}
           </div>
