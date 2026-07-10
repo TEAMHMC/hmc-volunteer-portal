@@ -22434,6 +22434,204 @@ app.get('*', (req: Request, res: Response) => {
     });
 });
 
+// ═══════════════════════════════════════════════════════════════
+// CEU CERTIFICATE GENERATION
+// All 7 BBS Section F requirements included on each certificate:
+// 1. Licensee name + license number
+// 2. Provider name + address
+// 3. Board-recognized approval agency name (LACDMH QOTD)
+// 4. Exact course title
+// 5. Date of course
+// 6. CE hours
+// 7. Provider designee signature (Erica Robinson, BBA)
+//
+// POST /api/admin/ceu/issue-certificate  — returns PDF
+// POST /api/admin/ceu/email-certificate  — emails PDF to attendee
+// ═══════════════════════════════════════════════════════════════
+const HMC_MAILING_ADDRESS = '1360 S. Figueroa St. D390, Los Angeles, CA 90015';
+const CEU_COURSE_TITLE_LINE1 = 'Unstoppable: The Power of Healing & Growth';
+const CEU_COURSE_TITLE_LINE2 = 'A Disability-Inclusive, Culturally Affirming Framework for Mental Wellness';
+const CEU_COURSE_TITLE_FULL = `${CEU_COURSE_TITLE_LINE1} - ${CEU_COURSE_TITLE_LINE2}`;
+const CEU_APPROVAL_AGENCY = 'Los Angeles County Department of Mental Health (LACDMH), Quality Outcomes & Training Division';
+const CEU_APPROVAL_AGENCY_SHORT = 'LACDMH, Quality Outcomes & Training Division (Board-Recognized CE Approval Agency)';
+const CEU_HOURS = '1.0';
+const CEU_BOARDS = 'BBS (LCSW, LMFT, LPCC, LEP)  |  BRN  |  CCAPP  |  Psychology';
+const CEU_APPROVAL_DATE = 'February 27, 2026';
+
+async function generateCeuCertificatePdf(params: {
+  firstName: string; lastName: string; licenseType: string; licenseNumber: string;
+  sessionDate: string; sessionDateDisplay: string; certId: string;
+}): Promise<Uint8Array> {
+  const { firstName, lastName, licenseType, licenseNumber, sessionDate, sessionDateDisplay, certId } = params;
+  const attendeeName = `${firstName.trim()} ${lastName.trim()}`;
+  const issuedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const displayDate = sessionDateDisplay || new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const licenseDisplay = licenseNumber ? `${licenseType}  No. ${licenseNumber}` : licenseType;
+
+  // Landscape letter: 792 x 612 pt
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+  const page = pdfDoc.addPage([792, 612]);
+  const W = 792; const H = 612;
+
+  const black   = rgb(0.05, 0.05, 0.05);
+  const blue    = rgb(0.137, 0.239, 1.0);
+  const green   = rgb(0.071, 0.753, 0.420);
+  const mid     = rgb(0.42, 0.42, 0.42);
+  const light   = rgb(0.72, 0.72, 0.72);
+  const offWhite = rgb(0.985, 0.985, 0.985);
+  const white   = rgb(1, 1, 1);
+
+  // Background
+  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: offWhite });
+  // Left accent bar
+  page.drawRectangle({ x: 0, y: 0, width: 8, height: H, color: blue });
+  // Top band
+  page.drawRectangle({ x: 8, y: H - 70, width: W - 8, height: 70, color: black });
+
+  // Provider name + address (top left in band)
+  page.drawText('HEALTH MATTERS CLINIC', { x: 22, y: H - 30, font: fontBold, size: 13, color: white });
+  page.drawText(`${HMC_MAILING_ADDRESS}  |  education@healthmatters.clinic`, { x: 22, y: H - 48, font, size: 7.5, color: rgb(0.65, 0.65, 0.65) });
+  page.drawText('501(c)(3) Nonprofit Organization', { x: 22, y: H - 62, font, size: 7, color: rgb(0.5, 0.5, 0.5) });
+
+  // Cert type label (top right in band)
+  const certLabel = 'CERTIFICATE OF COMPLETION';
+  page.drawText(certLabel, { x: W - 24 - fontBold.widthOfTextAtSize(certLabel, 11), y: H - 30, font: fontBold, size: 11, color: green });
+  page.drawText('Continuing Education Credit', { x: W - 24 - font.widthOfTextAtSize('Continuing Education Credit', 8.5), y: H - 48, font, size: 8.5, color: rgb(0.55, 0.75, 0.55) });
+
+  // Issued to
+  let y = H - 105;
+  const thisLine = 'This certifies that';
+  page.drawText(thisLine, { x: W / 2 - font.widthOfTextAtSize(thisLine, 10) / 2, y, font: fontItalic, size: 10, color: mid });
+
+  y -= 32;
+  page.drawText(attendeeName, { x: W / 2 - fontBold.widthOfTextAtSize(attendeeName, 21) / 2, y, font: fontBold, size: 21, color: black });
+
+  y -= 18;
+  page.drawText(licenseDisplay, { x: W / 2 - font.widthOfTextAtSize(licenseDisplay, 9.5) / 2, y, font, size: 9.5, color: mid });
+
+  y -= 22;
+  const completedLine = 'has successfully completed';
+  page.drawText(completedLine, { x: W / 2 - font.widthOfTextAtSize(completedLine, 10) / 2, y, font: fontItalic, size: 10, color: mid });
+
+  // Course title
+  y -= 24;
+  page.drawText(CEU_COURSE_TITLE_LINE1, { x: W / 2 - fontBold.widthOfTextAtSize(CEU_COURSE_TITLE_LINE1, 13) / 2, y, font: fontBold, size: 13, color: blue });
+  y -= 17;
+  page.drawText(CEU_COURSE_TITLE_LINE2, { x: W / 2 - font.widthOfTextAtSize(CEU_COURSE_TITLE_LINE2, 9.5) / 2, y, font, size: 9.5, color: mid });
+
+  // Facts band
+  y -= 28;
+  page.drawRectangle({ x: 48, y: y - 24, width: W - 96, height: 44, color: rgb(0.94, 0.96, 1.0), borderColor: rgb(0.78, 0.84, 0.96), borderWidth: 0.5 });
+  const col1 = 68; const col2 = 300; const col3 = 470;
+  page.drawText('Date Completed', { x: col1, y: y + 4, font: fontBold, size: 7.5, color: mid });
+  page.drawText(displayDate, { x: col1, y: y - 11, font, size: 8, color: black });
+  page.drawText('CE Hours Awarded', { x: col2, y: y + 4, font: fontBold, size: 7.5, color: mid });
+  page.drawText(CEU_HOURS + ' Hour', { x: col2, y: y - 11, font: fontBold, size: 9, color: black });
+  page.drawText('Approved Boards', { x: col3, y: y + 4, font: fontBold, size: 7.5, color: mid });
+  page.drawText(CEU_BOARDS, { x: col3, y: y - 11, font, size: 7.5, color: black });
+
+  // Approval agency (BBS requirement: board-recognized approval agency name)
+  y -= 46;
+  page.drawText('CE Approval Agency:', { x: 48, y, font: fontBold, size: 7.5, color: mid });
+  page.drawText(CEU_APPROVAL_AGENCY_SHORT, { x: 148, y, font, size: 7.5, color: black });
+  y -= 13;
+  page.drawText('Course Approval Date: ' + CEU_APPROVAL_DATE + '  |  Approval valid through: February 27, 2027', { x: 48, y, font, size: 7.5, color: mid });
+
+  // Signature block (BBS requirement: instructor/provider designee signature)
+  y -= 32;
+  const s1x = 68; const s2x = 430;
+  page.drawLine({ start: { x: s1x, y }, end: { x: s1x + 240, y }, thickness: 0.6, color: light });
+  page.drawLine({ start: { x: s2x, y }, end: { x: s2x + 240, y }, thickness: 0.6, color: light });
+  y -= 13;
+  page.drawText('Erica Robinson, BBA', { x: s1x, y, font: fontBold, size: 9, color: black });
+  page.drawText('Dr. Leon Maultsby, DBH', { x: s2x, y, font: fontBold, size: 9, color: black });
+  y -= 12;
+  page.drawText('Training Director (Provider Designee)', { x: s1x, y, font, size: 7.5, color: mid });
+  page.drawText('Lead Instructor', { x: s2x, y, font, size: 7.5, color: mid });
+  y -= 11;
+  page.drawText('Health Matters Clinic', { x: s1x, y, font, size: 7.5, color: mid });
+  page.drawText('Health Matters Clinic', { x: s2x, y, font, size: 7.5, color: mid });
+
+  // Footer
+  y -= 16;
+  page.drawLine({ start: { x: 8, y }, end: { x: W, y }, thickness: 0.4, color: light });
+  y -= 11;
+  page.drawText(`Certificate No: ${certId}  |  Issued: ${issuedDate}  |  Keep for your records. Do not submit to BBS unless audited.`, { x: 48, y, font, size: 7, color: light });
+
+  return pdfDoc.save();
+}
+
+app.post('/api/admin/ceu/issue-certificate', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { firstName, lastName, licenseType, licenseNumber, sessionDate, sessionDateDisplay } = req.body;
+    if (!firstName || !lastName || !licenseType || !sessionDate) {
+      return res.status(400).json({ error: 'firstName, lastName, licenseType, and sessionDate are required' });
+    }
+    const certId = `HMC-CEU-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+    const pdfBytes = await generateCeuCertificatePdf({
+      firstName, lastName, licenseType,
+      licenseNumber: licenseNumber || '',
+      sessionDate, sessionDateDisplay: sessionDateDisplay || sessionDate, certId,
+    });
+    const safeName = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="HMC_CEU_Certificate_${safeName}_${sessionDate}.pdf"`);
+    res.send(Buffer.from(pdfBytes));
+  } catch (e: any) {
+    console.error('[CEU-CERT]', e.message);
+    res.status(500).json({ error: 'Certificate generation failed' });
+  }
+});
+
+app.post('/api/admin/ceu/email-certificate', verifyToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { firstName, lastName, licenseType, licenseNumber, sessionDate, sessionDateDisplay, email } = req.body;
+    if (!firstName || !lastName || !licenseType || !sessionDate || !email) {
+      return res.status(400).json({ error: 'firstName, lastName, licenseType, sessionDate, and email are required' });
+    }
+    const certId = `HMC-CEU-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+    const pdfBytes = await generateCeuCertificatePdf({
+      firstName, lastName, licenseType,
+      licenseNumber: licenseNumber || '',
+      sessionDate, sessionDateDisplay: sessionDateDisplay || sessionDate, certId,
+    });
+    const displayDate = sessionDateDisplay || new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const issuedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const safeName = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    await sendEmail({
+      to: email,
+      subject: 'Your CE Certificate of Completion - Unstoppable Training | Health Matters Clinic',
+      html: `<div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;color:#1a1a1a">
+        <p style="margin:0 0 16px">Dear ${firstName},</p>
+        <p style="margin:0 0 16px">Your certificate of completion for the Unstoppable CE training is attached to this email.</p>
+        <table style="width:100%;border-collapse:collapse;margin:0 0 20px;font-size:13px">
+          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;width:140px">Course</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_COURSE_TITLE_FULL}</td></tr>
+          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Date Completed</td><td style="padding:8px 0;border-bottom:1px solid #eee">${displayDate}</td></tr>
+          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">CE Hours</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_HOURS} Hour</td></tr>
+          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Approved Boards</td><td style="padding:8px 0;border-bottom:1px solid #eee">BBS (LCSW, LMFT, LPCC, LEP), BRN, CCAPP, Psychology</td></tr>
+          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700">Approval Agency</td><td style="padding:8px 0;border-bottom:1px solid #eee">${CEU_APPROVAL_AGENCY}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:700">Certificate No</td><td style="padding:8px 0">${certId} | Issued: ${issuedDate}</td></tr>
+        </table>
+        <p style="margin:0 0 12px;font-size:13px"><strong>Important:</strong> Keep this certificate in your records for at least two years after your license renewal date. Do not submit it to the BBS unless you are selected for a CE audit.</p>
+        <p style="margin:0 0 16px;font-size:13px">Thank you for participating in the Unstoppable training.</p>
+        <p style="margin:0;font-size:13px">Health Matters Clinic<br>${HMC_MAILING_ADDRESS}<br>education@healthmatters.clinic</p>
+      </div>`,
+      attachments: [{
+        filename: `HMC_CEU_Certificate_${safeName}_${sessionDate}.pdf`,
+        content: Buffer.from(pdfBytes),
+        contentType: 'application/pdf',
+      }],
+    });
+    res.json({ success: true, certId });
+  } catch (e: any) {
+    console.error('[CEU-CERT-EMAIL]', e.message);
+    res.status(500).json({ error: 'Certificate email failed' });
+  }
+});
+
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---
 process.on('SIGTERM', () => {
   console.log('[SERVER] SIGTERM received, shutting down gracefully...');
