@@ -7280,10 +7280,10 @@ app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, re
             return res.status(400).json({ success: false, error: 'action is required' });
         }
 
-        // Admin actions authenticated by hash bypass reCAPTCHA — the hash check IS the auth.
-        const isAdminAction = verifyAdminHash(hash || '');
-        if (!isAdminAction) {
-            // Public submissions require reCAPTCHA.
+        // Admin requests include a hash verified by GAS at login — skip reCAPTCHA for those.
+        // Public "Post Event" submissions have no hash and require reCAPTCHA.
+        const hasAdminHash = typeof hash === 'string' && hash.length > 0;
+        if (!hasAdminHash) {
             const captcha = await verifyRecaptcha(recaptchaToken, 'submit_event');
             if (!captcha.ok) {
                 return res.status(captcha.status).json({ success: false, error: captcha.error });
