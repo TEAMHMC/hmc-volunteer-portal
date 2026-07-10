@@ -22410,29 +22410,6 @@ app.patch('/api/admin/events/:id/ceu-settings', verifyToken, requireAdmin, async
   }
 });
 
-// --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
-app.get('*', (req: Request, res: Response) => {
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API endpoint not found', path: req.path });
-    }
-    const indexPath = path.join(buildPath, 'index.html');
-    fs.readFile(indexPath, 'utf8', (err, htmlData) => {
-        if (err) {
-            console.error('[SERVER] Error reading index.html:', err);
-            return res.status(500).send('Error loading application.');
-        }
-        const envConfig = {
-            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
-            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
-        };
-        console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
-        const injectedHtml = htmlData.replace(
-            '<!--__ENV_CONFIG__-->',
-            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
-        );
-        res.send(injectedHtml);
-    });
-});
 
 // ═══════════════════════════════════════════════════════════════
 // CEU CERTIFICATE GENERATION
@@ -23055,6 +23032,30 @@ app.post('/api/public/partner-ads/:id/reject', rateLimit(30, 60000), async (req:
     console.error('[PUBLIC AD REJECT] Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
+app.get('*', (req: Request, res: Response) => {
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found', path: req.path });
+    }
+    const indexPath = path.join(buildPath, 'index.html');
+    fs.readFile(indexPath, 'utf8', (err, htmlData) => {
+        if (err) {
+            console.error('[SERVER] Error reading index.html:', err);
+            return res.status(500).send('Error loading application.');
+        }
+        const envConfig = {
+            GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
+            RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
+        };
+        console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
+        const injectedHtml = htmlData.replace(
+            '<!--__ENV_CONFIG__-->',
+            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
+        );
+        res.send(injectedHtml);
+    });
 });
 
 // --- GRACEFUL SHUTDOWN (Cloud Run requirement) ---
