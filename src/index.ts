@@ -7275,15 +7275,19 @@ app.get('/api/public/admin-auth', rateLimit(20, 60000), async (req: Request, res
 //     `pending_events` review write happens.
 app.post('/api/public/save-event', rateLimit(30, 60000), async (req: Request, res: Response) => {
     try {
-        const { action, event, id, recaptchaToken } = req.body || {};
+        const { action, event, id, recaptchaToken, hash } = req.body || {};
         if (!action) {
             return res.status(400).json({ success: false, error: 'action is required' });
         }
 
-        // reCAPTCHA v3 verification. Soft-fail when RECAPTCHA_SECRET_KEY is unset (see verifyRecaptcha).
-        const captcha = await verifyRecaptcha(recaptchaToken, 'submit_event');
-        if (!captcha.ok) {
-            return res.status(captcha.status).json({ success: false, error: captcha.error });
+        // Admin actions authenticated by hash bypass reCAPTCHA — the hash check IS the auth.
+        const isAdminAction = verifyAdminHash(hash || '');
+        if (!isAdminAction) {
+            // Public submissions require reCAPTCHA.
+            const captcha = await verifyRecaptcha(recaptchaToken, 'submit_event');
+            if (!captcha.ok) {
+                return res.status(captcha.status).json({ success: false, error: captcha.error });
+            }
         }
 
         const reviewOnly = process.env.SAVE_EVENT_REVIEW_ONLY === 'true';
