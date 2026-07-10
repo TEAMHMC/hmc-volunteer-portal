@@ -273,9 +273,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartOnboarding, onLogin, o
                             <li className="flex items-start gap-2"><span style={{ color: '#f59e0b', flexShrink: 0 }}>+</span> Your organization profile and performance metrics</li>
                         </ul>
                         <p className="text-zinc-400 font-bold leading-relaxed">
-                            Don't have an account yet? Partners are invite-only. Email{' '}
-                            <a href="mailto:partner@healthmatters.clinic" className="font-bold underline" style={{ color: '#f59e0b', textUnderlineOffset: 2 }}>partner@healthmatters.clinic</a>
-                            {' '}to get started.
+                            Don't have an account yet?{' '}
+                            <a href="https://partner.healthmatters.clinic" className="font-bold underline" style={{ color: '#f59e0b', textUnderlineOffset: 2 }}>Create a free partner account</a>
+                            {' '}to join the HMC referral network.
                         </p>
                     </div>
                 ) : !isAdmin && (
