@@ -22424,7 +22424,7 @@ app.patch('/api/admin/events/:id/ceu-settings', verifyToken, requireAdmin, async
 // 4. Exact course title
 // 5. Date of course
 // 6. CE hours
-// 7. Provider designee signature (Erica Robinson, BS)
+// 7. Provider designee signature (Erica Robinson, BBA)
 //
 // POST /api/admin/ceu/issue-certificate  — returns PDF
 // POST /api/admin/ceu/email-certificate  — emails PDF to attendee
@@ -22527,7 +22527,7 @@ async function generateCeuCertificatePdf(params: {
   page.drawLine({ start: { x: s1x, y }, end: { x: s1x + 240, y }, thickness: 0.6, color: light });
   page.drawLine({ start: { x: s2x, y }, end: { x: s2x + 240, y }, thickness: 0.6, color: light });
   y -= 13;
-  page.drawText('Erica Robinson, BS', { x: s1x, y, font: fontBold, size: 9, color: black });
+  page.drawText('Erica Robinson, BBA', { x: s1x, y, font: fontBold, size: 9, color: black });
   page.drawText('Dr. Leon Maultsby, DBH', { x: s2x, y, font: fontBold, size: 9, color: black });
   y -= 12;
   page.drawText('Training Director (Provider Designee)', { x: s1x, y, font, size: 7.5, color: mid });
