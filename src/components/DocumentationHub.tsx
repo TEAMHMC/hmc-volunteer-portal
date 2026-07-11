@@ -189,12 +189,22 @@ const ArticleModal: React.FC<{
 }> = ({ article, onClose, canEdit, onEdit, onDelete }) => {
     const renderContent = (content: string) => {
         const escapeHtmlInner = (t: string) => t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        // Sanitize a URL to prevent javascript: and data: XSS in href attributes.
+        // Only allow http, https, mailto, and relative paths.
+        const sanitizeUrl = (url: string): string => {
+            const trimmed = url.trim();
+            const lower = trimmed.toLowerCase().replace(/\s/g, '');
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '#';
+            }
+            return trimmed;
+        };
         const applyInline = (t: string) => t
             .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
             .replace(/`(.+?)`/g, '<code class="bg-zinc-100 px-1.5 py-0.5 rounded text-xs font-mono text-zinc-800">$1</code>')
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-brand underline font-medium">$1</a>');
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label, url) => `<a href="${escapeHtmlInner(sanitizeUrl(url))}" target="_blank" rel="noopener noreferrer" class="text-brand underline font-medium">${label}</a>`);
 
         const lines = content.split('\n');
         let html = '';
