@@ -18764,10 +18764,17 @@ cron.schedule('0 15 * * *', async () => {
 });
 
 // Manual trigger endpoint (for testing)
+// SECURITY: Fail-closed — if CRON_SECRET is not configured, deny all requests rather than
+// allowing unrestricted access. Previously used `if (cronSecret && ...)` which opened the
+// endpoint to any caller when the env var was missing.
 app.post('/api/monitor/run', async (req: Request, res: Response) => {
   const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('[SECURITY] /api/monitor/run: CRON_SECRET not configured — denying request (fail-closed)');
+    return res.status(503).json({ error: 'Monitor trigger not configured. Set CRON_SECRET.' });
+  }
   const providedSecret = req.headers['x-cron-secret'] || req.query.secret;
-  if (cronSecret && providedSecret !== cronSecret) {
+  if (providedSecret !== cronSecret) {
     return res.status(403).json({ error: 'Invalid secret' });
   }
   const results = await runMonitorChecks();
