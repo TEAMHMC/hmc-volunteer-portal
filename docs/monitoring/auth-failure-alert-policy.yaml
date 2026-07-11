@@ -1,0 +1,75 @@
+# Cloud Monitoring alert policy: auth failure rate on the volunteer portal.
+#
+# A spike in 401/403 responses can indicate:
+#   - Credential stuffing or brute-force login attempts
+#   - A broken OAuth configuration after a deploy
+#   - Expired or revoked service account credentials
+#
+# Deploy with:
+#   gcloud alpha monitoring policies create \
+#     --policy-from-file=docs/monitoring/auth-failure-alert-policy.yaml \
+#     --project=hmc-prod-473121
+#
+# After creation, add notification channels:
+#   gcloud alpha monitoring policies update POLICY_ID \
+#     --add-notification-channels=CHANNEL_ID
+
+displayName: "Portal Auth Failure Rate"
+combiner: OR
+conditions:
+  - displayName: "Cloud Run 401 responses > 10 in 60s"
+    conditionThreshold:
+      filter: >
+        resource.type = "cloud_run_revision"
+        AND resource.labels.service_name = "hmc-volunteer-portal"
+        AND metric.type = "run.googleapis.com/request_count"
+        AND metric.labels.response_code = "401"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+          groupByFields:
+            - resource.labels.service_name
+      comparison: COMPARISON_GT
+      thresholdValue: 10
+      duration: 0s
+      trigger:
+        count: 1
+  - displayName: "Cloud Run 403 responses > 10 in 60s"
+    conditionThreshold:
+      filter: >
+        resource.type = "cloud_run_revision"
+        AND resource.labels.service_name = "hmc-volunteer-portal"
+        AND metric.type = "run.googleapis.com/request_count"
+        AND metric.labels.response_code = "403"
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_SUM
+          groupByFields:
+            - resource.labels.service_name
+      comparison: COMPARISON_GT
+      thresholdValue: 10
+      duration: 0s
+      trigger:
+        count: 1
+alertStrategy:
+  autoClose: 3600s
+notificationChannels: []
+documentation:
+  displayName: "Portal Auth Failure Rate"
+  content: |
+    More than 10 HTTP 401 or 403 responses in a 60-second window from hmc-volunteer-portal.
+
+    Possible causes:
+    - Credential stuffing or automated login attack -- check source IPs in Cloud Run logs
+      and consider enabling Cloud Armor if attacks are sustained.
+    - Broken Google OAuth configuration -- verify GOOGLE_CLIENT_ID env var matches the
+      OAuth client in the GCP console for project hmc-prod-473121.
+    - Expired Firebase service account -- check the service account key rotation date.
+    - A recent deploy changed auth middleware behavior -- review the Cloud Build history.
+
+    Immediate steps:
+    1. Open Cloud Run logs: filter to httpRequest.status=401 and httpRequest.status=403.
+    2. If IPs are concentrated (attack), block via Cloud Armor or Cloud Run ingress rules.
+    3. If spread across users (broken config), check env vars and roll back if needed.

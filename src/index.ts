@@ -368,6 +368,43 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// --- STAGING BASIC AUTH MIDDLEWARE ---
+// When ENVIRONMENT=staging and STAGING_AUTH is set, every request (except /health)
+// is gated behind HTTP Basic Auth. This prevents the staging Cloud Run URL from being
+// publicly discoverable while keeping IAM set to --allow-unauthenticated so Cloud Run
+// does not interfere with the auth flow.
+//
+// STAGING_AUTH format (stored in Secret Manager as STAGING_AUTH:latest):
+//   "username:password"  (plain text, no base64 -- the middleware encodes it)
+//
+// To access staging, configure Basic Auth in your browser or use:
+//   curl -u "username:password" https://hmc-volunteer-portal-staging-<hash>-uc.a.run.app
+if (process.env.ENVIRONMENT === 'staging' && process.env.STAGING_AUTH) {
+  const [stagingUser, ...stagingPassParts] = (process.env.STAGING_AUTH as string).split(':');
+  const stagingPass = stagingPassParts.join(':'); // support passwords that contain ':'
+  const expectedToken = Buffer.from(`${stagingUser}:${stagingPass}`).toString('base64');
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // /health must remain unauthenticated for Cloud Run health checks
+    if (req.path === '/health') {
+      return next();
+    }
+    const authHeader = req.headers['authorization'] || '';
+    if (!authHeader.startsWith('Basic ')) {
+      res.setHeader('WWW-Authenticate', 'Basic realm="HMC Staging"');
+      return res.status(401).send('Authentication required');
+    }
+    const token = authHeader.slice('Basic '.length).trim();
+    if (token !== expectedToken) {
+      res.setHeader('WWW-Authenticate', 'Basic realm="HMC Staging"');
+      return res.status(401).send('Invalid credentials');
+    }
+    return next();
+  });
+
+  console.log('[STAGING] Basic Auth middleware active -- service is password-protected');
+}
+
 // Dynamic sitemap for Event Finder SEO — lists all public event pages
 app.get('/sitemap.xml', async (_req: Request, res: Response) => {
   try {

@@ -1,0 +1,48 @@
+steps:
+  # 1. Build the container image tagged for staging
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:staging-$COMMIT_SHA'
+      - '.'
+
+  # 2. Push the staging image to GCR
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:staging-$COMMIT_SHA'
+
+  # 3. Deploy to the staging Cloud Run service.
+  #    Staging is lighter weight: 1 CPU, 512Mi, cold-start allowed (min-instances=0).
+  #    STAGING_AUTH (format "username:password") gates the entire service behind HTTP
+  #    Basic Auth at the application layer — see src/index.ts staging middleware.
+  #    IAM still uses --allow-unauthenticated so Cloud Run does not double-prompt;
+  #    access control is enforced by the app itself.
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'hmc-volunteer-portal-staging'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:staging-$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--cpu=1'
+      - '--memory=512Mi'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--concurrency=20'
+      - '--update-env-vars'
+      - 'ENVIRONMENT=staging,GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com,VITE_GOOGLE_CLIENT_ID=172668994130-a8po02ouqnfuab01ma6tfo7rh1c6c35f.apps.googleusercontent.com'
+      - '--update-secrets'
+      - 'EMAIL_SERVICE_URL=EMAIL_SERVICE_URL:latest,APPS_SCRIPT_URL=APPS_SCRIPT_URL:latest,STAGING_AUTH=STAGING_AUTH:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/hmc-volunteer-portal:staging-$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

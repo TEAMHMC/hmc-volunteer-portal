@@ -1,0 +1,50 @@
+# Cloud Monitoring alert policy: p99 request latency on the volunteer portal.
+#
+# Deploy with:
+#   gcloud alpha monitoring policies create \
+#     --policy-from-file=docs/monitoring/latency-alert-policy.yaml \
+#     --project=hmc-prod-473121
+#
+# After creation, add notification channels:
+#   gcloud alpha monitoring policies update POLICY_ID \
+#     --add-notification-channels=CHANNEL_ID
+
+displayName: "Portal p99 Latency > 2s"
+combiner: OR
+conditions:
+  - displayName: "Cloud Run p99 latency > 2000ms sustained over 5 minutes"
+    conditionThreshold:
+      filter: >
+        resource.type = "cloud_run_revision"
+        AND resource.labels.service_name = "hmc-volunteer-portal"
+        AND metric.type = "run.googleapis.com/request_latencies"
+      aggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_PERCENTILE_99
+          crossSeriesReducer: REDUCE_PERCENTILE_99
+          groupByFields:
+            - resource.labels.service_name
+      comparison: COMPARISON_GT
+      thresholdValue: 2000
+      duration: 300s
+      trigger:
+        count: 1
+alertStrategy:
+  autoClose: 3600s
+notificationChannels: []
+documentation:
+  displayName: "Portal p99 Latency > 2s"
+  content: |
+    The hmc-volunteer-portal p99 request latency has exceeded 2000ms for 5 consecutive
+    minutes. This typically indicates:
+
+    - A Firestore query that lacks an index and is doing a full collection scan.
+    - A slow downstream API call (Apps Script, Gemini, Anthropic, Twilio).
+    - Cold-start accumulation if min-instances dropped to 0.
+    - Memory pressure causing GC pauses (check Cloud Run memory metrics).
+
+    Immediate steps:
+    1. Open Cloud Run metrics in GCP console, filter to hmc-volunteer-portal.
+    2. Check request latency breakdown by route if structured logging is enabled.
+    3. Check Firestore console for slow queries / missing indexes.
+    4. Verify min-instances is set to 1 in production to avoid cold starts.
