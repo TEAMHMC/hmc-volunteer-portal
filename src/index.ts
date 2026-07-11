@@ -22674,6 +22674,25 @@ app.post('/api/partner/ads/submit', verifyToken, async (req: Request, res: Respo
     if (!imageData) return res.status(400).json({ success: false, error: 'imageData is required' });
     if (!altText) return res.status(400).json({ success: false, error: 'altText is required' });
 
+    // Server-side MIME type validation — only allow safe image types regardless of client claim
+    const ALLOWED_AD_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const resolvedMimeType = (mimeType || 'image/jpeg').toLowerCase().trim();
+    const resolvedMobileMimeType = (mobileMimeType || 'image/jpeg').toLowerCase().trim();
+    if (!ALLOWED_AD_MIME_TYPES.includes(resolvedMimeType)) {
+      return res.status(400).json({ success: false, error: `Invalid image type: ${resolvedMimeType}. Allowed: jpeg, png, webp, gif.` });
+    }
+    if (mobileImageData && !ALLOWED_AD_MIME_TYPES.includes(resolvedMobileMimeType)) {
+      return res.status(400).json({ success: false, error: `Invalid mobile image type: ${resolvedMobileMimeType}. Allowed: jpeg, png, webp, gif.` });
+    }
+    // Validate base64 payload is not excessively large (5 MB ceiling per image)
+    const MAX_IMAGE_B64_BYTES = 7 * 1024 * 1024; // base64 overhead ~33%; 7 MB b64 ~ 5 MB decoded
+    if (imageData.length > MAX_IMAGE_B64_BYTES) {
+      return res.status(400).json({ success: false, error: 'Desktop image exceeds 5 MB limit.' });
+    }
+    if (mobileImageData && mobileImageData.length > MAX_IMAGE_B64_BYTES) {
+      return res.status(400).json({ success: false, error: 'Mobile image exceeds 5 MB limit.' });
+    }
+
     // Look up partner agency by portalUserId
     const agencySnap = await db.collection('partner_agencies').where('portalUserId', '==', uid).limit(1).get();
     let partnerName = 'Partner Organization';
@@ -22699,7 +22718,7 @@ app.post('/api/partner/ads/submit', verifyToken, async (req: Request, res: Respo
     const imageId = `pad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     await db.collection('partner_ad_images').doc(imageId).set({
       imageData,
-      mimeType: mimeType || 'image/jpeg',
+      mimeType: resolvedMimeType,
       updatedAt: submittedAt,
     });
     const imageUrl = `${PORTAL_SELF_URL}/api/public/partner-ad-image/${imageId}`;
@@ -22710,7 +22729,7 @@ app.post('/api/partner/ads/submit', verifyToken, async (req: Request, res: Respo
       const mobileImageId = `pad-mob-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       await db.collection('partner_ad_images').doc(mobileImageId).set({
         imageData: mobileImageData,
-        mimeType: mobileMimeType || 'image/jpeg',
+        mimeType: resolvedMobileMimeType,
         updatedAt: submittedAt,
       });
       mobileImageUrl = `${PORTAL_SELF_URL}/api/public/partner-ad-image/${mobileImageId}`;
