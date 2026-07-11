@@ -7408,10 +7408,20 @@ app.post('/api/public/upload-flyer', rateLimit(20, 60000), async (req: Request, 
     try {
         const { eventId, imageData, mimeType } = req.body;
         if (!imageData) return res.status(400).json({ success: false, error: 'imageData is required' });
+        // Server-side MIME type validation — allowlist only safe image types
+        const ALLOWED_FLYER_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        const resolvedFlyerMimeType = (mimeType || 'image/jpeg').toLowerCase().trim();
+        if (!ALLOWED_FLYER_MIME_TYPES.includes(resolvedFlyerMimeType)) {
+            return res.status(400).json({ success: false, error: `Invalid image type: ${resolvedFlyerMimeType}. Allowed: jpeg, png, webp, gif.` });
+        }
+        const MAX_FLYER_B64_BYTES = 7 * 1024 * 1024; // ~5 MB decoded
+        if (imageData.length > MAX_FLYER_B64_BYTES) {
+            return res.status(400).json({ success: false, error: 'Image exceeds 5 MB limit.' });
+        }
         const id = eventId || `flyer-${Date.now()}`;
         await db.collection('event_flyers').doc(id).set({
             imageData,
-            mimeType: mimeType || 'image/jpeg',
+            mimeType: resolvedFlyerMimeType,
             updatedAt: new Date().toISOString(),
         });
         const url = `${process.env.WEBSITE_URL || 'https://hmc-volunteer-portal-172668994130.us-central1.run.app'}/api/public/flyer/${id}`;
