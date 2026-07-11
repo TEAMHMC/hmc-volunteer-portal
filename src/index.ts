@@ -16567,6 +16567,16 @@ app.post('/api/volunteer/credential-file', verifyToken, async (req: Request, res
     const user = (req as any).user;
     const { field, base64, contentType, fileName } = req.body;
     if (!field || !base64) return res.status(400).json({ error: 'field and base64 are required' });
+    // Validate credential file type — only allow PDFs and common image formats
+    const ALLOWED_CREDENTIAL_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const resolvedContentType = (contentType || 'application/pdf').toLowerCase().trim();
+    if (!ALLOWED_CREDENTIAL_TYPES.includes(resolvedContentType)) {
+      return res.status(400).json({ error: `Invalid file type: ${resolvedContentType}. Allowed: PDF, JPEG, PNG, WEBP.` });
+    }
+    const MAX_CREDENTIAL_B64_BYTES = 14 * 1024 * 1024; // ~10 MB decoded
+    if (base64.length > MAX_CREDENTIAL_B64_BYTES) {
+      return res.status(400).json({ error: 'Credential file exceeds 10 MB limit.' });
+    }
     const ext = fileName?.split('.').pop() || 'pdf';
     const storagePath = `credentials/${user.uid}/${field}.${ext}`;
     const volRef = db.collection('volunteers').doc(user.uid);
