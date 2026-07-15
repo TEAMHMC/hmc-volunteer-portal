@@ -149,6 +149,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
             setView('partnerAdmin');
           } else if (data.user.volunteerRole === 'Partner Agency') {
             setView('partnerPortal');
+          } else if (isPartnerDomain) {
+            // Non-partner, non-admin account on partner domain — send to partner landing
+            // rather than showing the volunteer dashboard at the wrong subdomain.
+            localStorage.removeItem('authToken');
+            setView('partnerLanding');
           } else {
             setView('dashboard');
           }
@@ -242,6 +247,9 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         setView('partnerAdmin');
       } else if (fullData.user.volunteerRole === 'Partner Agency') {
         setView('partnerPortal');
+      } else if (isPartnerDomain) {
+        localStorage.removeItem('authToken');
+        setView('partnerLanding');
       } else {
         setView('dashboard');
       }
