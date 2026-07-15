@@ -21052,8 +21052,10 @@ app.patch('/api/sunny/backlog/:id/reviewed', verifyToken, requireAdmin, async (r
 
 // --- PUBLIC TOUR PAGE (no auth required) ---
 app.get('/tour', (req: Request, res: Response) => {
-  // Remove helmet's X-Frame-Options (SAMEORIGIN blocks all iframe embeds incl. Firefox)
-  // and use CSP frame-ancestors instead — supported by all modern browsers
+  const host = req.headers.host || '';
+  if (host.includes('partner.healthmatters.clinic')) {
+    return res.redirect('/');
+  }
   res.removeHeader('X-Frame-Options');
   res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://www.healthmatters.clinic https://healthmatters.clinic");
   res.sendFile(path.join(buildPath, 'tour.html'));

@@ -281,11 +281,17 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
         const fullData = await apiService.get('/auth/me');
         setAppData(fullData);
         apiService.startSessionHeartbeat();
+        const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === 'partner.healthmatters.clinic';
         const needsOnboarding = fullData.user.isNewUser === true && (!fullData.user.legalFirstName || fullData.user.onboardingProgress !== 100);
-        if (needsOnboarding) {
-            setView('onboarding');
+        if (isPartnerDomain && fullData.user.isAdmin) {
+            setView('partnerAdmin');
         } else if (fullData.user.volunteerRole === 'Partner Agency') {
             setView('partnerPortal');
+        } else if (isPartnerDomain) {
+            localStorage.removeItem('authToken');
+            setView('partnerLanding');
+        } else if (needsOnboarding) {
+            setView('onboarding');
         } else {
             setView('dashboard');
         }
@@ -327,7 +333,10 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     }
   };
   
-  const handleReturnToLanding = () => { setView('landing'); }
+  const handleReturnToLanding = () => {
+    const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === 'partner.healthmatters.clinic';
+    setView(isPartnerDomain ? 'partnerLanding' : 'landing');
+  };
 
   const handleUpdateUser = async (updatedUser: Volunteer) => {
       const user = await apiService.put('/api/volunteer', updatedUser);
