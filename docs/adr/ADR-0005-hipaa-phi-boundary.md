@@ -35,7 +35,7 @@ localStorage/sessionStorage, or third-party analytics tools.
 
 | Service | PHI Type | Storage Location | BAA Coverage |
 |---|---|---|---|
-| Check-Yourself | GAD-7 / PHQ-9 screener results | Client-only in current implementation; no server persistence | GCP BAA applies if persisted to Firestore |
+| Check-Yourself | GAD-7 / PHQ-9 screener results; opt-in connect flow transmits identifiable PHI (name, contact, severity bands, suicidal_ideation) | Anonymous screen is client-side; the opt-in connect flow POSTs identifiable PHI to Cloud Run (`/api/public/check-yourself-connect`), which writes Firestore (`check_yourself_followup_requests`) and emails an alert | GCP BAA (Cloud Run + Firestore) covers the connect flow; see outstanding items below |
 | CalmKit | Coaching session content, GPS wellness check-ins | Cloud Run session relay; Firestore if saved | GCP BAA (Cloud Run + Firestore) |
 | Volunteer Portal | SUD intake forms | Firestore `/intakes/{uid}` | GCP BAA (Firestore) |
 
@@ -52,8 +52,13 @@ localStorage/sessionStorage, or third-party analytics tools.
 ## Decision Outcome
 
 PHI is stored only in Cloud Run and Firestore, both covered by the GCP BAA. GitHub Pages
-frontends are classified as non-PHI by design. Screener results (Check-Yourself) are
-client-only until explicit user consent and server-side encryption at rest are implemented.
+frontends are classified as non-PHI by design. The Check-Yourself anonymous self-screen
+remains client-side, but the opt-in connect flow now transmits identifiable PHI (name,
+contact, GAD-7/PHQ-9 severity, and a suicidal_ideation boolean) out of the browser to the
+Cloud Run endpoint, which is inside the GCP BAA boundary. Two items remain outstanding
+before this flow is HIPAA-ready: (a) explicit consent language shown to the user at the
+point of submission, and (b) the audit logging listed below. Server-side encryption at rest
+is provided by Firestore default encryption.
 
 The GCP BAA must be signed and on file before any PHI is written to production Firestore.
 A signed copy is required to be stored in the HMC legal folder in Google Drive.
@@ -70,16 +75,18 @@ A signed copy is required to be stored in the HMC legal folder in Google Drive.
 
 **Negative**
 
-- Screener results (GAD-7, PHQ-9) cannot be persisted server-side in the current
-  Check-Yourself implementation without adding a Cloud Run proxy endpoint, consent UI,
-  and encryption-at-rest verification. Until those are built, longitudinal tracking is
-  not possible.
+- The Check-Yourself opt-in connect flow now persists identifiable PHI server-side via the
+  Cloud Run endpoint. Because this flow moves PHI out of the browser, it must not ship as
+  HIPAA-ready until (a) explicit consent language is shown at submit and (b) audit logging
+  is in place. The anonymous self-screen still cannot support longitudinal tracking without
+  a persisted, consented identity.
 - CalmKit GPS data constitutes PHI when combined with session content; any future offline
   sync feature must route through Cloud Run, not a direct Firestore client SDK call from
   the browser, to preserve audit logging.
 - PHI endpoints on Cloud Run require audit logging (Cloud Logging sink to BigQuery or
   Cloud Storage) before the system can be considered HIPAA-ready. This work is tracked
-  separately.
+  separately and is now a blocking prerequisite for the Check-Yourself connect flow, which
+  is already writing identifiable PHI to Firestore.
 
 **Neutral**
 
