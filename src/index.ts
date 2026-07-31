@@ -17917,66 +17917,149 @@ app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res
   res.sendStatus(200);
 });
 
-// POST /api/twilio/voice — Main IVR entry point.
-// Responds immediately with TwiML (no async work) to eliminate cold-start latency.
+// Voice IVR helpers
+const voiceSay = (twiml: any, lang: 'en' | 'es', text: string) => {
+  const opts = lang === 'es' ? { voice: 'Polly.Lupe', language: 'es-MX' } : { voice: 'Polly.Joanna' };
+  twiml.say(opts, `<speak><prosody rate="85%">${text}</prosody></speak>`);
+};
+
+// POST /api/twilio/voice — Language selection menu
 app.post('/api/twilio/voice', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
   try {
     const twiml = new twilio.twiml.VoiceResponse();
-    const gather = twiml.gather({ numDigits: 1, timeout: 8, action: '/api/twilio/voice/action', method: 'POST' });
+    // Emergency disclaimer plays before the gather so it cannot be skipped by a digit press
+    twiml.say(
+      { voice: 'Polly.Joanna' },
+      '<speak><prosody rate="85%">If this is a medical emergency, <break time="200ms"/> please hang up and dial <say-as interpret-as="digits">911</say-as> now.</prosody></speak>'
+    );
+    const gather = twiml.gather({ numDigits: 1, timeout: 8, action: '/api/twilio/voice/lang', method: 'POST' });
     gather.say(
       { voice: 'Polly.Joanna' },
-      'Thank you for calling Health Matters Clinic. Para Español, oprima dos. For English, press one.'
+      '<speak><prosody rate="85%">Thank you for calling Health Matters Clinic. <break time="400ms"/> Para Español, <break time="200ms"/> oprima dos. <break time="400ms"/> For English, <break time="200ms"/> press one.</prosody></speak>'
     );
-    // Repeat if caller does not press a digit
-    twiml.redirect('/api/twilio/voice');
+    twiml.redirect({ method: 'POST' }, '/api/twilio/voice');
     res.type('text/xml').send(twiml.toString());
   } catch (e: any) {
-    console.error('[TWILIO VOICE] IVR entry error:', e.message);
-    const fallback = new twilio.twiml.VoiceResponse();
-    fallback.say("We're sorry, please call back later.");
-    res.type('text/xml').send(fallback.toString());
+    console.error('[TWILIO VOICE] Language menu error:', e.message);
+    const f = new twilio.twiml.VoiceResponse();
+    f.say("We're sorry, an error occurred. Please try again.");
+    res.type('text/xml').send(f.toString());
   }
 });
 
-// POST /api/twilio/voice/action — Handles digit presses from the IVR menu.
-app.post('/api/twilio/voice/action', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+// POST /api/twilio/voice/lang — Routes to the correct language sub-menu
+app.post('/api/twilio/voice/lang', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
   try {
     const digit = (req.body.Digits || '').trim();
     const twiml = new twilio.twiml.VoiceResponse();
+    if (digit === '1') {
+      twiml.redirect({ method: 'POST' }, '/api/twilio/voice/menu?lang=en');
+    } else if (digit === '2') {
+      twiml.redirect({ method: 'POST' }, '/api/twilio/voice/menu?lang=es');
+    } else {
+      twiml.redirect({ method: 'POST' }, '/api/twilio/voice');
+    }
+    res.type('text/xml').send(twiml.toString());
+  } catch (e: any) {
+    console.error('[TWILIO VOICE] Lang route error:', e.message);
+    const f = new twilio.twiml.VoiceResponse();
+    f.say("We're sorry, an error occurred.");
+    res.type('text/xml').send(f.toString());
+  }
+});
+
+// POST /api/twilio/voice/menu — Service options sub-menu (lang=en|es)
+app.post('/api/twilio/voice/menu', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+  try {
+    const lang = (req.query.lang as string) === 'es' ? 'es' : 'en';
+    const twiml = new twilio.twiml.VoiceResponse();
+    const gather = twiml.gather({ numDigits: 1, timeout: 8, action: `/api/twilio/voice/selection?lang=${lang}`, method: 'POST' });
+    if (lang === 'es') {
+      voiceSay(gather, 'es',
+        'Para información sobre nuestros programas y próximos eventos, <break time="200ms"/> oprima uno. <break time="500ms"/>' +
+        'Para recursos de salud mental y apoyo en crisis, <break time="200ms"/> oprima dos. <break time="500ms"/>' +
+        'Para información sobre cómo ser voluntario, <break time="200ms"/> oprima tres. <break time="500ms"/>' +
+        'Para dejar un mensaje para nuestro equipo, <break time="200ms"/> oprima cuatro. <break time="500ms"/>' +
+        'Para escuchar estas opciones nuevamente, <break time="200ms"/> oprima nueve.'
+      );
+    } else {
+      voiceSay(gather, 'en',
+        'For information about our programs and upcoming events, <break time="200ms"/> press one. <break time="500ms"/>' +
+        'For mental health resources and crisis support, <break time="200ms"/> press two. <break time="500ms"/>' +
+        'For information about volunteering with us, <break time="200ms"/> press three. <break time="500ms"/>' +
+        'To leave a message for our team, <break time="200ms"/> press four. <break time="500ms"/>' +
+        'To hear these options again, <break time="200ms"/> press nine.'
+      );
+    }
+    twiml.redirect({ method: 'POST' }, `/api/twilio/voice/menu?lang=${lang}`);
+    res.type('text/xml').send(twiml.toString());
+  } catch (e: any) {
+    console.error('[TWILIO VOICE] Sub-menu error:', e.message);
+    const f = new twilio.twiml.VoiceResponse();
+    f.say("We're sorry, an error occurred.");
+    res.type('text/xml').send(f.toString());
+  }
+});
+
+// POST /api/twilio/voice/selection — Handles sub-menu digit presses
+app.post('/api/twilio/voice/selection', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+  try {
+    const digit = (req.body.Digits || '').trim();
+    const lang = (req.query.lang as string) === 'es' ? 'es' : 'en';
+    const twiml = new twilio.twiml.VoiceResponse();
 
     if (digit === '1') {
-      twiml.say(
-        { voice: 'Polly.Joanna' },
-        'Thank you for calling Health Matters Clinic. We are a community mental health and wellness organization serving Los Angeles. ' +
-        'To learn about our upcoming events, please visit us online at healthmatters.clinic. ' +
-        'For the Take Action L.A. program, visit healthmatters.clinic slash take action l.a. ' +
-        'If you are experiencing a mental health crisis, please call or text 9-8-8. ' +
-        'To speak with a team member, please call back during our office hours or send us a message at healthmatters.clinic. ' +
-        'Thank you for calling. We look forward to serving you.'
+      voiceSay(twiml, lang, lang === 'es'
+        ? 'Health Matters Clinic ofrece programas comunitarios de bienestar, <break time="200ms"/> talleres de salud mental, <break time="200ms"/> y eventos gratuitos en el sur de Los Ángeles. <break time="600ms"/> Para ver todos nuestros próximos eventos, <break time="200ms"/> visítenos en línea en <break time="200ms"/> health matters dot clinic. <break time="600ms"/> Gracias por llamar.'
+        : 'Health Matters Clinic offers community wellness programs, <break time="200ms"/> mental health workshops, <break time="200ms"/> and free events across Los Angeles. <break time="600ms"/> To view all upcoming events, <break time="200ms"/> please visit us online at <break time="200ms"/> health matters dot clinic. <break time="600ms"/> Thank you for calling.'
       );
       twiml.hangup();
     } else if (digit === '2') {
-      twiml.say(
-        { voice: 'Polly.Lupe', language: 'es-MX' },
-        'Gracias por llamar a Health Matters Clinic. Somos una organización comunitaria de salud mental y bienestar que sirve a Los Ángeles. ' +
-        'Para conocer nuestros próximos eventos, visítenos en línea en healthmatters.clinic. ' +
-        'Para el programa Take Action L.A., visite healthmatters.clinic barra take action l.a. ' +
-        'Si está experimentando una crisis de salud mental, por favor llame o envíe un mensaje de texto al 9-8-8. ' +
-        'Para hablar con un miembro de nuestro equipo, llame de vuelta durante nuestro horario de oficina o envíenos un mensaje en healthmatters.clinic. ' +
-        'Gracias por llamar. Esperamos servirle.'
+      voiceSay(twiml, lang, lang === 'es'
+        ? 'Si está experimentando una crisis de salud mental, <break time="200ms"/> por favor llame o envíe un mensaje de texto al <say-as interpret-as="digits">988</say-as> ahora mismo. <break time="600ms"/> También puede usar nuestra herramienta gratuita de detección de salud mental <break time="200ms"/> en <break time="200ms"/> health matters dot clinic <break time="200ms"/> barra <break time="200ms"/> recursos. <break time="600ms"/> Gracias por llamar.'
+        : 'If you are experiencing a mental health crisis, <break time="200ms"/> please call or text <say-as interpret-as="digits">988</say-as> right now. <break time="600ms"/> You can also access our free mental health screening tool <break time="200ms"/> at <break time="200ms"/> health matters dot clinic <break time="200ms"/> forward slash resources. <break time="600ms"/> Thank you for calling.'
       );
       twiml.hangup();
+    } else if (digit === '3') {
+      voiceSay(twiml, lang, lang === 'es'
+        ? 'Gracias por su interés en ser voluntario con Health Matters Clinic. <break time="400ms"/> Contamos con más de mil voluntarios certificados como promotores de salud comunitaria <break time="200ms"/> que sirven a Los Ángeles. <break time="600ms"/> Para solicitar ser voluntario, <break time="200ms"/> visítenos en <break time="200ms"/> health matters dot clinic <break time="200ms"/> barra solicitud. <break time="600ms"/> Gracias por llamar.'
+        : 'Thank you for your interest in volunteering with Health Matters Clinic. <break time="400ms"/> We have over one thousand certified community health worker volunteers <break time="200ms"/> serving Los Angeles. <break time="600ms"/> To apply as a volunteer, <break time="200ms"/> please visit us at <break time="200ms"/> health matters dot clinic <break time="200ms"/> forward slash apply. <break time="600ms"/> Thank you for calling.'
+      );
+      twiml.hangup();
+    } else if (digit === '4') {
+      voiceSay(twiml, lang, lang === 'es'
+        ? 'Para dejar un mensaje para nuestro equipo, <break time="200ms"/> por favor grabe su mensaje después del tono. <break time="300ms"/> Nos comunicaremos con usted lo antes posible.'
+        : 'To leave a message for our team, <break time="200ms"/> please record your message after the tone. <break time="300ms"/> We will get back to you as soon as possible.'
+      );
+      twiml.record({ maxLength: 120, action: '/api/twilio/voice/voicemail', method: 'POST', transcribe: false });
+    } else if (digit === '9') {
+      twiml.redirect({ method: 'POST' }, `/api/twilio/voice/menu?lang=${lang}`);
     } else {
-      // Unrecognized digit or empty — replay the menu
-      twiml.redirect('/api/twilio/voice');
+      twiml.redirect({ method: 'POST' }, `/api/twilio/voice/menu?lang=${lang}`);
     }
 
     res.type('text/xml').send(twiml.toString());
   } catch (e: any) {
-    console.error('[TWILIO VOICE] Action handler error:', e.message);
-    const fallback = new twilio.twiml.VoiceResponse();
-    fallback.say("We're sorry, please call back later.");
-    res.type('text/xml').send(fallback.toString());
+    console.error('[TWILIO VOICE] Selection handler error:', e.message);
+    const f = new twilio.twiml.VoiceResponse();
+    f.say("We're sorry, an error occurred.");
+    res.type('text/xml').send(f.toString());
+  }
+});
+
+// POST /api/twilio/voice/voicemail — Post-recording confirmation
+app.post('/api/twilio/voice/voicemail', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+  try {
+    const twiml = new twilio.twiml.VoiceResponse();
+    twiml.say(
+      { voice: 'Polly.Joanna' },
+      '<speak><prosody rate="85%">Your message has been recorded. <break time="300ms"/> Thank you for calling Health Matters Clinic. <break time="300ms"/> We look forward to speaking with you soon.</prosody></speak>'
+    );
+    twiml.hangup();
+    res.type('text/xml').send(twiml.toString());
+  } catch (e: any) {
+    console.error('[TWILIO VOICE] Voicemail confirmation error:', e.message);
+    res.type('text/xml').send('<Response><Hangup/></Response>');
   }
 });
 
