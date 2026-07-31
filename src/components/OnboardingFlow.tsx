@@ -394,6 +394,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
         // Secure information (encrypted for background checks)
         ssn: formData.ssn,
 
+        // Government ID + photo (board members: D&O insurance + identity verification)
+        governmentIdType: formData.governmentIdType,
+        governmentIdNumber: formData.governmentIdNumber,
+        governmentIdState: formData.governmentIdState,
+        governmentIdExpiration: formData.governmentIdExpiration,
+        idDocumentImage: formData.idDocumentImage,
+        profilePhoto: formData.profilePhoto,
+
         // Languages spoken (for community matching)
         languagesSpoken: formData.languagesSpoken || [],
 
@@ -508,7 +516,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
   const renderStepContent = () => {
     switch(step) {
       case 'account': return <AccountStep {...stepProps} onContinue={validateAndProceed} googleClientId={googleClientId} recaptchaSiteKey={recaptchaSiteKey} />;
-      case 'personal': return <PersonalStep {...stepProps} />;
+      case 'personal': return <PersonalStep {...stepProps} pinnedRole={pinnedRole} />;
       case 'background': return <BackgroundStep {...stepProps} />;
       case 'availability': return <AvailabilityStep {...stepProps} />;
       case 'role': return <RoleStep {...stepProps} pinnedRole={pinnedRole} isStepLoading={isStepLoading} setIsStepLoading={setIsStepLoading} />;
@@ -807,7 +815,7 @@ const AccountStep: React.FC<any> = ({ data, onChange, errors, onContinue, google
 };
 
 // --- PERSONAL STEP ---
-const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
+const PersonalStep: React.FC<any> = ({ data, onChange, errors, pinnedRole }) => {
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Personal Information</h2>
@@ -936,6 +944,49 @@ const PersonalStep: React.FC<any> = ({ data, onChange, errors }) => {
         />
         <p className="text-xs text-zinc-400 mt-2">Format: XXX-XX-XXXX</p>
       </div>
+
+      {pinnedRole && (
+      <div className="space-y-4">
+        <h3 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic pt-4">Identification</h3>
+        <p className="text-xs text-zinc-500">Required for Board members, for Directors & Officers insurance and identity verification.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">ID Type</label>
+            <select value={data.governmentIdType || ''} onChange={e => onChange('governmentIdType', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-bold">
+              <option value="">Select...</option>
+              <option>Driver's License</option>
+              <option>State ID</option>
+              <option>Passport</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">ID Number</label>
+            <input type="text" value={data.governmentIdNumber || ''} onChange={e => onChange('governmentIdNumber', e.target.value)} placeholder="ID number" autoComplete="off" className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-bold" />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Issuing State</label>
+            <input type="text" value={data.governmentIdState || ''} onChange={e => onChange('governmentIdState', e.target.value)} placeholder="e.g. CA" className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-bold" />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Expiration Date</label>
+            <input type="date" value={data.governmentIdExpiration || ''} onChange={e => onChange('governmentIdExpiration', e.target.value)} className="w-full px-5 py-4 bg-zinc-50 border border-zinc-200 rounded-lg font-bold" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Photo (headshot)</label>
+            <input type="file" accept="image/*" onChange={async e => { const f = e.target.files?.[0]; if (f) onChange('profilePhoto', await fileToBase64(f)); }} className="w-full text-sm" />
+            {data.profilePhoto && <p className="text-xs text-emerald-600 font-bold mt-1">Photo uploaded</p>}
+          </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-600 block mb-2">Photo of your ID</label>
+            <input type="file" accept="image/*" onChange={async e => { const f = e.target.files?.[0]; if (f) onChange('idDocumentImage', await fileToBase64(f)); }} className="w-full text-sm" />
+            {data.idDocumentImage && <p className="text-xs text-emerald-600 font-bold mt-1">ID uploaded</p>}
+          </div>
+        </div>
+      </div>
+      )}
     </div>
   );
 };

@@ -307,6 +307,12 @@ export interface Volunteer {
   points: number;
   avatarUrl?: string;
   profilePhoto?: string;
+  // Government ID (captured for board members: D&O insurance + background verification)
+  governmentIdType?: string;        // e.g. Driver's License, State ID, Passport
+  governmentIdNumber?: string;
+  governmentIdState?: string;
+  governmentIdExpiration?: string;
+  idDocumentImage?: string;         // base64 of the uploaded ID photo
   hoursContributed: number;
   hasCompletedSystemTour?: boolean;
   hasCompletedOpsTour?: boolean;
