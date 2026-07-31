@@ -245,9 +245,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     }
   };
 
-  const STEPS: StepId[] = preAuthUser
+  const baseSteps: StepId[] = preAuthUser
     ? ['personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation']
     : ['account', 'personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation'];
+  // When the role is already decided (e.g. board members arriving via ?role=), skip the resume
+  // upload + AI role-matching step entirely — it's unnecessary and the analysis banner is moot for them.
+  const STEPS: StepId[] = pinnedRole ? baseSteps.filter(s => s !== 'role') : baseSteps;
   const currentStepIndex = STEPS.indexOf(step);
 
   const prevStep = () => { if (currentStepIndex > 0) setStep(STEPS[currentStepIndex - 1]); };
@@ -509,10 +512,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
       case 'personal': return <PersonalStep {...stepProps} />;
       case 'background': return <BackgroundStep {...stepProps} />;
       case 'availability': return <AvailabilityStep {...stepProps} />;
-      case 'role': return <RoleStep {...stepProps} isStepLoading={isStepLoading} setIsStepLoading={setIsStepLoading} />;
+      case 'role': return <RoleStep {...stepProps} pinnedRole={pinnedRole} isStepLoading={isStepLoading} setIsStepLoading={setIsStepLoading} />;
       case 'details': return <DetailsStep {...stepProps} onChange={handleDataChange} />;
       case 'compliance': return <ComplianceStep {...stepProps} />;
-      case 'orientation': return <OrientationStep {...stepProps} onSubmit={handleFinalSubmit} isLoading={submitting} submitError={submitError} />;
+      case 'orientation': return <OrientationStep {...stepProps} onSubmit={handleFinalSubmit} isLoading={submitting} submitError={submitError} onBackToLanding={onBackToLanding} />;
       default: return null;
     }
   };
@@ -1269,7 +1272,7 @@ const AvailabilityStep: React.FC<any> = ({ data, onChange, errors }) => {
 };
 
 // --- ROLE STEP (with Resume Upload and AI) ---
-const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsStepLoading }) => {
+const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsStepLoading, pinnedRole }) => {
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
   const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1498,7 +1501,9 @@ const ComplianceStep: React.FC<any> = ({ data, onChange, errors }) => {
 };
 
 // --- ORIENTATION STEP ---
-const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError }) => {
+const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLoading, submitError, onBackToLanding }) => {
+  // When the account already exists, submitting again just re-errors — swap the button to a Log In action.
+  const accountExists = /already started|log in to your account/i.test(submitError || '');
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in">
       <h2 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase italic">Orientation</h2>
@@ -1556,9 +1561,15 @@ const OrientationStep: React.FC<any> = ({ data, onChange, errors, onSubmit, isLo
         </div>
       )}
 
-      <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-elevation-2">
-        {isLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Submit Application</>}
-      </button>
+      {accountExists ? (
+        <button onClick={onBackToLanding} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-elevation-2">
+          <div className="w-2 h-2 rounded-full bg-white" /> Log In to Continue
+        </button>
+      ) : (
+        <button onClick={onSubmit} disabled={isLoading || !data.watchedIntro || !data.watchedChampion} className="w-full py-6 bg-brand border border-black text-white rounded-full font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] transition-all shadow-elevation-2">
+          {isLoading ? <Loader2 className="animate-spin" /> : <><div className="w-2 h-2 rounded-full bg-white" /> Submit Application</>}
+        </button>
+      )}
     </div>
   );
 };
