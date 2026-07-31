@@ -17924,6 +17924,69 @@ app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res
   res.sendStatus(200);
 });
 
+// POST /api/twilio/voice — Main IVR entry point.
+// Responds immediately with TwiML (no async work) to eliminate cold-start latency.
+app.post('/api/twilio/voice', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+  try {
+    const twiml = new twilio.twiml.VoiceResponse();
+    const gather = twiml.gather({ numDigits: 1, timeout: 8, action: '/api/twilio/voice/action', method: 'POST' });
+    gather.say(
+      { voice: 'Polly.Joanna' },
+      'Thank you for calling Health Matters Clinic. Para Español, oprima dos. For English, press one.'
+    );
+    // Repeat if caller does not press a digit
+    twiml.redirect('/api/twilio/voice');
+    res.type('text/xml').send(twiml.toString());
+  } catch (e: any) {
+    console.error('[TWILIO VOICE] IVR entry error:', e.message);
+    const fallback = new twilio.twiml.VoiceResponse();
+    fallback.say("We're sorry, please call back later.");
+    res.type('text/xml').send(fallback.toString());
+  }
+});
+
+// POST /api/twilio/voice/action — Handles digit presses from the IVR menu.
+app.post('/api/twilio/voice/action', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+  try {
+    const digit = (req.body.Digits || '').trim();
+    const twiml = new twilio.twiml.VoiceResponse();
+
+    if (digit === '1') {
+      twiml.say(
+        { voice: 'Polly.Joanna' },
+        'Thank you for calling Health Matters Clinic. We are a community mental health and wellness organization serving Los Angeles. ' +
+        'To learn about our upcoming events, please visit us online at healthmatters.clinic. ' +
+        'For the Take Action L.A. program, visit healthmatters.clinic slash take action l.a. ' +
+        'If you are experiencing a mental health crisis, please call or text 9-8-8. ' +
+        'To speak with a team member, please call back during our office hours or send us a message at healthmatters.clinic. ' +
+        'Thank you for calling. We look forward to serving you.'
+      );
+      twiml.hangup();
+    } else if (digit === '2') {
+      twiml.say(
+        { voice: 'Polly.Lupe', language: 'es-MX' },
+        'Gracias por llamar a Health Matters Clinic. Somos una organización comunitaria de salud mental y bienestar que sirve a Los Ángeles. ' +
+        'Para conocer nuestros próximos eventos, visítenos en línea en healthmatters.clinic. ' +
+        'Para el programa Take Action L.A., visite healthmatters.clinic barra take action l.a. ' +
+        'Si está experimentando una crisis de salud mental, por favor llame o envíe un mensaje de texto al 9-8-8. ' +
+        'Para hablar con un miembro de nuestro equipo, llame de vuelta durante nuestro horario de oficina o envíenos un mensaje en healthmatters.clinic. ' +
+        'Gracias por llamar. Esperamos servirle.'
+      );
+      twiml.hangup();
+    } else {
+      // Unrecognized digit or empty — replay the menu
+      twiml.redirect('/api/twilio/voice');
+    }
+
+    res.type('text/xml').send(twiml.toString());
+  } catch (e: any) {
+    console.error('[TWILIO VOICE] Action handler error:', e.message);
+    const fallback = new twilio.twiml.VoiceResponse();
+    fallback.say("We're sorry, please call back later.");
+    res.type('text/xml').send(fallback.toString());
+  }
+});
+
 // --- ADMIN SETUP ENDPOINT (One-time setup) ---
 app.post('/api/admin/setup', rateLimit(3, 3600000), async (req: Request, res: Response) => {
   const { email, setupKey } = req.body;
