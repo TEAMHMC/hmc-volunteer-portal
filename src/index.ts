@@ -13139,27 +13139,20 @@ app.post('/api/broadcasts/send', verifyToken, async (req: Request, res: Response
                 // Compose SMS message (truncate if too long)
                 const smsBody = `[HMC] ${title}\n\n${content}`.substring(0, 1500);
 
-                // Send SMS to each volunteer
+                // Send SMS to each volunteer via sendSMS() for dedup + opt-in protection
                 const smsPromises = eligibleVolunteers.map(async (vol) => {
-                    try {
-                        const msgParams: any = { body: smsBody, to: vol.phone };
-                        if (TWILIO_MESSAGING_SERVICE_SID) {
-                            msgParams.messagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
-                        } else {
-                            msgParams.from = TWILIO_PHONE_NUMBER;
-                        }
-                        await twilioClient.messages.create(msgParams);
+                    const result = await sendSMS(vol.id, vol.phone, smsBody);
+                    if (result.sent) {
                         console.log(`[BROADCAST] SMS sent to ${maskPhone(vol.phone)}`);
-                        return { success: true };
-                    } catch (error: any) {
-                        console.error(`[BROADCAST] SMS failed for ${maskPhone(vol.phone)}:`, error.message);
-                        return { success: false, error: error.message };
+                    } else {
+                        console.log(`[BROADCAST] SMS skipped for ${maskPhone(vol.phone)}: ${result.reason}`);
                     }
+                    return result;
                 });
 
                 const results = await Promise.allSettled(smsPromises);
-                results.forEach((result, idx) => {
-                    if (result.status === 'fulfilled' && result.value.success) {
+                results.forEach((result) => {
+                    if (result.status === 'fulfilled' && result.value.sent) {
                         smsResults.sent++;
                     } else {
                         smsResults.failed++;
