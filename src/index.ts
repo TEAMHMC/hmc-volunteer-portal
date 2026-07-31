@@ -17944,7 +17944,7 @@ app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res
 });
 
 // Voice IVR — plain text only (no SSML). Polly Neural voices handle punctuation-based pacing naturally.
-const EN = { voice: 'Polly.Joanna' } as const;
+const EN = { voice: 'Polly.Joanna', language: 'en-US' } as const;
 const ES = { voice: 'Polly.Lupe', language: 'es-MX' } as const;
 
 // After giving info, always offer a follow-up gather so callers are never dead-ended
