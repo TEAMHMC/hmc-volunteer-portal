@@ -5,6 +5,7 @@ import path from 'path';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
 import twilio from 'twilio';
+import sgMail from '@sendgrid/mail';
 import cron from 'node-cron';
 import helmet from 'helmet';
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -142,6 +143,16 @@ async function getSignedDownloadUrl(filePath: string, expiresMinutes = 60): Prom
     expires: Date.now() + expiresMinutes * 60 * 1000,
   });
   return url;
+}
+
+// --- SENDGRID ---
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const SENDGRID_FROM = process.env.SENDGRID_FROM_EMAIL || 'noreply@healthmatters.clinic';
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log('✅ SendGrid configured — transactional email will use SendGrid');
+} else {
+  console.warn('⚠️  SENDGRID_API_KEY not set — email will fall back to Apps Script (GAS)');
 }
 
 // --- TWILIO ---
@@ -1780,8 +1791,8 @@ class EmailService {
       }
     }
 
-    if (!EMAIL_SERVICE_URL) {
-      console.warn('[EMAIL] EMAIL_SERVICE_URL not configured');
+    if (!EMAIL_SERVICE_URL && !SENDGRID_API_KEY) {
+      console.warn('[EMAIL] No email provider configured (set SENDGRID_API_KEY or EMAIL_SERVICE_URL)');
       return { sent: false, reason: 'not_configured' };
     }
 
@@ -1813,17 +1824,28 @@ class EmailService {
       };
       const rendered = templateFn(safeData);
 
-      // Send pre-rendered HTML to Google Apps Script.
-      // Use type='prerendered' to bypass Apps Script's own templates (which would
-      // try to use data fields that are no longer sent) and force the fallback
-      // path that uses our server-rendered subject/html directly.
-      //
-      // Apps Script flow: the initial POST to /exec runs doPost (which sends the
-      // email) and then returns a 302 to script.googleusercontent.com. That
-      // redirect target serves doPost's RESULT and only accepts GET — re-POSTing
-      // to it returns 405, which made us report sent:false even though the email
-      // already went out. So: POST once to deliver the body, then follow every
-      // redirect with GET to retrieve the JSON result.
+      // SendGrid path — preferred when API key is configured
+      if (SENDGRID_API_KEY) {
+        try {
+          await sgMail.send({
+            to: data.toEmail,
+            from: { email: SENDGRID_FROM, name: 'Health Matters Clinic' },
+            subject: rendered.subject,
+            html: rendered.html,
+            text: rendered.text,
+          });
+          console.log(`[EMAIL] SendGrid sent ${templateName} to ${maskEmail(data.toEmail)}`);
+          return { sent: true };
+        } catch (sgErr: any) {
+          const code = sgErr?.response?.body?.errors?.[0]?.message || sgErr.message;
+          console.error(`[EMAIL] SendGrid error for ${templateName}:`, code);
+          if (!EMAIL_SERVICE_URL) return { sent: false, reason: `sendgrid_error: ${code}` };
+          console.warn('[EMAIL] Falling back to Apps Script after SendGrid failure');
+        }
+      }
+
+      // GAS fallback (or primary when SENDGRID_API_KEY not set)
+      if (!EMAIL_SERVICE_URL) return { sent: false, reason: 'not_configured' };
       const emailBody = JSON.stringify({
         type: 'prerendered',
         toEmail: data.toEmail,
@@ -1847,31 +1869,35 @@ class EmailService {
       try {
         result = JSON.parse(responseText);
       } catch {
-        // Apps Script returned non-JSON (usually an HTML error page)
-        console.error(`[EMAIL] ❌ Apps Script non-JSON response (status ${response.status}):`, responseText.substring(0, 300));
+        console.error(`[EMAIL] Apps Script non-JSON response (status ${response.status}):`, responseText.substring(0, 300));
         return { sent: false, reason: `apps_script_html_response_${response.status}` };
       }
 
       if (result.success) {
-        console.log(`[EMAIL] Sent ${templateName} to ${maskEmail(data.toEmail)}`);
+        console.log(`[EMAIL] GAS sent ${templateName} to ${maskEmail(data.toEmail)}`);
         return { sent: true };
       } else {
-        console.error(`[EMAIL] ❌ Apps Script error: ${result.error}`);
+        console.error(`[EMAIL] GAS error: ${result.error}`);
         return { sent: false, reason: result.error || 'apps_script_error' };
       }
     } catch (error) {
-      console.error(`[EMAIL] ❌ Failed to send ${templateName}:`, error);
+      console.error(`[EMAIL] Failed to send ${templateName}:`, error);
       return { sent: false, reason: 'send_failed' };
     }
   }
 }
 
-// Helper: send pre-rendered HTML email via Apps Script with correct 302 redirect handling.
-// Google Apps Script runs doPost (which sends the email) on the initial POST to /exec,
-// then returns a 302 to script.googleusercontent.com. That redirect target serves the
-// RESULT and only accepts GET — re-POSTing to it returns 405. So POST once to deliver
-// the body, then follow the redirect(s) with GET to retrieve the result.
+// Helper: send pre-rendered HTML email — SendGrid preferred, GAS fallback.
 const sendEmailRaw = async (toEmail: string, subject: string, html: string, text: string): Promise<void> => {
+  if (SENDGRID_API_KEY) {
+    try {
+      await sgMail.send({ to: toEmail, from: { email: SENDGRID_FROM, name: 'Health Matters Clinic' }, subject, html, text });
+      return;
+    } catch (sgErr: any) {
+      console.error('[EMAIL] sendEmailRaw SendGrid error:', sgErr?.response?.body?.errors?.[0]?.message || sgErr.message);
+      if (!EMAIL_SERVICE_URL) return;
+    }
+  }
   if (!EMAIL_SERVICE_URL) return;
   const body = JSON.stringify({ type: 'prerendered', toEmail, subject, html, text });
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
