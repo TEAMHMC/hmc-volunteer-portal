@@ -17943,32 +17943,34 @@ app.post('/api/twilio/status', validateTwilioSignature, async (req: Request, res
   res.sendStatus(200);
 });
 
-// Voice IVR helpers
-const voiceSay = (twiml: any, lang: 'en' | 'es', text: string) => {
-  const opts = lang === 'es' ? { voice: 'Polly.Lupe', language: 'es-MX' } : { voice: 'Polly.Joanna' };
-  twiml.say(opts, `<speak><prosody rate="85%">${text}</prosody></speak>`);
+// Voice IVR — plain text only (no SSML). Polly Neural voices handle punctuation-based pacing naturally.
+const EN = { voice: 'Polly.Joanna' } as const;
+const ES = { voice: 'Polly.Lupe', language: 'es-MX' } as const;
+
+// After giving info, always offer a follow-up gather so callers are never dead-ended
+const addFollowUp = (twiml: any, lang: 'en' | 'es') => {
+  const g = twiml.gather({ numDigits: 1, timeout: 6, action: `/api/twilio/voice/followup?lang=${lang}`, method: 'POST' });
+  g.say(lang === 'es' ? ES : EN,
+    lang === 'es'
+      ? 'Para dejar un mensaje, oprima cuatro. Para regresar al menú principal, oprima nueve.'
+      : 'To leave us a message, press four. To return to the main menu, press nine.'
+  );
+  twiml.hangup();
 };
 
 // POST /api/twilio/voice — Language selection menu
 app.post('/api/twilio/voice', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
   try {
     const twiml = new twilio.twiml.VoiceResponse();
-    // Emergency disclaimer plays before the gather so it cannot be skipped by a digit press
-    twiml.say(
-      { voice: 'Polly.Joanna' },
-      '<speak><prosody rate="85%">If this is a medical emergency, <break time="200ms"/> please hang up and dial <say-as interpret-as="digits">911</say-as> now.</prosody></speak>'
-    );
+    twiml.say(EN, 'If this is a medical emergency, please hang up and dial 9 1 1 now.');
     const gather = twiml.gather({ numDigits: 1, timeout: 8, action: '/api/twilio/voice/lang', method: 'POST' });
-    gather.say(
-      { voice: 'Polly.Joanna' },
-      '<speak><prosody rate="85%">Thank you for calling Health Matters Clinic. <break time="400ms"/> Para Español, <break time="200ms"/> oprima dos. <break time="400ms"/> For English, <break time="200ms"/> press one.</prosody></speak>'
-    );
+    gather.say(EN, 'Thank you for calling Health Matters Clinic. Para Español, oprima dos. For English, press one.');
     twiml.redirect({ method: 'POST' }, '/api/twilio/voice');
     res.type('text/xml').send(twiml.toString());
   } catch (e: any) {
     console.error('[TWILIO VOICE] Language menu error:', e.message);
     const f = new twilio.twiml.VoiceResponse();
-    f.say("We're sorry, an error occurred. Please try again.");
+    f.say('We are sorry, please try your call again.');
     res.type('text/xml').send(f.toString());
   }
 });
@@ -17994,51 +17996,29 @@ app.post('/api/twilio/voice/lang', validateTwilioSignature, rateLimit(30, 60000)
   }
 });
 
-// POST /api/twilio/voice/menu — Full disclaimer + service options sub-menu (lang=en|es)
+// POST /api/twilio/voice/menu — Disclaimer + service options sub-menu (lang=en|es)
 app.post('/api/twilio/voice/menu', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
   try {
     const lang = (req.query.lang as string) === 'es' ? 'es' : 'en';
     const twiml = new twilio.twiml.VoiceResponse();
 
-    // Disclaimer plays outside the Gather so it is heard in full before the menu
-    if (lang === 'es') {
-      voiceSay(twiml, 'es',
-        'Esta línea no está monitoreada las veinticuatro horas del día. <break time="300ms"/>' +
-        'Por favor, no utilice esta línea para emergencias médicas o situaciones urgentes. <break time="500ms"/>' +
-        'Si está en crisis, <break time="200ms"/> puede llamar o enviar un mensaje de texto al <say-as interpret-as="digits">988</say-as>, <break time="200ms"/> la Línea de Crisis de Suicidio y Crisis, <break time="200ms"/> disponible las veinticuatro horas.'
-      );
-    } else {
-      voiceSay(twiml, 'en',
-        'Please note: <break time="200ms"/> this line is not monitored twenty-four hours a day. <break time="300ms"/>' +
-        'Do not use this line for medical emergencies or urgent needs. <break time="500ms"/>' +
-        'If you are in crisis, <break time="200ms"/> you can call or text <say-as interpret-as="digits">988</say-as> <break time="200ms"/> to reach the Suicide and Crisis Lifeline, <break time="200ms"/> available twenty-four hours a day, seven days a week.'
-      );
-    }
+    // Disclaimer before the gather so callers hear it before options
+    twiml.say(lang === 'es' ? ES : EN, lang === 'es'
+      ? 'Por favor tenga en cuenta que esta línea no está monitoreada las veinticuatro horas del día. No utilice esta línea para emergencias médicas. Si está en crisis, puede llamar o enviar un mensaje de texto al 9 8 8, la Línea de Crisis, disponible las veinticuatro horas.'
+      : 'Please note: this line is not monitored twenty-four hours a day. Do not use this line for medical emergencies or urgent situations. If you are in crisis, please call or text 9 8 8, the Suicide and Crisis Lifeline, available twenty-four hours a day.'
+    );
 
     const gather = twiml.gather({ numDigits: 1, timeout: 8, action: `/api/twilio/voice/selection?lang=${lang}`, method: 'POST' });
-    if (lang === 'es') {
-      voiceSay(gather, 'es',
-        'Para información sobre nuestros próximos eventos y programas, <break time="200ms"/> oprima uno. <break time="500ms"/>' +
-        'Para recursos de salud mental y apoyo en crisis, <break time="200ms"/> oprima dos. <break time="500ms"/>' +
-        'Para información sobre cómo ser voluntario, <break time="200ms"/> oprima tres. <break time="500ms"/>' +
-        'Para dejar un mensaje para nuestro equipo, <break time="200ms"/> oprima cuatro. <break time="500ms"/>' +
-        'Para escuchar estas opciones de nuevo, <break time="200ms"/> oprima nueve.'
-      );
-    } else {
-      voiceSay(gather, 'en',
-        'For information about our upcoming events and programs, <break time="200ms"/> press one. <break time="500ms"/>' +
-        'For mental health resources and crisis support, <break time="200ms"/> press two. <break time="500ms"/>' +
-        'For information about volunteering with Health Matters Clinic, <break time="200ms"/> press three. <break time="500ms"/>' +
-        'To leave a message for our team, <break time="200ms"/> press four. <break time="500ms"/>' +
-        'To hear these options again, <break time="200ms"/> press nine.'
-      );
-    }
+    gather.say(lang === 'es' ? ES : EN, lang === 'es'
+      ? 'Para eventos y programas comunitarios, oprima uno. Para recursos de salud mental, oprima dos. Para información sobre voluntariado, oprima tres. Para dejar un mensaje a nuestro equipo, oprima cuatro. Para escuchar estas opciones de nuevo, oprima nueve.'
+      : 'For upcoming events and community programs, press one. For mental health resources, press two. For volunteering information, press three. To leave a message for our team, press four. To repeat these options, press nine.'
+    );
     twiml.redirect({ method: 'POST' }, `/api/twilio/voice/menu?lang=${lang}`);
     res.type('text/xml').send(twiml.toString());
   } catch (e: any) {
     console.error('[TWILIO VOICE] Sub-menu error:', e.message);
     const f = new twilio.twiml.VoiceResponse();
-    f.say("We're sorry, an error occurred.");
+    f.say('We are sorry, please try your call again.');
     res.type('text/xml').send(f.toString());
   }
 });
@@ -18051,61 +18031,27 @@ app.post('/api/twilio/voice/selection', validateTwilioSignature, rateLimit(30, 6
     const twiml = new twilio.twiml.VoiceResponse();
 
     if (digit === '1') {
-      // Events and programs
-      voiceSay(twiml, lang, lang === 'es'
-        ? 'Health Matters Clinic ofrece eventos comunitarios gratuitos, <break time="200ms"/> talleres de salud mental, <break time="200ms"/> y programas de bienestar en todo Los Ángeles. <break time="600ms"/>' +
-          'Para ver todos nuestros próximos eventos, <break time="200ms"/> visítenos en línea en <break time="200ms"/> eventfinder dot healthmatters dot clinic. <break time="400ms"/>' +
-          'También puede visitar nuestro sitio principal en <break time="200ms"/> healthmatters dot clinic. <break time="600ms"/>' +
-          'Gracias por llamar a Health Matters Clinic. <break time="300ms"/> Esperamos verle pronto.'
-        : 'Health Matters Clinic offers free community events, <break time="200ms"/> mental health workshops, <break time="200ms"/> and wellness programs across Los Angeles. <break time="600ms"/>' +
-          'To view all upcoming events, <break time="200ms"/> please visit our event finder at <break time="200ms"/> eventfinder dot healthmatters dot clinic. <break time="400ms"/>' +
-          'You can also visit our main website at <break time="200ms"/> healthmatters dot clinic. <break time="600ms"/>' +
-          'Thank you for calling Health Matters Clinic. <break time="300ms"/> We hope to see you soon.'
+      twiml.say(lang === 'es' ? ES : EN, lang === 'es'
+        ? 'Health Matters Clinic ofrece eventos comunitarios gratuitos, talleres de salud mental y programas de bienestar en todo Los Ángeles. Para ver nuestros próximos eventos, visítenos en eventfinder punto healthmatters punto clinic. También puede visitar nuestro sitio principal en healthmatters punto clinic.'
+        : 'Health Matters Clinic offers free community events, mental health workshops, and wellness programs across Los Angeles. To view upcoming events, visit eventfinder dot healthmatters dot clinic. You can also visit our main site at healthmatters dot clinic.'
       );
-      twiml.hangup();
+      addFollowUp(twiml, lang);
     } else if (digit === '2') {
-      // Mental health resources — lead with 988 acknowledgment
-      voiceSay(twiml, lang, lang === 'es'
-        ? 'Gracias por comunicarse sobre salud mental. <break time="400ms"/>' +
-          'Si usted u otra persona está en crisis ahora mismo, <break time="200ms"/> por favor llame o envíe un mensaje de texto al <say-as interpret-as="digits">988</say-as>. <break time="300ms"/>' +
-          'El <say-as interpret-as="digits">988</say-as> es la Línea de Crisis de Suicidio y Crisis, <break time="200ms"/> disponible las veinticuatro horas, los siete días de la semana, de forma gratuita. <break time="600ms"/>' +
-          'Para una evaluación gratuita de salud mental, <break time="200ms"/> visite healthmatters dot clinic <break time="200ms"/> barra recursos <break time="200ms"/> barra check yourself. <break time="400ms"/>' +
-          'Para aprender más sobre nuestros programas de salud mental, <break time="200ms"/> visite healthmatters dot clinic. <break time="600ms"/>' +
-          'Gracias por llamar. <break time="300ms"/> Su bienestar importa.'
-        : 'Thank you for reaching out about mental health. <break time="400ms"/>' +
-          'If you or someone else is in crisis right now, <break time="200ms"/> please call or text <say-as interpret-as="digits">988</say-as>. <break time="300ms"/>' +
-          '<say-as interpret-as="digits">988</say-as> is the Suicide and Crisis Lifeline, <break time="200ms"/> available twenty-four hours a day, seven days a week, at no cost. <break time="600ms"/>' +
-          'For a free mental health screening, <break time="200ms"/> visit healthmatters dot clinic <break time="200ms"/> forward slash resources <break time="200ms"/> forward slash check-yourself. <break time="400ms"/>' +
-          'To learn more about our mental health programs, <break time="200ms"/> visit healthmatters dot clinic. <break time="600ms"/>' +
-          'Thank you for calling. <break time="300ms"/> Your wellbeing matters.'
+      twiml.say(lang === 'es' ? ES : EN, lang === 'es'
+        ? 'Gracias por comunicarse sobre salud mental. Si usted o alguien más está en crisis ahora mismo, por favor llame o envíe un mensaje de texto al 9 8 8. El 9 8 8 es la Línea de Crisis, disponible las veinticuatro horas del día, los siete días de la semana, de forma gratuita. Para una evaluación gratuita de salud mental, visite healthmatters punto clinic barra recursos. Su bienestar importa.'
+        : 'Thank you for reaching out about mental health. If you or someone else is in crisis right now, please call or text 9 8 8. That is 9 8 8, the Suicide and Crisis Lifeline, available twenty-four hours a day, seven days a week, at no cost. For a free mental health screening, visit healthmatters dot clinic forward slash resources. Your wellbeing matters.'
       );
-      twiml.hangup();
+      addFollowUp(twiml, lang);
     } else if (digit === '3') {
-      // Volunteer information
-      voiceSay(twiml, lang, lang === 'es'
-        ? 'Gracias por su interés en ser voluntario con Health Matters Clinic. <break time="400ms"/>' +
-          'Somos una organización impulsada por la comunidad con más de mil voluntarios certificados como promotores de salud comunitaria <break time="200ms"/> que sirven a Los Ángeles. <break time="600ms"/>' +
-          'Para solicitar ser voluntario o aprender más, <break time="200ms"/> visítenos en <break time="200ms"/> healthmatters dot clinic <break time="200ms"/> barra solicitud. <break time="400ms"/>' +
-          'También puede explorar el portal de voluntarios en <break time="200ms"/> volunteer dot healthmatters dot clinic. <break time="600ms"/>' +
-          'Gracias por llamar. <break time="300ms"/> Esperamos contar con usted en nuestro equipo.'
-        : 'Thank you for your interest in volunteering with Health Matters Clinic. <break time="400ms"/>' +
-          'We are a community-driven organization with over one thousand certified community health worker volunteers <break time="200ms"/> serving Los Angeles. <break time="600ms"/>' +
-          'To apply or learn more, <break time="200ms"/> please visit us at <break time="200ms"/> healthmatters dot clinic <break time="200ms"/> forward slash apply. <break time="400ms"/>' +
-          'You can also explore the volunteer portal at <break time="200ms"/> volunteer dot healthmatters dot clinic. <break time="600ms"/>' +
-          'Thank you for calling. <break time="300ms"/> We look forward to having you on our team.'
+      twiml.say(lang === 'es' ? ES : EN, lang === 'es'
+        ? 'Gracias por su interés en ser voluntario con Health Matters Clinic. Somos una organización comunitaria con más de mil voluntarios certificados sirviendo a Los Ángeles. Para solicitar ser voluntario, visítenos en healthmatters punto clinic barra solicitud. También puede explorar el portal en volunteer punto healthmatters punto clinic.'
+        : 'Thank you for your interest in volunteering with Health Matters Clinic. We are a community-driven organization with over one thousand certified community health worker volunteers serving Los Angeles. To apply, please visit healthmatters dot clinic forward slash apply. You can also explore the volunteer portal at volunteer dot healthmatters dot clinic.'
       );
-      twiml.hangup();
+      addFollowUp(twiml, lang);
     } else if (digit === '4') {
-      // Voicemail — records directly in Twilio, no phone forwarding
-      voiceSay(twiml, lang, lang === 'es'
-        ? 'Gracias por llamar a Health Matters Clinic. <break time="300ms"/>' +
-          'Por favor, deje su nombre, número de teléfono, y un breve mensaje después del tono. <break time="300ms"/>' +
-          'Nuestro equipo le devolverá la llamada lo antes posible durante el horario de oficina. <break time="300ms"/>' +
-          'Recuerde: esta línea no está monitoreada las veinticuatro horas. <break time="200ms"/> Para emergencias, llame al <say-as interpret-as="digits">911</say-as>, <break time="200ms"/> o al <say-as interpret-as="digits">988</say-as> para crisis de salud mental.'
-        : 'Thank you for calling Health Matters Clinic. <break time="300ms"/>' +
-          'Please leave your name, phone number, and a brief message after the tone. <break time="300ms"/>' +
-          'Our team will return your call as soon as possible during regular office hours. <break time="300ms"/>' +
-          'Please remember: this line is not monitored twenty-four hours a day. <break time="200ms"/> For emergencies, please call <say-as interpret-as="digits">911</say-as>, <break time="200ms"/> or <say-as interpret-as="digits">988</say-as> for mental health crisis support.'
+      twiml.say(lang === 'es' ? ES : EN, lang === 'es'
+        ? 'Por favor, deje su nombre, número de teléfono y un breve mensaje después del tono. Nuestro equipo le devolverá la llamada lo antes posible. Recuerde: esta línea no está monitoreada las veinticuatro horas. Para emergencias llame al 9 1 1, o al 9 8 8 para crisis de salud mental.'
+        : 'Please leave your name, phone number, and a brief message after the tone. Our team will return your call as soon as possible during office hours. Remember: this line is not monitored twenty-four hours a day. For emergencies please call 9 1 1, or 9 8 8 for mental health crisis support.'
       );
       twiml.record({ maxLength: 120, action: '/api/twilio/voice/voicemail', method: 'POST', transcribe: true });
     } else if (digit === '9') {
@@ -18118,8 +18064,33 @@ app.post('/api/twilio/voice/selection', validateTwilioSignature, rateLimit(30, 6
   } catch (e: any) {
     console.error('[TWILIO VOICE] Selection handler error:', e.message);
     const f = new twilio.twiml.VoiceResponse();
-    f.say("We're sorry, an error occurred.");
+    f.say('We are sorry, please try your call again.');
     res.type('text/xml').send(f.toString());
+  }
+});
+
+// POST /api/twilio/voice/followup — After info delivery, offer menu or voicemail
+app.post('/api/twilio/voice/followup', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
+  try {
+    const digit = (req.body.Digits || '').trim();
+    const lang = (req.query.lang as string) === 'es' ? 'es' : 'en';
+    const twiml = new twilio.twiml.VoiceResponse();
+    if (digit === '4') {
+      twiml.redirect({ method: 'POST' }, `/api/twilio/voice/selection?lang=${lang}`);
+      // Re-use selection handler with digit=4 via body — redirect and let it handle
+    } else if (digit === '9') {
+      twiml.redirect({ method: 'POST' }, `/api/twilio/voice/menu?lang=${lang}`);
+    } else {
+      twiml.say(lang === 'es' ? ES : EN, lang === 'es'
+        ? 'Gracias por llamar a Health Matters Clinic. Que tenga un buen día.'
+        : 'Thank you for calling Health Matters Clinic. Have a great day.'
+      );
+      twiml.hangup();
+    }
+    res.type('text/xml').send(twiml.toString());
+  } catch (e: any) {
+    console.error('[TWILIO VOICE] Follow-up error:', e.message);
+    res.type('text/xml').send('<Response><Hangup/></Response>');
   }
 });
 
@@ -18127,10 +18098,7 @@ app.post('/api/twilio/voice/selection', validateTwilioSignature, rateLimit(30, 6
 app.post('/api/twilio/voice/voicemail', validateTwilioSignature, rateLimit(30, 60000), (req: Request, res: Response) => {
   try {
     const twiml = new twilio.twiml.VoiceResponse();
-    twiml.say(
-      { voice: 'Polly.Joanna' },
-      '<speak><prosody rate="85%">Your message has been recorded. <break time="300ms"/> Thank you for calling Health Matters Clinic. <break time="300ms"/> We look forward to speaking with you soon.</prosody></speak>'
-    );
+    twiml.say(EN, 'Your message has been recorded. Thank you for calling Health Matters Clinic. We look forward to speaking with you soon.');
     twiml.hangup();
     res.type('text/xml').send(twiml.toString());
   } catch (e: any) {
