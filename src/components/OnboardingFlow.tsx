@@ -245,12 +245,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onBackToLanding, onSucc
     }
   };
 
-  const baseSteps: StepId[] = preAuthUser
+  // Everyone (including board members) goes through the role step so we always capture a resume.
+  // Board members just skip the AI role-matching inside that step (their role is already decided).
+  const STEPS: StepId[] = preAuthUser
     ? ['personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation']
     : ['account', 'personal', 'background', 'availability', 'role', 'details', 'compliance', 'orientation'];
-  // When the role is already decided (e.g. board members arriving via ?role=), skip the resume
-  // upload + AI role-matching step entirely — it's unnecessary and the analysis banner is moot for them.
-  const STEPS: StepId[] = pinnedRole ? baseSteps.filter(s => s !== 'role') : baseSteps;
   const currentStepIndex = STEPS.indexOf(step);
 
   const prevStep = () => { if (currentStepIndex > 0) setStep(STEPS[currentStepIndex - 1]); };
@@ -1289,6 +1288,9 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
     try {
       const base64 = await fileToBase64(file);
       onChange('resumeFile', { name: file.name, type: file.type, data: base64 });
+      // Board members: keep a copy of the resume on file, but skip AI role-matching entirely
+      // (their role is already decided). The finally block resets the loading state.
+      if (pinnedRole) return;
       const result = await geminiService.analyzeResume(base64, file.type);
 
       // Check if AI returned recommendations
@@ -1374,21 +1376,30 @@ const RoleStep: React.FC<any> = ({ data, onChange, errors, isStepLoading, setIsS
         </div>
       )}
 
-      <div>
-        <h3 className="font-bold text-zinc-900 mb-4">{aiRecommendations.length > 0 ? 'Or select a different role:' : 'Select your preferred role:'}</h3>
-        <select
-          value={data.selectedRole || ''}
-          onChange={(e) => onChange('selectedRole', e.target.value)}
-          className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-bold text-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all appearance-none cursor-pointer"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
-        >
-          <option value="" disabled>Choose a volunteer role...</option>
-          {availableRoles.map(role => (
-            <option key={role} value={role}>{role}</option>
-          ))}
-        </select>
-      </div>
-      {errors.selectedRole && <p className="text-rose-500 text-sm font-bold">{errors.selectedRole}</p>}
+      {pinnedRole ? (
+        <div>
+          <h3 className="font-bold text-zinc-900 mb-2">Your Role</h3>
+          <div className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-zinc-50 text-zinc-900 font-bold text-lg">{data.selectedRole || pinnedRole}</div>
+        </div>
+      ) : (
+        <>
+          <div>
+            <h3 className="font-bold text-zinc-900 mb-4">{aiRecommendations.length > 0 ? 'Or select a different role:' : 'Select your preferred role:'}</h3>
+            <select
+              value={data.selectedRole || ''}
+              onChange={(e) => onChange('selectedRole', e.target.value)}
+              className="w-full p-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-900 font-bold text-lg focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5rem' }}
+            >
+              <option value="" disabled>Choose a volunteer role...</option>
+              {availableRoles.map(role => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+          </div>
+          {errors.selectedRole && <p className="text-rose-500 text-sm font-bold">{errors.selectedRole}</p>}
+        </>
+      )}
     </div>
   );
 };
