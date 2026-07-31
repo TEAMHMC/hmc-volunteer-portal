@@ -1817,7 +1817,13 @@ class EmailService {
       // Use type='prerendered' to bypass Apps Script's own templates (which would
       // try to use data fields that are no longer sent) and force the fallback
       // path that uses our server-rendered subject/html directly.
-      // Must follow 302 redirect manually — fetch drops POST body on redirect.
+      //
+      // Apps Script flow: the initial POST to /exec runs doPost (which sends the
+      // email) and then returns a 302 to script.googleusercontent.com. That
+      // redirect target serves doPost's RESULT and only accepts GET — re-POSTing
+      // to it returns 405, which made us report sent:false even though the email
+      // already went out. So: POST once to deliver the body, then follow every
+      // redirect with GET to retrieve the JSON result.
       const emailBody = JSON.stringify({
         type: 'prerendered',
         toEmail: data.toEmail,
@@ -1833,7 +1839,7 @@ class EmailService {
         const redirectUrl = response.headers.get('location');
         if (!redirectUrl) break;
         emailUrl = redirectUrl;
-        response = await fetch(emailUrl, { method: 'POST', headers: emailHeaders, body: emailBody, redirect: 'manual' });
+        response = await fetch(emailUrl, { method: 'GET', redirect: 'manual' });
       }
 
       const responseText = await response.text();
@@ -1861,9 +1867,10 @@ class EmailService {
 }
 
 // Helper: send pre-rendered HTML email via Apps Script with correct 302 redirect handling.
-// Google Apps Script ALWAYS returns a 302 on POST. Using redirect:'follow' (the default)
-// causes Node fetch to convert POST→GET and drop the body — email never arrives.
-// This helper follows the redirect manually, keeping the POST body intact.
+// Google Apps Script runs doPost (which sends the email) on the initial POST to /exec,
+// then returns a 302 to script.googleusercontent.com. That redirect target serves the
+// RESULT and only accepts GET — re-POSTing to it returns 405. So POST once to deliver
+// the body, then follow the redirect(s) with GET to retrieve the result.
 const sendEmailRaw = async (toEmail: string, subject: string, html: string, text: string): Promise<void> => {
   if (!EMAIL_SERVICE_URL) return;
   const body = JSON.stringify({ type: 'prerendered', toEmail, subject, html, text });
@@ -1875,7 +1882,7 @@ const sendEmailRaw = async (toEmail: string, subject: string, html: string, text
     const loc = response.headers.get('location');
     if (!loc) break;
     url = loc;
-    response = await fetch(url, { method: 'POST', headers, body, redirect: 'manual' });
+    response = await fetch(url, { method: 'GET', redirect: 'manual' });
   }
 };
 
