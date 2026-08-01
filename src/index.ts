@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import admin from 'firebase-admin';
 import twilio from 'twilio';
 import sgMail from '@sendgrid/mail';
+import cookieParser from 'cookie-parser';
 import cron from 'node-cron';
 import helmet from 'helmet';
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -339,6 +340,7 @@ const ALLOWED_ORIGINS = [
   'https://eventfinder.healthmatters.clinic',
   'https://checkyourself.healthmatters.clinic',
   'https://calmkit.healthmatters.clinic',
+  'https://hub.healthmatters.clinic',
   // Cloud Run self-references (same service calling itself)
   process.env.WEBSITE_URL,
 ].filter(Boolean) as string[];
@@ -369,6 +371,7 @@ app.use(cors({
 // Limit request body size to prevent memory exhaustion
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(cookieParser());
 
 // --- HEALTH CHECK ENDPOINT (no auth required) ---
 app.get('/health', (req: Request, res: Response) => {
@@ -21693,6 +21696,425 @@ app.post('/api/public/referrals', rateLimit(10, 3600000), async (req: Request, r
         console.error('[REFERRAL] Failed to submit:', error);
         return res.status(500).json({ ok: false, error: 'Failed to submit referral' });
     }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// UNIFIED CLIENT CONTEXT — visitor identity, signal capture,
+// next-action engine, and client magic-link identity for the
+// Helping + Healing Hub (client portal). All first-party; no
+// third-party trackers. PHI-adjacent data stays in Firestore.
+// ═══════════════════════════════════════════════════════════════
+
+// Set the first-party visitor cookie on the registrable site so every
+// *.healthmatters.clinic tool shares one visitorId.
+const setVisitorCookie = (req: Request, res: Response, visitorId: string) => {
+  const host = req.hostname || '';
+  const opts: any = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 400 * 24 * 60 * 60 * 1000, // ~400 days (browser cap)
+    path: '/',
+  };
+  if (host.endsWith('healthmatters.clinic')) opts.domain = '.healthmatters.clinic';
+  res.cookie('hmc_vid', visitorId, opts);
+};
+
+const readVisitorId = (req: Request): string | null => {
+  const fromCookie = req.cookies?.hmc_vid;
+  if (fromCookie && typeof fromCookie === 'string') return fromCookie;
+  const fromBody = req.body?.visitorId;
+  if (fromBody && typeof fromBody === 'string') return fromBody;
+  return null;
+};
+
+// GET /api/context/hello — read-or-create the visitor; returns visitorId + identified state.
+// Every tool calls this once on load with credentials:'include'.
+app.get('/api/context/hello', rateLimit(120, 60000), async (req: Request, res: Response) => {
+  try {
+    let visitorId = readVisitorId(req);
+    const now = new Date().toISOString();
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      await db.collection('visitors').doc(visitorId).set({
+        visitorId, createdAt: now, lastSeen: now,
+        clientId: null, linkedEmails: [], linkedSessionIds: [],
+        consent: { context: false, at: null, version: 'v1' },
+      });
+    } else {
+      const ref = db.collection('visitors').doc(visitorId);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        await ref.set({
+          visitorId, createdAt: now, lastSeen: now,
+          clientId: null, linkedEmails: [], linkedSessionIds: [],
+          consent: { context: false, at: null, version: 'v1' },
+        });
+      } else {
+        await ref.update({ lastSeen: now });
+      }
+    }
+    setVisitorCookie(req, res, visitorId);
+    const snap = await db.collection('visitors').doc(visitorId).get();
+    const data = snap.data() || {};
+    res.json({ visitorId, identified: !!data.clientId, consent: data.consent || { context: false } });
+  } catch (e: any) {
+    console.error('[CONTEXT] hello error:', e.message);
+    res.status(500).json({ error: 'context_hello_failed' });
+  }
+});
+
+// POST /api/context/consent — record explicit opt-in for cross-tool memory
+app.post('/api/context/consent', rateLimit(30, 60000), async (req: Request, res: Response) => {
+  try {
+    const visitorId = readVisitorId(req);
+    if (!visitorId) return res.status(400).json({ error: 'no_visitor' });
+    const granted = req.body?.granted !== false;
+    await db.collection('visitors').doc(visitorId).set({
+      consent: { context: granted, at: new Date().toISOString(), version: 'v1' },
+    }, { merge: true });
+    res.json({ ok: true, consent: granted });
+  } catch (e: any) {
+    console.error('[CONTEXT] consent error:', e.message);
+    res.status(500).json({ error: 'consent_failed' });
+  }
+});
+
+// POST /api/public/context/event — append a lightweight signal (tool_search, resource_click,
+// calmkit_session_start, hub_checkin, screening_view, etc.), stamped with the visitorId.
+app.post('/api/public/context/event', rateLimit(120, 60000), async (req: Request, res: Response) => {
+  try {
+    const visitorId = readVisitorId(req);
+    if (!visitorId) return res.status(400).json({ error: 'no_visitor' });
+    const { type, payload } = req.body || {};
+    const allowedTypes = [
+      'tool_search', 'resource_click', 'calmkit_session_start', 'hub_checkin',
+      'screening_view', 'screening_complete', 'event_view', 'tool_open', 'daily_needs_view',
+    ];
+    if (!type || !allowedTypes.includes(type)) {
+      return res.status(400).json({ error: 'invalid_type' });
+    }
+    const safePayload = (payload && typeof payload === 'object')
+      ? JSON.parse(JSON.stringify(payload)) : {};
+    const now = new Date().toISOString();
+    await db.collection('context_events').add({
+      visitorId, type, payload: safePayload, createdAt: now,
+    });
+    // Keep a small rolling cache on the visitor for fast next-action reads
+    await db.collection('visitors').doc(visitorId).set({
+      lastSeen: now,
+      lastSignals: admin.firestore.FieldValue.arrayUnion({ type, at: now, payload: safePayload }),
+    }, { merge: true }).catch(() => {});
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error('[CONTEXT] event error:', e.message);
+    res.status(500).json({ error: 'event_failed' });
+  }
+});
+
+// Rules-based next-action engine — reads the visitor's recent signals + any linked
+// screening results, returns ranked cards. Explainable, no ML.
+const computeNextActions = async (visitorId: string, clientId: string | null): Promise<any[]> => {
+  const actions: any[] = [];
+  // Pull the visitor doc + recent context events
+  const [visSnap, eventsSnap] = await Promise.all([
+    db.collection('visitors').doc(visitorId).get(),
+    db.collection('context_events').where('visitorId', '==', visitorId).orderBy('createdAt', 'desc').limit(25).get().catch(() => null),
+  ]);
+  const vis = visSnap.data() || {};
+  const events = eventsSnap ? eventsSnap.docs.map(d => d.data()) : [];
+  const linkedSessionIds: string[] = vis.linkedSessionIds || [];
+  const linkedEmails: string[] = vis.linkedEmails || [];
+
+  // Most recent screening for this visitor (via linked sessionIds)
+  let latestScreening: any = null;
+  if (linkedSessionIds.length) {
+    const cySnap = await db.collection('check_yourself_connects')
+      .where('sessionId', 'in', linkedSessionIds.slice(0, 10))
+      .limit(10).get().catch(() => null);
+    if (cySnap && !cySnap.empty) {
+      latestScreening = cySnap.docs
+        .map(d => d.data())
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+    }
+  }
+
+  const phq = latestScreening?.phq9_score;
+  const gad = latestScreening?.gad7_score;
+  const suicidalFlag = latestScreening?.suicidalIdeation || latestScreening?.item9Flag;
+
+  // 1. Crisis takes top priority
+  if ((typeof phq === 'number' && phq >= 15) || suicidalFlag) {
+    actions.push({
+      id: 'crisis', priority: 1, title: 'You are not alone',
+      body: 'Support is available right now, any time of day.',
+      cta: { label: 'Call or text 988', href: 'tel:988' },
+      secondary: { label: 'Text HOME to 741741', href: 'sms:741741' },
+      reason: suicidalFlag ? 'screening_flag' : 'phq9>=15',
+    });
+  } else if ((typeof phq === 'number' && phq >= 10) || (typeof gad === 'number' && gad >= 10)) {
+    // 2. Moderate — offer CalmKit with scores carried over
+    const params = new URLSearchParams();
+    if (typeof phq === 'number') params.set('phq', String(phq));
+    if (typeof gad === 'number') params.set('gad', String(gad));
+    actions.push({
+      id: 'calmkit', priority: 2, title: 'A few minutes for you',
+      body: 'Try a short guided reset built around how you have been feeling.',
+      cta: { label: 'Open Calm Kit', href: `https://calmkit.healthmatters.clinic/?${params.toString()}` },
+      reason: 'screening_moderate',
+    });
+  }
+
+  // 3. Recent needs search -> daily-needs card
+  const needsSearch = events.find(e => e.type === 'tool_search' &&
+    /housing|food|shelter|rent|eviction|safety|transport|diaper|utility/i.test(JSON.stringify(e.payload || {})));
+  if (needsSearch) {
+    actions.push({
+      id: 'daily_needs', priority: 3, title: 'Help with daily needs',
+      body: 'We can connect you to housing, food, and safety resources near you.',
+      cta: { label: 'Get connected', href: '/daily-needs' },
+      reason: 'searched_needs',
+    });
+  }
+
+  // 4. Open referral status (identified clients or matched emails)
+  if (clientId || linkedEmails.length) {
+    let refSnap = null;
+    if (linkedEmails.length) {
+      refSnap = await db.collection('referrals')
+        .where('memberEmail', 'in', linkedEmails.slice(0, 10))
+        .limit(10).get().catch(() => null);
+    }
+    const openRef = refSnap && !refSnap.empty
+      ? refSnap.docs.map(d => ({ id: d.id, ...d.data() })).find((r: any) => r.status !== 'completed' && r.status !== 'closed')
+      : null;
+    if (openRef) {
+      actions.push({
+        id: 'referral_status', priority: 4, title: 'Your referral is in progress',
+        body: `We are working on your referral${(openRef as any).resourceName ? ' to ' + (openRef as any).resourceName : ''}.`,
+        cta: { label: 'View status', href: '/my/referrals' },
+        reason: 'open_referral',
+      });
+    }
+  }
+
+  // 5. Screening completed but no follow-up recently -> gentle nudge
+  if (latestScreening && actions.length === 0) {
+    actions.push({
+      id: 'screening_followup', priority: 5, title: 'Want us to check in?',
+      body: 'You recently completed a check-in. We can follow up if you would like.',
+      cta: { label: 'Yes, follow up with me', href: '/check-in' },
+      reason: 'screening_no_followup',
+    });
+  }
+
+  // 6. Neutral default — always give a starting point
+  actions.push({
+    id: 'explore', priority: 9, title: 'Start here',
+    body: 'Explore free tools, upcoming events, and community resources.',
+    cta: { label: 'See what is available', href: '/' },
+    reason: 'default',
+  });
+
+  return actions.sort((a, b) => a.priority - b.priority);
+};
+
+// GET /api/context/next-actions — ranked cards for the Hub
+app.get('/api/context/next-actions', rateLimit(120, 60000), async (req: Request, res: Response) => {
+  try {
+    const visitorId = readVisitorId(req);
+    if (!visitorId) return res.json({ visitorId: null, actions: [] });
+    const visSnap = await db.collection('visitors').doc(visitorId).get();
+    const clientId = visSnap.exists ? (visSnap.data()?.clientId || null) : null;
+    const actions = await computeNextActions(visitorId, clientId);
+    res.json({ visitorId, actions });
+  } catch (e: any) {
+    console.error('[CONTEXT] next-actions error:', e.message);
+    res.status(500).json({ error: 'next_actions_failed' });
+  }
+});
+
+// ── CLIENT MAGIC-LINK IDENTITY (passwordless, reuses verification infra) ──
+
+// POST /api/client/auth/request-link — send a 6-digit code to the client's email
+app.post('/api/client/auth/request-link', rateLimit(5, 3600000), async (req: Request, res: Response) => {
+  try {
+    const email = (req.body?.email || '').trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'valid_email_required' });
+    }
+    if (await isEmailSuppressed(email)) {
+      return res.status(403).json({ error: 'email_unsubscribed' });
+    }
+    const code = crypto.randomInt(100000, 999999).toString();
+    const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+    await db.collection('client_auth_codes').doc(email).set({
+      hashedCode, expires: Date.now() + 15 * 60 * 1000, attempts: 0,
+    });
+    const emailResult = await EmailService.send('email_verification', {
+      toEmail: email,
+      volunteerName: email.split('@')[0],
+      verificationCode: code,
+      expiresIn: 15,
+    });
+    if (!emailResult.sent) {
+      return res.status(500).json({ error: `email_failed: ${emailResult.reason}` });
+    }
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error('[CLIENT AUTH] request-link error:', e.message);
+    res.status(500).json({ error: 'request_failed' });
+  }
+});
+
+// Issue an opaque client session and set it as an httpOnly cookie
+const issueClientSession = async (req: Request, res: Response, clientId: string | null, email: string, visitorId: string | null) => {
+  const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
+  await db.collection('client_sessions').doc(token).set({
+    clientId, email, visitorId,
+    createdAt: new Date(now).toISOString(),
+    expires: now + 30 * 24 * 60 * 60 * 1000, // 30-day sliding window
+    lastSeen: new Date(now).toISOString(),
+  });
+  const host = req.hostname || '';
+  const opts: any = { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' };
+  if (host.endsWith('healthmatters.clinic')) opts.domain = '.healthmatters.clinic';
+  res.cookie('hmc_client', token, opts);
+};
+
+// POST /api/client/auth/verify-link — verify code, link visitor->client, issue session
+app.post('/api/client/auth/verify-link', rateLimit(10, 3600000), async (req: Request, res: Response) => {
+  try {
+    const email = (req.body?.email || '').trim().toLowerCase();
+    const code = (req.body?.code || '').trim();
+    if (!email || !code) return res.status(400).json({ error: 'email_and_code_required' });
+
+    const ref = db.collection('client_auth_codes').doc(email);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(400).json({ error: 'code_not_found' });
+    const data = doc.data()!;
+    if (Date.now() > data.expires) {
+      await ref.delete();
+      return res.status(400).json({ error: 'code_expired' });
+    }
+    if ((data.attempts || 0) >= 5) {
+      await ref.delete();
+      return res.status(429).json({ error: 'too_many_attempts' });
+    }
+    const hashedInput = crypto.createHash('sha256').update(code).digest('hex');
+    if (data.hashedCode !== hashedInput) {
+      await ref.update({ attempts: admin.firestore.FieldValue.increment(1) });
+      return res.status(400).json({ error: 'invalid_code' });
+    }
+    await ref.delete();
+
+    // Find an existing client record by email (staff-created records)
+    let clientId: string | null = null;
+    const clientSnap = await db.collection('clients').where('email', '==', email).limit(1).get().catch(() => null);
+    if (clientSnap && !clientSnap.empty) clientId = clientSnap.docs[0].id;
+
+    // Link the visitor to this email (and clientId if found)
+    const visitorId = readVisitorId(req);
+    if (visitorId) {
+      const update: any = {
+        linkedEmails: admin.firestore.FieldValue.arrayUnion(email),
+        lastSeen: new Date().toISOString(),
+      };
+      if (clientId) update.clientId = clientId;
+      await db.collection('visitors').doc(visitorId).set(update, { merge: true }).catch(() => {});
+    }
+
+    await issueClientSession(req, res, clientId, email, visitorId);
+    res.json({ ok: true, identified: !!clientId, email });
+  } catch (e: any) {
+    console.error('[CLIENT AUTH] verify-link error:', e.message);
+    res.status(500).json({ error: 'verify_failed' });
+  }
+});
+
+// Middleware: resolve the client session from the hmc_client cookie
+const verifyClientToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.cookies?.hmc_client;
+    if (!token) return res.status(401).json({ error: 'not_signed_in' });
+    const snap = await db.collection('client_sessions').doc(token).get();
+    if (!snap.exists) return res.status(401).json({ error: 'session_invalid' });
+    const s = snap.data()!;
+    if (Date.now() > s.expires) {
+      await db.collection('client_sessions').doc(token).delete().catch(() => {});
+      return res.status(401).json({ error: 'session_expired' });
+    }
+    // Sliding renewal
+    await db.collection('client_sessions').doc(token).update({
+      lastSeen: new Date().toISOString(),
+      expires: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    }).catch(() => {});
+    (req as any).client = { clientId: s.clientId, email: s.email, visitorId: s.visitorId, token };
+    next();
+  } catch (e: any) {
+    console.error('[CLIENT AUTH] verify token error:', e.message);
+    res.status(500).json({ error: 'auth_check_failed' });
+  }
+};
+
+// POST /api/client/auth/logout — clear the client session
+app.post('/api/client/auth/logout', async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies?.hmc_client;
+    if (token) await db.collection('client_sessions').doc(token).delete().catch(() => {});
+    const host = req.hostname || '';
+    const opts: any = { httpOnly: true, secure: true, sameSite: 'lax', path: '/' };
+    if (host.endsWith('healthmatters.clinic')) opts.domain = '.healthmatters.clinic';
+    res.clearCookie('hmc_client', opts);
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.json({ ok: true });
+  }
+});
+
+// GET /api/client/me — the signed-in client's profile, credits, referrals, next steps
+app.get('/api/client/me', verifyClientToken, async (req: Request, res: Response) => {
+  try {
+    const { clientId, email, visitorId } = (req as any).client;
+
+    // Credits (healthCredits is keyed by the account id; use clientId when linked)
+    let credits = { balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 };
+    if (clientId) {
+      const cDoc = await db.collection('healthCredits').doc(clientId).get();
+      if (cDoc.exists) {
+        const d = cDoc.data()!;
+        credits = { balance: d.balance ?? 0, lifetimeEarned: d.lifetimeEarned ?? 0, lifetimeSpent: d.lifetimeSpent ?? 0 };
+      }
+    }
+
+    // Referrals by email
+    let referrals: any[] = [];
+    const refSnap = await db.collection('referrals').where('memberEmail', '==', email).orderBy('createdAt', 'desc').limit(20).get().catch(() => null);
+    if (refSnap && !refSnap.empty) {
+      referrals = refSnap.docs.map(d => {
+        const r = d.data();
+        return { id: d.id, resourceName: r.resourceName || null, status: r.status || 'pending', createdAt: r.createdAt || null, urgencyLevel: r.urgencyLevel || 'routine' };
+      });
+    }
+
+    // Basic client profile (name only; no sensitive PHI echoed to the browser)
+    let profile: any = { firstName: null };
+    if (clientId) {
+      const cl = await db.collection('clients').doc(clientId).get();
+      if (cl.exists) {
+        const c = cl.data()!;
+        profile = { firstName: c.firstName || c.preferredName || (c.name ? String(c.name).split(' ')[0] : null) };
+      }
+    }
+
+    const nextActions = visitorId ? await computeNextActions(visitorId, clientId).catch(() => []) : [];
+
+    res.json({ identified: !!clientId, email, profile, credits, referrals, nextActions });
+  } catch (e: any) {
+    console.error('[CLIENT] me error:', e.message);
+    res.status(500).json({ error: 'me_failed' });
+  }
 });
 
 // GET /api/public/validate-address — Geocode an address via Google Maps (server-side key, no frontend exposure)
