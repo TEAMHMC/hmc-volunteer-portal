@@ -469,7 +469,7 @@ const BriefingView: React.FC<{
   };
 
   const filteredVolunteers = allVolunteers.filter(v =>
-    v.id !== user.id && v.name.toLowerCase().includes(searchQuery.toLowerCase())
+    v.id !== user.id && (v.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getChannelName = () => {
@@ -535,7 +535,7 @@ const BriefingView: React.FC<{
                   >
                     <div className="relative">
                       <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-bold">
-                        {v.name.charAt(0)}
+                        {(v.name || '?').charAt(0)}
                       </div>
                       {isUserOnline(v.id) && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />

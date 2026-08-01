@@ -533,6 +533,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       roleItems.push({ id: 'screenings', label: 'Health Screenings', icon: HeartPulse });
       roleItems.push({ id: 'referrals', label: 'Referral Management', icon: FileText });
       roleItems.push({ id: 'outreach-report', label: 'Outreach Report', icon: Activity });
+      // Licensed clinical providers track their own project work
+      roleItems.push({ id: 'projects', label: 'Projects', icon: Target });
     }
     if (canAccessOperationalTools && clientFacingRoles.includes(displayUser.role)) {
       roleItems.push({ id: 'intake', label: 'Client Intake', icon: Send });
@@ -551,7 +553,10 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
       roleItems.push({ id: 'analytics', label: 'Analytics', icon: BarChart3 });
     }
     if (roleItems.length > 0) {
-      groups.push({ label: 'ROLE-SPECIFIC', items: roleItems });
+      // Dedupe by id (a member may match multiple role conditions, e.g. medical + lead)
+      const seen = new Set<string>();
+      const dedupedRoleItems = roleItems.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
+      groups.push({ label: 'ROLE-SPECIFIC', items: dedupedRoleItems });
     }
 
     // ADMIN

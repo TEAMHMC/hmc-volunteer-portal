@@ -611,10 +611,13 @@ const requireAdmin = async (req: Request, res: Response, next: NextFunction) => 
 
 // Editor authorization middleware - allows admins AND coordinator roles (for Doc Hub, etc.)
 const COORDINATOR_ROLES = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator'];
+// Licensed clinical roles may add/edit/version documentation (mirrors the
+// DocumentationHub UI gate). Kept local so it does not widen other coordinator-only powers.
+const CLINICAL_EDITOR_ROLES = ['Licensed Medical Professional', 'Medical Admin', 'Director of Clinical Programs, Education & Continuity'];
 const requireEditor = async (req: Request, res: Response, next: NextFunction) => {
   const user = (req as any).user;
   const profile = user?.profile;
-  if (profile?.isAdmin || COORDINATOR_ROLES.includes(profile?.role)) {
+  if (profile?.isAdmin || COORDINATOR_ROLES.includes(profile?.role) || CLINICAL_EDITOR_ROLES.includes(profile?.role)) {
     return next();
   }
   console.warn(`[SECURITY] Non-editor attempted edit: ${maskEmail(profile?.email || 'unknown')} (role: ${profile?.role}) on ${req.path}`);

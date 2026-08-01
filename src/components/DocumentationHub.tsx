@@ -36,9 +36,11 @@ const DocumentationHub: React.FC<DocumentationHubProps> = ({ currentUser }) => {
         }).catch(() => { /* Use defaults if API unavailable */ });
     }, []);
 
-    // Allow admins and coordinator roles to edit documents
+    // Allow admins, coordinator roles, and licensed clinical roles to add, edit,
+    // and release new versions of documentation.
     const coordinatorRoles = ['Events Lead', 'Events Coordinator', 'Program Coordinator', 'General Operations Coordinator', 'Operations Coordinator', 'Outreach & Engagement Lead', 'Volunteer Lead', 'Development Coordinator'];
-    const canEdit = currentUser?.isAdmin || currentUser?.canEdit || coordinatorRoles.includes(currentUser?.role || '');
+    const clinicalEditorRoles = ['Licensed Medical Professional', 'Medical Admin', 'Director of Clinical Programs, Education & Continuity'];
+    const canEdit = currentUser?.isAdmin || currentUser?.canEdit || coordinatorRoles.includes(currentUser?.role || '') || clinicalEditorRoles.includes(currentUser?.role || '');
 
     const roleFilteredArticles = useMemo(() => {
         if (currentUser?.isAdmin) return articles;
