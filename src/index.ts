@@ -5643,6 +5643,33 @@ async function appendRsvpToSheet(params: {
 
 // Fetch events directly from Google Sheets — bypasses GAS warden entirely.
 // Tries three methods in order: Sheets API v4 (service account), public CSV export, GAS web app fallback.
+// TEMP diagnostic: reports exactly why events are/aren't reading from the sheet.
+// Gated by a query key so it is not publicly enumerable. Safe to remove once resolved.
+app.get('/api/public/events-debug', async (req: Request, res: Response) => {
+    if ((req.query.key as string) !== 'hmc-events-2026') return res.status(403).json({ error: 'key required' });
+    const out: any = { spreadsheetId: EVENTS_SPREADSHEET_ID };
+    // Firestore event-finder count
+    try {
+        const snap = await db.collection('opportunities').where('approvalStatus', '==', 'approved').get();
+        const ef = snap.docs.filter((d: any) => d.data().source === 'event-finder');
+        out.firestore = { approvedTotal: snap.size, eventFinderTagged: ef.length, sampleDates: ef.slice(0, 5).map((d: any) => d.data().date) };
+    } catch (e: any) { out.firestore = { error: e.message }; }
+    // Sheets API v4
+    try {
+        const token = await getGCPAccessToken();
+        out.sheetsApi = { gotToken: !!token };
+        if (token) {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${EVENTS_SPREADSHEET_ID}/values/${encodeURIComponent('Events!A1:S')}`;
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
+            out.sheetsApi.httpStatus = r.status;
+            const body = await r.text();
+            if (r.ok) { try { const j = JSON.parse(body); out.sheetsApi.rowCount = (j.values || []).length; out.sheetsApi.headerRow = (j.values || [])[0]; } catch { out.sheetsApi.parseError = true; } }
+            else { out.sheetsApi.errorBody = body.substring(0, 400); }
+        }
+    } catch (e: any) { out.sheetsApi = { ...out.sheetsApi, error: e.message }; }
+    res.json(out);
+});
+
 const fetchGASEventsCached = async (): Promise<any[]> => {
     const now = Date.now();
     if (_gasEventsCache && (now - _gasEventsCache.fetchedAt) < GAS_CACHE_TTL_MS) {
