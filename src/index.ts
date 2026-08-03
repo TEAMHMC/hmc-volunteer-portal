@@ -21018,12 +21018,13 @@ app.post('/api/sunny/chat', rateLimit(30, 60000), async (req: Request, res: Resp
     //   1. Sign BAA with Anthropic (anthropic.com -> contact sales for HIPAA enterprise)
     //   2. De-identified path is implemented below — strips PHQ-9, GAD-7, suicidal_ideation
     //   3. Migrate to Vertex AI (Claude on Vertex inherits HMC's existing GCP BAA on hmc-prod-473121)
+    // Claude (Anthropic) is the richer tool-use path but requires a signed BAA. When that
+    // flag is off, DO NOT 503 — fall through to the Gemini fallback below, which is Sunny's
+    // original engine (already configured and covered). PHI in pageContext was stripped above
+    // via sanitizedPageContext before any model call, so the fallback is safe to run.
     const ANTHROPIC_BAA_ENABLED = process.env.ANTHROPIC_BAA_ENABLED === 'true';
-    if (!ANTHROPIC_BAA_ENABLED) {
-      return res.status(503).json({ error: 'ai_assistance_unavailable', message: 'AI assistance is temporarily unavailable. Please use the resource directory or call 988 if you need immediate support.' });
-    }
-    console.log('[SUNNY] Anthropic call proceeding — BAA confirmed enabled.');
-    if (anthropicForSunny) {
+    if (ANTHROPIC_BAA_ENABLED && anthropicForSunny) {
+      console.log('[SUNNY] Anthropic call proceeding — BAA confirmed enabled.');
       const msgs: Anthropic.MessageParam[] = (history || []).map((h: any) => ({
         role: h.type === 'user' ? 'user' : 'assistant',
         content: h.content,
