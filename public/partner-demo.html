@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>HMC Partner Portal | Interactive Demo Environment</title>
+<style>
+  :root{
+    --ink:#0C0F1A; --ground:#F4F5FA; --raise:#FFFFFF; --sunk:#F0F2F8;
+    --muted:#5A6178; --line:#DFE2F0; --line-soft:#EBEDF6;
+    --blue:#233DFF; --blue-ink:#1B2ECC; --blue-soft:#ECEFFF;
+    --green:#0E6B47; --green-soft:#E9F5EF;
+    --amber:#8A5700; --amber-soft:#FCF4E6;
+    --red:#B72418; --red-soft:#FCEFED;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--ink:#E7E9F3;--ground:#080A11;--raise:#131725;--sunk:#0E111C;
+      --muted:#949BB8;--line:#252A3E;--line-soft:#1B1F2F;
+      --blue:#8A97FF;--blue-ink:#A6B0FF;--blue-soft:#171C36;
+      --green:#6DC59C;--green-soft:#0D1F17;--amber:#DDB162;--amber-soft:#231B0C;
+      --red:#EE968E;--red-soft:#281412;}
+  }
+  :root[data-theme="dark"]{--ink:#E7E9F3;--ground:#080A11;--raise:#131725;--sunk:#0E111C;
+    --muted:#949BB8;--line:#252A3E;--line-soft:#1B1F2F;
+    --blue:#8A97FF;--blue-ink:#A6B0FF;--blue-soft:#171C36;
+    --green:#6DC59C;--green-soft:#0D1F17;--amber:#DDB162;--amber-soft:#231B0C;
+    --red:#EE968E;--red-soft:#281412;}
+  :root[data-theme="light"]{--ink:#0C0F1A;--ground:#F4F5FA;--raise:#FFFFFF;--sunk:#F0F2F8;
+    --muted:#5A6178;--line:#DFE2F0;--line-soft:#EBEDF6;
+    --blue:#233DFF;--blue-ink:#1B2ECC;--blue-soft:#ECEFFF;
+    --green:#0E6B47;--green-soft:#E9F5EF;--amber:#8A5700;--amber-soft:#FCF4E6;
+    --red:#B72418;--red-soft:#FCEFED;}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:15.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  :focus-visible{outline:2.5px solid var(--blue);outline-offset:2px;border-radius:5px}
+
+  .banner{background:var(--blue);color:#fff;padding:9px 20px;font-size:13.2px;font-weight:650;
+    display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
+  .banner b{background:rgba(255,255,255,.2);padding:2px 9px;border-radius:5px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+
+  .shell{max-width:1180px;margin:0 auto;padding:22px 20px 80px}
+
+  .appbar{background:var(--raise);border:1px solid var(--line);border-radius:14px 14px 0 0;
+    border-bottom:none;padding:15px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{width:32px;height:32px;border-radius:8px;background:var(--blue);color:#fff;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:.04em;flex:none}
+  .org{font-weight:750;font-size:15.5px;line-height:1.2}
+  .org span{display:block;font-size:12.4px;color:var(--muted);font-weight:500}
+  .badge{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;font-weight:700;background:var(--green-soft);color:var(--green);
+    padding:5px 10px;border-radius:999px}
+
+  .tabs{background:var(--sunk);border:1px solid var(--line);border-bottom:none;
+    display:flex;gap:2px;overflow-x:auto;padding:0 8px}
+  .tabs button{background:none;border:none;padding:12px 14px;font-size:13.2px;font-weight:650;
+    color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+  .tabs button[aria-selected="true"]{color:var(--blue);border-bottom-color:var(--blue)}
+  .tabs button:hover{color:var(--ink)}
+
+  .panelwrap{background:var(--raise);border:1px solid var(--line);border-radius:0 0 14px 14px;
+    min-height:430px}
+  .pad{padding:22px}
+  h2{font-size:19px;font-weight:750;letter-spacing:-.012em;margin:0 0 4px}
+  .hint{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:74ch}
+  h3{font-size:13.6px;font-weight:700;margin:24px 0 10px;letter-spacing:.01em}
+
+  .card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--raise)}
+  .item{padding:15px 17px;border-bottom:1px solid var(--line-soft);display:flex;gap:14px;
+    align-items:flex-start}
+  .item:last-child{border-bottom:none}
+  .item .body{flex:1;min-width:0}
+  .item .t{font-weight:700;font-size:15px}
+  .item .s{font-size:13.2px;color:var(--muted);margin-top:3px}
+  .acts{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:var(--ground);border-radius:8px;padding:6px 12px;
+    font-size:12.6px;font-weight:650;color:var(--ink);transition:transform .08s}
+  .btn:active{transform:scale(.97)}
+  .btn.p{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.d{color:var(--red);border-color:var(--red)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+    font-weight:700;padding:4px 9px;border-radius:999px;flex:none;white-space:nowrap}
+  .tag.new{background:var(--blue-soft);color:var(--blue-ink)}
+  .tag.acc,.tag.prog{background:var(--amber-soft);color:var(--amber)}
+  .tag.done{background:var(--green-soft);color:var(--green)}
+  .tag.no{background:var(--red-soft);color:var(--red)}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden}
+  @media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
+  .kpi{padding:17px 18px;border-right:1px solid var(--line-soft);background:var(--raise)}
+  .kpi:last-child{border-right:none}
+  .kpi .n{font-size:28px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+  .kpi .l{font-size:12.2px;color:var(--muted);margin-top:7px;line-height:1.35}
+  .meter{height:7px;border-radius:5px;background:var(--line);margin-top:10px;overflow:hidden}
+  .meter i{display:block;height:100%;transition:width .5s ease}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-size:12.6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+    color:var(--muted);font-weight:600;background:none;transition:transform .08s}
+  .chip:active{transform:scale(.96)}
+  .chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  label{display:block;font-size:12.4px;font-weight:700;margin-bottom:5px;color:var(--muted)}
+  input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    background:var(--ground);color:var(--ink);font-family:inherit;font-size:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  .field{margin-bottom:14px}
+
+  .public{margin-top:26px;border:2px dashed var(--blue);border-radius:14px;overflow:hidden;
+    background:var(--blue-soft)}
+  .public .hd{padding:11px 17px;background:var(--blue);color:#fff;font-family:var(--mono);
+    font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .public .in{padding:16px 17px;display:flex;flex-direction:column;gap:11px}
+  .ev{background:var(--raise);border:1px solid var(--line);border-radius:11px;padding:15px 17px;
+    display:flex;gap:12px;align-items:flex-start}
+  .ev .col{flex:1;min-width:0}
+  .ev .d{font-size:12.6px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;
+    display:flex;align-items:center;gap:7px}
+  .ev .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .ev.ok .d{color:var(--blue-ink)} .ev.ok .dot{background:var(--blue)}
+  .ev.tbd .d{color:var(--amber)} .ev.tbd .dot{background:var(--amber)}
+  .ev .n{font-weight:750;font-size:16.5px;margin-top:8px;letter-spacing:-.01em}
+  .ev .m{font-size:13.6px;color:var(--muted);margin-top:5px}
+  .tbdtag{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+    font-weight:700;background:var(--amber-soft);color:var(--amber);padding:4px 8px;
+    border-radius:6px;flex:none}
+
+  .capture{margin-top:11px;background:var(--blue-soft);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px}
+  .capture label{font-size:12px;margin-bottom:6px}
+  .cap-row{display:flex;gap:8px;flex-wrap:wrap}
+  .cap-row input{width:92px;flex:none}
+  .caphint{font-size:12px;color:var(--muted);margin-top:7px}
+  .closed{font-family:var(--mono);font-size:12.4px;color:var(--muted)}
+  .closed b{color:var(--green)}
+  .empty{padding:34px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:var(--ink);
+    color:var(--ground);padding:11px 20px;border-radius:11px;font-size:14px;font-weight:650;
+    opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;z-index:50;max-width:90vw}
+  .toast.show{opacity:1;bottom:36px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  .legend{margin-top:20px;font-size:13.2px;color:var(--muted);max-width:78ch}
+  .legend b{color:var(--ink)}
+  .reset{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;
+    font-size:12.4px;font-weight:650;color:var(--muted)}
+</style>
+</head>
+<body>
+
+
+<div class="banner">
+  <b>Demo environment</b>
+  <span>Interactive walkthrough with sample data. Buttons work and update the metrics. No real organizations or people appear here.</span>
+</div>
+
+<div class="shell">
+
+  <div class="appbar">
+    <div class="logo">HMC</div>
+    <div class="org">Eastside Community Wellness<span>Partner Portal &middot; Official Referral Partner</span></div>
+    <span class="badge">Approved</span>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="referrals">Referrals</button>
+    <button role="tab" aria-selected="false" data-tab="organization">Organization</button>
+    <button role="tab" aria-selected="false" data-tab="performance">Performance</button>
+    <button role="tab" aria-selected="false" data-tab="community">Community Board</button>
+    <button role="tab" aria-selected="false" data-tab="events">Events</button>
+  </div>
+
+  <div class="panelwrap"><div class="pad" id="panel"></div></div>
+
+  <p class="legend"><b>How to use this in a demo.</b> Accept a referral, move it to In Progress, then mark it Completed, and watch the Performance tab recalculate. Post an event on the Events tab and watch it appear in the public Event Finder view underneath. That loop is the whole point: a referral has an owner and an outcome, and a partner event reaches the community without the partner building an audience.</p>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var CATS = ['Healthcare / Medical','Mental Health & Behavioral Health','Substance Use Treatment',
+    'Housing & Shelter','Food & Nutrition','Employment & Job Training','Legal Aid & Immigration',
+    'Childcare & Child Services','Transportation','HIV / Sexual Health',
+    'Insurance Enrollment & Renewal','Public Benefits (DPSS, CalFresh)'];
+
+  var state = {
+    tab:'referrals',
+    caps:{'Healthcare / Medical':true,'Mental Health & Behavioral Health':true,
+          'Housing & Shelter':true,'Food & Nutrition':true,
+          'Insurance Enrollment & Renewal':true},
+    referrals:[
+      {id:1,title:'Housing referral',cat:'Housing & Shelter',src:'Routed from HMC street medicine outreach',urg:'Routine',status:'New',age:'2 hours ago'},
+      {id:2,title:'Behavioral health referral',cat:'Mental Health & Behavioral Health',src:'Routed from Altadena Health Fair intake',urg:'Priority',status:'New',age:'5 hours ago'},
+      {id:6,title:'Medi-Cal enrollment assistance',cat:'Insurance Enrollment & Renewal',src:'Routed from HMC enrollment activation, door to door',urg:'Priority',status:'In Progress',age:'3 hours ago'},
+      {id:3,title:'Food assistance referral',cat:'Food & Nutrition',src:'Routed from Member Hub self-check',urg:'Routine',status:'In Progress',age:'yesterday'},
+      {id:4,title:'Coverage renewal support',cat:'Insurance Enrollment & Renewal',src:'Routed from Back to School Wellness Event',urg:'Priority',status:'Completed',age:'4 days ago',assisted:4},
+      {id:5,title:'Transportation to dialysis',cat:'Transportation',src:'Routed from partner network',urg:'Urgent',status:'Unable to Serve',age:'6 days ago'}
+    ],
+    baseReferrals:243, baseCompleted:190,
+    assistedBaseline:71, monthlyTarget:100, annualTarget:1200,
+    board:[
+      {id:0,type:'Volunteers Needed',title:'Need 12 volunteers for community health fair',meta:'Saturday, September 20. Intake, registration, and Spanish-language navigation. Request routed to the HMC volunteer network.'},
+      {id:1,type:'Vendor Needed',title:'Bilingual health educator needed',meta:'Back to School Wellness Event, Huntington Park, Saturday'},
+      {id:2,type:'Opportunity',title:'Co-host a coverage renewal clinic',meta:'Seeking a partner site with weekend availability and Spanish-language capacity'},
+      {id:3,type:'Announcement',title:'Unstoppable facilitator training cohort opens next month',meta:'LACDMH-approved continuing education. Open to partner organization staff and volunteers.'},
+      {id:4,type:'Vendor Needed',title:'Mobile dental services for a January pop-up',meta:'South LA, seeking licensed provider partner'}
+    ],
+    boardFilter:'All',
+    events:[
+      {id:1,name:'Community Blood Pressure Screening',date:'Saturday, August 15, 2026',loc:'Boyle Heights',cat:'Healthcare / Medical',live:true},
+      {id:2,name:'Food Distribution and Wellness Check',date:'Saturday, August 22, 2026',loc:'Ramona Gardens',cat:'Food & Nutrition',live:true,tbd:true}
+    ],
+    nextEventId:3
+  };
+
+  var el = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+
+  var toastTimer;
+  function toast(msg){
+    var t = el('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  function tagClass(s){
+    if(s==='New') return 'new';
+    if(s==='Completed') return 'done';
+    if(s==='Unable to Serve') return 'no';
+    return 'prog';
+  }
+
+  var ENROLL = ['Insurance Enrollment & Renewal','Public Benefits (DPSS, CalFresh)'];
+  function isEnroll(c){ return ENROLL.indexOf(c) !== -1; }
+  function assistedTotal(){
+    return state.assistedBaseline + state.referrals.reduce(function(n,r){
+      return n + (r.status==='Completed' && r.assisted ? r.assisted : 0); },0);
+  }
+
+  function metrics(){
+    var done = state.referrals.filter(function(r){return r.status==='Completed';}).length;
+    var unable = state.referrals.filter(function(r){return r.status==='Unable to Serve';}).length;
+    var total = state.baseReferrals + state.referrals.length;
+    var completed = state.baseCompleted + done;
+    var served = total - unable;
+    var score = Math.round((completed/served)*100);
+    return {total:total, completed:completed, score:Math.min(score,99), open:
+      state.referrals.filter(function(r){return r.status==='New'||r.status==='Accepted'||r.status==='In Progress';}).length};
+  }
+
+  function referralActions(r){
+    if(r.status==='New') return [['Accept','Accepted','p'],['Unable to Serve','Unable to Serve','d']];
+    if(r.status==='Accepted') return [['Mark In Progress','In Progress','p'],['Unable to Serve','Unable to Serve','d']];
+    if(r.status==='In Progress') return [['Mark Completed','Completed','p'],['Unable to Serve','Unable to Serve','d']];
+    return [];
+  }
+
+  var views = {};
+
+  views.referrals = function(){
+    var m = metrics();
+    var rows = state.referrals.map(function(r){
+      var acts = referralActions(r).map(function(a){
+        return '<button class="btn '+(a[2]==='p'?'p':(a[2]==='d'?'d':''))+'" data-act="ref" data-id="'+r.id+'" data-to="'+esc(a[1])+'">'+esc(a[0])+'</button>';
+      }).join('');
+      if(!acts){
+        acts = '<span class="closed">Closed. Outcome recorded'+
+          (r.assisted ? '. <b>'+r.assisted+' people assisted.</b>' : '.')+'</span>';
+      }
+      if(r.status==='In Progress' && isEnroll(r.cat)){
+        acts = '<div class="capture"><label for="as-'+r.id+'">People assisted by this referral</label>'+
+          '<div class="cap-row"><input id="as-'+r.id+'" type="number" min="1" value="1" inputmode="numeric">'+
+          '<button class="btn p" data-act="complete" data-id="'+r.id+'">Record outcome and complete</button></div>'+
+          '<div class="caphint">Captured at closure. This is what rolls up into the enrollment target.</div></div>';
+      }
+      return '<div class="item"><div class="body">'+
+        '<div class="t">'+esc(r.title)+'</div>'+
+        '<div class="s">'+esc(r.src)+'. Category: '+esc(r.cat)+'. Urgency: '+esc(r.urg)+'. Received '+esc(r.age)+'.</div>'+
+        '<div class="acts">'+acts+'</div></div>'+
+        '<span class="tag '+tagClass(r.status)+'">'+esc(r.status)+'</span></div>';
+    }).join('');
+    return '<h2>Referrals</h2><p class="hint">Referrals routed to your organization based on the service capabilities you declared. '+
+      'Every referral ends in a known state, so the person is never left in limbo. You currently have <b>'+m.open+'</b> open.</p>'+
+      '<div class="card">'+rows+'</div>'+
+      '<h3>Why this matters</h3><p class="hint" style="margin:0">Marking a referral Unable to Serve is not a failure. It releases the person to be routed elsewhere instead of stranding them, and it keeps the county capability map honest.</p>';
+  };
+
+  views.organization = function(){
+    var chips = CATS.map(function(c){
+      return '<button class="chip" aria-pressed="'+(state.caps[c]?'true':'false')+'" data-act="cap" data-cat="'+esc(c)+'">'+esc(c)+'</button>';
+    }).join('');
+    var on = Object.keys(state.caps).filter(function(k){return state.caps[k];}).length;
+    return '<h2>Organization profile</h2><p class="hint">Declare what your organization can actually serve. Referral routing uses this, so keeping it current is how you get the right referrals and stop getting the wrong ones.</p>'+
+      '<h3>Service capabilities ('+on+' of '+CATS.length+' selected)</h3><div class="chips">'+chips+'</div>'+
+      '<h3>Partnership type</h3><div class="chips">'+
+        '<button class="chip" aria-pressed="true">Official Referral Partner</button>'+
+        '<button class="chip" aria-pressed="false">Event Vendor or Co-host</button>'+
+        '<button class="chip" aria-pressed="false">Subcontractor</button>'+
+        '<button class="chip" aria-pressed="false">General Community Partner</button></div>'+
+      '<h3>Coverage area</h3><div class="chips">'+
+        '<button class="chip" aria-pressed="true">Service Planning Area 4</button>'+
+        '<button class="chip" aria-pressed="true">Service Planning Area 6</button>'+
+        '<button class="chip" aria-pressed="false">Service Planning Area 7</button></div>';
+  };
+
+  views.performance = function(){
+    var m = metrics();
+    var color = m.score>=80 ? 'var(--green)' : (m.score>=50 ? 'var(--amber)' : 'var(--red)');
+    return '<h2>Performance</h2><p class="hint">Because every referral carries a status and a timestamp, the network can answer the question community referral almost never answers: what happened to the people we sent you?</p>'+
+      '<div class="kpis">'+
+        '<div class="kpi"><div class="n">'+m.total+'</div><div class="l">Total referrals received</div></div>'+
+        '<div class="kpi"><div class="n">'+m.completed+'</div><div class="l">Completed successfully</div></div>'+
+        '<div class="kpi"><div class="n">6h</div><div class="l">Average response time</div></div>'+
+        '<div class="kpi"><div class="n">'+m.score+'%</div><div class="l">Performance score</div>'+
+          '<div class="meter"><i style="width:'+m.score+'%;background:'+color+'"></i></div></div>'+
+      '</div>'+
+      '<h3>Enrollment assistance against target</h3>'+
+      (function(){
+        var a = assistedTotal(), t = state.monthlyTarget;
+        var pct = Math.min(Math.round((a/t)*100),100);
+        var col = a>=t ? 'var(--green)' : (a >= t*0.6 ? 'var(--amber)' : 'var(--red)');
+        var pace = a*12;
+        return '<div class="kpis">'+
+          '<div class="kpi"><div class="n">'+a+'</div><div class="l">People assisted this month</div>'+
+            '<div class="meter"><i style="width:'+pct+'%;background:'+col+'"></i></div></div>'+
+          '<div class="kpi"><div class="n">'+t+'</div><div class="l">Monthly target</div></div>'+
+          '<div class="kpi"><div class="n">'+pace+'</div><div class="l">Annualized pace</div></div>'+
+          '<div class="kpi"><div class="n">'+state.annualTarget+'</div><div class="l">Annual target</div></div>'+
+        '</div>'+
+        '<p class="hint" style="margin-top:14px">Complete an enrollment referral on the Referrals tab and record how many people it assisted. This panel moves immediately. The count is captured at closure by the person who did the work, which is the only point it is reliable.</p>';
+      })()+
+      '<h3>Live in this demo</h3><p class="hint" style="margin:0">Go to the Referrals tab and complete one. These numbers recalculate immediately. In the live product the score bands green above 80, amber above 50, and red below, so a partner who has stopped responding is visible before the community feels it.</p>';
+  };
+
+  views.community = function(){
+    var types = ['All','Volunteers Needed','Vendor Needed','Opportunity','Announcement'];
+    var filters = types.map(function(t){
+      return '<button class="chip" aria-pressed="'+(state.boardFilter===t?'true':'false')+'" data-act="filter" data-f="'+esc(t)+'">'+esc(t)+'</button>';
+    }).join('');
+    var list = state.board.filter(function(p){ return state.boardFilter==='All' || p.type===state.boardFilter; });
+    var rows = list.length ? list.map(function(p){
+      var cls = p.type==='Volunteers Needed' ? 'acc' : (p.type==='Vendor Needed' ? 'new' : (p.type==='Opportunity' ? 'prog' : 'done'));
+      var extra = p.type==='Volunteers Needed' ? '<div class="acts"><span class="btn p">Request volunteers</span><span class="btn">View matched volunteers</span></div>' : '';
+      return '<div class="item"><div class="body"><div class="t">'+esc(p.title)+'</div>'+
+        '<div class="s">'+esc(p.meta)+'</div>'+extra+'</div><span class="tag '+cls+'">'+esc(p.type)+'</span></div>';
+    }).join('') : '<div class="empty">Nothing posted in this category yet.</div>';
+    return '<h2>Community Board</h2><p class="hint">Post what you need and reach the whole partner network, not just your own roster. A request for volunteers routes into the HMC volunteer network, which is how an organization with six volunteers staffs an event that needs twelve.</p>'+
+      '<div class="chips" style="margin-bottom:16px">'+filters+'</div><div class="card">'+rows+'</div>';
+  };
+
+  views.events = function(){
+    var mine = state.events.map(function(e){
+      return '<div class="item"><div class="body"><div class="t">'+esc(e.name)+'</div>'+
+        '<div class="s">'+esc(e.date)+'. '+esc(e.loc)+'. Category: '+esc(e.cat)+'.</div></div>'+
+        '<span class="tag '+(e.live?'done':'new')+'">'+(e.live?'Published':'Draft')+'</span></div>';
+    }).join('');
+    var pub = state.events.filter(function(e){return e.live;}).map(function(e){
+      var tbd = !!e.tbd;
+      return '<div class="ev '+(tbd?'tbd':'ok')+'">'+
+        '<div class="col"><div class="d"><span class="dot"></span>'+esc(e.date)+'</div>'+
+        '<div class="n">'+esc(e.name)+'</div>'+
+        '<div class="m">'+esc(e.loc)+'</div></div>'+
+        (tbd ? '<span class="tbdtag">Details TBD</span>' : '')+'</div>';
+    }).join('');
+
+    return '<h2>Events</h2><p class="hint">Publish an event here and it surfaces publicly in the Event Finder, which is embedded on the HMC website and searchable by residents. A partner organization gets community reach on day one without building an audience of its own.</p>'+
+      '<div class="grid2">'+
+        '<div class="field"><label for="ev-name">Event name</label><input id="ev-name" placeholder="Community Health Screening"></div>'+
+        '<div class="field"><label for="ev-date">Date</label><input id="ev-date" placeholder="Saturday, September 12, 2026"></div>'+
+      '</div>'+
+      '<div class="grid2">'+
+        '<div class="field"><label for="ev-loc">Location</label><input id="ev-loc" placeholder="Community center, neighborhood"></div>'+
+        '<div class="field"><label for="ev-cat">Category</label><select id="ev-cat">'+
+          CATS.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>'+
+      '</div>'+
+      '<button class="btn p" data-act="post">Publish to Event Finder</button>'+
+      '<h3>Your events</h3><div class="card">'+mine+'</div>'+
+      '<div class="public"><div class="hd"><span>Public view &middot; eventfinder.healthmatters.clinic</span>'+
+        '<span>What residents see</span></div>'+
+        '<div class="in" id="pubfeed">'+pub+'</div></div>'+
+      '<p class="hint" style="margin-top:16px">The same feed appears in the Member Hub and on the HMC website, so one partner submission reaches residents through every community-facing surface at once.</p>';
+  };
+
+  function render(){
+    el('panel').innerHTML = views[state.tab]();
+    Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function(b){
+      b.setAttribute('aria-selected', b.dataset.tab===state.tab ? 'true':'false');
+    });
+  }
+
+  document.querySelector('.tabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-tab]'); if(!b) return;
+    state.tab = b.dataset.tab; render();
+  });
+
+  el('panel').addEventListener('click', function(e){
+    var b = e.target.closest('[data-act]'); if(!b) return;
+    var act = b.dataset.act;
+
+    if(act==='complete'){
+      var rc = state.referrals.filter(function(x){return x.id===Number(b.dataset.id);})[0];
+      var inp = el('as-'+b.dataset.id);
+      var n = Math.max(1, parseInt(inp && inp.value,10) || 1);
+      if(rc){ rc.assisted = n; rc.status='Completed';
+        toast(n+' assisted recorded. Enrollment total is now '+assistedTotal()+' this month.');
+        render(); }
+      return;
+    }
+    if(act==='ref'){
+      var r = state.referrals.filter(function(x){return x.id===Number(b.dataset.id);})[0];
+      if(r){ r.status = b.dataset.to; toast('Referral moved to "'+r.status+'". Performance updated.'); render(); }
+    }
+    else if(act==='cap'){
+      var c = b.dataset.cat; state.caps[c] = !state.caps[c];
+      toast(state.caps[c] ? 'Now accepting referrals for '+c : 'No longer accepting '+c);
+      render();
+    }
+    else if(act==='filter'){ state.boardFilter = b.dataset.f; render(); }
+    else if(act==='post'){
+      var name = el('ev-name').value.trim() || 'Community Health Screening';
+      var date = el('ev-date').value.trim() || 'Saturday, September 12, 2026';
+      var loc  = el('ev-loc').value.trim()  || 'Community center, Los Angeles';
+      var cat  = el('ev-cat').value;
+      state.events.push({id:state.nextEventId++, name:name, date:date, loc:loc, cat:cat, live:true});
+      toast('Published. It is now live in the public Event Finder below.');
+      render();
+      var pf = document.getElementById('pubfeed');
+      if(pf) pf.lastElementChild.scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

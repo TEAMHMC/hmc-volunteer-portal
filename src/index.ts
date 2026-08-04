@@ -21304,6 +21304,17 @@ app.get('/training', (req: Request, res: Response) => {
   res.sendFile(path.join(buildPath, 'training.html'));
 });
 
+// --- PARTNER PORTAL DEMO (no auth required) ---
+// Self-contained interactive walkthrough with sample data, for partner and funder
+// demonstrations. Contains no real organization, referral, or participant records.
+// Marked noindex so it never competes with real pages in search.
+app.get('/partner-demo', (req: Request, res: Response) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://www.healthmatters.clinic https://healthmatters.clinic");
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.join(buildPath, 'partner-demo.html'));
+});
+
 // --- POST-OUTREACH REPORT ---
 app.get('/api/outreach-report', verifyToken, async (req: Request, res: Response) => {
     try {

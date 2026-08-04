@@ -15,6 +15,16 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <!--__ENV_CONFIG__-->
     <title>HMC Volunteer Portal</title>
+    <!--
+      Same SPA is served on volunteer.healthmatters.clinic and partner.healthmatters.clinic.
+      Partners and funders landing on the partner host should not see a page titled
+      "Volunteer Portal" in the tab, in a shared link preview, or in a screen reader.
+    -->
+    <script>
+      if (location.hostname.split('.')[0] === 'partner') {
+        document.title = 'HMC Partner Portal';
+      }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
