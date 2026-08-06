@@ -18573,7 +18573,7 @@ const seedHmcContentIndex = async () => {
       return;
     }
     const content = [
-      { title: 'About Health Matters Clinic', url: 'https://healthmatters.clinic/about', tags: ['mission', 'history', 'nonprofit', 'EIN', '85-3784250', '501c3', 'leadership', 'founded', '2020'], excerpt: 'HMC is a 501(c)(3) nonprofit (EIN: 85-3784250) founded 2020. Community health activation platform. Free services. 25,000+ served. 800+ volunteers. $1.25M+ raised. C.L.I.N.I.C. framework.' },
+      { title: 'About Health Matters Clinic', url: 'https://healthmatters.clinic/about', tags: ['mission', 'history', 'nonprofit', 'EIN', '85-3784250', '501c3', 'leadership', 'founded', '2020'], excerpt: 'HMC is a 501(c)(3) nonprofit (EIN: 85-3784250) founded 2020. Community health activation platform. Free services. 25,000+ served. 1,000+ volunteers. $1.25M+ raised. C.L.I.N.I.C. framework.' },
       { title: 'MOVE Event — May 9, 2026', url: 'https://healthmatters.clinic/takeactionla', tags: ['MOVE', 'May', 'walk', 'run', '8AM', 'free', 'event'], excerpt: 'MOVE (May 9, Walk/Run, 8AM). Community wellness walk and run event. Curtis Tucker Center. Free. Register now.' },
       { title: 'HEAL Event — May 20, 2026', url: 'https://healthmatters.clinic/takeactionla', tags: ['HEAL', 'May', 'wellness', 'meetup', '5:45PM', 'free', 'event'], excerpt: 'HEAL (May 20, Wellness Meetup, 5:45PM). Mental health awareness and wellness gathering. Curtis Tucker Center. Free.' },
       { title: 'TRANSFORM Event — May 27, 2026', url: 'https://healthmatters.clinic/takeactionla', tags: ['TRANSFORM', 'May', 'virtual', '7PM', 'free', 'event'], excerpt: 'TRANSFORM (May 27, Virtual, 7PM). Virtual community gathering and action planning. Free. Register online.' },
@@ -18585,7 +18585,7 @@ const seedHmcContentIndex = async () => {
       { title: 'Volunteer at Health Matters Clinic', url: 'https://healthmatters.clinic/get-involved', tags: ['volunteer', 'get involved', 'opportunities', 'roles', 'portal'], excerpt: '18+ volunteer roles including Street Medicine Lead, Workshop Facilitator, Outreach Lead, Coordinator. Volunteer portal at volunteer.healthmatters.clinic.' },
       { title: 'Sunny AI — Health Chatbot Powered by AI', url: 'https://healthmatters.clinic/sunny', tags: ['Sunny', 'AI', 'chatbot', 'health', 'assistant', 'questions'], excerpt: 'Chat with Sunny, our AI health assistant, to get personalized health information, resource recommendations, and support.' },
       { title: 'EIN 85-3784250 — HMC 501(c)(3) Status', url: 'https://healthmatters.clinic/about', tags: ['EIN', '85-3784250', '501c3', 'nonprofit', 'tax deductible', 'registered'], excerpt: 'Health Matters Clinic is a registered 501(c)(3) nonprofit organization with EIN 85-3784250. All donations are tax-deductible.' },
-      { title: 'Donate to Health Matters Clinic', url: 'https://healthmatters.clinic/donate', tags: ['donate', 'donation', 'support', 'tax deductible', 'funding'], excerpt: 'Support HMC with a tax-deductible donation. Your contribution helps us serve 25,000+ people and empower 800+ volunteers.' },
+      { title: 'Donate to Health Matters Clinic', url: 'https://healthmatters.clinic/donate', tags: ['donate', 'donation', 'support', 'tax deductible', 'funding'], excerpt: 'Support HMC with a tax-deductible donation. Your contribution helps us serve 25,000+ people and empower 1,000+ volunteers.' },
       { title: 'HMC Leadership Team', url: 'https://healthmatters.clinic/about', tags: ['leadership', 'team', 'Erica Robinson', 'David Nguyen', 'Dawn Bounds', 'founders', 'directors'], excerpt: 'Meet HMC leadership: Erica Robinson (Co-Founder), Dr. David Nguyen (Co-Founder), Dr. Dawn Bounds (Board Chair). Dedicated to community health activation.' },
       { title: 'Contact Health Matters Clinic', url: 'https://healthmatters.clinic/contact', tags: ['contact', 'email', 'phone', 'support', 'feedback', 'volunteer@healthmatters.clinic'], excerpt: 'Get in touch with HMC: volunteer@healthmatters.clinic or call during office hours. We welcome questions, feedback, and partnership inquiries.' },
     ];
@@ -20394,7 +20394,7 @@ CONTACT:
 - Sponsorship: sponsor@healthmatters.clinic
 - Address: 1360 S Figueroa St, Suite D390, Los Angeles, CA 90015
 
-IMPACT: 25,000+ Angelenos served, $1.25M+ raised, 800+ volunteers, 250+ community partnerships.
+IMPACT: 25,000+ Angelenos served, $1.25M+ raised, 1,000+ volunteers, 250+ community partnerships.
 2026 Goal: 10,000 unique community encounters.
 Outcomes: Mental health literacy comfort increased from 28% to 69%. Knowledge of community resources increased by 40+ percentage points.
 
@@ -20768,7 +20768,7 @@ async function searchHMCContent(query: string): Promise<string> {
 
   // Fallback: curated HMC content directory — always available
   const HMC_CONTENT_DIRECTORY = [
-    { title: 'About Health Matters Clinic', url: 'https://healthmatters.clinic/about', tags: 'mission history nonprofit EIN 85-3784250 501c3 leadership founded 2020 CLINIC framework', excerpt: 'HMC is a 501(c)(3) nonprofit (EIN: 85-3784250) founded 2020. Community health activation platform. Free services. 25,000+ served. 800+ volunteers. $1.25M+ raised. C.L.I.N.I.C. framework.' },
+    { title: 'About Health Matters Clinic', url: 'https://healthmatters.clinic/about', tags: 'mission history nonprofit EIN 85-3784250 501c3 leadership founded 2020 CLINIC framework', excerpt: 'HMC is a 501(c)(3) nonprofit (EIN: 85-3784250) founded 2020. Community health activation platform. Free services. 25,000+ served. 1,000+ volunteers. $1.25M+ raised. C.L.I.N.I.C. framework.' },
     { title: 'Unstoppable Program', url: 'https://healthmatters.clinic/programs', tags: 'unstoppable flagship mental health wellness workshops walkrun meetup LACDMH CalMHSA culturally affirming trauma-informed', excerpt: 'Flagship mental health and wellness initiative. Year-round workshops, walks, meetups, virtual events. LACDMH-recognized. Trauma-informed, culturally affirming. Curtis Tucker Center, Charles Drew University, Palmdale, Long Beach.' },
     { title: 'Take Action LA — May 2026 Events', url: 'https://healthmatters.clinic/takeactionla', tags: 'take action LA MOVE HEAL TRANSFORM May 2026 free events mental health awareness month LACDMH CalMHSA Inglewood', excerpt: 'MOVE (May 9, Walk/Run, 8AM), HEAL (May 20, Wellness Meetup, 5:45PM), TRANSFORM (May 27, Virtual, 7PM). LACDMH/CalMHSA contractor. Free. Curtis Tucker Center.' },
     { title: 'Check Yourself — Mental Health Screening', url: 'https://healthmatters.clinic/resources/check-yourself', tags: 'check yourself PHQ-9 GAD-7 screening mental health free confidential provider letter caregiver game plan', excerpt: 'Free PHQ-9 and GAD-7 screening. 3 minutes. Confidential. Provider letter, caregiver pathway, game plan builder. Available in Spanish.' },
@@ -23778,6 +23778,23 @@ app.post('/api/public/partner-ads/:id/reject', rateLimit(30, 60000), async (req:
 });
 
 // --- SERVE SPA (catch-all — MUST be last so all API routes register first) ---
+// This one Express app answers on two hostnames: volunteer.healthmatters.clinic
+// (internal, volunteers/staff) and partner.healthmatters.clinic (external,
+// partners/funders). The <title>/OG tags below are swapped per host so search
+// engines, shared-link previews, and screen readers on the partner host never
+// see "Volunteer Portal" — that mismatch previously showed up verbatim in
+// Google search results for partner.healthmatters.clinic.
+const HOST_BRANDING: Record<string, { title: string; description: string }> = {
+    partner: {
+        title: 'HMC Partner Portal | Health Matters Clinic',
+        description: 'Manage your organization\'s partnership with Health Matters Clinic: referrals, events, agreements, and coordination with our community health network.'
+    },
+    volunteer: {
+        title: 'HMC Volunteer Portal | Health Matters Clinic',
+        description: 'Volunteer management for Health Matters Clinic: onboarding, training, scheduling, and community health outreach.'
+    }
+};
+
 app.get('*', (req: Request, res: Response) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found', path: req.path });
@@ -23793,10 +23810,22 @@ app.get('*', (req: Request, res: Response) => {
             RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || process.env.REACT_APP_RECAPTCHA_SITE_KEY || ''
         };
         console.log(`[SERVER] Injecting runtime config. Google Auth: ${envConfig.GOOGLE_CLIENT_ID ? '✓' : '✗'}, Recaptcha: ${envConfig.RECAPTCHA_SITE_KEY ? '✓' : '✗'}`);
-        const injectedHtml = htmlData.replace(
-            '<!--__ENV_CONFIG__-->',
-            `<script>window.env = ${JSON.stringify(envConfig)};</script>`
-        );
+
+        const hostKey = (req.hostname || '').split('.')[0];
+        const branding = HOST_BRANDING[hostKey] || HOST_BRANDING.volunteer;
+        const canonicalUrl = `https://${req.hostname}${req.path}`;
+
+        let injectedHtml = htmlData
+            .replace('<!--__ENV_CONFIG__-->', `<script>window.env = ${JSON.stringify(envConfig)};</script>`)
+            .replace('<!--__TITLE__--><title>HMC Volunteer Portal</title>', `<title>${branding.title}</title>`)
+            .replace('<!--__OG_TAGS__-->', [
+                `<meta name="description" content="${branding.description}" />`,
+                `<meta property="og:title" content="${branding.title}" />`,
+                `<meta property="og:description" content="${branding.description}" />`,
+                `<meta property="og:url" content="${canonicalUrl}" />`,
+                `<meta property="og:type" content="website" />`
+            ].join('\n    '));
+
         res.send(injectedHtml);
     });
 });
