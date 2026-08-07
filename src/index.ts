@@ -23194,7 +23194,7 @@ async function generateCeuCertificatePdf(params: {
 
   // Provider name + address (top left in band)
   page.drawText('HEALTH MATTERS CLINIC', { x: 22, y: H - 30, font: fontBold, size: 13, color: white });
-  page.drawText(`${HMC_MAILING_ADDRESS}  |  education@healthmatters.clinic`, { x: 22, y: H - 48, font, size: 7.5, color: rgb(0.65, 0.65, 0.65) });
+  page.drawText(`${HMC_MAILING_ADDRESS}  |  training@healthmatters.clinic`, { x: 22, y: H - 48, font, size: 7.5, color: rgb(0.65, 0.65, 0.65) });
   page.drawText('501(c)(3) Nonprofit Organization', { x: 22, y: H - 62, font, size: 7, color: rgb(0.5, 0.5, 0.5) });
 
   // Cert type label (top right in band)
@@ -23326,7 +23326,7 @@ app.post('/api/admin/ceu/email-certificate', verifyToken, requireAdmin, async (r
       </table>
       <p style="margin:0 0 12px;font-size:13px"><strong>Important:</strong> Keep this certificate in your records for at least two years after your license renewal date. Do not submit it to the BBS unless you are selected for a CE audit.</p>
       <p style="margin:0 0 16px;font-size:13px">Thank you for participating in the Unstoppable training.</p>
-      <p style="margin:0;font-size:13px">Health Matters Clinic<br>${HMC_MAILING_ADDRESS}<br>education@healthmatters.clinic</p>
+      <p style="margin:0;font-size:13px">Health Matters Clinic<br>${HMC_MAILING_ADDRESS}<br>training@healthmatters.clinic</p>
     </div>`;
     await sendEmailRaw(email, subject, html, `Dear ${firstName}, your CE certificate is ready: ${downloadUrl}`);
     res.json({ success: true, certId, downloadUrl });
