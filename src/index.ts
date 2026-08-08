@@ -8997,7 +8997,19 @@ app.post('/api/partners/accept-invite', async (req: Request, res: Response) => {
 // POST /api/partners/register-self — Public: partner self-registers without an invite
 app.post('/api/partners/register-self', async (req: Request, res: Response) => {
     try {
-        const { orgName, orgType, contactName, email, password, phone, website, servicesProvided } = req.body;
+        const { orgName, orgType, contactName, email, password, phone, website, servicesProvided, partnershipTypes } = req.body;
+
+        // Partnership types are REQUESTED here, never granted. Only an admin
+        // writes approvedPartnershipTypes. Whitelist against the union in
+        // types.ts so an application cannot be written with a type nothing
+        // downstream can read.
+        const ALLOWED_PARTNERSHIP_TYPES = ['referral', 'event_vendor', 'subcontractor', 'general'] as const;
+        const requestedPartnershipTypes = Array.isArray(partnershipTypes)
+            ? Array.from(new Set(
+                partnershipTypes.filter((t: unknown): t is typeof ALLOWED_PARTNERSHIP_TYPES[number] =>
+                    typeof t === 'string' && (ALLOWED_PARTNERSHIP_TYPES as readonly string[]).includes(t))
+              ))
+            : [];
 
         // Validate required fields
         if (!orgName || !contactName || !email || !password) {
@@ -9040,6 +9052,8 @@ app.post('/api/partners/register-self', async (req: Request, res: Response) => {
             partnerSince: now,
             portalAccess: true,
             portalUserEmail: emailLower,
+            requestedPartnershipTypes,
+            approvedPartnershipTypes: [],
         };
         const agencyRef = await db.collection('partner_agencies').add(agencyData);
         const partnerAgencyId = agencyRef.id;

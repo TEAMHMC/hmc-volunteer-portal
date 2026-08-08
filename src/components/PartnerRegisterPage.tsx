@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { APP_CONFIG } from '../config';
+import { PARTNERSHIP_TYPES, type PartnershipTypeId } from '../partnerTypes';
 
 interface PartnerRegisterPageProps {
+  /** Preselected from the partnership type the organization clicked on the landing page. */
+  initialPartnershipType?: PartnershipTypeId;
   onRegistered: () => void;
   onLogin: (partnerMode?: boolean) => void;
   onAdminLogin: (email: string, password: string) => Promise<void>;
@@ -11,7 +14,14 @@ type OrgType = 'Healthcare' | 'Housing' | 'Food' | 'Legal' | 'Employment' | 'Men
 
 const ORG_TYPES: OrgType[] = ['Healthcare', 'Housing', 'Food', 'Legal', 'Employment', 'Mental Health', 'Other'];
 
-const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered, onLogin, onAdminLogin }) => {
+const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ initialPartnershipType, onRegistered, onLogin, onAdminLogin }) => {
+  // An organization requests partnership types here. Only an HMC admin approves
+  // them, so this never writes approvedPartnershipTypes.
+  const [partnershipTypes, setPartnershipTypes] = useState<PartnershipTypeId[]>(
+    initialPartnershipType ? [initialPartnershipType] : []
+  );
+  const togglePartnershipType = (id: PartnershipTypeId) =>
+    setPartnershipTypes((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const [orgName, setOrgName] = useState('');
   const [orgType, setOrgType] = useState<OrgType | ''>('');
   const [contactName, setContactName] = useState('');
@@ -76,6 +86,7 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
           phone: phone.trim() || undefined,
           website: website.trim() || undefined,
           servicesProvided: servicesProvided.trim() || undefined,
+          partnershipTypes: partnershipTypes.length ? partnershipTypes : undefined,
         }),
       });
 
@@ -278,6 +289,50 @@ const PartnerRegisterPage: React.FC<PartnerRegisterPageProps> = ({ onRegistered,
                 style={inputStyle}
                 autoComplete="url"
               />
+            </div>
+
+            {/* Partnership types requested */}
+            <div>
+              <label style={labelStyle}>
+                How You Want To Partner <span style={{ color: 'rgba(255,255,255,.3)', fontWeight: 400 }}>(choose any that apply)</span>
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 }}>
+                {PARTNERSHIP_TYPES.map((t) => {
+                  const on = partnershipTypes.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => togglePartnershipType(t.id)}
+                      aria-pressed={on}
+                      style={{
+                        textAlign: 'left',
+                        background: on ? 'rgba(35,61,255,.18)' : 'rgba(255,255,255,.07)',
+                        border: on ? '1px solid rgba(120,145,255,.65)' : '1px solid rgba(255,255,255,.15)',
+                        borderRadius: 10,
+                        padding: '13px 15px',
+                        cursor: 'pointer',
+                        color: '#fff',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 700 }}>
+                        <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: on ? 'none' : '1.5px solid rgba(255,255,255,.35)', background: on ? '#7891ff' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {on && (
+                            <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="#0a0e28" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          )}
+                        </span>
+                        {t.name}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.5, marginTop: 6 }}>{t.tagline}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.6, marginTop: 10 }}>
+                This is what you are requesting. An HMC administrator reviews every application and approves the
+                types your organization is ready for.
+              </p>
             </div>
 
             {/* Services */}

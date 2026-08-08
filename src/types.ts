@@ -936,6 +936,9 @@ export interface PartnerAgency {
     hours?: string;                   // Operating hours
     // PRM fields
     approvedPartnershipTypes?: Array<'referral' | 'event_vendor' | 'subcontractor' | 'general'>;
+    // What the organization asked for at self-registration. Requested is not
+    // approved; only an admin writes approvedPartnershipTypes.
+    requestedPartnershipTypes?: Array<'referral' | 'event_vendor' | 'subcontractor' | 'general'>;
     logoUrl?: string;
     brandGuidelinesUrl?: string;
     primaryColor?: string;

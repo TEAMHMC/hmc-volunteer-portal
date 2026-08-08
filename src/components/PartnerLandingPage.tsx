@@ -1,9 +1,11 @@
 import React from 'react';
 import { APP_CONFIG } from '../config';
+import { PARTNERSHIP_TYPES, ELIGIBILITY, NOT_A_FIT, type PartnershipTypeId } from '../partnerTypes';
 
 interface PartnerLandingPageProps {
   onLogin: (partnerMode?: boolean) => void;
-  onRegister: () => void;
+  /** Carries the partnership type the organization picked into registration. */
+  onRegister: (type?: PartnershipTypeId) => void;
   onAdminLogin: (email: string, password: string) => Promise<void>;
 }
 
@@ -26,7 +28,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={onRegister}
+            onClick={() => onRegister()}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', color: '#0a0e28', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '10px 22px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0a0e28', display: 'inline-block', flexShrink: 0 }} />
@@ -68,7 +70,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
-              onClick={onRegister}
+              onClick={() => onRegister()}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#233dff', color: '#fff', border: '1.5px solid #0f0f0f', borderRadius: 100, padding: '18px 40px', fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 4px 24px rgba(35,61,255,.4)' }}
             >
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'inline-block', flexShrink: 0 }} />
@@ -91,14 +93,14 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#233dff', marginBottom: 16 }}>How It Works</p>
           <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Up and running in minutes.</h2>
-          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create an account and start listing events today.</p>
+          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 620, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create an account and start listing events today. Partnership types that carry obligations, like receiving referrals, are reviewed before they turn on.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {[
               {
                 num: '01',
                 title: 'Create Your Account',
-                desc: 'Sign up with your organization email. No application, no approval process. Your account is ready immediately.',
+                desc: 'Sign up with your organization email and tell us how you want to partner. Your account is active immediately, so you can start listing events the same day.',
               },
               {
                 num: '02',
@@ -108,7 +110,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
               {
                 num: '03',
                 title: 'Get RSVPs and Grow',
-                desc: 'Community members register directly through the platform. You get notified in real time and can track attendance from your dashboard.',
+                desc: 'Community members register directly through the platform. You get notified in real time and can track attendance from your dashboard. Referral and subcontract partnership unlocks once an administrator approves it.',
               },
             ].map((step) => (
               <div key={step.num} style={{ background: '#f5f5f4', border: '1px solid rgba(0,0,0,.06)', borderRadius: 20, padding: '32px 28px' }}>
@@ -180,6 +182,101 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         </div>
       </section>
 
+      {/* CHOOSE HOW YOU PARTNER */}
+      <section style={{ background: '#fff', color: '#111', padding: '96px 48px', borderTop: '1px solid rgba(0,0,0,.06)' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#233dff', marginBottom: 16 }}>Partnership Types</p>
+          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Choose how you partner.</h2>
+          <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 640, marginBottom: 56 }}>
+            Each type maps to work your organization already does. You can hold more than one, and you can add
+            another later without reapplying.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 20 }}>
+            {PARTNERSHIP_TYPES.map((t) => (
+              <div key={t.id} style={{ background: '#fff', border: '1px solid rgba(0,0,0,.1)', borderRadius: 20, padding: '30px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#233dff', marginBottom: 10 }}>{t.tagline}</p>
+                  <h3 style={{ fontSize: 21, fontWeight: 900, letterSpacing: '-.02em', lineHeight: 1.1, color: '#111', margin: 0 }}>{t.name}</h3>
+                </div>
+                <p style={{ fontSize: 14, color: '#555', lineHeight: 1.65, margin: 0 }}>{t.description}</p>
+
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#999', marginBottom: 8 }}>What you get</p>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {t.youGet.map((g) => (
+                      <li key={g} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13.5, color: '#333', lineHeight: 1.5 }}>
+                        <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="#233dff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }}><polyline points="20 6 9 17 4 12"/></svg>
+                        {g}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#999', marginBottom: 8 }}>What we ask</p>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {t.weAsk.map((a) => (
+                      <li key={a} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13.5, color: '#666', lineHeight: 1.5 }}>
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#ccc', flexShrink: 0, marginTop: 8 }} />
+                        {a}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+                  <p style={{ fontSize: 11.5, color: '#888', lineHeight: 1.5, marginBottom: 14 }}>
+                    Once approved, your profile shows <strong style={{ color: '#333' }}>{t.readinessStatus}</strong>.
+                  </p>
+                  <button
+                    onClick={() => onRegister(t.id)}
+                    style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#0a0e28', color: '#fff', border: 'none', borderRadius: 100, padding: '13px 22px', fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+                  >
+                    Apply as {t.name}
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: 13.5, color: '#888', marginTop: 28, lineHeight: 1.65, maxWidth: 720 }}>
+            Selecting a type here tells us what you are applying for. An HMC administrator reviews every
+            application and approves the types your organization is ready for, which may be more or fewer than
+            you requested.
+          </p>
+        </div>
+      </section>
+
+      {/* ELIGIBILITY */}
+      <section style={{ background: '#fff', color: '#111', padding: '0 48px 96px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+          <div style={{ background: '#f5f5f4', border: '1px solid rgba(0,0,0,.06)', borderRadius: 20, padding: '32px 30px' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-.02em', color: '#111', marginTop: 0, marginBottom: 18 }}>To partner with HMC, your organization should</h3>
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {ELIGIBILITY.map((e) => (
+                <li key={e} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', fontSize: 14.5, color: '#333', lineHeight: 1.6 }}>
+                  <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#233dff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 5 }}><polyline points="20 6 9 17 4 12"/></svg>
+                  {e}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ background: '#f5f5f4', border: '1px solid rgba(0,0,0,.06)', borderRadius: 20, padding: '32px 30px' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-.02em', color: '#111', marginTop: 0, marginBottom: 18 }}>This is not the right door if</h3>
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {NOT_A_FIT.map((e) => (
+                <li key={e} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', fontSize: 14.5, color: '#666', lineHeight: 1.6 }}>
+                  <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="#ff6e40" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 5 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  {e}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* WHO QUALIFIES */}
       <section style={{ background: '#f5f5f4', color: '#111', padding: '96px 48px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -210,7 +307,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
                 Create your account and list your first event today. No lengthy approval process. Just a better way to connect with your community.
               </p>
               <button
-                onClick={onRegister}
+                onClick={() => onRegister()}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f9c74f', color: '#0f0f0f', border: 'none', borderRadius: 100, padding: '14px 28px', fontSize: 14, fontWeight: 700, letterSpacing: '.02em', cursor: 'pointer', marginBottom: 12 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0f0f0f', display: 'inline-block', flexShrink: 0 }} />

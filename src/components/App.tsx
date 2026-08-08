@@ -8,6 +8,7 @@ import ClientPortal from './ClientPortal';
 import PartnerPortalView from './PartnerPortalView';
 import PartnerAcceptInvite from './PartnerAcceptInvite';
 import PartnerLandingPage from './PartnerLandingPage';
+import type { PartnershipTypeId } from '../partnerTypes';
 import PartnerRegisterPage from './PartnerRegisterPage';
 import PartnerAdminPage from './PartnerAdminPage';
 import PublicSurveyView from './PublicSurveyView';
@@ -78,6 +79,9 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
     const params = new URLSearchParams(window.location.search);
     return params.get('role') === 'partner';
   });
+
+  // Partnership type the organization picked on the landing page, prefilled into registration.
+  const [requestedPartnershipType, setRequestedPartnershipType] = useState<PartnershipTypeId | undefined>(undefined);
 
   // Deep link params from email buttons (?tab=missions&checkin=SHIFTID)
   const [deepLinkTab] = useState<string | null>(() => {
@@ -362,10 +366,11 @@ const App: React.FC<AppProps> = ({ googleClientId, recaptchaSiteKey }) => {
 
   if (view === 'partnerAdmin') return <PartnerAdminPage onLogout={handleLogout} />;
 
-  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} onRegister={() => setView('partnerRegister')} onAdminLogin={handlePartnerAdminLogin} />;
+  if (view === 'partnerLanding') return <PartnerLandingPage onLogin={(pm) => { if (pm) setPartnerModeActive(true); setView('landing'); }} onRegister={(t) => { setRequestedPartnershipType(t); setView('partnerRegister'); }} onAdminLogin={handlePartnerAdminLogin} />;
 
   if (view === 'partnerRegister') return (
     <PartnerRegisterPage
+      initialPartnershipType={requestedPartnershipType}
       onRegistered={async () => {
         setLoading(true);
         try {
