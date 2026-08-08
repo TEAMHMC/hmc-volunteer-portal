@@ -65,7 +65,9 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
           </h1>
 
           <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', color: '#555', maxWidth: 620, margin: '0 auto 44px', lineHeight: 1.65, fontStyle: 'italic' }}>
-            The platform for health and wellness organizations to list events, collect RSVPs, and reach thousands of community members across Los Angeles.
+            The referral and service network for Los Angeles organizations doing health and social
+            care work. Receive referrals that close with a real outcome, publish events to the whole
+            county, find partners for the work you cannot staff alone, and show your impact with data.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -88,11 +90,37 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
         </div>
       </section>
 
+      {/* THREE PATHS */}
+      <section style={{ background: '#fff', color: '#111', padding: '72px 48px 0' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', borderTop: '1px solid rgba(0,0,0,.08)' }}>
+          {[
+            { title: 'Join the network', desc: 'Apply as a referral partner, event co-host, subcontractor, or community partner. Free, and your account is active the same day.', cta: 'Get started', action: 'register' },
+            { title: 'Partner Portal', desc: 'Already working with HMC? Sign in to your referral inbox, event listings, performance view, and the community board.', cta: 'Sign in', action: 'login' },
+            { title: 'See what partners do', desc: 'Four partnership types, what each one gives you, and what HMC asks in return. Read before you apply.', cta: 'Compare types', action: 'types' },
+          ].map((col, i) => (
+            <div key={col.title} style={{ padding: '32px 28px', borderLeft: i === 0 ? 'none' : '1px solid rgba(0,0,0,.08)' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-.01em', color: '#111', marginTop: 0, marginBottom: 10 }}>{col.title}</h3>
+              <p style={{ fontSize: 14, color: '#555', lineHeight: 1.65, marginBottom: 18 }}>{col.desc}</p>
+              <button
+                onClick={() => {
+                  if (col.action === 'register') onRegister();
+                  else if (col.action === 'login') handleLogin();
+                  else document.getElementById('partnership-types')?.scrollIntoView({ block: 'start' });
+                }}
+                style={{ background: '#fff', color: '#0a0e28', border: '1.5px solid rgba(0,0,0,.18)', borderRadius: 100, padding: '10px 22px', fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}
+              >
+                {col.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section style={{ background: '#fff', color: '#111', padding: '96px 48px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#233dff', marginBottom: 16 }}>How It Works</p>
-          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Up and running in minutes.</h2>
+          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Up and running the same day.</h2>
           <p style={{ fontSize: 18, color: '#555', lineHeight: 1.65, maxWidth: 620, marginBottom: 56 }}>Any health or wellness organization serving the LA community can create an account and start listing events today. Partnership types that carry obligations, like receiving referrals, are reviewed before they turn on.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
@@ -127,14 +155,14 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
       <section style={{ background: '#0f0f0f', color: '#fff', padding: '96px 48px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(249,199,79,.7)', marginBottom: 16 }}>What You Get</p>
-          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#fff' }}>Everything you need<br />in one place.</h2>
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,.5)', lineHeight: 1.65, maxWidth: 560, marginBottom: 56 }}>Your portal gives you the tools to reach more people, stay organized, and demonstrate your community impact.</p>
+          <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#fff' }}>Built for the work,<br />not just the calendar.</h2>
+          <p style={{ fontSize: 18, color: 'rgba(255,255,255,.5)', lineHeight: 1.65, maxWidth: 620, marginBottom: 56 }}>Most community referral disappears the moment it leaves the room. The portal exists so a person handed to your organization has an owner, a status, and an outcome somebody can point to later.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
             {[
               {
-                title: 'Event Finder Listing',
-                desc: 'Submit events directly to the HMC Event Finder. Attach a flyer, set your date and location, and reach thousands of community members across Los Angeles.',
+                title: 'Referral Inbox',
+                desc: 'Every referral HMC routes to you, matched to the services you declared. Accept it, work it, and close it with an outcome. Marking Unable to Serve releases the person to be routed elsewhere instead of stranding them.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.95 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.86 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -142,8 +170,8 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
                 ),
               },
               {
-                title: 'RSVP Notifications',
-                desc: 'Get a real-time email every time someone registers for your event through the HMC Event Finder. Know your attendance before event day.',
+                title: 'Performance and Reporting',
+                desc: 'Referral volume, response time, completion rate, and enrollment counts over rolling periods. The numbers a funder asks for, without rebuilding a report each time.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
@@ -151,8 +179,8 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
                 ),
               },
               {
-                title: 'Referral Inbox',
-                desc: 'See every client referral HMC sends your way. Accept, update status, and log outcomes with one click. No back-and-forth emails.',
+                title: 'Community Board',
+                desc: 'Post what you need to the whole partner network. A request for volunteers routes into the HMC volunteer network, which is how an organization with six volunteers staffs an event that needs twelve.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -161,8 +189,8 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
                 ),
               },
               {
-                title: 'Performance Dashboard',
-                desc: 'Track event RSVPs, referral volume, acceptance rate, and outcomes over rolling time periods. Demonstrate your community impact with data.',
+                title: 'Events and Community Reach',
+                desc: 'Publish to the HMC Event Finder and the Member Hub in one submission, with real-time RSVP notifications. Community reach on day one without building an audience of your own.',
                 icon: (
                   <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="#f9c74f" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -183,7 +211,7 @@ const PartnerLandingPage: React.FC<PartnerLandingPageProps> = ({ onLogin, onRegi
       </section>
 
       {/* CHOOSE HOW YOU PARTNER */}
-      <section style={{ background: '#fff', color: '#111', padding: '96px 48px', borderTop: '1px solid rgba(0,0,0,.06)' }}>
+      <section id="partnership-types" style={{ background: '#fff', color: '#111', padding: '96px 48px', borderTop: '1px solid rgba(0,0,0,.06)' }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
           <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#233dff', marginBottom: 16 }}>Partnership Types</p>
           <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 900, letterSpacing: '-.03em', lineHeight: .95, marginBottom: 20, color: '#111' }}>Choose how you partner.</h2>
