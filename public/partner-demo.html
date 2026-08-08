@@ -175,17 +175,18 @@
     <div class="logo">HMC</div>
     <div class="org">Eastside Community Wellness<span>Partner Portal &middot; Official Referral Partner</span></div>
     <span class="badge">Approved</span>
+    <button class="reset" id="reset">Reset demo</button>
   </div>
 
-  <div class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="referrals">Referrals</button>
-    <button role="tab" aria-selected="false" data-tab="organization">Organization</button>
-    <button role="tab" aria-selected="false" data-tab="performance">Performance</button>
-    <button role="tab" aria-selected="false" data-tab="community">Community Board</button>
-    <button role="tab" aria-selected="false" data-tab="events">Events</button>
+  <div class="tabs" role="tablist" aria-label="Partner portal sections">
+    <button role="tab" id="tab-referrals" aria-controls="panel" aria-selected="true" tabindex="0" data-tab="referrals">Referrals</button>
+    <button role="tab" id="tab-organization" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="organization">Organization</button>
+    <button role="tab" id="tab-performance" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="performance">Performance</button>
+    <button role="tab" id="tab-community" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="community">Community Board</button>
+    <button role="tab" id="tab-events" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="events">Events</button>
   </div>
 
-  <div class="panelwrap"><div class="pad" id="panel"></div></div>
+  <div class="panelwrap"><div class="pad" id="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-referrals"></div></div>
 
   <p class="legend"><b>How to use this in a demo.</b> Accept a referral, move it to In Progress, then mark it Completed, and watch the Performance tab recalculate. Post an event on the Events tab and watch it appear in the public Event Finder view underneath. That loop is the whole point: a referral has an owner and an outcome, and a partner event reaches the community without the partner building an audience.</p>
 
@@ -200,23 +201,33 @@
     'Childcare & Child Services','Transportation','HIV / Sexual Health',
     'Insurance Enrollment & Renewal','Public Benefits (DPSS, CalFresh)'];
 
+  var PARTNER_TYPES = ['Official Referral Partner','Event Vendor or Co-host','Subcontractor','General Community Partner'];
+  var SPAS = ['Service Planning Area 4','Service Planning Area 6','Service Planning Area 7'];
+
   var state = {
     tab:'referrals',
     caps:{'Healthcare / Medical':true,'Mental Health & Behavioral Health':true,
           'Housing & Shelter':true,'Food & Nutrition':true,
           'Insurance Enrollment & Renewal':true},
+    ptype:'Official Referral Partner',
+    spas:{'Service Planning Area 4':true,'Service Planning Area 6':true,'Service Planning Area 7':false},
+    // ageH is hours since receipt. When a New referral is first actioned it
+    // becomes that referral's response time and feeds the 30-day average.
     referrals:[
-      {id:1,title:'Housing referral',cat:'Housing & Shelter',src:'Routed from HMC street medicine outreach',urg:'Routine',status:'New',age:'2 hours ago'},
-      {id:2,title:'Behavioral health referral',cat:'Mental Health & Behavioral Health',src:'Routed from Altadena Health Fair intake',urg:'Priority',status:'New',age:'5 hours ago'},
-      {id:6,title:'Medi-Cal enrollment assistance',cat:'Insurance Enrollment & Renewal',src:'Routed from HMC enrollment activation, door to door',urg:'Priority',status:'In Progress',age:'3 hours ago'},
-      {id:3,title:'Food assistance referral',cat:'Food & Nutrition',src:'Routed from Member Hub self-check',urg:'Routine',status:'In Progress',age:'yesterday'},
-      {id:4,title:'Coverage renewal support',cat:'Insurance Enrollment & Renewal',src:'Routed from Back to School Wellness Event',urg:'Priority',status:'Completed',age:'4 days ago',assisted:4},
-      {id:5,title:'Transportation to dialysis',cat:'Transportation',src:'Routed from partner network',urg:'Urgent',status:'Unable to Serve',age:'6 days ago'}
+      {id:1,title:'Housing referral',cat:'Housing & Shelter',src:'Routed from HMC street medicine outreach',urg:'Routine',status:'New',age:'2 hours ago',ageH:2},
+      {id:2,title:'Behavioral health referral',cat:'Mental Health & Behavioral Health',src:'Routed from Altadena Health Fair intake',urg:'Priority',status:'New',age:'5 hours ago',ageH:5},
+      {id:6,title:'Medi-Cal enrollment assistance',cat:'Insurance Enrollment & Renewal',src:'Routed from HMC enrollment activation, door to door',urg:'Priority',status:'In Progress',age:'3 hours ago',ageH:3,responded:3},
+      {id:3,title:'Food assistance referral',cat:'Food & Nutrition',src:'Routed from Member Hub self-check',urg:'Routine',status:'In Progress',age:'yesterday',ageH:26,responded:8},
+      {id:4,title:'Coverage renewal support',cat:'Insurance Enrollment & Renewal',src:'Routed from Back to School Wellness Event',urg:'Priority',status:'Completed',age:'4 days ago',ageH:96,responded:5,assisted:4},
+      {id:5,title:'Transportation to dialysis',cat:'Transportation',src:'Routed from partner network',urg:'Urgent',status:'Unable to Serve',age:'6 days ago',ageH:144,responded:2}
     ],
     baseReferrals:243, baseCompleted:190,
+    // Response time is scoped to the last 30 days, so the denominator is small
+    // enough that a partner acting on a referral during the demo actually moves it.
+    respBaseN:14, respBaseSum:91,
     assistedBaseline:71, monthlyTarget:100, annualTarget:1200,
     board:[
-      {id:0,type:'Volunteers Needed',title:'Need 12 volunteers for community health fair',meta:'Saturday, September 20. Intake, registration, and Spanish-language navigation. Request routed to the HMC volunteer network.'},
+      {id:0,type:'Volunteers Needed',title:'Need 12 volunteers for community health fair',meta:'Saturday, September 19. Intake, registration, and Spanish-language navigation. Request routed to the HMC volunteer network.'},
       {id:1,type:'Vendor Needed',title:'Bilingual health educator needed',meta:'Back to School Wellness Event, Huntington Park, Saturday'},
       {id:2,type:'Opportunity',title:'Co-host a coverage renewal clinic',meta:'Seeking a partner site with weekend availability and Spanish-language capacity'},
       {id:3,type:'Announcement',title:'Unstoppable facilitator training cohort opens next month',meta:'LACDMH-approved continuing education. Open to partner organization staff and volunteers.'},
@@ -230,9 +241,17 @@
     nextEventId:3
   };
 
+  // Snapshot for "Reset demo" so the walkthrough can be run more than once
+  // without a page reload. Every read goes through the `state` binding, so
+  // reassigning it is enough.
+  var INITIAL = JSON.stringify(state);
+
   var el = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  // Category labels carry slashes, ampersands and parentheses. Inside a quoted
+  // attribute selector only the quote and backslash need escaping.
+  var cssEsc = function(s){ return String(s).replace(/["\\]/g, '\\$&'); };
 
   var toastTimer;
   function toast(msg){
@@ -252,6 +271,18 @@
   function assistedTotal(){
     return state.assistedBaseline + state.referrals.reduce(function(n,r){
       return n + (r.status==='Completed' && r.assisted ? r.assisted : 0); },0);
+  }
+
+  // Mean hours from referral received to first action by the partner, over the
+  // trailing 30 days. Demo referrals contribute the moment they are actioned.
+  function avgResponse(){
+    var n = state.respBaseN, sum = state.respBaseSum;
+    state.referrals.forEach(function(r){
+      if(typeof r.responded === 'number'){ n++; sum += r.responded; }
+    });
+    if(!n) return '--';
+    var mean = sum/n;
+    return (mean < 10 ? mean.toFixed(1) : Math.round(mean)) + 'h';
   }
 
   function metrics(){
@@ -310,14 +341,13 @@
     return '<h2>Organization profile</h2><p class="hint">Declare what your organization can actually serve. Referral routing uses this, so keeping it current is how you get the right referrals and stop getting the wrong ones.</p>'+
       '<h3>Service capabilities ('+on+' of '+CATS.length+' selected)</h3><div class="chips">'+chips+'</div>'+
       '<h3>Partnership type</h3><div class="chips">'+
-        '<button class="chip" aria-pressed="true">Official Referral Partner</button>'+
-        '<button class="chip" aria-pressed="false">Event Vendor or Co-host</button>'+
-        '<button class="chip" aria-pressed="false">Subcontractor</button>'+
-        '<button class="chip" aria-pressed="false">General Community Partner</button></div>'+
+        PARTNER_TYPES.map(function(p){
+          return '<button class="chip" aria-pressed="'+(state.ptype===p?'true':'false')+'" data-act="ptype" data-p="'+esc(p)+'">'+esc(p)+'</button>';
+        }).join('')+'</div>'+
       '<h3>Coverage area</h3><div class="chips">'+
-        '<button class="chip" aria-pressed="true">Service Planning Area 4</button>'+
-        '<button class="chip" aria-pressed="true">Service Planning Area 6</button>'+
-        '<button class="chip" aria-pressed="false">Service Planning Area 7</button></div>';
+        SPAS.map(function(s){
+          return '<button class="chip" aria-pressed="'+(state.spas[s]?'true':'false')+'" data-act="spa" data-s="'+esc(s)+'">'+esc(s)+'</button>';
+        }).join('')+'</div>';
   };
 
   views.performance = function(){
@@ -327,7 +357,7 @@
       '<div class="kpis">'+
         '<div class="kpi"><div class="n">'+m.total+'</div><div class="l">Total referrals received</div></div>'+
         '<div class="kpi"><div class="n">'+m.completed+'</div><div class="l">Completed successfully</div></div>'+
-        '<div class="kpi"><div class="n">6h</div><div class="l">Average response time</div></div>'+
+        '<div class="kpi"><div class="n">'+avgResponse()+'</div><div class="l">Average response time, last 30 days</div></div>'+
         '<div class="kpi"><div class="n">'+m.score+'%</div><div class="l">Performance score</div>'+
           '<div class="meter"><i style="width:'+m.score+'%;background:'+color+'"></i></div></div>'+
       '</div>'+
@@ -398,16 +428,55 @@
       '<p class="hint" style="margin-top:16px">The same feed appears in the Member Hub and on the HMC website, so one partner submission reaches residents through every community-facing surface at once.</p>';
   };
 
-  function render(){
-    el('panel').innerHTML = views[state.tab]();
+  // The panel is rebuilt wholesale on every change, which drops keyboard focus
+  // to the body. Re-focus the control the user just used (or its replacement in
+  // the same row) so tabbing through the demo does not reset to the top.
+  function render(focusSel){
+    var panel = el('panel');
+    panel.innerHTML = views[state.tab]();
+    panel.setAttribute('aria-labelledby','tab-'+state.tab);
     Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function(b){
-      b.setAttribute('aria-selected', b.dataset.tab===state.tab ? 'true':'false');
+      var on = b.dataset.tab===state.tab;
+      b.setAttribute('aria-selected', on ? 'true':'false');
+      b.tabIndex = on ? 0 : -1;
     });
+    document.querySelector('.org').innerHTML =
+      'Eastside Community Wellness<span>Partner Portal &middot; '+esc(state.ptype)+'</span>';
+    if(focusSel){
+      var next = panel.querySelector(focusSel);
+      if(next) next.focus();
+    }
   }
 
-  document.querySelector('.tabs').addEventListener('click', function(e){
+  function selectTab(name){
+    state.tab = name;
+    render();
+    var t = el('tab-'+name);
+    if(t) t.focus();
+  }
+
+  var tablist = document.querySelector('.tabs');
+  tablist.addEventListener('click', function(e){
     var b = e.target.closest('button[data-tab]'); if(!b) return;
-    state.tab = b.dataset.tab; render();
+    selectTab(b.dataset.tab);
+  });
+  tablist.addEventListener('keydown', function(e){
+    var keys = {ArrowRight:1, ArrowLeft:-1, Home:'first', End:'last'};
+    if(!(e.key in keys)) return;
+    var tabs = Array.prototype.slice.call(tablist.querySelectorAll('button[data-tab]'));
+    var i = tabs.indexOf(document.activeElement);
+    if(i === -1) return;
+    e.preventDefault();
+    var move = keys[e.key];
+    var next = move==='first' ? 0 : move==='last' ? tabs.length-1
+      : (i + move + tabs.length) % tabs.length;
+    selectTab(tabs[next].dataset.tab);
+  });
+
+  el('reset').addEventListener('click', function(){
+    state = JSON.parse(INITIAL);
+    render();
+    toast('Demo reset. Every tab is back to its starting state.');
   });
 
   el('panel').addEventListener('click', function(e){
@@ -421,18 +490,38 @@
       if(rc){ rc.assisted = n; rc.status='Completed';
         toast(n+' assisted recorded. Enrollment total is now '+assistedTotal()+' this month.');
         render(); }
+      else { render(); }
       return;
     }
     if(act==='ref'){
       var r = state.referrals.filter(function(x){return x.id===Number(b.dataset.id);})[0];
-      if(r){ r.status = b.dataset.to; toast('Referral moved to "'+r.status+'". Performance updated.'); render(); }
+      if(r){
+        // First action on a New referral is what the response-time metric measures.
+        if(r.status==='New' && typeof r.responded !== 'number') r.responded = r.ageH;
+        r.status = b.dataset.to;
+        toast('Referral moved to "'+r.status+'". Performance updated.');
+        render('[data-act="ref"][data-id="'+r.id+'"], [data-act="complete"][data-id="'+r.id+'"]');
+      }
+    }
+    else if(act==='ptype'){
+      state.ptype = b.dataset.p;
+      toast('Partnership type set to '+state.ptype+'.');
+      render('[data-act="ptype"][data-p="'+cssEsc(b.dataset.p)+'"]');
+    }
+    else if(act==='spa'){
+      var s = b.dataset.s; state.spas[s] = !state.spas[s];
+      toast(state.spas[s] ? 'Now covering '+s : 'No longer covering '+s);
+      render('[data-act="spa"][data-s="'+cssEsc(s)+'"]');
     }
     else if(act==='cap'){
       var c = b.dataset.cat; state.caps[c] = !state.caps[c];
       toast(state.caps[c] ? 'Now accepting referrals for '+c : 'No longer accepting '+c);
-      render();
+      render('[data-act="cap"][data-cat="'+cssEsc(c)+'"]');
     }
-    else if(act==='filter'){ state.boardFilter = b.dataset.f; render(); }
+    else if(act==='filter'){
+      state.boardFilter = b.dataset.f;
+      render('[data-act="filter"][data-f="'+cssEsc(b.dataset.f)+'"]');
+    }
     else if(act==='post'){
       var name = el('ev-name').value.trim() || 'Community Health Screening';
       var date = el('ev-date').value.trim() || 'Saturday, September 12, 2026';
@@ -442,7 +531,10 @@
       toast('Published. It is now live in the public Event Finder below.');
       render();
       var pf = document.getElementById('pubfeed');
-      if(pf) pf.lastElementChild.scrollIntoView({block:'nearest', behavior:'smooth'});
+      var last = pf && pf.lastElementChild;
+      if(last && typeof last.scrollIntoView === 'function'){
+        last.scrollIntoView({block:'nearest', behavior:'smooth'});
+      }
     }
   });
 
